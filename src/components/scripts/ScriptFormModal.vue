@@ -211,7 +211,7 @@
                 transition-hide="fade"
               >
                 <div>
-                  <strong>Runs on Tactical RMM local Linux Server.</strong
+                  <strong>Runs on MDM-labs local Linux Server.</strong
                   ><br />
                   Only available interpreters or frameworks will be used.<br />
                   <em>Example:</em> PowerShell scripts require PowerShell to be

@@ -60,7 +60,7 @@
           <q-tooltip>Back to Dashboard</q-tooltip>
         </q-btn>
         <q-toolbar-title>
-          Tactical RMM<span class="text-overline q-ml-sm"
+          MDM-labs<span class="text-overline q-ml-sm"
             >v{{ currentTRMMVersion }}</span
           >
           <!-- update check -->

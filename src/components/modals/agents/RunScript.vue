@@ -160,7 +160,7 @@
               feature.</q-tooltip
             >
             <q-tooltip v-else
-              >Run the script on the Tactical RMM server in the context of this
+              >Run the script on the MDM-labs server in the context of this
               agent.</q-tooltip
             >
           </q-checkbox>
