@@ -45,6 +45,7 @@ export default function () {
         web_terminal_enabled: true,
         sso_enabled: false,
         block_local_user_logon: false,
+        fileBarDrawerOpen: false,
       };
     },
     getters: {
@@ -167,6 +168,9 @@ export default function () {
       setBlockLocalUserLogon(state, obj) {
         state.block_local_user_logon = obj;
       },
+      SET_FILEBAR_DRAWER(state, val) {
+        state.fileBarDrawerOpen = val;
+      },
     },
     actions: {
       setClientTreeSplitter(context, val) {
@@ -276,7 +280,7 @@ export default function () {
                     id: site.id,
                     raw: `Site|${site.id}`,
                     header: "generic",
-                    icon: "apartment",
+                    icon: "business_center",
                     selectable: true,
                     site: site,
                   };
@@ -297,7 +301,7 @@ export default function () {
                   id: client.id,
                   raw: `Client|${client.id}`,
                   header: "root",
-                  icon: "business",
+                  icon: "corporate_fare",
                   children: childSites,
                   client: client,
                 };

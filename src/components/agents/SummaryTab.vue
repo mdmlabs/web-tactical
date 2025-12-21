@@ -8,6 +8,10 @@
       class="q-ma-md"
     />
   </div>
+  <div v-else-if="!summary && !loading" class="q-pa-sm text-center text-grey-6">
+    <q-icon name="info" size="2em" class="q-mb-sm" />
+    <div>No data available. Try refreshing.</div>
+  </div>
   <div v-else-if="summary" class="q-pa-sm">
     <q-bar dense style="background-color: transparent">
       <q-btn
@@ -232,7 +236,7 @@
 
 <script>
 // composition imports
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useStore } from "vuex";
 import {
   fetchAgent,
@@ -265,6 +269,7 @@ export default {
     const summary = ref(null);
     const customFieldsDefinitions = ref(null);
     const loading = ref(false);
+    let isMounted = true;
 
     const serial_number = computed(() => {
       if (summary.value.plat === "windows") {
@@ -333,43 +338,129 @@ export default {
     });
 
     async function getSummary() {
-      loading.value = true;
-      summary.value = await fetchAgent(selectedAgent.value);
-      customFieldsDefinitions.value = await fetchCustomFields();
-      store.commit("setRefreshSummaryTab", false);
-      store.commit("setAgentPlatform", summary.value.plat);
-      loading.value = false;
+      if (!selectedAgent.value || !isMounted) {
+        return;
+      }
+
+      const currentAgentId = selectedAgent.value;
+
+      try {
+        loading.value = true;
+        const agentData = await fetchAgent(currentAgentId);
+
+        // проверяем, что компонент все еще смонтирован и селектаджент не изменился
+        if (
+          !isMounted ||
+          !selectedAgent.value ||
+          selectedAgent.value !== currentAgentId
+        ) {
+          loading.value = false;
+          return;
+        }
+
+        // чекаем что полученные данные соответствуют выбранному агенту
+        if (agentData && agentData.id !== currentAgentId) {
+          loading.value = false;
+          return;
+        }
+
+        // инстайлим данные только если все проверки пройдены
+        if (agentData && isMounted && selectedAgent.value === currentAgentId) {
+          summary.value = agentData;
+
+          // грузим кастомфилды только если компонент все еще активен
+          if (isMounted && selectedAgent.value === currentAgentId) {
+            try {
+              const customFields = await fetchCustomFields();
+              if (isMounted && selectedAgent.value === currentAgentId) {
+                customFieldsDefinitions.value = customFields;
+              }
+            } catch (error) {
+              console.error("Error fetching custom fields:", error);
+            }
+          }
+
+          // финальная проверка
+          if (isMounted && selectedAgent.value === currentAgentId) {
+            store.commit("setRefreshSummaryTab", false);
+            if (summary.value?.plat) {
+              store.commit("setAgentPlatform", summary.value.plat);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching summary:", error);
+        // при ероре сбрасываем лоадинг и очищаем саймори
+        if (isMounted) {
+          summary.value = null;
+        }
+      } finally {
+        if (isMounted) {
+          loading.value = false;
+        }
+      }
     }
 
     async function refreshSummary() {
-      loading.value = true;
-      summary.value = await fetchAgent(selectedAgent.value);
+      if (!selectedAgent.value || !isMounted) {
+        return;
+      }
+
+      const currentAgentId = selectedAgent.value;
+
       try {
-        const result = await refreshAgentWMI(selectedAgent.value);
-        await getSummary();
-        notifySuccess(result);
+        loading.value = true;
+        const agentData = await fetchAgent(currentAgentId);
+
+        if (
+          !isMounted ||
+          !selectedAgent.value ||
+          selectedAgent.value !== currentAgentId
+        ) {
+          return;
+        }
+
+        summary.value = agentData;
+
+        const result = await refreshAgentWMI(currentAgentId);
+
+        // проверяем на всякий случай перед вызовом гетсаймори
+        if (isMounted && selectedAgent.value === currentAgentId) {
+          await getSummary();
+          notifySuccess(result);
+        }
       } catch (e) {
         console.error(e);
+      } finally {
+        if (isMounted && selectedAgent.value === currentAgentId) {
+          loading.value = false;
+        }
       }
-      loading.value = false;
     }
 
     watch(selectedAgent, (newValue) => {
-      if (newValue) {
+      if (newValue && isMounted) {
         getSummary();
       }
     });
 
     watch(refreshSummaryTab, (newValue) => {
-      if (newValue && selectedAgent.value) {
+      if (newValue && selectedAgent.value && isMounted) {
         getSummary();
       }
 
-      store.commit("setRefreshSummaryTab", false);
+      if (isMounted) {
+        store.commit("setRefreshSummaryTab", false);
+      }
     });
 
     onMounted(() => {
+      isMounted = true;
       if (selectedAgent.value) getSummary();
+    });
+
+    onBeforeUnmount(() => {
+      isMounted = false;
     });
 
     return {
