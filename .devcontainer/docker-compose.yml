@@ -1,5 +1,3 @@
-version: '3.7'
-
 services:
   app-dev:
     container_name: trmm-app-dev
@@ -10,16 +8,20 @@ services:
     volumes:
       - ..:/workspace:cached
     ports:
-      - "8080:443"
+      - "8080:9000"
+    environment:
+      - DEV_URL=${DEV_URL:-https://api.rmadm.org}
+      - DEV_HOST=0.0.0.0
+      - DEV_PORT=9000
+      - USE_HTTPS=${USE_HTTPS:-false}
+      - DOCKER_BUILD=true
+    extra_hosts:
+      - "api.rmadm.org:95.142.43.25"
+      - "app.rmadm.org:95.142.43.25"
+      - "mesh.rmadm.org:95.142.43.25"
     networks:
-      dev:
-        aliases:
-          - tactical-frontend
+      - dev
 
 networks:
   dev:
     driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: ${DOCKER_NETWORK}

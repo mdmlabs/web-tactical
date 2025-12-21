@@ -2,10 +2,25 @@ import axios from "axios";
 import { useAuthStore } from "@/stores/auth";
 import { Notify } from "quasar";
 
+// используем для сокетов, который не может работать через HTTP прокси
+export const getBackendUrl = () => {
+  if (process.env.NODE_ENV === "production") {
+    return window._env_.PROD_URL;
+  } else {
+    return process.env.DEV_API || "https://api.rmadm.org";
+  }
+};
+
 export const getBaseUrl = () => {
   if (process.env.NODE_ENV === "production") {
     return window._env_.PROD_URL;
   } else {
+    // в режиме разработки используем проксю для обхода корсов
+    // прокся настроен в quasar.config.js и перехватывает запросы к /api
+    const useProxy = process.env.USE_PROXY !== "false";
+    if (useProxy && typeof window !== "undefined") {
+      return "/api";
+    }
     return process.env.DEV_API;
   }
 };
