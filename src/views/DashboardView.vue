@@ -1,6 +1,5 @@
 <template>
-  <q-page>
-    <FileBar />
+  <q-page class="dashboard-page">
     <q-splitter
       v-model="clientTreeSplitter"
       :style="{ height: `${$q.screen.height - 50 - 40}px` }"
@@ -26,7 +25,7 @@
               @click="clearTreeSelected"
             >
               <q-item-section avatar>
-                <q-icon name="fas fa-home" />
+                <q-icon name="dashboard" />
               </q-item-section>
               <q-item-section>All Clients</q-item-section>
             </q-item>
@@ -67,7 +66,7 @@
                         @click="showEditModal(props.node)"
                       >
                         <q-item-section side>
-                          <q-icon name="edit" />
+                          <q-icon name="edit_note" />
                         </q-item-section>
                         <q-item-section>Edit</q-item-section>
                       </q-item>
@@ -77,7 +76,7 @@
                         @click="showDeleteModal(props.node)"
                       >
                         <q-item-section side>
-                          <q-icon name="delete" />
+                          <q-icon name="delete_outline" />
                         </q-item-section>
                         <q-item-section>Delete</q-item-section>
                       </q-item>
@@ -91,7 +90,7 @@
                         @click="showAddSiteModal(props.node)"
                       >
                         <q-item-section side>
-                          <q-icon name="add" />
+                          <q-icon name="add_circle_outline" />
                         </q-item-section>
                         <q-item-section>Add Site</q-item-section>
                       </q-item>
@@ -102,7 +101,7 @@
                         @click="showToggleMaintenance(props.node)"
                       >
                         <q-item-section side>
-                          <q-icon name="construction" />
+                          <q-icon name="build_circle" />
                         </q-item-section>
                         <q-item-section>{{
                           props.node.color === "green"
@@ -118,7 +117,7 @@
                         @click="showInstallAgent(props.node)"
                       >
                         <q-item-section side>
-                          <q-icon name="cloud_download" />
+                          <q-icon name="download" />
                         </q-item-section>
                         <q-item-section>Install Agent</q-item-section>
                       </q-item>
@@ -129,7 +128,7 @@
                         @click="showPolicyAdd(props.node)"
                       >
                         <q-item-section side>
-                          <q-icon name="policy" />
+                          <q-icon name="rule" />
                         </q-item-section>
                         <q-item-section
                           >Assign Automation Policy</q-item-section
@@ -142,18 +141,18 @@
                         @click="showAlertTemplateAdd(props.node)"
                       >
                         <q-item-section side>
-                          <q-icon name="error" />
+                          <q-icon name="warning_amber" />
                         </q-item-section>
                         <q-item-section>Assign Alert Template</q-item-section>
                       </q-item>
 
                       <q-item clickable v-ripple @click="getURLActions">
                         <q-item-section side>
-                          <q-icon name="open_in_new" />
+                          <q-icon name="launch" />
                         </q-item-section>
                         <q-item-section>Run URL Action</q-item-section>
                         <q-item-section side>
-                          <q-icon name="keyboard_arrow_right" />
+                          <q-icon name="chevron_right" />
                         </q-item-section>
                         <q-menu auto-close anchor="top end" self="top start">
                           <q-list>
@@ -184,7 +183,7 @@
                         @click="runChecks(props.node)"
                       >
                         <q-item-section side>
-                          <q-icon name="fas fa-check-double" />
+                          <q-icon name="check_circle_outline" />
                         </q-item-section>
                         <q-item-section>Run Checks</q-item-section>
                       </q-item>
@@ -200,11 +199,11 @@
                         "
                       >
                         <q-item-section side>
-                          <q-icon name="analytics" />
+                          <q-icon name="assessment" />
                         </q-item-section>
                         <q-item-section>Reporting</q-item-section>
                         <q-item-section side>
-                          <q-icon name="keyboard_arrow_right" />
+                          <q-icon name="chevron_right" />
                         </q-item-section>
                         <integrations-context-menu
                           :type="props.node.children ? 'client' : 'site'"
@@ -250,13 +249,9 @@
                 align="left"
                 narrow-indicator
               >
-                <q-tab name="server" icon="fas fa-server" label="Servers" />
-                <q-tab
-                  name="workstation"
-                  icon="computer"
-                  label="Workstations"
-                />
-                <q-tab name="mixed" label="Mixed" />
+                <q-tab name="server" icon="dns" label="Servers" />
+                <q-tab name="workstation" icon="laptop" label="Workstations" />
+                <q-tab name="mixed" icon="view_module" label="Mixed" />
               </q-tabs>
               <q-space />
               <q-input
@@ -270,14 +265,14 @@
                 class="q-pr-md q-pb-xs"
               >
                 <template v-slot:prepend>
-                  <q-icon name="search" color="primary" />
+                  <q-icon name="manage_search" color="primary" />
                 </template>
                 <template v-slot:after>
                   <q-btn
                     round
                     dense
                     flat
-                    icon="filter_alt"
+                    icon="tune"
                     :color="isFilteringTable ? 'green' : ''"
                   >
                     <q-menu>
@@ -422,7 +417,7 @@
               color="primary"
               text-color="white"
               size="20px"
-              icon="drag_indicator"
+              icon="more_vert"
             />
           </template>
           <template v-slot:after>
@@ -443,7 +438,6 @@
 import mixins from "@/mixins/mixins";
 import { openURL } from "quasar";
 import { mapState } from "vuex";
-import FileBar from "@/components/FileBar.vue";
 import AgentTable from "@/components/AgentTable.vue";
 import SubTableTabs from "@/components/SubTableTabs.vue";
 import PolicyAdd from "@/components/automation/modals/PolicyAdd.vue";
@@ -459,7 +453,6 @@ import { removeClient, removeSite } from "@/api/clients";
 export default {
   name: "DashboardView",
   components: {
-    FileBar,
     AgentTable,
     SubTableTabs,
     InstallAgent,
@@ -905,7 +898,27 @@ export default {
 };
 </script>
 
-<style>
+<style scoped>
+/* Dashboard Background - matching FileBar style */
+.dashboard-page {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 137, 211, 0.05) 0%,
+    rgba(18, 177, 209, 0.08) 100%
+  );
+  min-height: 100vh;
+  padding-top: 5px;
+}
+
+/* Dark theme support */
+.body--dark .dashboard-page {
+  background: linear-gradient(
+    135deg,
+    rgba(25, 35, 45, 0.3) 0%,
+    rgba(30, 40, 50, 0.4) 100%
+  );
+}
+
 .my-menu-link {
   color: white;
   background: lightgray;
