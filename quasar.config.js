@@ -69,6 +69,8 @@ module.exports = configure(function (/* ctx */) {
         DEV_API: process.env.DEV_URL,
         PROD_API: process.env.PROD_URL,
         DOCKER_BUILD: process.env.DOCKER_BUILD,
+        // используем проксю для обхода корсов (по умолчанию true в dev режиме)
+        USE_PROXY: process.env.USE_PROXY !== "false",
       },
       alias: {
         ["@"]: path.join(__dirname, "./src"),
@@ -92,6 +94,59 @@ module.exports = configure(function (/* ctx */) {
             },
           },
         });
+
+        // настройка прокси для обхода CORS в режиме разработки
+        if (!isServer && viteConf.server) {
+          const apiUrl = process.env.DEV_URL || "https://api.rmadm.org";
+          // Если используется самоподписанный сертификат, установите USE_PROXY_INSECURE=true
+          // Проверяем переменную из .env (dotenv уже загружен в начале )
+          const insecure =
+            process.env.USE_PROXY_INSECURE === "true" ||
+            process.env.USE_PROXY_INSECURE === true;
+
+          console.log(
+            `[Proxy Config] API URL: ${apiUrl}, Insecure: ${insecure}`,
+          );
+
+          // для работы с самоподписанными сертификатами нужен специальный agent
+          let httpsAgent = null;
+          if (insecure) {
+            const https = require("https");
+            httpsAgent = new https.Agent({
+              rejectUnauthorized: false, // Игнорь ошибок SSL
+            });
+            console.log("[Proxy Config] Using insecure HTTPS agent");
+          }
+
+          viteConf.server.proxy = {
+            "/api": {
+              target: apiUrl,
+              changeOrigin: true,
+              secure: !insecure, // false для самоподписанных сертификатов
+              agent: httpsAgent, // использовать agent для игнорирования SSL ошибок
+              rewrite: (path) => path.replace(/^\/api/, ""),
+              configure: (proxy, _options) => {
+                proxy.on("error", (err, _req, _res) => {
+                  console.log("proxy error", err);
+                });
+                proxy.on("proxyReq", (proxyReq, req, _res) => {
+                  console.log(
+                    "Sending Request to the Target:",
+                    req.method,
+                    req.url,
+                  );
+                });
+                proxy.on("proxyRes", (proxyRes, req, _res) => {
+                  console.log(
+                    "Received Response from the Target:",
+                    proxyRes.statusCode,
+                    req.url,
+                  );
+                });
+              },
+            },
+          };
+        }
       },
       /* eslint-enable quotes */
       // viteVuePluginOptions: {},

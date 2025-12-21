@@ -123,7 +123,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { useStore } from "vuex";
 import { useDialogPluginComponent } from "quasar";
 import { cmdPlaceholder } from "@/composables/agents";
-import { getWSUrl } from "@/websocket/channels";
+import { getWSUrl } from "@/websocket/websocket";
 
 export default {
   name: "SendCommand",
