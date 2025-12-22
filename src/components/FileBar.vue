@@ -363,7 +363,7 @@
             </q-list>
           </q-expansion-item>
 
-          <q-expansion-item
+          <!-- <q-expansion-item
             v-if="!hosted"
             icon="help"
             label="Help"
@@ -426,7 +426,7 @@
                 <q-item-section>Join Discord</q-item-section>
               </q-item>
             </q-list>
-          </q-expansion-item>
+          </q-expansion-item> -->
         </q-list>
       </q-scroll-area>
     </div>
@@ -772,7 +772,6 @@ export default {
 </script>
 
 <style scoped>
-
 .filebar-drawer {
   background: linear-gradient(
     135deg,
@@ -787,7 +786,6 @@ export default {
   flex-direction: column;
   height: 100%;
 }
-
 
 .filebar-drawer-header {
   display: flex;
@@ -819,17 +817,14 @@ export default {
   background: rgba(255, 255, 255, 0.2);
 }
 
-
 .filebar-menu-scroll {
   flex: 1;
   height: calc(100vh - 80px);
 }
 
-
 .filebar-menu-list {
   padding: 8px;
 }
-
 
 .filebar-menu-section {
   margin-bottom: 4px;
@@ -850,7 +845,6 @@ export default {
 .filebar-menu-section :deep(.q-expansion-item__content) {
   background: rgba(255, 255, 255, 0.3);
 }
-
 
 .filebar-menu-item {
   border-radius: 6px;
@@ -876,7 +870,6 @@ export default {
   color: rgb(16, 137, 211);
 }
 
-
 .filebar-menu-subsection {
   margin-left: 8px;
 }
@@ -884,7 +877,6 @@ export default {
 .filebar-menu-subsection :deep(.q-expansion-item__content) {
   background: rgba(255, 255, 255, 0.2);
 }
-
 
 .body--dark .filebar-drawer {
   background: linear-gradient(
