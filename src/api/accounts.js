@@ -22,15 +22,6 @@ export async function resetPass(pass) {
   }
 }
 
-export async function resetTwoFactor() {
-  try {
-    const { data } = await axios.put(`${baseUrl}/reset2fa/`);
-    return data;
-  } catch (e) {
-    console.error(e);
-  }
-}
-
 // sessions api
 export async function fetchUserSessions(id) {
   try {

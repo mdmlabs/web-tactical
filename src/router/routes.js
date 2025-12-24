@@ -33,14 +33,6 @@ const routes = [
     },
   },
   {
-    path: "/totp_setup",
-    name: "TOTPSetup",
-    component: () => import("@/views/TOTPSetup.vue"),
-    meta: {
-      requireAuth: true,
-    },
-  },
-  {
     path: "/takecontrol/:agent_id",
     name: "TakeControl",
     component: () => import("@/views/TakeControl.vue"),

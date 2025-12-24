@@ -137,61 +137,6 @@
             </div>
           </q-card-section>
         </q-card>
-
-        <q-dialog persistent v-model="prompt">
-          <q-card class="modern-card" style="min-width: 400px">
-            <q-form ref="formToken" @submit.prevent="onSubmit">
-              <q-card-section class="text-center q-pt-lg">
-                <q-icon
-                  name="verified_user"
-                  size="56px"
-                  class="gradient-icon"
-                />
-                <div class="text-h6 q-mt-md text-weight-bold">
-                  Two-Factor Authentication
-                </div>
-                <div class="text-grey-7 text-caption q-mt-xs">
-                  Enter your verification code
-                </div>
-              </q-card-section>
-
-              <q-card-section class="q-px-lg">
-                <q-input
-                  autofocus
-                  filled
-                  autocomplete="one-time-code"
-                  v-model="twofactor"
-                  label="Verification Code"
-                  class="modern-input"
-                  :rules="[
-                    (val) =>
-                      (val && val.length > 0) || 'This field is required',
-                  ]"
-                >
-                  <template v-slot:prepend>
-                    <q-icon name="pin" color="primary" />
-                  </template>
-                </q-input>
-              </q-card-section>
-
-              <q-card-actions align="right" class="q-px-lg q-pb-lg q-gutter-sm">
-                <q-btn
-                  flat
-                  label="Cancel"
-                  color="grey-7"
-                  no-caps
-                  v-close-popup
-                />
-                <q-btn
-                  label="Verify"
-                  type="submit"
-                  class="gradient-button"
-                  no-caps
-                />
-              </q-card-actions>
-            </q-form>
-          </q-card>
-        </q-dialog>
       </q-page>
     </q-page-container>
   </q-layout>
@@ -563,12 +508,9 @@ const auth = useAuthStore();
 const router = useRouter();
 
 const form = ref<QForm | null>(null);
-const formToken = ref<QForm | null>(null);
 
 // login logic
 const credentials = reactive({ username: "", password: "" });
-const twofactor = ref("");
-const prompt = ref(false);
 const showPassword = ref(true);
 const rememberMe = ref(false);
 const appVersion = ref(packageJson.version);
@@ -576,22 +518,8 @@ const ssoProviders = ref([] as SSOProviderConfig[]);
 
 async function checkCreds() {
   try {
-    const { totp } = await auth.checkCredentials(credentials);
-
-    if (!totp) {
-      router.push({ name: "TOTPSetup" });
-    } else {
-      twofactor.value = "";
-      prompt.value = true;
-    }
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-async function onSubmit() {
-  try {
-    await auth.login({ ...credentials, twofactor: twofactor.value });
+    await auth.checkCredentials(credentials);
+    await auth.login(credentials);
     if (auth.next) {
       router.push(auth.next);
       auth.next = null;
@@ -602,8 +530,6 @@ async function onSubmit() {
     console.error(err);
   } finally {
     form.value?.reset();
-    formToken.value?.reset();
-    prompt.value = false;
   }
 }
 

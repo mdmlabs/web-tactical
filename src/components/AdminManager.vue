@@ -106,19 +106,6 @@
                   <q-item-section>Reset Password</q-item-section>
                 </q-item>
 
-                <q-item
-                  clickable
-                  v-close-popup
-                  @click="reset2FA(props.row)"
-                  id="context-reset"
-                  :disable="props.row.social_accounts.length !== 0"
-                >
-                  <q-item-section side>
-                    <q-icon name="autorenew" />
-                  </q-item-section>
-                  <q-item-section>Reset Two-Factor Auth</q-item-section>
-                </q-item>
-
                 <q-separator></q-separator>
 
                 <q-item
@@ -367,25 +354,6 @@ export default {
         })
         .onOk(() => {
           this.getUsers();
-        });
-    },
-    reset2FA(user) {
-      const data = {
-        id: user.id,
-      };
-
-      this.$q
-        .dialog({
-          title: `Reset 2FA for ${user.username}?`,
-          cancel: true,
-          ok: { label: "Reset", color: "positive" },
-        })
-        .onOk(() => {
-          this.$axios
-            .put("/accounts/users/reset_totp/", data)
-            .then((response) => {
-              this.notifySuccess(response.data, 4000);
-            });
         });
     },
   },

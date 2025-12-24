@@ -279,20 +279,6 @@
                       <q-item-label>Reset Password</q-item-label>
                     </q-item-section>
                   </q-item>
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="reset2FA"
-                    v-close-popup
-                    class="menu-item"
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="phonelink_lock" color="primary" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>Reset 2FA</q-item-label>
-                    </q-item-section>
-                  </q-item>
                 </q-list>
               </q-menu>
             </q-item>
@@ -740,8 +726,6 @@ import { useRoute, useRouter } from "vue-router";
 import { useDashboardStore } from "@/stores/dashboard";
 import { useAuthStore } from "@/stores/auth";
 import { storeToRefs } from "pinia";
-import { resetTwoFactor } from "@/api/accounts";
-import { notifyError, notifySuccess } from "@/utils/notify";
 import axios from "axios";
 
 // webtermn
@@ -814,20 +798,6 @@ function showUserPreferences() {
 function resetPassword() {
   $q.dialog({
     component: ResetPass,
-  });
-}
-
-function reset2FA() {
-  $q.dialog({
-    title: "Reset 2FA",
-    message: "Are you sure you would like to reset your 2FA token?",
-    cancel: true,
-    persistent: true,
-  }).onOk(async () => {
-    try {
-      const ret = await resetTwoFactor();
-      notifySuccess(ret, 3000);
-    } catch {}
   });
 }
 

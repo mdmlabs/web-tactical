@@ -11,18 +11,11 @@ interface CheckCredentialsRequest {
 interface LoginRequest {
   username: string;
   password: string;
-  twofactor: string;
 }
 
 interface CheckCredentialsResponse {
   token: string;
   username: string;
-  totp?: boolean;
-}
-
-interface TOTPSetupResponse {
-  qr_url: string;
-  totp_key: string;
 }
 
 export const useAuthStore = defineStore("auth", {
@@ -47,12 +40,9 @@ export const useAuthStore = defineStore("auth", {
       credentials: CheckCredentialsRequest,
     ): Promise<CheckCredentialsResponse> {
       const { data } = await axios.post("/v2/checkcreds/", credentials);
-
-      if (!data.totp) {
-        this.token = data.token;
-        this.username = data.username;
-        this.name = data.name;
-      }
+      this.token = data.token;
+      this.username = data.username;
+      this.name = data.name;
       return data;
     },
     async login(credentials: LoginRequest) {
@@ -76,9 +66,6 @@ export const useAuthStore = defineStore("auth", {
       this.ssoLoginProvider = null;
       this.provider_id = null;
     },
-    async setupTotp(): Promise<TOTPSetupResponse | false> {
-      const { data } = await axios.post("/accounts/users/setup_totp/");
-      return data;
-    },
+
   },
 });
