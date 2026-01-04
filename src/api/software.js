@@ -43,3 +43,8 @@ export async function refreshAgentSoftware(agent_id) {
     console.error(e);
   }
 }
+
+export async function bulkSoftwareInstall(payload) {
+  const { data } = await axios.post(`${baseUrl}/bulk/install/`, payload);
+  return data;
+}

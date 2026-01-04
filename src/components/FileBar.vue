@@ -587,6 +587,9 @@ export default {
         case "bulkPatch":
           this.showBulkAction("patch");
           break;
+        case "bulkSoftware":
+          this.showBulkAction("software");
+          break;
         case "serverMaintenance":
           this.showServerMaintenance = true;
           break;

@@ -55,7 +55,7 @@
           />
         </q-card-section>
 
-        <q-card-section>
+        <q-card-section v-if="mode !== 'software'">
           <p>Agent OS</p>
           <q-option-group
             v-model="state.osType"
@@ -67,7 +67,7 @@
           />
         </q-card-section>
 
-        <q-card-section v-show="state.target !== 'agents'">
+        <q-card-section v-show="state.target !== 'agents' && mode !== 'software'">
           <p>Agent Type</p>
           <q-option-group
             v-model="state.monType"
@@ -129,6 +129,19 @@
             hide-dropdown-icon
             input-debounce="0"
             new-value-mode="add"
+          />
+        </q-card-section>
+
+        <q-card-section v-if="mode === 'software'" class="q-pt-none">
+          <tactical-dropdown
+            :rules="[(val) => val && val.length > 0 || '*Required - Select at least one software package']"
+            v-model="state.software"
+            :options="softwarePackageOptions"
+            label="Select Software Packages"
+            outlined
+            multiple
+            mapOptions
+            filterable
           />
         </q-card-section>
 
@@ -274,6 +287,7 @@ import { useAgentDropdown } from "@/composables/agents";
 import { useClientDropdown, useSiteDropdown } from "@/composables/clients";
 import { useCustomFieldDropdown } from "@/composables/core";
 import { runBulkAction } from "@/api/agents";
+import { fetchChocosSoftware, bulkSoftwareInstall } from "@/api/software";
 import { notifySuccess } from "@/utils/notify";
 import { cmdPlaceholder } from "@/composables/agents";
 import { envVarsLabel, runAsUserToolTip } from "@/constants/constants";
@@ -383,9 +397,11 @@ export default defineComponent({
       args: defaultArgs,
       env_vars: defaultEnvVars,
       run_as_user: false,
+      software: [],
     });
     const loading = ref(false);
     const collector = ref(false);
+    const softwarePackageOptions = ref([]);
 
     watch(
       () => state.target,
@@ -420,7 +436,12 @@ export default defineComponent({
       loading.value = true;
 
       try {
-        const data = await runBulkAction(state);
+        let data;
+        if (state.mode === "software") {
+          data = await bulkSoftwareInstall(state);
+        } else {
+          data = await runBulkAction(state);
+        }
         notifySuccess(data);
         onDialogHide();
       } catch (e) {}
@@ -441,15 +462,24 @@ export default defineComponent({
           ? "Run Bulk Script"
           : props.mode === "patch"
             ? "Bulk Patch Management"
-            : "";
+            : props.mode === "software"
+              ? "Bulk Software Installation"
+              : "";
     });
 
     // component lifecycle hooks
-    onMounted(() => {
+    onMounted(async () => {
       getAgentOptions();
       getSiteOptions();
       getClientOptions();
       if (props.mode === "script") getScriptOptions();
+      if (props.mode === "software") {
+        const packages = await fetchChocosSoftware();
+        softwarePackageOptions.value = packages.map((pkg) => ({
+          label: pkg.name,
+          value: pkg.name,
+        }));
+      }
     });
 
     return {
@@ -464,6 +494,7 @@ export default defineComponent({
       loading,
       shellOptions,
       filteredOsTypeOptions,
+      softwarePackageOptions,
 
       // non-reactive data
       monTypeOptions,
