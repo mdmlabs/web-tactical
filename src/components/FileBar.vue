@@ -289,6 +289,17 @@
               <q-item
                 clickable
                 v-ripple
+                @click="handleMenuAction('bulkSoftware')"
+                class="filebar-menu-item"
+              >
+                <q-item-section avatar>
+                  <q-icon name="apps" />
+                </q-item-section>
+                <q-item-section>Bulk Software</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
                 @click="handleMenuAction('serverMaintenance')"
                 class="filebar-menu-item"
               >
