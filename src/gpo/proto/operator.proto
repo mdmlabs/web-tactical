@@ -1,0 +1,539 @@
+﻿syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+
+package laborato.mesh.operator.v1;
+
+option csharp_namespace = "LaboratoMDM.Mesh.Master.Grpc.Operator.V1";
+
+// ENUMS
+
+enum PolicyScope {
+  POLICY_SCOPE_NONE = 0;
+  POLICY_SCOPE_USER = 1;
+  POLICY_SCOPE_MACHINE = 2;
+  POLICY_SCOPE_BOTH = 3;
+}
+
+enum PolicyDesiredState {
+  POLICY_DESIRED_STATE_UNSPECIFIED = 0;
+  POLICY_DESIRED_STATE_ENABLED = 1;
+  POLICY_DESIRED_STATE_DISABLED = 2;
+}
+
+enum PolicySource {
+  POLICY_SOURCE_UNSPECIFIED = 0;
+  POLICY_SOURCE_GLOBAL = 1;
+  POLICY_SOURCE_AGENT = 2;
+  POLICY_SOURCE_USER = 3;
+}
+
+enum UserAccountType {
+  USER_ACCOUNT_TYPE_UNSPECIFIED = 0;
+  USER_ACCOUNT_TYPE_LOCAL = 1;
+  USER_ACCOUNT_TYPE_SYSTEM = 2;
+}
+
+// AGENTS
+
+service AgentService {
+  rpc ListAgents (ListAgentsRequest)
+      returns (ListAgentsResponse);
+
+  rpc GetAgent (GetAgentRequest)
+      returns (AgentDetails);
+}
+
+message ListAgentsRequest {}
+
+message GetAgentRequest {
+  string agent_id = 1;
+}
+
+message ListAgentsResponse {
+  repeated AgentSummary agents = 1;
+}
+
+message AgentSummary {
+  string agent_id = 1;
+  string host_name = 2;
+  string ip_address = 3;
+  bool is_online = 4;
+  int64 last_heartbeat_unix = 5;
+}
+
+message AgentDetails {
+  string agent_id = 1;
+  string host_name = 2;
+  string ip_address = 3;
+
+  bool is_online = 4;
+  int64 last_heartbeat_unix = 5;
+
+  NodeFullInfo node_info = 6;
+}
+
+
+
+// USERS
+
+service UserService {
+  rpc ListUsersForAgent (ListUsersForAgentRequest)
+      returns (ListUsersForAgentResponse);
+
+  rpc ListUserGroupsForAgent (ListUserGroupsForAgentRequest)
+      returns (ListUserGroupsForAgentResponse);
+}
+
+message ListUsersForAgentRequest {
+  string agent_id = 1;
+}
+
+message ListUsersForAgentResponse {
+  repeated UserInfo users = 1;
+}
+
+message ListUserGroupsForAgentRequest {
+    string agent_id = 1;
+}
+
+message ListUserGroupsForAgentResponse {
+    repeated GroupInfo groups = 1;
+}
+
+message UserInfo {
+  string name = 1;
+  string sid = 2;
+
+  UserAccountType account_type = 3;
+  bool is_enabled = 4;
+  int64 last_logon_unix = 5;
+
+  repeated GroupInfo groups = 6;
+}
+
+message GroupInfo {
+  string name = 1;
+  string displayName = 2;
+  string distinguishedName = 3;
+
+  string samAccountName = 4;
+  string UserPrincipalName = 5;
+  string description = 6;
+
+  string structuralObjectClass = 7;
+  string sid = 8;
+}
+
+
+// ADMX FILES
+
+service AdmxService {
+  rpc ListAdmxFiles (ListAdmxFilesRequest)
+      returns (ListAdmxFilesResponse);
+
+  rpc GetAdmxSnapshot (GetAdmxSnapshotRequest)
+      returns (AdmxSnapshot);
+
+  rpc ImportAdmxZip (ImportAdmxZipRequest)
+      returns (ImportAdmxResponse);
+
+  rpc ImportAdmxFile (ImportAdmxFileRequest)
+    returns (ImportAdmxResponse);
+}
+
+message ImportAdmxZipRequest {
+  bytes zip_content = 1; // сам zip-файл
+}
+
+message ImportAdmxFileRequest {
+  bytes file_content = 1; // содержимое файла
+  string file_name = 2; // имя файла, например "test.admx"
+}
+
+message ImportAdmxResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ListAdmxFilesRequest {}
+
+message ListAdmxFilesResponse {
+  repeated AdmxFile files = 1;
+}
+
+message GetAdmxSnapshotRequest {
+  string file_hash = 1;
+}
+
+message AdmxFile {
+  string file_name = 1;
+  string file_hash = 2;
+  int64 loaded_at_unix = 3;
+}
+
+message PolicyCategory {
+  string name = 1;
+  string display_name = 2;
+  string explain_text = 3;
+  string parent_category_name = 4;
+}
+
+message PolicyNamespace {
+  string prefix = 1;
+  string namespace = 2;
+}
+
+message AdmxSnapshot {
+  AdmxFile file = 1;
+  repeated PolicyDescriptor policies = 2;
+  repeated PolicyCategory categories = 3;
+  repeated PolicyNamespace namespaces = 4;
+}
+
+
+// POLICY CATALOG
+
+service PolicyCatalogService {
+  rpc ListPolicies (ListPoliciesRequest)
+      returns (ListPoliciesResponse);
+
+  rpc GetPolicy (GetPolicyRequest)
+      returns (PolicyDescriptor);
+
+  rpc ListPoliciesGroupedByScope (ListPoliciesGroupedByScopeRequest)
+      returns (ListPoliciesGroupedByScopeResponse);
+  
+  rpc GetCategoryTree(GetCategoryTreeRequest)
+      returns (GetCategoryTreeResponse);
+
+  rpc GetPoliciesByCategory(GetPoliciesByCategoryRequest)
+      returns (GetPoliciesByCategoryResponse);
+
+  rpc GetPoliciesByAdmx(GetPoliciesByAdmxRequest)
+      returns (GetPoliciesByAdmxResponse);
+
+  rpc GetPolicyDetails (GetPolicyDetailsRequest)
+      returns (PolicyDetails);
+}
+
+message GetPoliciesByAdmxRequest {
+   string lang_code = 1;
+   string admx_file = 2;
+}
+
+message GetPoliciesByAdmxResponse {
+    string lang_code = 1;
+    string admx_file = 2;
+    repeated PolicySummary policies = 3;
+}
+
+message GetPoliciesByCategoryRequest {
+    string lang_code = 1;
+    string category = 2;
+}
+
+message GetPoliciesByCategoryResponse {
+    string lang_code = 1;
+    repeated PolicySummary policies = 2;
+}
+
+message GetCategoryTreeRequest {
+  string lang_code = 1; // язык для перевода displayName
+}
+
+message GetCategoryTreeResponse {
+  string lang_code = 1; // язык для перевода displayName
+  repeated CategoryView categories = 2;
+}
+
+message CategoryView {
+    int32 id = 1;
+    string category_name = 2;
+    string display_name = 3;
+    repeated CategoryView childs = 4;
+}
+
+message ListPoliciesRequest {
+  string admx_file_hash = 1;
+}
+
+message ListPoliciesResponse {
+  repeated PolicyDescriptor policies = 1;
+}
+
+message GetPolicyRequest {
+  string policy_hash = 1;
+}
+
+message ListPoliciesGroupedByScopeRequest {
+  string lang_code = 1; // язык для перевода displayName
+}
+
+message GetPolicyDetailsRequest {
+  int64 policy_id = 1;
+  string lang_code = 2;
+}
+
+message PolicyDetails {
+  PolicyDetailsPolicy policy = 1;
+  PolicyPresentation presentation = 2;
+  repeated PolicyDetailsElement policy_elements = 3;
+}
+
+message PolicyDetailsPolicy {
+  int64 id = 1;
+  string name = 2;
+  string hash = 3;
+  string scope = 4;
+
+  optional string parent_category_ref = 5;
+  optional string supported_on_ref = 6;
+  optional google.protobuf.StringValue client_extension = 7;
+}
+
+message PolicyPresentation {
+  int32 id = 1;
+  string presentation_id = 2;
+  string adml_file = 3;
+  repeated PolicyPresentationElement elements = 4;
+}
+
+message PolicyPresentationElement {
+  int32 id = 1;
+  string type = 2;
+  string ref_id = 3;
+  optional google.protobuf.Int32Value parent_element_id = 4;
+  optional google.protobuf.StringValue default_value = 5;
+  optional google.protobuf.StringValue text = 6;
+}
+
+message PolicyDetailsElement {
+  int32 id = 1;
+  string element_id = 2;
+  string type = 3;
+
+  optional google.protobuf.StringValue value_name = 4;
+  optional google.protobuf.StringValue registry_key = 5;
+  optional google.protobuf.BoolValue required = 6;
+  optional google.protobuf.Int32Value max_length = 7;
+
+  optional google.protobuf.StringValue max_strings = 8;
+  optional google.protobuf.BoolValue expandable = 9;
+
+  optional google.protobuf.Int64Value min_value = 10;
+  optional google.protobuf.Int64Value max_value = 11;
+
+  optional google.protobuf.StringValue value_prefix = 12;
+  optional google.protobuf.BoolValue explicit_value = 13;
+  optional google.protobuf.BoolValue additive = 14;
+
+  repeated PolicyDetailsElementItem items = 15;
+}
+
+message PolicyDetailsElementItem {
+  int32 id = 1;
+  string name = 2;
+  string parent_type = 3;
+  string type = 4;
+  string value_type = 5;
+
+  optional google.protobuf.StringValue value_name = 6;
+  optional google.protobuf.BoolValue required = 7;
+  optional google.protobuf.Int32Value parent_id = 8;
+  optional google.protobuf.StringValue display_name = 9;
+}
+
+message ListPoliciesGroupedByScopeResponse {
+  repeated PolicyGroup groups = 1;
+}
+
+message PolicyDescriptor {
+  string policy_hash = 1;
+  string name = 2;
+
+  PolicyScope scope = 3;
+
+  string registry_key = 4;
+  string value_name = 5;
+
+  string enabled_value = 6;
+  string disabled_value = 7;
+
+  string supported_on_ref = 8;
+  string parent_category = 9;
+  string presentation_ref = 10;
+
+  repeated PolicyElement elements = 11;
+  repeated string required_capabilities = 12;
+  repeated string required_hardware = 13;
+
+  repeated string admx_file_hashes = 14;
+}
+
+message PolicyElement {
+  string id_name = 1;
+  string type = 2;
+
+  string value_name = 3;
+  int32 max_length = 4;
+  bool required = 5;
+
+  string client_extension = 6;
+}
+
+message PolicyGroup {
+  string scope = 1; // например "User", "Machine", "Both", "None"
+  repeated PolicySummary policies = 2;
+}
+
+message PolicySummary {
+  int64 id = 1;
+  string name = 2;
+  string display_name = 3;
+  string explain_text = 4;
+}
+
+// POLICY ASSIGNMENT
+
+service PolicyAssignmentService {
+  rpc AssignPolicy (AssignPolicyRequest)
+      returns (AssignPolicyResponse);
+
+  rpc RemovePolicy (RemovePolicyRequest)
+      returns (RemovePolicyResponse);
+}
+
+message AssignPolicyRequest {
+  string policy_hash = 1;
+  PolicyTarget target = 2;
+  PolicySelection selection = 3;
+}
+
+// Выбор значений элементов
+message PolicySelection {
+    string value = 1; // legacy single value
+    repeated PolicyElementSelection elements = 2;
+    repeated string list_keys = 3;
+}
+
+message PolicyElementSelection {
+    string id_name = 1;
+    string value = 2;
+    repeated PolicyElementItemSelection childs = 3;
+}
+
+message PolicyElementItemSelection {
+    string id_name = 1;
+    string value = 2;
+    repeated PolicyElementItemSelection childs = 3;
+}
+
+message AssignPolicyResponse {}
+
+message RemovePolicyRequest {
+  string policy_hash = 1;
+  PolicyTarget target = 2;
+}
+
+message RemovePolicyResponse {}
+
+message PolicyTarget {
+  oneof target {
+    GlobalTarget global = 1;
+    AgentTarget agent = 2;
+    UserTarget user = 3;
+  }
+}
+
+message GlobalTarget {}
+
+message AgentTarget {
+  string agent_id = 1;
+}
+
+message UserTarget {
+  string agent_id = 1;
+  string user_sid = 2;
+}
+
+message PolicyValueOverride {
+  oneof value {
+    int32 dword = 1;
+    string string_value = 2;
+  }
+}
+
+
+// POLICY STATE / AUDIT
+
+service PolicyStateService {
+  rpc GetEffectivePolicies (GetEffectivePoliciesRequest)
+      returns (GetEffectivePoliciesResponse);
+
+  rpc GetAssignments (GetAssignmentsRequest)
+      returns (GetAssignmentsResponse);
+}
+
+message GetEffectivePoliciesRequest {
+  PolicyTarget target = 1;
+}
+
+message GetEffectivePoliciesResponse {
+  repeated EffectivePolicy policies = 1;
+}
+
+message EffectivePolicy {
+  string policy_hash = 1;
+  PolicyDesiredState desired_state = 2;
+  PolicyValueOverride effective_value = 3;
+  PolicySource source = 4;
+}
+
+message GetAssignmentsRequest {
+  PolicyTarget target = 1;
+}
+
+message GetAssignmentsResponse {
+  repeated PolicyAssignment assignments = 1;
+}
+
+message PolicyAssignment {
+  string policy_hash = 1;
+  PolicyDesiredState desired_state = 2;
+  PolicyValueOverride override = 3;
+  PolicyTarget target = 4;
+}
+
+// SYSTEM INFO (минимум, у меня шире, но это потом)
+
+message NodeFullInfo {
+  NodeSystemInfo system_info = 1;
+
+  int64 last_boot_time_unix = 2;
+  string os_build = 3;
+  bool is_domain_joined = 4;
+  string antivirus_status = 5;
+  string time_zone = 6;
+  string manufacturer = 7;
+  string model = 8;
+  string firmware_version = 9;
+
+  bool is_online = 10;
+}
+
+message NodeSystemInfo {
+  string host_name = 1;
+  string os_version = 2;
+
+  string cpu = 3;
+  int32 ram_gb = 4;
+
+  repeated string disks = 5;
+  repeated string gpu = 6;
+
+  repeated string ip_addresses = 7;
+  repeated string mac_addresses = 8;
+
+  string motherboard = 9;
+}
