@@ -22,13 +22,18 @@ if (!operator_pb) {
 // Отладочное логирование (можно удалить после проверки)
 // Проверка dev режима (работает и в Node.js и в браузере)
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-const isDev = typeof process !== "undefined" && process.env?.NODE_ENV === "development";
-const isDebug = isDev || (globalThis.window !== undefined && (globalThis.window as { __DEBUG__?: boolean }).__DEBUG__);
+const isDev =
+  typeof process !== "undefined" && process.env?.NODE_ENV === "development";
+const isDebug =
+  isDev ||
+  (globalThis.window !== undefined &&
+    (globalThis.window as { __DEBUG__?: boolean }).__DEBUG__);
 if (isDebug) {
   console.log("[grpc-client] operator_pb loaded:", {
     hasListAgentsRequest: operator_pb.ListAgentsRequest !== undefined,
     hasGetAgentRequest: operator_pb.GetAgentRequest !== undefined,
-    hasListPoliciesGroupedByScopeRequest: operator_pb.ListPoliciesGroupedByScopeRequest !== undefined,
+    hasListPoliciesGroupedByScopeRequest:
+      operator_pb.ListPoliciesGroupedByScopeRequest !== undefined,
     namespaceKeys: Object.keys(operator_pb).slice(0, 10), // первые 10 ключей для проверки
     totalKeys: Object.keys(operator_pb).length,
   });
@@ -43,7 +48,8 @@ function getGrpcUrl(): string {
   if (process.env.NODE_ENV === "production") {
     // В продакшене можно использовать переменную окружения или конфигурацию
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const grpcUrl = process.env.GRPC_URL || (globalThis.window as any)?._env_?.GRPC_URL;
+    const grpcUrl =
+      process.env.GRPC_URL || (globalThis.window as any)?._env_?.GRPC_URL;
     if (grpcUrl) {
       return grpcUrl.replace(/\/$/, "");
     }
@@ -76,18 +82,16 @@ export function createGrpcMetadata(): grpcWeb.Metadata {
   return metadata;
 }
 
-
 /**
  * Создаёт экземпляр клиента с настройками по умолчанию
  */
-function createClient<T extends new (
-  hostname: string,
-  credentials?: null | { [index: string]: string },
-  options?: null | { [index: string]: unknown }
-) => InstanceType<T>>(
-  ClientClass: T,
-  options?: { [index: string]: unknown }
-): InstanceType<T> {
+function createClient<
+  T extends new (
+    hostname: string,
+    credentials?: null | { [index: string]: string },
+    options?: null | { [index: string]: unknown },
+  ) => InstanceType<T>,
+>(ClientClass: T, options?: { [index: string]: unknown }): InstanceType<T> {
   const url = getGrpcUrl();
   const clientOptions = {
     ...options,
@@ -96,93 +100,93 @@ function createClient<T extends new (
   return new ClientClass(url, null, clientOptions);
 }
 
-
 if (isDebug) {
   console.log("[grpc-client] Creating gRPC clients...");
-  console.log("[grpc-client] AgentServiceClient available:", AgentServiceClient !== undefined);
+  console.log(
+    "[grpc-client] AgentServiceClient available:",
+    AgentServiceClient !== undefined,
+  );
 }
 
 const agentServiceClient = createClient(AgentServiceClient);
 const userServiceClient = createClient(UserServiceClient);
 const admxServiceClient = createClient(AdmxServiceClient);
 const policyCatalogServiceClient = createClient(PolicyCatalogServiceClient);
-const policyAssignmentServiceClient = createClient(PolicyAssignmentServiceClient);
+const policyAssignmentServiceClient = createClient(
+  PolicyAssignmentServiceClient,
+);
 const policyStateServiceClient = createClient(PolicyStateServiceClient);
 
 if (isDebug) {
   console.log("[grpc-client] All gRPC clients created successfully");
 }
 
-
 export const policyCatalogClient = {
-
   async listPoliciesGroupedByScope(
-    langCode: string = "ru-RU"
+    langCode: string = "ru-RU",
   ): Promise<operator_pb_types.ListPoliciesGroupedByScopeResponse.AsObject> {
-
     if (!operator_pb.ListPoliciesGroupedByScopeRequest) {
-      throw new Error("ListPoliciesGroupedByScopeRequest class is not available in operator_pb");
+      throw new Error(
+        "ListPoliciesGroupedByScopeRequest class is not available in operator_pb",
+      );
     }
     const request = new operator_pb.ListPoliciesGroupedByScopeRequest();
     request.setLangCode(langCode);
 
-    const response = await policyCatalogServiceClient.listPoliciesGroupedByScope(
-      request,
-      createGrpcMetadata()
-    );
+    const response =
+      await policyCatalogServiceClient.listPoliciesGroupedByScope(
+        request,
+        createGrpcMetadata(),
+      );
 
     return response.toObject();
   },
 
-
   async getCategoryTree(
-    langCode: string = "ru-RU"
+    langCode: string = "ru-RU",
   ): Promise<operator_pb_types.GetCategoryTreeResponse.AsObject> {
     const request = new operator_pb.GetCategoryTreeRequest();
     request.setLangCode(langCode);
 
     const response = await policyCatalogServiceClient.getCategoryTree(
       request,
-      createGrpcMetadata()
+      createGrpcMetadata(),
     );
 
     return response.toObject();
   },
 
-
   async listPolicies(
-    admxFileHash: string
+    admxFileHash: string,
   ): Promise<operator_pb_types.ListPoliciesResponse.AsObject> {
     const request = new operator_pb.ListPoliciesRequest();
     request.setAdmxFileHash(admxFileHash);
 
     const response = await policyCatalogServiceClient.listPolicies(
       request,
-      createGrpcMetadata()
+      createGrpcMetadata(),
     );
 
     return response.toObject();
   },
 
-
   async getPolicy(
-    policyHash: string
+    policyHash: string,
   ): Promise<operator_pb_types.PolicyDescriptor.AsObject> {
     const request = new operator_pb.GetPolicyRequest();
     request.setPolicyHash(policyHash);
 
     const response = await policyCatalogServiceClient.getPolicy(
       request,
-      createGrpcMetadata()
+      createGrpcMetadata(),
     );
 
     return response.toObject();
   },
 
-
   async getPolicyDetails(
     policyId: number,
-    langCode: string = "ru-RU"
+    langCode: string = "ru-RU",
   ): Promise<operator_pb_types.PolicyDetails.AsObject> {
     const request = new operator_pb.GetPolicyDetailsRequest();
     request.setPolicyId(policyId);
@@ -190,16 +194,15 @@ export const policyCatalogClient = {
 
     const response = await policyCatalogServiceClient.getPolicyDetails(
       request,
-      createGrpcMetadata()
+      createGrpcMetadata(),
     );
 
     return response.toObject();
   },
 
-
   async getPoliciesByCategory(
     category: string,
-    langCode: string = "ru-RU"
+    langCode: string = "ru-RU",
   ): Promise<operator_pb_types.GetPoliciesByCategoryResponse.AsObject> {
     const request = new operator_pb.GetPoliciesByCategoryRequest();
     request.setCategory(category);
@@ -207,16 +210,15 @@ export const policyCatalogClient = {
 
     const response = await policyCatalogServiceClient.getPoliciesByCategory(
       request,
-      createGrpcMetadata()
+      createGrpcMetadata(),
     );
 
     return response.toObject();
   },
 
-
   async getPoliciesByAdmx(
     admxFile: string,
-    langCode: string = "ru-RU"
+    langCode: string = "ru-RU",
   ): Promise<operator_pb_types.GetPoliciesByAdmxResponse.AsObject> {
     const request = new operator_pb.GetPoliciesByAdmxRequest();
     request.setAdmxFile(admxFile);
@@ -224,54 +226,50 @@ export const policyCatalogClient = {
 
     const response = await policyCatalogServiceClient.getPoliciesByAdmx(
       request,
-      createGrpcMetadata()
+      createGrpcMetadata(),
     );
 
     return response.toObject();
   },
 };
 
-
 export const agentServiceClientWrapper = {
-
   async listAgents(): Promise<operator_pb_types.ListAgentsResponse.AsObject> {
-
     if (!operator_pb.ListAgentsRequest) {
-      throw new Error("ListAgentsRequest class is not available in operator_pb");
+      throw new Error(
+        "ListAgentsRequest class is not available in operator_pb",
+      );
     }
     const request = new operator_pb.ListAgentsRequest();
 
     const response = await agentServiceClient.listAgents(
       request,
-      createGrpcMetadata()
+      createGrpcMetadata(),
     );
 
     return response.toObject();
   },
 
-
   async getAgent(
-    agentId: string
+    agentId: string,
   ): Promise<operator_pb_types.AgentDetails.AsObject> {
     const request = new operator_pb.GetAgentRequest();
     request.setAgentId(agentId);
 
     const response = await agentServiceClient.getAgent(
       request,
-      createGrpcMetadata()
+      createGrpcMetadata(),
     );
 
     return response.toObject();
   },
 };
 
-
 export const policyAssignmentClient = {
-
   async assignPolicy(
     policyHash: string,
     target: operator_pb_types.PolicyTarget,
-    selection?: operator_pb_types.PolicySelection
+    selection?: operator_pb_types.PolicySelection,
   ): Promise<operator_pb_types.AssignPolicyResponse.AsObject> {
     const request = new operator_pb.AssignPolicyRequest();
     request.setPolicyHash(policyHash);
@@ -282,16 +280,15 @@ export const policyAssignmentClient = {
 
     const response = await policyAssignmentServiceClient.assignPolicy(
       request,
-      createGrpcMetadata()
+      createGrpcMetadata(),
     );
 
     return response.toObject();
   },
 
-
   async removePolicy(
     policyHash: string,
-    target: operator_pb_types.PolicyTarget
+    target: operator_pb_types.PolicyTarget,
   ): Promise<operator_pb_types.RemovePolicyResponse.AsObject> {
     const request = new operator_pb.RemovePolicyRequest();
     request.setPolicyHash(policyHash);
@@ -299,46 +296,42 @@ export const policyAssignmentClient = {
 
     const response = await policyAssignmentServiceClient.removePolicy(
       request,
-      createGrpcMetadata()
+      createGrpcMetadata(),
     );
 
     return response.toObject();
   },
 };
 
-
 export const policyStateClient = {
-
   async getEffectivePolicies(
-    target: operator_pb_types.PolicyTarget
+    target: operator_pb_types.PolicyTarget,
   ): Promise<operator_pb_types.GetEffectivePoliciesResponse.AsObject> {
     const request = new operator_pb.GetEffectivePoliciesRequest();
     request.setTarget(target);
 
     const response = await policyStateServiceClient.getEffectivePolicies(
       request,
-      createGrpcMetadata()
+      createGrpcMetadata(),
     );
 
     return response.toObject();
   },
 
-
   async getAssignments(
-    target: operator_pb_types.PolicyTarget
+    target: operator_pb_types.PolicyTarget,
   ): Promise<operator_pb_types.GetAssignmentsResponse.AsObject> {
     const request = new operator_pb.GetAssignmentsRequest();
     request.setTarget(target);
 
     const response = await policyStateServiceClient.getAssignments(
       request,
-      createGrpcMetadata()
+      createGrpcMetadata(),
     );
 
     return response.toObject();
   },
 };
-
 
 export {
   agentServiceClient,
@@ -348,6 +341,5 @@ export {
   policyAssignmentServiceClient,
   policyStateServiceClient,
 };
-
 
 export * as operator_pb from "@/generated/operator_pb";
