@@ -1,5 +1,13 @@
 <template>
   <q-list dense style="min-width: 200px">
+    <!-- view agent details -->
+    <q-item clickable v-close-popup @click="viewAgentDetails(agent.agent_id)">
+      <q-item-section side>
+        <q-icon size="xs" name="info" />
+      </q-item-section>
+      <q-item-section>View Details</q-item-section>
+    </q-item>
+    <q-separator />
     <!-- edit agent -->
     <q-item clickable v-close-popup @click="showEditAgent(agent.agent_id)">
       <q-item-section side>
@@ -248,6 +256,7 @@
 import { ref, inject, onMounted } from "vue";
 import { useStore } from "vuex";
 import { useQuasar } from "quasar";
+import { useRouter } from "vue-router";
 import { fetchURLActions, runURLAction } from "@/api/core";
 import {
   editAgent,
@@ -292,10 +301,17 @@ export default {
     // setup vuex
     const store = useStore();
 
+    // setup router
+    const router = useRouter();
+
     const refreshDashboard = inject("refreshDashboard");
 
     const urlActions = ref([]);
     const favoriteScripts = ref([]);
+
+    function viewAgentDetails(agent_id) {
+      router.push({ name: "Agent", params: { agent_id } });
+    }
 
     function showEditAgent(agent_id) {
       $q.dialog({
@@ -579,6 +595,7 @@ export default {
       favoriteScripts,
 
       // methods
+      viewAgentDetails,
       showEditAgent,
       showPendingActionsModal,
       runTakeControl,

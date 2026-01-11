@@ -22,6 +22,14 @@ const routes = [
           requireAuth: true,
         },
       },
+      {
+        path: "/gpo",
+        name: "GPOManager",
+        component: () => import("@/gpo/views/GPOManagerView.vue"),
+        meta: {
+          requireAuth: true,
+        },
+      },
     ],
   },
   {
