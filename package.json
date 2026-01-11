@@ -7,7 +7,8 @@
     "serve": "quasar dev",
     "build": "quasar build",
     "lint": "eslint --ext .js,.ts,.vue ./",
-    "format": "prettier --write \"**/*.{js,ts,vue,,html,md,json}\" --ignore-path .gitignore"
+    "format": "prettier --write \"**/*.{js,ts,vue,,html,md,json}\" --ignore-path .gitignore",
+    "proto:generate": "PATH=$PATH:/opt/homebrew/bin protoc -I=./src/gpo/proto --js_out=import_style=es6,binary:./src/generated --grpc-web_out=import_style=typescript,mode=grpcwebtext:./src/generated ./src/gpo/proto/operator.proto && node -e \"const fs = require('fs'); const file = './src/generated/operator_pb.js'; let content = fs.readFileSync(file, 'utf8'); if (!content.includes('import * as jspb')) { const es6Imports = '// Импорты для работы с protobuf (ES6 модули для браузера)\\nimport * as jspb from \\'google-protobuf\\';\\nimport * as google_protobuf_wrappers_pb from \\'google-protobuf/google/protobuf/wrappers_pb.js\\';\\n\\nvar goog = jspb;\\nvar global = globalThis;\\n\\n// Инициализация proto объекта\\nvar proto = {};\\ngoog.object.extend(proto, google_protobuf_wrappers_pb);\\n\\n// Инициализация структуры namespace для laborato.mesh.operator.v1\\nproto.laborato = proto.laborato || {};\\nproto.laborato.mesh = proto.laborato.mesh || {};\\nproto.laborato.mesh.operator = proto.laborato.mesh.operator || {};\\nproto.laborato.mesh.operator.v1 = proto.laborato.mesh.operator.v1 || {};\\n\\n'; content = content.replace('// GENERATED CODE -- DO NOT EDIT!\\n/* eslint-disable */\\n// @ts-nocheck\\n\\n', '// GENERATED CODE -- DO NOT EDIT!\\n/* eslint-disable */\\n// @ts-nocheck\\n\\n' + es6Imports); fs.writeFileSync(file, content); } else { if (!content.includes('proto.laborato.mesh.operator.v1 = proto.laborato.mesh.operator.v1 || {}')) { const namespaceInit = '\\n// Инициализация структуры namespace для laborato.mesh.operator.v1\\nproto.laborato = proto.laborato || {};\\nproto.laborato.mesh = proto.laborato.mesh || {};\\nproto.laborato.mesh.operator = proto.laborato.mesh.operator || {};\\nproto.laborato.mesh.operator.v1 = proto.laborato.mesh.operator.v1 || {};\\n'; content = content.replace(/goog\\.object\\.extend\\(proto, google_protobuf_wrappers_pb\\);/, 'goog.object.extend(proto, google_protobuf_wrappers_pb);' + namespaceInit); fs.writeFileSync(file, content); } } if (!content.includes('export default')) { const namespace = 'proto.laborato.mesh.operator.v1'; const exportCode = '\\n// Экспорт для ES модулей (namespace export)\\nconst operator_pb_exports = ' + namespace + ';\\nexport default operator_pb_exports;\\n'; fs.appendFileSync(file, exportCode); }\""
   },
   "dependencies": {
     "@quasar/extras": "1.16.17",
@@ -20,8 +21,11 @@
     "axios": "1.12.2",
     "dompurify": "3.2.6",
     "dotenv": "16.4.5",
+    "google-protobuf": "^4.0.1",
+    "grpc-web": "^2.0.2",
     "monaco-editor": "0.50.0",
     "pinia": "2.2.6",
+    "protobufjs": "^8.0.0",
     "qrcode": "1.5.4",
     "quasar": "2.18.5",
     "vue": "3.5.22",
@@ -42,7 +46,9 @@
     "eslint": "8.57.0",
     "eslint-config-prettier": "9.1.0",
     "eslint-plugin-vue": "8.7.1",
+    "http2-wrapper": "^2.2.1",
     "prettier": "3.3.3",
-    "typescript": "5.9.2"
+    "typescript": "5.9.2",
+    "undici": "^7.18.2"
   }
 }

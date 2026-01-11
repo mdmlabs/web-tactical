@@ -118,25 +118,79 @@ module.exports = configure(function (/* ctx */) {
             console.log("[Proxy Config] Using insecure HTTPS agent");
           }
 
+          const grpcUrl =
+            process.env.DEV_GRPC_URL || "https://95.142.43.25:5000";
+
           viteConf.server.proxy = {
+            "/api/grpc": {
+              target: grpcUrl,
+              changeOrigin: true,
+              secure: !insecure,
+              agent: httpsAgent,
+
+              rewrite: (path) => path.replace(/^\/api\/grpc/, ""),
+              configure: (proxy) => {
+                proxy.on("error", (err) => {
+                  console.log("[gRPC Proxy] error", err);
+                });
+                proxy.on("proxyReq", (proxyReq, req) => {
+                  const contentType = proxyReq.getHeader("Content-Type");
+                  if (
+                    contentType &&
+                    contentType.includes("application/grpc-web")
+                  ) {
+                  } else if (!contentType) {
+                    proxyReq.setHeader(
+                      "Content-Type",
+                      "application/grpc-web+proto",
+                    );
+                  }
+                  console.log(
+                    "[gRPC Proxy] Sending Request to:",
+                    req.method,
+                    req.url,
+                    "Target path:",
+                    proxyReq.path,
+                  );
+                });
+                proxy.on("proxyRes", (proxyRes, req) => {
+                  const contentType = proxyRes.headers["content-type"];
+                  if (
+                    !contentType ||
+                    !contentType.includes("application/grpc-web")
+                  ) {
+                    proxyRes.headers["content-type"] =
+                      "application/grpc-web+proto";
+                  }
+                  console.log(
+                    "[gRPC Proxy] Received Response:",
+                    proxyRes.statusCode,
+                    req.url,
+                    "Content-Type:",
+                    proxyRes.headers["content-type"],
+                  );
+                });
+              },
+            },
+
             "/api": {
               target: apiUrl,
               changeOrigin: true,
               secure: !insecure, // false для самоподписанных сертификатов
               agent: httpsAgent, // использовать agent для игнорирования SSL ошибок
               rewrite: (path) => path.replace(/^\/api/, ""),
-              configure: (proxy, _options) => {
-                proxy.on("error", (err, _req, _res) => {
+              configure: (proxy) => {
+                proxy.on("error", (err) => {
                   console.log("proxy error", err);
                 });
-                proxy.on("proxyReq", (proxyReq, req, _res) => {
+                proxy.on("proxyReq", (proxyReq, req) => {
                   console.log(
                     "Sending Request to the Target:",
                     req.method,
                     req.url,
                   );
                 });
-                proxy.on("proxyRes", (proxyRes, req, _res) => {
+                proxy.on("proxyRes", (proxyRes, req) => {
                   console.log(
                     "Received Response from the Target:",
                     proxyRes.statusCode,
