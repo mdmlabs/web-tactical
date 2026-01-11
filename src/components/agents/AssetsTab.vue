@@ -33,43 +33,43 @@
 
     <q-tab-panels v-model="tab">
       <q-tab-panel name="os">
-        <WmiDetail :info="assets.os" />
+        <WmiDetail v-if="assets?.os" :info="assets.os" />
       </q-tab-panel>
       <q-tab-panel name="cpu">
-        <WmiDetail :info="assets.cpu" />
+        <WmiDetail v-if="assets?.cpu" :info="assets.cpu" />
       </q-tab-panel>
       <q-tab-panel name="mem">
-        <WmiDetail :info="assets.mem" />
+        <WmiDetail v-if="assets?.mem" :info="assets.mem" />
       </q-tab-panel>
       <q-tab-panel name="usb">
-        <WmiDetail :info="assets.usb" />
+        <WmiDetail v-if="assets?.usb" :info="assets.usb" />
       </q-tab-panel>
       <q-tab-panel name="bios">
-        <WmiDetail :info="assets.bios" />
+        <WmiDetail v-if="assets?.bios" :info="assets.bios" />
       </q-tab-panel>
       <q-tab-panel name="disk">
-        <WmiDetail :info="assets.disk" />
+        <WmiDetail v-if="assets?.disk" :info="assets.disk" />
       </q-tab-panel>
       <q-tab-panel name="comp_sys">
-        <WmiDetail :info="assets.comp_sys" />
+        <WmiDetail v-if="assets?.comp_sys" :info="assets.comp_sys" />
       </q-tab-panel>
       <q-tab-panel name="base_board">
-        <WmiDetail :info="assets.base_board" />
+        <WmiDetail v-if="assets?.base_board" :info="assets.base_board" />
       </q-tab-panel>
       <q-tab-panel name="comp_sys_prod">
-        <WmiDetail :info="assets.comp_sys_prod" />
+        <WmiDetail v-if="assets?.comp_sys_prod" :info="assets.comp_sys_prod" />
       </q-tab-panel>
       <q-tab-panel name="network_config">
-        <WmiDetail :info="assets.network_config" />
+        <WmiDetail v-if="assets?.network_config" :info="assets.network_config" />
       </q-tab-panel>
       <q-tab-panel name="desktop_monitor">
-        <WmiDetail :info="assets.desktop_monitor" />
+        <WmiDetail v-if="assets?.desktop_monitor" :info="assets.desktop_monitor" />
       </q-tab-panel>
       <q-tab-panel name="graphics">
-        <WmiDetail :info="assets.graphics" />
+        <WmiDetail v-if="assets?.graphics" :info="assets.graphics" />
       </q-tab-panel>
       <q-tab-panel name="network_adapter">
-        <WmiDetail :info="assets.network_adapter" />
+        <WmiDetail v-if="assets?.network_adapter" :info="assets.network_adapter" />
       </q-tab-panel>
     </q-tab-panels>
   </div>
@@ -101,7 +101,7 @@ export default {
     async function getWMIData() {
       loading.value = true;
       const { wmi_detail } = await fetchAgent(selectedAgent.value);
-      assets.value = wmi_detail;
+      assets.value = wmi_detail || {};
       loading.value = false;
     }
 

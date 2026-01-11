@@ -1,13 +1,13 @@
 <template>
-  <div class="q-pa-none">
+  <div class="q-pa-none full-height">
     <q-table
       dense
       :table-class="{
         'table-bgcolor': !$q.dark.isActive,
         'table-bgcolor-dark': $q.dark.isActive,
       }"
-      class="agents-tbl-sticky"
-      :table-style="{ 'max-height': tableHeight }"
+      class="agents-tbl-sticky full-height"
+      :table-style="{ height: tableHeight }"
       :rows="agents"
       :filter="search"
       :filter-method="filterTable"
@@ -23,21 +23,33 @@
     >
       <!-- header slots -->
       <template v-slot:header-cell-smsalert="props">
-        <q-th auto-width :props="props">
+        <q-th
+          auto-width
+          :props="props"
+          :class="{ 'alert-column-hidden': !showAlertColumns }"
+        >
           <q-icon name="phone_android" size="1.5em">
             <q-tooltip>{{ sms_overdue_text }}</q-tooltip>
           </q-icon>
         </q-th>
       </template>
       <template v-slot:header-cell-emailalert="props">
-        <q-th auto-width :props="props">
+        <q-th
+          auto-width
+          :props="props"
+          :class="{ 'alert-column-hidden': !showAlertColumns }"
+        >
           <q-icon name="email" size="1.5em">
             <q-tooltip>{{ email_overdue_text }}</q-tooltip>
           </q-icon>
         </q-th>
       </template>
       <template v-slot:header-cell-dashboardalert="props">
-        <q-th auto-width :props="props">
+        <q-th
+          auto-width
+          :props="props"
+          :class="{ 'alert-column-hidden': !showAlertColumns }"
+        >
           <q-icon name="notifications" size="1.5em">
             <q-tooltip>{{ dashboard_overdue_text }}</q-tooltip>
           </q-icon>
@@ -72,7 +84,7 @@
       </template>
       <template v-slot:header-cell-agentstatus="props">
         <q-th auto-width :props="props">
-          <q-icon name="fas fa-signal" size="1.2em">
+          <q-icon name="fas fa-rss" size="1.2em">
             <q-tooltip>Agent Status</q-tooltip>
           </q-icon>
         </q-th>
@@ -90,13 +102,13 @@
           @contextmenu="agentRowSelected(props.row.agent_id, props.row.plat)"
           :props="props"
           :class="rowSelectedClass(props.row.agent_id)"
-          @click="agentRowSelected(props.row.agent_id, props.row.plat)"
+          @click="handleRowClick(props.row.agent_id, props.row.plat, $event)"
           @dblclick="rowDoubleClicked(props.row.agent_id, props.row.plat)"
         >
           <q-menu context-menu>
             <AgentActionMenu :agent="props.row" />
           </q-menu>
-          <q-td>
+          <q-td :class="{ 'alert-column-hidden': !showAlertColumns }">
             <q-checkbox
               v-if="
                 props.row.alert_template &&
@@ -123,7 +135,7 @@
               <q-tooltip>{{ sms_overdue_text }}</q-tooltip>
             </q-checkbox>
           </q-td>
-          <q-td>
+          <q-td :class="{ 'alert-column-hidden': !showAlertColumns }">
             <q-checkbox
               v-if="
                 props.row.alert_template &&
@@ -150,7 +162,7 @@
               <q-tooltip>{{ email_overdue_text }}</q-tooltip>
             </q-checkbox>
           </q-td>
-          <q-td>
+          <q-td :class="{ 'alert-column-hidden': !showAlertColumns }">
             <q-checkbox
               v-if="
                 props.row.alert_template &&
@@ -270,7 +282,23 @@
             props.row.client_name
           }}</q-td>
           <q-td key="site_name" :props="props">{{ props.row.site_name }}</q-td>
-          <q-td key="hostname" :props="props">{{ props.row.hostname }}</q-td>
+          <q-td key="hostname" :props="props">
+            <div class="row items-center q-gutter-xs">
+              <span>{{ props.row.hostname }}</span>
+              <q-btn
+                flat
+                dense
+                round
+                size="xs"
+                icon="open_in_new"
+                color="primary"
+                @click.stop="viewAgentDetails(props.row.agent_id)"
+                class="q-ml-xs"
+              >
+                <q-tooltip>View Agent Details</q-tooltip>
+              </q-btn>
+            </div>
+          </q-td>
           <q-td key="description" :props="props">{{
             props.row.description
           }}</q-td>
@@ -293,7 +321,7 @@
           <q-td :props="props" key="pendingactions">
             <q-icon
               v-if="props.row.pending_actions_count > 0"
-              @click="showPendingActionsModal(props.row)"
+              @click.stop="showPendingActionsModal(props.row)"
               name="far fa-clock"
               size="1.4em"
               :color="dash_warning_color"
@@ -318,7 +346,7 @@
           <q-td key="agentstatus">
             <q-icon
               v-if="props.row.status === 'overdue'"
-              name="fas fa-signal"
+              name="fas fa-rss"
               size="1.2em"
               :color="dash_negative_color"
             >
@@ -326,7 +354,7 @@
             </q-icon>
             <q-icon
               v-else-if="props.row.status === 'offline'"
-              name="fas fa-signal"
+              name="fas fa-rss"
               size="1.2em"
               :color="dash_warning_color"
             >
@@ -334,7 +362,7 @@
             </q-icon>
             <q-icon
               v-else
-              name="fas fa-signal"
+              name="fas fa-rss"
               size="1.2em"
               :color="dash_positive_color"
             >
@@ -369,7 +397,16 @@ export default {
   components: {
     AgentActionMenu,
   },
-  props: ["agents", "columns", "search", "visibleColumns"],
+  props: {
+    agents: Array,
+    columns: Array,
+    search: String,
+    visibleColumns: Array,
+    showAlertColumns: {
+      type: Boolean,
+      default: true,
+    },
+  },
   inject: ["refreshDashboard"],
   mixins: [mixins],
   data() {
@@ -497,9 +534,31 @@ export default {
         },
       });
     },
+    handleRowClick(agent_id, agentPlatform, event) {
+      // Предотвращаем переход при клике на чекбоксы или другие интерактивные элементы
+      // Интерактивные элементы должны использовать @click.stop для предотвращения всплытия
+      const target = event.target;
+      const isInteractiveElement =
+        target.closest("input") ||
+        target.closest("button") ||
+        target.closest(".q-menu") ||
+        target.closest("a");
+
+      // Если клик на интерактивном элементе - не переходим на страницу
+      if (isInteractiveElement) {
+        return;
+      }
+
+      // Обычный клик на строку - переходим на страницу агента
+      this.agentRowSelected(agent_id, agentPlatform);
+    },
     agentRowSelected(agent_id, agentPlatform) {
       this.$store.commit("setActiveRow", agent_id);
       this.$store.commit("setAgentPlatform", agentPlatform);
+      // Просто выделяем строку, без перехода на страницу
+    },
+    viewAgentDetails(agent_id) {
+      this.$router.push({ name: "Agent", params: { agent_id } });
     },
     overdueAlert(category, agent, alert_action) {
       let db_field = "";
@@ -582,3 +641,16 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.alert-column-hidden {
+  visibility: hidden !important;
+  opacity: 0;
+  pointer-events: none;
+  /* min-width: 40px; */
+  width: 4px;
+  max-width: 0;
+  padding: 0 !important;
+  overflow: hidden;
+}
+</style>

@@ -244,6 +244,17 @@
                 </q-item-section>
                 <q-item-section>Code Signing</q-item-section>
               </q-item>
+              <q-item
+                clickable
+                v-ripple
+                @click="navigateToGPO"
+                class="filebar-menu-item"
+              >
+                <q-item-section avatar>
+                  <q-icon name="policy" />
+                </q-item-section>
+                <q-item-section>Policy Manager</q-item-section>
+              </q-item>
             </q-list>
           </q-expansion-item>
 
@@ -632,6 +643,13 @@ export default {
           this.openHelp("discord");
           break;
       }
+    },
+    navigateToGPO() {
+      // клозим дравер на мобилках после выбора действия
+      if (this.overlayMode) {
+        this.closeDrawer();
+      }
+      this.$router.push("/gpo");
     },
     handleIntegration(integration) {
       if (this.overlayMode) {
