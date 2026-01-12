@@ -1,0 +1,1170 @@
+[
+  {
+    "group": "Security and Threat Protection",
+    "ui_name": "Security",
+    "description": "Security, antivirus, encryption, and attack surface reduction.",
+    "admx_files": [
+      {
+        "file": "AccountNotifications.admx",
+        "ui_name": "AccountNotifications",
+        "description": "Windows administrative policies for component AccountNotifications"
+      },
+      {
+        "file": "AppXRuntime.admx",
+        "ui_name": "AppXRuntime",
+        "description": "Windows administrative policies for component AppXRuntime"
+      },
+      {
+        "file": "CipherSuiteOrder.admx",
+        "ui_name": "CipherSuiteOrder",
+        "description": "Windows administrative policies for component CipherSuiteOrder"
+      },
+      {
+        "file": "CredUI.admx",
+        "ui_name": "CredUI",
+        "description": "Windows administrative policies for component CredUI"
+      },
+      {
+        "file": "DeviceGuard.admx",
+        "ui_name": "DeviceGuard",
+        "description": "Windows administrative policies for component DeviceGuard"
+      },
+      {
+        "file": "DistributedLinkTracking.admx",
+        "ui_name": "DistributedLinkTracking",
+        "description": "Windows administrative policies for component DistributedLinkTracking"
+      },
+      {
+        "file": "ErrorReporting.admx",
+        "ui_name": "ErrorReporting",
+        "description": "Windows administrative policies for component ErrorReporting"
+      },
+      {
+        "file": "FileHistory.admx",
+        "ui_name": "FileHistory",
+        "description": "Windows administrative policies for component FileHistory"
+      },
+      {
+        "file": "fthsvc.admx",
+        "ui_name": "fthsvc",
+        "description": "Windows administrative policies for component fthsvc"
+      },
+      {
+        "file": "IIS.admx",
+        "ui_name": "IIS",
+        "description": "Windows administrative policies for component IIS"
+      },
+      {
+        "file": "LeakDiagnostic.admx",
+        "ui_name": "LeakDiagnostic",
+        "description": "Windows administrative policies for component LeakDiagnostic"
+      },
+      {
+        "file": "MMCSnapins.admx",
+        "ui_name": "MMCSnapins",
+        "description": "Windows administrative policies for component MMCSnapins"
+      },
+      {
+        "file": "nca.admx",
+        "ui_name": "nca",
+        "description": "Windows administrative policies for component nca"
+      },
+      {
+        "file": "OOBE.admx",
+        "ui_name": "OOBE",
+        "description": "Windows administrative policies for component OOBE"
+      },
+      {
+        "file": "PreviousVersions.admx",
+        "ui_name": "PreviousVersions",
+        "description": "Windows administrative policies for component PreviousVersions"
+      },
+      {
+        "file": "refs.admx",
+        "ui_name": "refs",
+        "description": "Windows administrative policies for component refs"
+      },
+      {
+        "file": "Search.admx",
+        "ui_name": "Search",
+        "description": "Windows administrative policies for component Search"
+      },
+      {
+        "file": "SharedFolders.admx",
+        "ui_name": "SharedFolders",
+        "description": "Windows administrative policies for component SharedFolders"
+      },
+      {
+        "file": "SoundRec.admx",
+        "ui_name": "SoundRec",
+        "description": "Windows administrative policies for component SoundRec"
+      },
+      {
+        "file": "TabletShell.admx",
+        "ui_name": "TabletShell",
+        "description": "Windows administrative policies for component TabletShell"
+      },
+      {
+        "file": "TPM.admx",
+        "ui_name": "TPM",
+        "description": "Windows administrative policies for component TPM"
+      },
+      {
+        "file": "Windows.admx",
+        "ui_name": "Windows",
+        "description": "Windows administrative policies for component Windows"
+      },
+      {
+        "file": "WindowsFileProtection.admx",
+        "ui_name": "WindowsFileProtection",
+        "description": "Windows administrative policies for component WindowsFileProtection"
+      },
+      {
+        "file": "WindowsSandbox.admx",
+        "ui_name": "WindowsSandbox",
+        "description": "Windows administrative policies for component WindowsSandbox"
+      },
+      {
+        "file": "WordWheel.admx",
+        "ui_name": "WordWheel",
+        "description": "Windows administrative policies for component WordWheel"
+      }
+    ]
+  },
+  {
+    "group": "Authentication and Identity",
+    "ui_name": "Authentication",
+    "description": "Authentication, credentials, and identity management.",
+    "admx_files": [
+      {
+        "file": "ActiveXInstallService.admx",
+        "ui_name": "ActiveXInstallService",
+        "description": "Windows administrative policies for component ActiveXInstallService"
+      },
+      {
+        "file": "AttachmentManager.admx",
+        "ui_name": "AttachmentManager",
+        "description": "Windows administrative policies for component AttachmentManager"
+      },
+      {
+        "file": "CloudContent.admx",
+        "ui_name": "CloudContent",
+        "description": "Windows administrative policies for component CloudContent"
+      },
+      {
+        "file": "CtrlAltDel.admx",
+        "ui_name": "CtrlAltDel",
+        "description": "Windows administrative policies for component CtrlAltDel"
+      },
+      {
+        "file": "DeviceInstallation.admx",
+        "ui_name": "DeviceInstallation",
+        "description": "Windows administrative policies for component DeviceInstallation"
+      },
+      {
+        "file": "DmaGuard.admx",
+        "ui_name": "DmaGuard",
+        "description": "Windows administrative policies for component DmaGuard"
+      },
+      {
+        "file": "EventForwarding.admx",
+        "ui_name": "EventForwarding",
+        "description": "Windows administrative policies for component EventForwarding"
+      },
+      {
+        "file": "FileRecovery.admx",
+        "ui_name": "FileRecovery",
+        "description": "Windows administrative policies for component FileRecovery"
+      },
+      {
+        "file": "GameDVR.admx",
+        "ui_name": "GameDVR",
+        "description": "Windows administrative policies for component GameDVR"
+      },
+      {
+        "file": "inetres.admx",
+        "ui_name": "inetres",
+        "description": "Windows administrative policies for component inetres"
+      },
+      {
+        "file": "LinkLayerTopologyDiscovery.admx",
+        "ui_name": "LinkLayerTopologyDiscovery",
+        "description": "Windows administrative policies for component LinkLayerTopologyDiscovery"
+      },
+      {
+        "file": "MobilePCMobilityCenter.admx",
+        "ui_name": "MobilePCMobilityCenter",
+        "description": "Windows administrative policies for component MobilePCMobilityCenter"
+      },
+      {
+        "file": "NCSI.admx",
+        "ui_name": "NCSI",
+        "description": "Windows administrative policies for component NCSI"
+      },
+      {
+        "file": "OSPolicy.admx",
+        "ui_name": "OSPolicy",
+        "description": "Windows administrative policies for component OSPolicy"
+      },
+      {
+        "file": "Printing.admx",
+        "ui_name": "Printing",
+        "description": "Windows administrative policies for component Printing"
+      },
+      {
+        "file": "Reliability.admx",
+        "ui_name": "Reliability",
+        "description": "Windows administrative policies for component Reliability"
+      },
+      {
+        "file": "SecureBoot.admx",
+        "ui_name": "SecureBoot",
+        "description": "Windows administrative policies for component SecureBoot"
+      },
+      {
+        "file": "Sharing.admx",
+        "ui_name": "Sharing",
+        "description": "Windows administrative policies for component Sharing"
+      },
+      {
+        "file": "Speech.admx",
+        "ui_name": "Speech",
+        "description": "Windows administrative policies for component Speech"
+      },
+      {
+        "file": "Taskbar.admx",
+        "ui_name": "Taskbar",
+        "description": "Windows administrative policies for component Taskbar"
+      },
+      {
+        "file": "UserExperienceVirtualization.admx",
+        "ui_name": "UserExperienceVirtualization",
+        "description": "Windows administrative policies for component UserExperienceVirtualization"
+      },
+      {
+        "file": "WindowsAnytimeUpgrade.admx",
+        "ui_name": "WindowsAnytimeUpgrade",
+        "description": "Windows administrative policies for component WindowsAnytimeUpgrade"
+      },
+      {
+        "file": "WindowsFirewall.admx",
+        "ui_name": "WindowsFirewall",
+        "description": "Windows administrative policies for component WindowsFirewall"
+      },
+      {
+        "file": "WindowsStore.admx",
+        "ui_name": "WindowsStore",
+        "description": "Windows administrative policies for component WindowsStore"
+      },
+      {
+        "file": "WorkFolders-Client.admx",
+        "ui_name": "WorkFolders-Client",
+        "description": "Windows administrative policies for component WorkFolders-Client"
+      }
+    ]
+  },
+  {
+    "group": "Networking and Remote Access",
+    "ui_name": "Networking",
+    "description": "Network connectivity and remote access.",
+    "admx_files": [
+      {
+        "file": "AddRemovePrograms.admx",
+        "ui_name": "AddRemovePrograms",
+        "description": "Windows administrative policies for component AddRemovePrograms"
+      },
+      {
+        "file": "AuditSettings.admx",
+        "ui_name": "AuditSettings",
+        "description": "Windows administrative policies for component AuditSettings"
+      },
+      {
+        "file": "COM.admx",
+        "ui_name": "COM",
+        "description": "Windows administrative policies for component COM"
+      },
+      {
+        "file": "DataCollection.admx",
+        "ui_name": "DataCollection",
+        "description": "Windows administrative policies for component DataCollection"
+      },
+      {
+        "file": "DeviceSetup.admx",
+        "ui_name": "DeviceSetup",
+        "description": "Windows administrative policies for component DeviceSetup"
+      },
+      {
+        "file": "DnsClient.admx",
+        "ui_name": "DnsClient",
+        "description": "Windows administrative policies for component DnsClient"
+      },
+      {
+        "file": "EventLog.admx",
+        "ui_name": "EventLog",
+        "description": "Windows administrative policies for component EventLog"
+      },
+      {
+        "file": "FileRevocation.admx",
+        "ui_name": "FileRevocation",
+        "description": "Windows administrative policies for component FileRevocation"
+      },
+      {
+        "file": "Globalization.admx",
+        "ui_name": "Globalization",
+        "description": "Windows administrative policies for component Globalization"
+      },
+      {
+        "file": "iSCSI.admx",
+        "ui_name": "iSCSI",
+        "description": "Windows administrative policies for component iSCSI"
+      },
+      {
+        "file": "LocalSecurityAuthority.admx",
+        "ui_name": "LocalSecurityAuthority",
+        "description": "Windows administrative policies for component LocalSecurityAuthority"
+      },
+      {
+        "file": "MobilePCPresentationSettings.admx",
+        "ui_name": "MobilePCPresentationSettings",
+        "description": "Windows administrative policies for component MobilePCPresentationSettings"
+      },
+      {
+        "file": "Netlogon.admx",
+        "ui_name": "Netlogon",
+        "description": "Windows administrative policies for component Netlogon"
+      },
+      {
+        "file": "Passport.admx",
+        "ui_name": "Passport",
+        "description": "Windows administrative policies for component Passport"
+      },
+      {
+        "file": "Printing2.admx",
+        "ui_name": "Printing2",
+        "description": "Windows administrative policies for component Printing2"
+      },
+      {
+        "file": "RemoteAssistance.admx",
+        "ui_name": "RemoteAssistance",
+        "description": "Windows administrative policies for component RemoteAssistance"
+      },
+      {
+        "file": "Securitycenter.admx",
+        "ui_name": "Securitycenter",
+        "description": "Windows administrative policies for component Securitycenter"
+      },
+      {
+        "file": "Shell-CommandPrompt-RegEditTools.admx",
+        "ui_name": "Shell-CommandPrompt-RegEditTools",
+        "description": "Windows administrative policies for component Shell-CommandPrompt-RegEditTools"
+      },
+      {
+        "file": "srm-fci.admx",
+        "ui_name": "srm-fci",
+        "description": "Windows administrative policies for component srm-fci"
+      },
+      {
+        "file": "TaskScheduler.admx",
+        "ui_name": "TaskScheduler",
+        "description": "Windows administrative policies for component TaskScheduler"
+      },
+      {
+        "file": "UserProfiles.admx",
+        "ui_name": "UserProfiles",
+        "description": "Windows administrative policies for component UserProfiles"
+      },
+      {
+        "file": "WindowsBackup.admx",
+        "ui_name": "WindowsBackup",
+        "description": "Windows administrative policies for component WindowsBackup"
+      },
+      {
+        "file": "WindowsInkWorkspace.admx",
+        "ui_name": "WindowsInkWorkspace",
+        "description": "Windows administrative policies for component WindowsInkWorkspace"
+      },
+      {
+        "file": "WindowsUpdate.admx",
+        "ui_name": "WindowsUpdate",
+        "description": "Windows administrative policies for component WindowsUpdate"
+      },
+      {
+        "file": "WorkplaceJoin.admx",
+        "ui_name": "WorkplaceJoin",
+        "description": "Windows administrative policies for component WorkplaceJoin"
+      }
+    ]
+  },
+  {
+    "group": "Windows Update and Servicing",
+    "ui_name": "Updates",
+    "description": "OS updates and servicing.",
+    "admx_files": [
+      {
+        "file": "AllowBuildPreview.admx",
+        "ui_name": "AllowBuildPreview",
+        "description": "Windows administrative policies for component AllowBuildPreview"
+      },
+      {
+        "file": "AutoPlay.admx",
+        "ui_name": "AutoPlay",
+        "description": "Windows administrative policies for component AutoPlay"
+      },
+      {
+        "file": "Conf.admx",
+        "ui_name": "Conf",
+        "description": "Windows administrative policies for component Conf"
+      },
+      {
+        "file": "DCOM.admx",
+        "ui_name": "DCOM",
+        "description": "Windows administrative policies for component DCOM"
+      },
+      {
+        "file": "DFS.admx",
+        "ui_name": "DFS",
+        "description": "Windows administrative policies for component DFS"
+      },
+      {
+        "file": "DWM.admx",
+        "ui_name": "DWM",
+        "description": "Windows administrative policies for component DWM"
+      },
+      {
+        "file": "EventLogging.admx",
+        "ui_name": "EventLogging",
+        "description": "Windows administrative policies for component EventLogging"
+      },
+      {
+        "file": "FileServerVSSProvider.admx",
+        "ui_name": "FileServerVSSProvider",
+        "description": "Windows administrative policies for component FileServerVSSProvider"
+      },
+      {
+        "file": "GroupPolicy.admx",
+        "ui_name": "GroupPolicy",
+        "description": "Windows administrative policies for component GroupPolicy"
+      },
+      {
+        "file": "kdc.admx",
+        "ui_name": "kdc",
+        "description": "Windows administrative policies for component kdc"
+      },
+      {
+        "file": "LocationProviderAdm.admx",
+        "ui_name": "LocationProviderAdm",
+        "description": "Windows administrative policies for component LocationProviderAdm"
+      },
+      {
+        "file": "MSAPolicy.admx",
+        "ui_name": "MSAPolicy",
+        "description": "Windows administrative policies for component MSAPolicy"
+      },
+      {
+        "file": "NetworkConnections.admx",
+        "ui_name": "NetworkConnections",
+        "description": "Windows administrative policies for component NetworkConnections"
+      },
+      {
+        "file": "pca.admx",
+        "ui_name": "pca",
+        "description": "Windows administrative policies for component pca"
+      },
+      {
+        "file": "Programs.admx",
+        "ui_name": "Programs",
+        "description": "Windows administrative policies for component Programs"
+      },
+      {
+        "file": "RemovableStorage.admx",
+        "ui_name": "RemovableStorage",
+        "description": "Windows administrative policies for component RemovableStorage"
+      },
+      {
+        "file": "Sensors.admx",
+        "ui_name": "Sensors",
+        "description": "Windows administrative policies for component Sensors"
+      },
+      {
+        "file": "ShellWelcomeCenter.admx",
+        "ui_name": "ShellWelcomeCenter",
+        "description": "Windows administrative policies for component ShellWelcomeCenter"
+      },
+      {
+        "file": "StartMenu.admx",
+        "ui_name": "StartMenu",
+        "description": "Windows administrative policies for component StartMenu"
+      },
+      {
+        "file": "tcpip.admx",
+        "ui_name": "tcpip",
+        "description": "Windows administrative policies for component tcpip"
+      },
+      {
+        "file": "VolumeEncryption.admx",
+        "ui_name": "VolumeEncryption",
+        "description": "Windows administrative policies for component VolumeEncryption"
+      },
+      {
+        "file": "WindowsColorSystem.admx",
+        "ui_name": "WindowsColorSystem",
+        "description": "Windows administrative policies for component WindowsColorSystem"
+      },
+      {
+        "file": "WindowsMediaDRM.admx",
+        "ui_name": "WindowsMediaDRM",
+        "description": "Windows administrative policies for component WindowsMediaDRM"
+      },
+      {
+        "file": "WinInit.admx",
+        "ui_name": "WinInit",
+        "description": "Windows administrative policies for component WinInit"
+      },
+      {
+        "file": "WPN.admx",
+        "ui_name": "WPN",
+        "description": "Windows administrative policies for component WPN"
+      }
+    ]
+  },
+  {
+    "group": "User Interface and Shell",
+    "ui_name": "UI",
+    "description": "Windows shell and user interface.",
+    "admx_files": [
+      {
+        "file": "AppCompat.admx",
+        "ui_name": "AppCompat",
+        "description": "Windows administrative policies for component AppCompat"
+      },
+      {
+        "file": "AVSValidationGP.admx",
+        "ui_name": "AVSValidationGP",
+        "description": "Windows administrative policies for component AVSValidationGP"
+      },
+      {
+        "file": "ControlPanel.admx",
+        "ui_name": "ControlPanel",
+        "description": "Windows administrative policies for component ControlPanel"
+      },
+      {
+        "file": "DeliveryOptimization.admx",
+        "ui_name": "DeliveryOptimization",
+        "description": "Windows administrative policies for component DeliveryOptimization"
+      },
+      {
+        "file": "DigitalLocker.admx",
+        "ui_name": "DigitalLocker",
+        "description": "Windows administrative policies for component DigitalLocker"
+      },
+      {
+        "file": "EAIME.admx",
+        "ui_name": "EAIME",
+        "description": "Windows administrative policies for component EAIME"
+      },
+      {
+        "file": "EventViewer.admx",
+        "ui_name": "EventViewer",
+        "description": "Windows administrative policies for component EventViewer"
+      },
+      {
+        "file": "FileSys.admx",
+        "ui_name": "FileSys",
+        "description": "Windows administrative policies for component FileSys"
+      },
+      {
+        "file": "Handwriting.admx",
+        "ui_name": "Handwriting",
+        "description": "Windows administrative policies for component Handwriting"
+      },
+      {
+        "file": "Kerberos.admx",
+        "ui_name": "Kerberos",
+        "description": "Windows administrative policies for component Kerberos"
+      },
+      {
+        "file": "Logon.admx",
+        "ui_name": "Logon",
+        "description": "Windows administrative policies for component Logon"
+      },
+      {
+        "file": "msched.admx",
+        "ui_name": "msched",
+        "description": "Windows administrative policies for component msched"
+      },
+      {
+        "file": "NetworkIsolation.admx",
+        "ui_name": "NetworkIsolation",
+        "description": "Windows administrative policies for component NetworkIsolation"
+      },
+      {
+        "file": "PeerToPeerCaching.admx",
+        "ui_name": "PeerToPeerCaching",
+        "description": "Windows administrative policies for component PeerToPeerCaching"
+      },
+      {
+        "file": "PushToInstall.admx",
+        "ui_name": "PushToInstall",
+        "description": "Windows administrative policies for component PushToInstall"
+      },
+      {
+        "file": "RPC.admx",
+        "ui_name": "RPC",
+        "description": "Windows administrative policies for component RPC"
+      },
+      {
+        "file": "ServerManager.admx",
+        "ui_name": "ServerManager",
+        "description": "Windows administrative policies for component ServerManager"
+      },
+      {
+        "file": "Sidebar.admx",
+        "ui_name": "Sidebar",
+        "description": "Windows administrative policies for component Sidebar"
+      },
+      {
+        "file": "StorageHealth.admx",
+        "ui_name": "StorageHealth",
+        "description": "Windows administrative policies for component StorageHealth"
+      },
+      {
+        "file": "TenantRestrictions.admx",
+        "ui_name": "TenantRestrictions",
+        "description": "Windows administrative policies for component TenantRestrictions"
+      },
+      {
+        "file": "W32Time.admx",
+        "ui_name": "W32Time",
+        "description": "Windows administrative policies for component W32Time"
+      },
+      {
+        "file": "WindowsConnectNow.admx",
+        "ui_name": "WindowsConnectNow",
+        "description": "Windows administrative policies for component WindowsConnectNow"
+      },
+      {
+        "file": "WindowsMediaPlayer.admx",
+        "ui_name": "WindowsMediaPlayer",
+        "description": "Windows administrative policies for component WindowsMediaPlayer"
+      },
+      {
+        "file": "WinLogon.admx",
+        "ui_name": "WinLogon",
+        "description": "Windows administrative policies for component WinLogon"
+      },
+      {
+        "file": "wwansvc.admx",
+        "ui_name": "wwansvc",
+        "description": "Windows administrative policies for component wwansvc"
+      }
+    ]
+  },
+  {
+    "group": "Applications and Store",
+    "ui_name": "Applications",
+    "description": "Application management and Microsoft Store.",
+    "admx_files": [
+      {
+        "file": "AppDeviceInventory.admx",
+        "ui_name": "AppDeviceInventory",
+        "description": "Windows administrative policies for component AppDeviceInventory"
+      },
+      {
+        "file": "Biometrics.admx",
+        "ui_name": "Biometrics",
+        "description": "Windows administrative policies for component Biometrics"
+      },
+      {
+        "file": "ControlPanelDisplay.admx",
+        "ui_name": "ControlPanelDisplay",
+        "description": "Windows administrative policies for component ControlPanelDisplay"
+      },
+      {
+        "file": "Desktop.admx",
+        "ui_name": "Desktop",
+        "description": "Windows administrative policies for component Desktop"
+      },
+      {
+        "file": "DiskDiagnostic.admx",
+        "ui_name": "DiskDiagnostic",
+        "description": "Windows administrative policies for component DiskDiagnostic"
+      },
+      {
+        "file": "EarlyLaunchAM.admx",
+        "ui_name": "EarlyLaunchAM",
+        "description": "Windows administrative policies for component EarlyLaunchAM"
+      },
+      {
+        "file": "ExploitGuard.admx",
+        "ui_name": "ExploitGuard",
+        "description": "Windows administrative policies for component ExploitGuard"
+      },
+      {
+        "file": "filtermanager.admx",
+        "ui_name": "filtermanager",
+        "description": "Windows administrative policies for component filtermanager"
+      },
+      {
+        "file": "Help.admx",
+        "ui_name": "Help",
+        "description": "Windows administrative policies for component Help"
+      },
+      {
+        "file": "KeyboardFilterPolicy.admx",
+        "ui_name": "KeyboardFilterPolicy",
+        "description": "Windows administrative policies for component KeyboardFilterPolicy"
+      },
+      {
+        "file": "MDM.admx",
+        "ui_name": "MDM",
+        "description": "Windows administrative policies for component MDM"
+      },
+      {
+        "file": "MSDT.admx",
+        "ui_name": "MSDT",
+        "description": "Windows administrative policies for component MSDT"
+      },
+      {
+        "file": "NetworkProvider.admx",
+        "ui_name": "NetworkProvider",
+        "description": "Windows administrative policies for component NetworkProvider"
+      },
+      {
+        "file": "PenTraining.admx",
+        "ui_name": "PenTraining",
+        "description": "Windows administrative policies for component PenTraining"
+      },
+      {
+        "file": "QOS.admx",
+        "ui_name": "QOS",
+        "description": "Windows administrative policies for component QOS"
+      },
+      {
+        "file": "sam.admx",
+        "ui_name": "sam",
+        "description": "Windows administrative policies for component sam"
+      },
+      {
+        "file": "ServiceControlManager.admx",
+        "ui_name": "ServiceControlManager",
+        "description": "Windows administrative policies for component ServiceControlManager"
+      },
+      {
+        "file": "SkyDrive.admx",
+        "ui_name": "SkyDrive",
+        "description": "Windows administrative policies for component SkyDrive"
+      },
+      {
+        "file": "StorageSense.admx",
+        "ui_name": "StorageSense",
+        "description": "Windows administrative policies for component StorageSense"
+      },
+      {
+        "file": "TerminalServer.admx",
+        "ui_name": "TerminalServer",
+        "description": "Windows administrative policies for component TerminalServer"
+      },
+      {
+        "file": "WCM.admx",
+        "ui_name": "WCM",
+        "description": "Windows administrative policies for component WCM"
+      },
+      {
+        "file": "WindowsCopilot.admx",
+        "ui_name": "WindowsCopilot",
+        "description": "Windows administrative policies for component WindowsCopilot"
+      },
+      {
+        "file": "WindowsMessenger.admx",
+        "ui_name": "WindowsMessenger",
+        "description": "Windows administrative policies for component WindowsMessenger"
+      },
+      {
+        "file": "WinMaps.admx",
+        "ui_name": "WinMaps",
+        "description": "Windows administrative policies for component WinMaps"
+      }
+    ]
+  },
+  {
+    "group": "Diagnostics and Telemetry",
+    "ui_name": "Diagnostics",
+    "description": "Diagnostics, logging, and telemetry.",
+    "admx_files": [
+      {
+        "file": "AppPrivacy.admx",
+        "ui_name": "AppPrivacy",
+        "description": "Windows administrative policies for component AppPrivacy"
+      },
+      {
+        "file": "Bits.admx",
+        "ui_name": "Bits",
+        "description": "Windows administrative policies for component Bits"
+      },
+      {
+        "file": "Cpls.admx",
+        "ui_name": "Cpls",
+        "description": "Windows administrative policies for component Cpls"
+      },
+      {
+        "file": "DesktopAppInstaller.admx",
+        "ui_name": "DesktopAppInstaller",
+        "description": "Windows administrative policies for component DesktopAppInstaller"
+      },
+      {
+        "file": "DiskNVCache.admx",
+        "ui_name": "DiskNVCache",
+        "description": "Windows administrative policies for component DiskNVCache"
+      },
+      {
+        "file": "EdgeUI.admx",
+        "ui_name": "EdgeUI",
+        "description": "Windows administrative policies for component EdgeUI"
+      },
+      {
+        "file": "Explorer.admx",
+        "ui_name": "Explorer",
+        "description": "Windows administrative policies for component Explorer"
+      },
+      {
+        "file": "FindMy.admx",
+        "ui_name": "FindMy",
+        "description": "Windows administrative policies for component FindMy"
+      },
+      {
+        "file": "HelpAndSupport.admx",
+        "ui_name": "HelpAndSupport",
+        "description": "Windows administrative policies for component HelpAndSupport"
+      },
+      {
+        "file": "LanmanServer.admx",
+        "ui_name": "LanmanServer",
+        "description": "Windows administrative policies for component LanmanServer"
+      },
+      {
+        "file": "messaging.admx",
+        "ui_name": "messaging",
+        "description": "Windows administrative policies for component messaging"
+      },
+      {
+        "file": "Msi-FileRecovery.admx",
+        "ui_name": "Msi-FileRecovery",
+        "description": "Windows administrative policies for component Msi-FileRecovery"
+      },
+      {
+        "file": "NewsAndInterests.admx",
+        "ui_name": "NewsAndInterests",
+        "description": "Windows administrative policies for component NewsAndInterests"
+      },
+      {
+        "file": "PerformanceDiagnostics.admx",
+        "ui_name": "PerformanceDiagnostics",
+        "description": "Windows administrative policies for component PerformanceDiagnostics"
+      },
+      {
+        "file": "RacWmiProv.admx",
+        "ui_name": "RacWmiProv",
+        "description": "Windows administrative policies for component RacWmiProv"
+      },
+      {
+        "file": "Scripts.admx",
+        "ui_name": "Scripts",
+        "description": "Windows administrative policies for component Scripts"
+      },
+      {
+        "file": "Servicing.admx",
+        "ui_name": "Servicing",
+        "description": "Windows administrative policies for component Servicing"
+      },
+      {
+        "file": "Smartcard.admx",
+        "ui_name": "Smartcard",
+        "description": "Windows administrative policies for component Smartcard"
+      },
+      {
+        "file": "Sudo.admx",
+        "ui_name": "Sudo",
+        "description": "Windows administrative policies for component Sudo"
+      },
+      {
+        "file": "TextInput.admx",
+        "ui_name": "TextInput",
+        "description": "Windows administrative policies for component TextInput"
+      },
+      {
+        "file": "WDI.admx",
+        "ui_name": "WDI",
+        "description": "Windows administrative policies for component WDI"
+      },
+      {
+        "file": "WindowsDefender.admx",
+        "ui_name": "WindowsDefender",
+        "description": "Windows administrative policies for component WindowsDefender"
+      },
+      {
+        "file": "WindowsProducts.admx",
+        "ui_name": "WindowsProducts",
+        "description": "Windows administrative policies for component WindowsProducts"
+      },
+      {
+        "file": "Winsrv.admx",
+        "ui_name": "Winsrv",
+        "description": "Windows administrative policies for component Winsrv"
+      }
+    ]
+  },
+  {
+    "group": "Storage and File Systems",
+    "ui_name": "Storage",
+    "description": "Storage, file systems, and backup.",
+    "admx_files": [
+      {
+        "file": "appv.admx",
+        "ui_name": "appv",
+        "description": "Windows administrative policies for component appv"
+      },
+      {
+        "file": "Camera.admx",
+        "ui_name": "Camera",
+        "description": "Windows administrative policies for component Camera"
+      },
+      {
+        "file": "CredentialProviders.admx",
+        "ui_name": "CredentialProviders",
+        "description": "Windows administrative policies for component CredentialProviders"
+      },
+      {
+        "file": "DeviceCompat.admx",
+        "ui_name": "DeviceCompat",
+        "description": "Windows administrative policies for component DeviceCompat"
+      },
+      {
+        "file": "DiskQuota.admx",
+        "ui_name": "DiskQuota",
+        "description": "Windows administrative policies for component DiskQuota"
+      },
+      {
+        "file": "EncryptFilesonMove.admx",
+        "ui_name": "EncryptFilesonMove",
+        "description": "Windows administrative policies for component EncryptFilesonMove"
+      },
+      {
+        "file": "ExternalBoot.admx",
+        "ui_name": "ExternalBoot",
+        "description": "Windows administrative policies for component ExternalBoot"
+      },
+      {
+        "file": "FolderRedirection.admx",
+        "ui_name": "FolderRedirection",
+        "description": "Windows administrative policies for component FolderRedirection"
+      },
+      {
+        "file": "hotspotauth.admx",
+        "ui_name": "hotspotauth",
+        "description": "Windows administrative policies for component hotspotauth"
+      },
+      {
+        "file": "LanmanWorkstation.admx",
+        "ui_name": "LanmanWorkstation",
+        "description": "Windows administrative policies for component LanmanWorkstation"
+      },
+      {
+        "file": "MicrosoftEdge.admx",
+        "ui_name": "MicrosoftEdge",
+        "description": "Windows administrative policies for component MicrosoftEdge"
+      },
+      {
+        "file": "MSI.admx",
+        "ui_name": "MSI",
+        "description": "Windows administrative policies for component MSI"
+      },
+      {
+        "file": "Ntlm.admx",
+        "ui_name": "Ntlm",
+        "description": "Windows administrative policies for component Ntlm"
+      },
+      {
+        "file": "Power.admx",
+        "ui_name": "Power",
+        "description": "Windows administrative policies for component Power"
+      },
+      {
+        "file": "Radar.admx",
+        "ui_name": "Radar",
+        "description": "Windows administrative policies for component Radar"
+      },
+      {
+        "file": "sdiageng.admx",
+        "ui_name": "sdiageng",
+        "description": "Windows administrative policies for component sdiageng"
+      },
+      {
+        "file": "SettingSync.admx",
+        "ui_name": "SettingSync",
+        "description": "Windows administrative policies for component SettingSync"
+      },
+      {
+        "file": "SmartScreen.admx",
+        "ui_name": "SmartScreen",
+        "description": "Windows administrative policies for component SmartScreen"
+      },
+      {
+        "file": "SystemRestore.admx",
+        "ui_name": "SystemRestore",
+        "description": "Windows administrative policies for component SystemRestore"
+      },
+      {
+        "file": "Thumbnails.admx",
+        "ui_name": "Thumbnails",
+        "description": "Windows administrative policies for component Thumbnails"
+      },
+      {
+        "file": "WebThreatDefense.admx",
+        "ui_name": "WebThreatDefense",
+        "description": "Windows administrative policies for component WebThreatDefense"
+      },
+      {
+        "file": "WindowsDefenderSecurityCenter.admx",
+        "ui_name": "WindowsDefenderSecurityCenter",
+        "description": "Windows administrative policies for component WindowsDefenderSecurityCenter"
+      },
+      {
+        "file": "WindowsRemoteManagement.admx",
+        "ui_name": "WindowsRemoteManagement",
+        "description": "Windows administrative policies for component WindowsRemoteManagement"
+      },
+      {
+        "file": "WirelessDisplay.admx",
+        "ui_name": "WirelessDisplay",
+        "description": "Windows administrative policies for component WirelessDisplay"
+      }
+    ]
+  },
+  {
+    "group": "System and Core Components",
+    "ui_name": "System",
+    "description": "Core Windows system components.",
+    "admx_files": [
+      {
+        "file": "AppxPackageManager.admx",
+        "ui_name": "AppxPackageManager",
+        "description": "Windows administrative policies for component AppxPackageManager"
+      },
+      {
+        "file": "CEIPEnable.admx",
+        "ui_name": "CEIPEnable",
+        "description": "Windows administrative policies for component CEIPEnable"
+      },
+      {
+        "file": "CredSsp.admx",
+        "ui_name": "CredSsp",
+        "description": "Windows administrative policies for component CredSsp"
+      },
+      {
+        "file": "DeviceCredential.admx",
+        "ui_name": "DeviceCredential",
+        "description": "Windows administrative policies for component DeviceCredential"
+      },
+      {
+        "file": "Display.admx",
+        "ui_name": "Display",
+        "description": "Windows administrative policies for component Display"
+      },
+      {
+        "file": "EnhancedStorage.admx",
+        "ui_name": "EnhancedStorage",
+        "description": "Windows administrative policies for component EnhancedStorage"
+      },
+      {
+        "file": "FeedbackNotifications.admx",
+        "ui_name": "FeedbackNotifications",
+        "description": "Windows administrative policies for component FeedbackNotifications"
+      },
+      {
+        "file": "FramePanes.admx",
+        "ui_name": "FramePanes",
+        "description": "Windows administrative policies for component FramePanes"
+      },
+      {
+        "file": "ICM.admx",
+        "ui_name": "ICM",
+        "description": "Windows administrative policies for component ICM"
+      },
+      {
+        "file": "LAPS.admx",
+        "ui_name": "LAPS",
+        "description": "Windows administrative policies for component LAPS"
+      },
+      {
+        "file": "MMC.admx",
+        "ui_name": "MMC",
+        "description": "Windows administrative policies for component MMC"
+      },
+      {
+        "file": "Multitasking.admx",
+        "ui_name": "Multitasking",
+        "description": "Windows administrative policies for component Multitasking"
+      },
+      {
+        "file": "OfflineFiles.admx",
+        "ui_name": "OfflineFiles",
+        "description": "Windows administrative policies for component OfflineFiles"
+      },
+      {
+        "file": "PowerShellExecutionPolicy.admx",
+        "ui_name": "PowerShellExecutionPolicy",
+        "description": "Windows administrative policies for component PowerShellExecutionPolicy"
+      },
+      {
+        "file": "ReAgent.admx",
+        "ui_name": "ReAgent",
+        "description": "Windows administrative policies for component ReAgent"
+      },
+      {
+        "file": "sdiagschd.admx",
+        "ui_name": "sdiagschd",
+        "description": "Windows administrative policies for component sdiagschd"
+      },
+      {
+        "file": "Setup.admx",
+        "ui_name": "Setup",
+        "description": "Windows administrative policies for component Setup"
+      },
+      {
+        "file": "Snmp.admx",
+        "ui_name": "Snmp",
+        "description": "Windows administrative policies for component Snmp"
+      },
+      {
+        "file": "TabletPCInputPanel.admx",
+        "ui_name": "TabletPCInputPanel",
+        "description": "Windows administrative policies for component TabletPCInputPanel"
+      },
+      {
+        "file": "TouchInput.admx",
+        "ui_name": "TouchInput",
+        "description": "Windows administrative policies for component TouchInput"
+      },
+      {
+        "file": "WinCal.admx",
+        "ui_name": "WinCal",
+        "description": "Windows administrative policies for component WinCal"
+      },
+      {
+        "file": "WindowsExplorer.admx",
+        "ui_name": "WindowsExplorer",
+        "description": "Windows administrative policies for component WindowsExplorer"
+      },
+      {
+        "file": "WindowsRemoteShell.admx",
+        "ui_name": "WindowsRemoteShell",
+        "description": "Windows administrative policies for component WindowsRemoteShell"
+      },
+      {
+        "file": "wlansvc.admx",
+        "ui_name": "wlansvc",
+        "description": "Windows administrative policies for component wlansvc"
+      }
+    ]
+  }
+]
