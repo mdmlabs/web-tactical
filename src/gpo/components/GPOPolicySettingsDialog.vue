@@ -548,6 +548,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+
 import {
   policyCatalogServiceClient,
   createGrpcMetadata,
@@ -672,7 +673,7 @@ async function loadCategories() {
   try {
     const metadata = createGrpcMetadata();
     const request = new operator_pb.GetCategoryTreeRequest();
-    request.setLangCode("ru-RU");
+    request.setLangCode("en-US");
 
     const response = await policyCatalogServiceClient.getCategoryTree(
       request,
@@ -782,7 +783,7 @@ async function loadPoliciesByCategory(categoryName: string) {
   try {
     const metadata = createGrpcMetadata();
     const request = new operator_pb.GetPoliciesByCategoryRequest();
-    request.setLangCode("ru-RU");
+    request.setLangCode("en-US");
     request.setCategory(categoryName);
 
     const response = await policyCatalogServiceClient.getPoliciesByCategory(
@@ -875,7 +876,7 @@ async function loadPolicyDetails(policy: GPOPolicy) {
     const metadata = createGrpcMetadata();
     const request = new operator_pb.GetPolicyDetailsRequest();
     request.setPolicyId(policyId);
-    request.setLangCode("ru-RU");
+    request.setLangCode("en-US");
 
     const response = await policyCatalogServiceClient.getPolicyDetails(
       request,
@@ -1614,7 +1615,7 @@ async function applyPolicy() {
       const metadata = createGrpcMetadata();
       const request = new operator_pb.GetPolicyDetailsRequest();
       request.setPolicyId(policyId);
-      request.setLangCode("ru-RU");
+      request.setLangCode("en-US");
 
       const response = await policyCatalogServiceClient.getPolicyDetails(
         request,
@@ -1687,7 +1688,7 @@ async function disablePolicy() {
       const metadata = createGrpcMetadata();
       const request = new operator_pb.GetPolicyDetailsRequest();
       request.setPolicyId(policyId);
-      request.setLangCode("ru-RU");
+      request.setLangCode("en-US");
 
       const response = await policyCatalogServiceClient.getPolicyDetails(
         request,

@@ -19,7 +19,7 @@ export function useGPOPolicies() {
   const isError = ref(false);
   const errorMessage = ref<string | null>(null);
 
-  async function fetchPolicies(langCode = "ru-RU") {
+  async function fetchPolicies(langCode = "en-US") {
     isLoading.value = true;
     isError.value = false;
     errorMessage.value = null;
@@ -174,7 +174,7 @@ export function useGPOPolicyTree() {
   const isError = ref(false);
   const errorMessage = ref<string | null>(null);
 
-  async function fetchPolicyTree(langCode = "ru-RU") {
+  async function fetchPolicyTree(langCode = "en-US") {
     isLoading.value = true;
     isError.value = false;
     errorMessage.value = null;
@@ -197,7 +197,7 @@ export function useGPOPolicyTree() {
       console.log("[GPO] Обработанный объект ответа:", responseObj);
 
       tree.value = adaptCategoryTreeToPolicyTree({
-        lang_code: responseObj.langCode || responseObj.lang_code || "ru-RU",
+        lang_code: responseObj.langCode || responseObj.lang_code || "en-US",
         categories: responseObj.categoriesList || responseObj.categories || [],
       });
 

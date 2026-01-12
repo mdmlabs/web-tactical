@@ -523,6 +523,9 @@ const policyDetailsElements = ref<PolicyDetailsElement[]>([]);
 const policySettingsValues = ref<Record<string, unknown>>({});
 const selectedPolicies = ref<Record<string, boolean>>({});
 const policyDetails = ref<Record<string, PolicyDetail>>({});
+const policyDetailsElementsMap = ref<Record<string, PolicyDetailsElement[]>>(
+  {},
+);
 const selectedUser = ref("");
 const applying = ref(false);
 
@@ -541,6 +544,7 @@ watch(dialogVisible, (newVal) => {
   } else {
     selectedPolicies.value = {};
     policyDetails.value = {};
+    policyDetailsElementsMap.value = {};
     selectedUser.value = "";
     selectedCategoryId.value = null;
     selectedCategory.value = null;
@@ -558,7 +562,7 @@ async function loadCategories() {
   try {
     const metadata = createGrpcMetadata();
     const request = new operator_pb.GetCategoryTreeRequest();
-    request.setLangCode("ru-RU");
+    request.setLangCode("en-US");
 
     const response = await policyCatalogServiceClient.getCategoryTree(
       request,
@@ -665,7 +669,7 @@ async function loadPoliciesByCategory(categoryName: string) {
   try {
     const metadata = createGrpcMetadata();
     const request = new operator_pb.GetPoliciesByCategoryRequest();
-    request.setLangCode("ru-RU");
+    request.setLangCode("en-US");
     request.setCategory(categoryName);
 
     const response = await policyCatalogServiceClient.getPoliciesByCategory(
@@ -752,7 +756,7 @@ async function loadPolicyDetails(policy: GPOPolicy) {
     const metadata = createGrpcMetadata();
     const request = new operator_pb.GetPolicyDetailsRequest();
     request.setPolicyId(policyId);
-    request.setLangCode("ru-RU");
+    request.setLangCode("en-US");
 
     const response = await policyCatalogServiceClient.getPolicyDetails(
       request,
@@ -1070,6 +1074,12 @@ async function loadPolicyDetails(policy: GPOPolicy) {
 
       policyDetailsElements.value = elements;
 
+      // Сохраняем элементы политики для последующей обработки
+      if (selectedPolicy.value) {
+        const policyId = selectedPolicy.value.id;
+        policyDetailsElementsMap.value[policyId] = elements;
+      }
+
       for (const element of elements) {
         if (!(element.element_id in policySettingsValues.value)) {
           const presentationEl = presentationMap.get(element.element_id);
@@ -1130,6 +1140,74 @@ function getDefaultValue(element: PolicyDetailsElement): unknown {
   }
 }
 
+function processPolicySettings(
+  settings: Record<string, unknown>,
+  elements: PolicyDetailsElement[],
+): Record<string, unknown> {
+  const processed: Record<string, unknown> = { ...settings };
+
+  for (const element of elements) {
+    const elementId = element.element_id;
+    const value = settings[elementId];
+
+    if (element.items && element.items.length > 0 && value !== undefined) {
+      if (typeof value === "number" || typeof value === "string") {
+        const itemId =
+          typeof value === "string" ? Number.parseInt(value, 10) : value;
+        type ItemType = { id: number; name?: string; value_type?: string };
+        const itemsArray = element.items as ItemType[];
+        const foundItem = itemsArray.find((it) => it.id === itemId);
+        if (foundItem) {
+          const itemKey = foundItem.name || String(foundItem.id);
+
+          let itemValue: string;
+          if (
+            foundItem.value_type === "decimal" ||
+            foundItem.value_type === "int"
+          ) {
+            itemValue = String(itemId);
+          } else {
+            itemValue = "1";
+          }
+
+          if (itemKey) {
+            processed[elementId] = { [itemKey]: itemValue };
+          }
+        }
+      } else if (Array.isArray(value)) {
+        const itemsObject: Record<string, string> = {};
+        type ItemType = { id: number; name?: string; value_type?: string };
+        const itemsArray = element.items as ItemType[];
+        for (const itemId of value) {
+          const foundItem = itemsArray.find((it) => it.id === itemId);
+          if (foundItem) {
+            const itemKey = foundItem.name || String(foundItem.id);
+
+            let itemValue: string;
+            if (
+              foundItem.value_type === "decimal" ||
+              foundItem.value_type === "int"
+            ) {
+              itemValue = String(itemId);
+            } else {
+              itemValue = "1";
+            }
+
+            if (itemKey) {
+              itemsObject[itemKey] = itemValue;
+            }
+          }
+        }
+        if (Object.keys(itemsObject).length > 0) {
+          processed[elementId] = itemsObject;
+        }
+      }
+    }
+  }
+
+  return processed;
+}
+
 function togglePolicySelection() {
   if (!selectedPolicy.value) return;
 
@@ -1139,8 +1217,10 @@ function togglePolicySelection() {
   if (isSelected) {
     selectedPolicies.value[policyId] = false;
     delete policyDetails.value[policyId];
+    delete policyDetailsElementsMap.value[policyId];
   } else {
-    selectedPolicies.value[policyId] = {
+    selectedPolicies.value[policyId] = true;
+    policyDetails.value[policyId] = {
       settings: { ...policySettingsValues.value },
       policy: selectedPolicy.value,
       hash: "",
@@ -1149,20 +1229,15 @@ function togglePolicySelection() {
 }
 
 async function applyPolicies() {
-  if (!props.agent || !hasSelectedPolicies.value) return;
+  if (!props.agent || !hasSelectedPolicies.value) {
+    return;
+  }
 
   applying.value = true;
   try {
     const selectedPolicyIds = Object.keys(selectedPolicies.value).filter(
       (id) => selectedPolicies.value[id],
     );
-
-    console.log("[ApplyPolicyDialog] Применение политик:", {
-      agentId: props.agent.id,
-      userId: selectedUser.value || "all",
-      policyIds: selectedPolicyIds,
-      policyDetails: policyDetails.value,
-    });
 
     const targetType = selectedUser.value ? "user" : "agent";
     const targetParams = selectedUser.value
@@ -1183,22 +1258,27 @@ async function applyPolicies() {
         );
       }
 
-      const settings = policyDetail.settings || {};
+      // Используем актуальные настройки из policySettingsValues, если политика выбрана
+      // и это текущая выбранная политика, иначе используем сохраненные настройки
+      let rawSettings: Record<string, unknown>;
+      if (selectedPolicy.value?.id === policyId && policySettingsValues.value) {
+        rawSettings = { ...policySettingsValues.value };
+        // Обновляем сохраненные настройки
+        policyDetails.value[policyId].settings = rawSettings;
+      } else {
+        rawSettings = policyDetail.settings || {};
+      }
 
-      console.log(
-        `[ApplyPolicyDialog] Применение политики ${policyId} (hash: ${policyHash})`,
-        {
-          targetType,
-          targetParams,
-          settings,
-        },
-      );
+      const elements = policyDetailsElementsMap.value[policyId] || [];
+
+      // Обрабатываем настройки перед отправкой, особенно для элементов с items
+      const processedSettings = processPolicySettings(rawSettings, elements);
 
       await policyAssignmentClient.assignPolicy(
         policyHash,
         targetType,
         targetParams,
-        settings,
+        processedSettings,
       );
     });
 

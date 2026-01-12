@@ -228,7 +228,7 @@ const policyColumns: QTableColumn[] = [
     align: "left",
     field: "appliedDate",
     format: (val: string) =>
-      val ? new Date(val).toLocaleString("ru-RU") : "N/A",
+      val ? new Date(val).toLocaleString("en-US") : "N/A",
   },
   {
     name: "actions",
@@ -306,7 +306,7 @@ async function removePolicy(policy: AppliedPolicy) {
 
       const policyDetails = await policyCatalogClient.getPolicyDetails(
         policyId,
-        "ru-RU",
+        "en-US",
       );
       policyHash = (policyDetails.policy?.hash as string) || "";
 
@@ -321,14 +321,6 @@ async function removePolicy(policy: AppliedPolicy) {
     const targetParams = policy.userId
       ? { agentId: props.agent.id, userSid: policy.userId }
       : { agentId: props.agent.id };
-
-    console.log("[AppliedPoliciesDialog] Удаление применения политики:", {
-      agentId: props.agent.id,
-      policyId: policy.id,
-      policyHash,
-      targetType,
-      targetParams,
-    });
 
     await policyAssignmentClient.removePolicy(
       policyHash,
