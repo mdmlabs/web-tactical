@@ -25,18 +25,13 @@ export function useGPOPolicies() {
     errorMessage.value = null;
 
     try {
-      console.log("[GPO] Загрузка политик через gRPC...");
-
-      console.log("[GPO] Отправка запроса listPoliciesGroupedByScope...");
       const response = await policyCatalogClient.listPoliciesGroupedByScope(
         langCode,
       );
 
-      console.log("[GPO] Получен ответ:", response);
 
       const responseObj = response as { groupsList?: unknown[]; groups?: unknown[] };
 
-      console.log("[GPO] Обработанный объект ответа:", responseObj);
 
       // toObject() возвращает camelCase: groupsList вместо groups
       const groupsList = responseObj.groupsList || responseObj.groups || [];
@@ -45,7 +40,6 @@ export function useGPOPolicies() {
         groups: groupsList,
       });
 
-      console.log(`[GPO] ✅ Загружено политик: ${policies.value.length}`);
     } catch (error) {
       console.error("[GPO] Ошибка загрузки политик:", error);
       const errorDetails =
@@ -180,13 +174,7 @@ export function useGPOPolicyTree() {
     errorMessage.value = null;
 
     try {
-      console.log("[GPO] Загрузка дерева политик через gRPC...");
-
-      console.log("[GPO] Отправка запроса getCategoryTree...");
       const response = await policyCatalogClient.getCategoryTree(langCode);
-
-      console.log("[GPO] Получен ответ:", response);
-
       const responseObj = response as {
         langCode?: string;
         lang_code?: string;
@@ -194,14 +182,11 @@ export function useGPOPolicyTree() {
         categories?: unknown[];
       };
 
-      console.log("[GPO] Обработанный объект ответа:", responseObj);
-
       tree.value = adaptCategoryTreeToPolicyTree({
         lang_code: responseObj.langCode || responseObj.lang_code || "en-US",
         categories: responseObj.categoriesList || responseObj.categories || [],
       });
 
-      console.log("[GPO] ✅ Дерево политик загружено успешно");
     } catch (error) {
       console.error("[GPO] Ошибка загрузки дерева политик:", error);
       const errorDetails =

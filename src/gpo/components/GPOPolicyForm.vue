@@ -3,7 +3,7 @@
     <q-card style="min-width: 500px">
       <q-card-section>
         <div class="text-h6">
-          {{ isEdit && props.policy?.id ? "Редактировать политику" : "Создать политику" }}
+          {{ isEdit && props.policy?.id ? "Edit policy" : "Create  policy" }}
         </div>
       </q-card-section>
 
@@ -11,22 +11,22 @@
         <q-form @submit="onSubmit" class="q-gutter-md">
           <q-input
             v-model="form.name"
-            label="Имя политики *"
-            :rules="[(val) => !!val || 'Обязательное поле']"
+            label="Policy Name *"
+            :rules="[(val) => !!val || 'Required field']"
             outlined
             dense
           />
 
           <q-input
             v-model="form.displayName"
-            label="Отображаемое имя"
+            label="Display Name"
             outlined
             dense
           />
 
           <q-input
             v-model="form.description"
-            label="Описание"
+            label="Description"
             type="textarea"
             outlined
             dense
@@ -35,21 +35,21 @@
 
           <q-input
             v-model="form.path"
-            label="Путь (опционально)"
+            label="Path (optional)"
             outlined
             dense
-            hint="Путь в Active Directory"
+            hint="Path in Active Directory"
           />
 
-          <q-toggle v-if="isEdit" v-model="form.enabled" label="Включена" />
+          <q-toggle v-if="isEdit" v-model="form.enabled" label="Enabled" />
         </q-form>
       </q-card-section>
 
       <q-card-actions align="right">
-        <q-btn flat label="Отмена" color="primary" v-close-popup />
+        <q-btn flat label="Cancel" color="primary" v-close-popup />
         <q-btn
           flat
-          label="Сохранить"
+          label="Save"
           color="primary"
           @click="onSubmit"
           :loading="isLoading"

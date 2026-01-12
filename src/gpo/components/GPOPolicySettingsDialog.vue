@@ -7,7 +7,7 @@
   >
     <q-card class="policy-settings-dialog">
       <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6">Настройка политик</div>
+        <div class="text-h6">Setting up Policies</div>
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
@@ -17,10 +17,10 @@
           <div class="col-3">
             <q-card flat bordered class="full-height">
               <q-card-section>
-                <div class="text-subtitle2 q-mb-md">Категории</div>
+                <div class="text-subtitle2 q-mb-md">Categories</div>
                 <div v-if="loadingCategories" class="text-center q-pa-lg">
                   <q-spinner color="primary" size="2em" />
-                  <div class="q-mt-sm">Загрузка категорий...</div>
+                  <div class="q-mt-sm">Loading categories...</div>
                 </div>
                 <q-tree
                   v-else-if="categories.length > 0"
@@ -47,7 +47,7 @@
                 </q-tree>
                 <div v-else class="text-center q-pa-lg text-grey-6">
                   <q-icon name="info" size="2em" />
-                  <div class="q-mt-sm">Категории не найдены</div>
+                  <div class="q-mt-sm">Categories not found</div>
                 </div>
               </q-card-section>
             </q-card>
@@ -56,10 +56,10 @@
           <div class="col-3">
             <q-card flat bordered class="full-height">
               <q-card-section>
-                <div class="text-subtitle2 q-mb-md">Политики</div>
+                <div class="text-subtitle2 q-mb-md">Policies</div>
                 <div v-if="loadingPolicies" class="text-center q-pa-lg">
                   <q-spinner color="primary" size="2em" />
-                  <div class="q-mt-sm">Загрузка политик...</div>
+                  <div class="q-mt-sm">Uploading policies...</div>
                 </div>
                 <q-list
                   v-else-if="selectedCategoryPolicies.length > 0"
@@ -86,11 +86,11 @@
                   class="text-center q-pa-lg text-grey-6"
                 >
                   <q-icon name="info" size="2em" />
-                  <div class="q-mt-sm">В категории нет политик</div>
+                  <div class="q-mt-sm">There are no policies in the category</div>
                 </div>
                 <div v-else class="text-center q-pa-lg text-grey-6">
                   <q-icon name="info" size="2em" />
-                  <div class="q-mt-sm">Выберите категорию</div>
+                  <div class="q-mt-sm">Select a category</div>
                 </div>
               </q-card-section>
             </q-card>
@@ -113,12 +113,12 @@
                   <q-tab
                     name="settings"
                     icon="settings"
-                    label="Настройка политик"
+                    label="Setting up Policies"
                   />
                   <q-tab
                     name="description"
                     icon="description"
-                    label="Описание"
+                    label="description"
                   />
                 </q-tabs>
 
@@ -135,7 +135,7 @@
                       class="text-center q-pa-lg"
                     >
                       <q-spinner color="primary" size="2em" />
-                      <div class="q-mt-sm">Загрузка настроек...</div>
+                      <div class="q-mt-sm">Loading the settings...</div>
                     </div>
 
                     <div
@@ -143,7 +143,7 @@
                       class="text-center q-pa-lg text-grey-6"
                     >
                       <q-icon name="info" size="2em" />
-                      <div class="q-mt-sm">Нет дополнительных настроек</div>
+                      <div class="q-mt-sm">There are no additional settings</div>
                     </div>
 
                     <div v-else class="policy-settings-form">
@@ -205,6 +205,10 @@
                                   'text_box' ||
                                 element.presentation_type?.toLowerCase() ===
                                   'text' ||
+                                element.presentation_type?.toLowerCase() ===
+                                  'multitextbox' ||
+                                element.presentation_type?.toLowerCase() ===
+                                  'multi_textbox' ||
                                 element.presentation_type === 'multiTextbox' ||
                                 element.presentation_type === 'multiTextBox'
                               "
@@ -225,6 +229,10 @@
                               :type="
                                 element.type === 'multiTextbox' ||
                                 element.type === 'multiTextBox' ||
+                                element.presentation_type?.toLowerCase() ===
+                                  'multitextbox' ||
+                                element.presentation_type?.toLowerCase() ===
+                                  'multi_textbox' ||
                                 element.presentation_type === 'multiTextbox' ||
                                 element.presentation_type === 'multiTextBox'
                                   ? 'textarea'
@@ -233,13 +241,17 @@
                               :rows="
                                 element.type === 'multiTextbox' ||
                                 element.type === 'multiTextBox' ||
+                                element.presentation_type?.toLowerCase() ===
+                                  'multitextbox' ||
+                                element.presentation_type?.toLowerCase() ===
+                                  'multi_textbox' ||
                                 element.presentation_type === 'multiTextbox' ||
                                 element.presentation_type === 'multiTextBox'
                                   ? 3
                                   : undefined
                               "
                               :hint="
-                                element.required ? 'Обязательное поле' : ''
+                                element.required ? 'Required field' : ''
                               "
                               outlined
                               dense
@@ -286,7 +298,7 @@
                                   : 1
                               "
                               :hint="
-                                element.required ? 'Обязательное поле' : ''
+                                element.required ? 'Required field' : ''
                               "
                               outlined
                               dense
@@ -303,6 +315,8 @@
                                     'dropdownlist' ||
                                   element.presentation_type?.toLowerCase() ===
                                     'dropdown_list' ||
+                                  element.presentation_type?.toLowerCase() ===
+                                    'dropdown' ||
                                   element.presentation_type ===
                                     'dropdownList') &&
                                 element.items &&
@@ -322,9 +336,9 @@
                               option-label="display_name"
                               option-value="id"
                               :hint="
-                                (element.required ? 'Обязательное поле' : '') +
+                                (element.required ? 'Required field' : '') +
                                 (element.value_type
-                                  ? ` (тип значения: ${element.value_type})`
+                                  ? ` (value type: ${element.value_type})`
                                   : '')
                               "
                               outlined
@@ -338,16 +352,8 @@
                                     <q-item-label>{{
                                       scope.opt.display_name ||
                                       scope.opt.name ||
-                                      `Значение ${scope.opt.id}`
+                                      `Value ${scope.opt.id}`
                                     }}</q-item-label>
-                                    <q-item-label
-                                      v-if="scope.opt.value_type"
-                                      caption
-                                      class="text-grey-6"
-                                    >
-                                      ID: {{ scope.opt.id }}, тип:
-                                      {{ scope.opt.value_type }}
-                                    </q-item-label>
                                   </q-item-section>
                                 </q-item>
                               </template>
@@ -360,12 +366,20 @@
                                   'multibox' ||
                                 element.presentation_type?.toLowerCase() ===
                                   'multi_box' ||
+                                element.presentation_type?.toLowerCase() ===
+                                  'listbox' ||
+                                element.presentation_type?.toLowerCase() ===
+                                  'list_box' ||
+                                element.presentation_type?.toLowerCase() ===
+                                  'list' ||
                                 element.presentation_type === 'List' ||
                                 (element.type === 'LIST' &&
                                   element.items &&
                                   element.items.length > 0 &&
-                                  element.presentation_type?.toLowerCase() ===
-                                    'listbox')
+                                  (element.presentation_type?.toLowerCase() ===
+                                    'listbox' ||
+                                    element.presentation_type?.toLowerCase() ===
+                                      'list'))
                               "
                               :model-value="
                                 (policySettingsValues[
@@ -385,9 +399,9 @@
                               multiple
                               use-chips
                               :hint="
-                                (element.required ? 'Обязательное поле' : '') +
+                                (element.required ? 'Required field' : '') +
                                 (element.value_type
-                                  ? ` (тип значения: ${element.value_type})`
+                                  ? ` (value type: ${element.value_type})`
                                   : '')
                               "
                               outlined
@@ -401,16 +415,8 @@
                                     <q-item-label>{{
                                       scope.opt.display_name ||
                                       scope.opt.name ||
-                                      `Значение ${scope.opt.id}`
+                                      `Value ${scope.opt.id}`
                                     }}</q-item-label>
-                                    <q-item-label
-                                      v-if="scope.opt.value_type"
-                                      caption
-                                      class="text-grey-6"
-                                    >
-                                      ID: {{ scope.opt.id }}, тип:
-                                      {{ scope.opt.value_type }}
-                                    </q-item-label>
                                   </q-item-section>
                                 </q-item>
                               </template>
@@ -431,7 +437,7 @@
                               :label="
                                 element.display_name || element.element_id
                               "
-                              :hint="`Тип: ${element.type}${element.required ? ' (обязательное)' : ''}`"
+                              :hint="`Тип: ${element.type}${element.required ? ' (required)' : ''}`"
                               outlined
                               dense
                             />
@@ -447,7 +453,7 @@
                       class="text-center q-pa-lg"
                     >
                       <q-spinner color="primary" size="2em" />
-                      <div class="q-mt-sm">Загрузка описания...</div>
+                      <div class="q-mt-sm">Uploading the description...</div>
                     </div>
 
                     <div v-else-if="selectedPolicy" class="policy-description">
@@ -472,7 +478,7 @@
                           v-else
                           class="text-body2 text-grey-5 q-mb-md text-italic"
                         >
-                          Описание отсутствует
+                          The description is missing
                         </div>
 
                         <div
@@ -480,7 +486,7 @@
                           class="q-mt-lg"
                         >
                           <div class="text-subtitle2 q-mb-md">
-                            Элементы представления
+                            Presentation Elements
                           </div>
                           <q-list separator>
                             <q-item
@@ -490,17 +496,17 @@
                             >
                               <q-item-section>
                                 <q-item-label class="text-weight-medium">
-                                  {{ presEl.text || presEl.ref_id }}
+                                  {{ getPresentationText(presEl) }}
                                 </q-item-label>
                                 <q-item-label caption>
-                                  Тип: {{ presEl.type || "Не указан" }}
+                                  Type: {{ presEl.type || "Не указан" }}
                                 </q-item-label>
                                 <q-item-label
                                   v-if="presEl.default_value"
                                   caption
                                   class="text-grey-7"
                                 >
-                                  Значение по умолчанию:
+                                  Default value:
                                   {{ presEl.default_value }}
                                 </q-item-label>
                               </q-item-section>
@@ -509,7 +515,7 @@
                         </div>
                         <div v-else class="text-center q-pa-lg text-grey-6">
                           <q-icon name="info" size="2em" />
-                          <div class="q-mt-sm">Нет элементов представления</div>
+                          <div class="q-mt-sm">No presentation elements here</div>
                         </div>
                       </div>
                     </div>
@@ -519,7 +525,7 @@
 
               <q-card-section v-else class="text-center q-pa-lg text-grey-6">
                 <q-icon name="info" size="3em" />
-                <div class="q-mt-md">Выберите политику для настройки</div>
+                <div class="q-mt-md">Select a policy to configure</div>
               </q-card-section>
             </q-card>
           </div>
@@ -529,14 +535,14 @@
       <q-card-actions align="right" class="q-pa-md">
         <q-btn
           flat
-          label="Отключить"
+          label="Disable"
           color="negative"
           @click="disablePolicy"
           :disable="!selectedPolicy || !isPolicyEnabled"
         />
         <q-btn
           flat
-          label="Применить"
+          label="Apply"
           color="positive"
           @click="applyPolicy"
           :disable="!selectedPolicy"
@@ -633,12 +639,39 @@ const policySettingsValues = ref<Record<string, unknown>>({});
 const presentationElements = ref<PolicyPresentationElement[]>([]);
 const settingsTab = ref("settings");
 const policyEnabled = ref<Record<string, boolean>>({});
-const policyHashes = ref<Record<string, string>>({}); // Кеш для hash политик
+const policyHashes = ref<Record<string, string>>({});
 
 const isPolicyEnabled = computed(() => {
   if (!selectedPolicy.value) return false;
   return policyEnabled.value[selectedPolicy.value.id] ?? false;
 });
+
+function getPresentationText(element: PolicyPresentationElement): string {
+  if (!element) return "";
+  if (typeof element.text === "string") {
+    return element.text;
+  }
+
+  if (element.text && typeof element.text === "object") {
+    if (
+      "value" in element.text &&
+      typeof (element.text as { value: unknown }).value === "string"
+    ) {
+      return (element.text as { value: string }).value;
+    }
+    if (
+      "array" in element.text &&
+      Array.isArray((element.text as { array?: unknown[] }).array)
+    ) {
+      const arr = (element.text as { array: unknown[] }).array;
+      if (arr.length > 0 && typeof arr[0] === "string") {
+        return arr[0];
+      }
+    }
+  }
+
+  return element.ref_id || "";
+}
 
 watch(dialogVisible, (newVal) => {
   if (newVal) {
@@ -727,16 +760,8 @@ async function loadCategories() {
       .filter((n): n is CategoryNode => n !== null);
 
     categories.value = convertedCategories;
-    console.log(
-      "[GPOPolicySettingsDialog] Загружено категорий:",
-      convertedCategories.length,
-    );
   } catch (error) {
-    console.error(
-      "[GPOPolicySettingsDialog] Ошибка загрузки категорий:",
-      error,
-    );
-    notifyError("Ошибка загрузки категорий");
+    notifyError("Category loading error");
   } finally {
     loadingCategories.value = false;
   }
@@ -836,16 +861,8 @@ async function loadPoliciesByCategory(categoryName: string) {
     }
 
     selectedCategoryPolicies.value = policies;
-    console.log(
-      "[GPOPolicySettingsDialog] Загружено политик для категории:",
-      policies.length,
-    );
   } catch (error) {
-    console.error(
-      "[GPOPolicySettingsDialog] Ошибка загрузки политик по категории:",
-      error,
-    );
-    notifyError("Ошибка загрузки политик");
+    notifyError("Error when uploading policies");
   } finally {
     loadingPolicies.value = false;
   }
@@ -864,12 +881,12 @@ async function loadPolicyDetails(policy: GPOPolicy) {
   try {
     const policyId = Number.parseInt(policy.id, 10);
     if (Number.isNaN(policyId)) {
-      throw new TypeError(`Неверный ID политики: ${policy.id}`);
+      throw new TypeError(`Invalid Policy ID: ${policy.id}`);
     }
 
     if (policyId <= 0) {
       throw new Error(
-        `Неверный ID политики: ${policyId}. ID должен быть положительным числом.`,
+        `Invalid Policy ID: ${policyId}. ID must be a positive number.`,
       );
     }
 
@@ -878,16 +895,37 @@ async function loadPolicyDetails(policy: GPOPolicy) {
     request.setPolicyId(policyId);
     request.setLangCode("en-US");
 
-    const response = await policyCatalogServiceClient.getPolicyDetails(
-      request,
-      metadata,
-    );
+    let response;
+    let responseObj: Record<string, unknown> | null = null;
 
-    if (!response) {
-      throw new Error("Пустой ответ от сервера");
+    try {
+      response = await policyCatalogServiceClient.getPolicyDetails(
+        request,
+        metadata,
+      );
+    } catch (grpcError) {
+      throw grpcError;
     }
 
-    const responseObj: Record<string, unknown> = {};
+    if (!responseObj) {
+      if (!response) {
+        throw new Error("An empty response from the server");
+      }
+
+      try {
+        if (typeof response.toObject === "function") {
+          responseObj = response.toObject() as Record<string, unknown>;
+        } else {
+          responseObj = {};
+        }
+      } catch {
+        responseObj = {};
+      }
+    }
+
+    if (!responseObj) {
+      throw new Error("Response data could not be received");
+    }
 
     try {
       const policyData = response.getPolicy?.();
@@ -895,9 +933,7 @@ async function loadPolicyDetails(policy: GPOPolicy) {
         let policyHash = "";
         try {
           policyHash = policyData.getHash?.() || "";
-        } catch (e) {
-          console.warn("[GPOPolicySettingsDialog] Ошибка получения hash:", e);
-        }
+        } catch {}
 
         if (policyHash && policy.id) {
           policyHashes.value[policy.id] = policyHash;
@@ -942,12 +978,7 @@ async function loadPolicyDetails(policy: GPOPolicy) {
           })(),
         };
       }
-    } catch (error) {
-      console.error(
-        "[GPOPolicySettingsDialog] Ошибка обработки policy:",
-        error,
-      );
-    }
+    } catch {}
 
     try {
       const presentation = response.getPresentation?.();
@@ -968,10 +999,41 @@ async function loadPolicyDetails(policy: GPOPolicy) {
                   getId?: () => number;
                   getType?: () => string;
                   getRefId?: () => string;
-                  getParentElementId?: () => number;
-                  getDefaultValue?: () => string;
-                  getText?: () => string;
+                  getParentElementId?: () => number | unknown;
+                  getDefaultValue?: () => unknown;
+                  getText?: () => unknown;
                 };
+
+                const extractValue = (
+                  value: unknown,
+                ): string | number | undefined => {
+                  if (value === null || value === undefined) {
+                    return undefined;
+                  }
+                  if (typeof value === "string" || typeof value === "number") {
+                    return value;
+                  }
+                  if (typeof value === "object") {
+                    if (
+                      typeof (value as { getValue?: () => unknown })
+                        .getValue === "function"
+                    ) {
+                      const extracted = (
+                        value as { getValue: () => unknown }
+                      ).getValue();
+                      return extracted as string | number | undefined;
+                    }
+
+                    if (
+                      "value" in value &&
+                      typeof (value as { value: unknown }).value !== "undefined"
+                    ) {
+                      return (value as { value: string | number }).value;
+                    }
+                  }
+                  return undefined;
+                };
+
                 return {
                   id: (() => {
                     try {
@@ -996,31 +1058,30 @@ async function loadPolicyDetails(policy: GPOPolicy) {
                   })(),
                   parent_element_id: (() => {
                     try {
-                      return elem.getParentElementId?.() || undefined;
+                      const value = elem.getParentElementId?.();
+                      return extractValue(value) as number | undefined;
                     } catch {
                       return undefined;
                     }
                   })(),
                   default_value: (() => {
                     try {
-                      return elem.getDefaultValue?.() || undefined;
+                      const value = elem.getDefaultValue?.();
+                      return extractValue(value) as string | undefined;
                     } catch {
                       return undefined;
                     }
                   })(),
                   text: (() => {
                     try {
-                      return elem.getText?.() || undefined;
+                      const value = elem.getText?.();
+                      return extractValue(value) as string | undefined;
                     } catch {
                       return undefined;
                     }
                   })(),
                 };
-              } catch (error) {
-                console.warn(
-                  "[GPOPolicySettingsDialog] Ошибка обработки presentation element:",
-                  error,
-                );
+              } catch {
                 return null;
               }
             }
@@ -1053,12 +1114,7 @@ async function loadPolicyDetails(policy: GPOPolicy) {
           elements: elements,
         };
       }
-    } catch (error) {
-      console.error(
-        "[GPOPolicySettingsDialog] Ошибка обработки presentation:",
-        error,
-      );
-    }
+    } catch {}
 
     const policyElementsList = (() => {
       try {
@@ -1074,13 +1130,46 @@ async function loadPolicyDetails(policy: GPOPolicy) {
           getId?: () => number;
           getElementId?: () => string;
           getType?: () => string;
-          getValueName?: () => string;
-          getRegistryKey?: () => string;
-          getRequired?: () => boolean;
-          getMaxLength?: () => number;
-          getMinValue?: () => number;
-          getMaxValue?: () => number;
+          getValueName?: () => unknown;
+          getRegistryKey?: () => unknown;
+          getRequired?: () => unknown;
+          getMaxLength?: () => unknown;
+          getMinValue?: () => unknown;
+          getMaxValue?: () => unknown;
           getItemsList?: () => unknown[];
+        };
+
+        const extractWrapperValue = (
+          value: unknown,
+        ): string | number | boolean | undefined => {
+          if (value === null || value === undefined) {
+            return undefined;
+          }
+          if (
+            typeof value === "string" ||
+            typeof value === "number" ||
+            typeof value === "boolean"
+          ) {
+            return value;
+          }
+          if (typeof value === "object") {
+            if (
+              typeof (value as { getValue?: () => unknown }).getValue ===
+              "function"
+            ) {
+              const extracted = (
+                value as { getValue: () => unknown }
+              ).getValue();
+              return extracted as string | number | boolean | undefined;
+            }
+            if (
+              "value" in value &&
+              typeof (value as { value: unknown }).value !== "undefined"
+            ) {
+              return (value as { value: string | number | boolean }).value;
+            }
+          }
+          return undefined;
         };
 
         const itemsList = (() => {
@@ -1144,38 +1233,38 @@ async function loadPolicyDetails(policy: GPOPolicy) {
                   })(),
                   value_name: (() => {
                     try {
-                      return it.getValueName?.() || undefined;
+                      const value = it.getValueName?.();
+                      return extractWrapperValue(value) as string | undefined;
                     } catch {
                       return undefined;
                     }
                   })(),
                   required: (() => {
                     try {
-                      return it.getRequired?.() || undefined;
+                      const value = it.getRequired?.();
+                      return extractWrapperValue(value) as boolean | undefined;
                     } catch {
                       return undefined;
                     }
                   })(),
                   parent_id: (() => {
                     try {
-                      return it.getParentId?.() || undefined;
+                      const value = it.getParentId?.();
+                      return extractWrapperValue(value) as number | undefined;
                     } catch {
                       return undefined;
                     }
                   })(),
                   display_name: (() => {
                     try {
-                      return it.getDisplayName?.() || undefined;
+                      const value = it.getDisplayName?.();
+                      return extractWrapperValue(value) as string | undefined;
                     } catch {
                       return undefined;
                     }
                   })(),
                 };
-              } catch (error) {
-                console.warn(
-                  "[GPOPolicySettingsDialog] Ошибка обработки item:",
-                  error,
-                );
+              } catch {
                 return null;
               }
             }
@@ -1207,42 +1296,48 @@ async function loadPolicyDetails(policy: GPOPolicy) {
           })(),
           value_name: (() => {
             try {
-              return elem.getValueName?.() || undefined;
+              const value = elem.getValueName?.();
+              return extractWrapperValue(value) as string | undefined;
             } catch {
               return undefined;
             }
           })(),
           registry_key: (() => {
             try {
-              return elem.getRegistryKey?.() || undefined;
+              const value = elem.getRegistryKey?.();
+              return extractWrapperValue(value) as string | undefined;
             } catch {
               return undefined;
             }
           })(),
           required: (() => {
             try {
-              return elem.getRequired?.() || undefined;
+              const value = elem.getRequired?.();
+              return extractWrapperValue(value) as boolean | undefined;
             } catch {
               return undefined;
             }
           })(),
           max_length: (() => {
             try {
-              return elem.getMaxLength?.() || undefined;
+              const value = elem.getMaxLength?.();
+              return extractWrapperValue(value) as number | undefined;
             } catch {
               return undefined;
             }
           })(),
           min_value: (() => {
             try {
-              return elem.getMinValue?.() || undefined;
+              const value = elem.getMinValue?.();
+              return extractWrapperValue(value) as number | undefined;
             } catch {
               return undefined;
             }
           })(),
           max_value: (() => {
             try {
-              return elem.getMaxValue?.() || undefined;
+              const value = elem.getMaxValue?.();
+              return extractWrapperValue(value) as number | undefined;
             } catch {
               return undefined;
             }
@@ -1280,10 +1375,47 @@ async function loadPolicyDetails(policy: GPOPolicy) {
             ref_id?: string;
             parentElementId?: number;
             parent_element_id?: number;
-            defaultValue?: string;
-            default_value?: string;
-            text?: string;
+            defaultValue?: string | { value?: string } | unknown;
+            default_value?: string | { value?: string } | unknown;
+            text?: string | { value?: string } | unknown;
           };
+
+          const extractStringValue = (value: unknown): string | undefined => {
+            if (value === null || value === undefined) {
+              return undefined;
+            }
+            if (typeof value === "string") {
+              return value;
+            }
+            if (typeof value === "object") {
+              if (
+                "value" in value &&
+                typeof (value as { value: unknown }).value === "string"
+              ) {
+                return (value as { value: string }).value;
+              }
+              if (
+                "array" in value &&
+                Array.isArray((value as { array?: unknown[] }).array)
+              ) {
+                const arr = (value as { array: unknown[] }).array;
+                if (arr.length > 0 && typeof arr[0] === "string") {
+                  return arr[0];
+                }
+              }
+              if (
+                typeof (value as { getValue?: () => unknown }).getValue ===
+                "function"
+              ) {
+                const extracted = (
+                  value as { getValue: () => unknown }
+                ).getValue();
+                return typeof extracted === "string" ? extracted : undefined;
+              }
+            }
+            return undefined;
+          };
+
           const refId = p.refId || p.ref_id || "";
           if (refId) {
             presentationMap.set(refId, {
@@ -1291,8 +1423,10 @@ async function loadPolicyDetails(policy: GPOPolicy) {
               type: p.type || "",
               ref_id: refId,
               parent_element_id: p.parentElementId || p.parent_element_id,
-              default_value: p.defaultValue || p.default_value,
-              text: p.text,
+              default_value: extractStringValue(
+                p.defaultValue || p.default_value,
+              ),
+              text: extractStringValue(p.text),
             });
           }
         }
@@ -1327,131 +1461,253 @@ async function loadPolicyDetails(policy: GPOPolicy) {
       }
     }
 
+    if (!presentationData) {
+      policyDetailsElements.value = [];
+      return;
+    }
+
     const elements: PolicyDetailsElement[] = [];
     if (Array.isArray(policyElements)) {
       for (const element of policyElements) {
         if (element && typeof element === "object") {
-          const el = element as {
-            id?: number;
-            elementId?: string;
-            element_id?: string;
-            type?: string;
-            valueName?: string;
-            value_name?: string;
-            valueType?: string;
-            value_type?: string;
-            registryKey?: string;
-            registry_key?: string;
-            required?: boolean;
-            maxLength?: number;
-            max_length?: number;
-            minValue?: number;
-            min_value?: number;
-            maxValue?: number;
-            max_value?: number;
-            itemsList?: unknown[];
-            items?: unknown[];
-          };
+          try {
+            const el = element as {
+              id?: number;
+              elementId?: string;
+              element_id?: string;
+              type?: string;
+              valueName?: string;
+              value_name?: string;
+              valueType?: string;
+              value_type?: string;
+              registryKey?: string;
+              registry_key?: string;
+              required?: boolean;
+              maxLength?: number;
+              max_length?: number;
+              minValue?: number;
+              min_value?: number;
+              maxValue?: number;
+              max_value?: number;
+              itemsList?: unknown[];
+              items?: unknown[];
+            };
 
-          const elementId = el.elementId || el.element_id || "";
+            const elementId = el.elementId || el.element_id || "";
 
-          const presentationEl = presentationMap.get(elementId);
-          const displayName = presentationEl?.text || elementId;
-          const presentationType = presentationEl?.type || "";
+            const presentationEl = presentationMap.get(elementId);
 
-          const normalizedPresentationType = presentationType.toLowerCase();
-          const isDropdownList =
-            normalizedPresentationType === "dropdownlist" ||
-            normalizedPresentationType === "dropdown_list" ||
-            normalizedPresentationType === "dropdown";
-
-          const items = el.itemsList || el.items || [];
-          const elementValueType = el.valueType || el.value_type || "";
-
-          let finalType = el.type || "";
-          if (presentationType) {
-            if (isDropdownList) {
-              finalType = "enum";
-            } else if (
-              normalizedPresentationType === "textbox" ||
-              normalizedPresentationType === "text_box"
-            ) {
-              finalType = "TEXT";
-            } else if (
-              normalizedPresentationType === "checkbox" ||
-              normalizedPresentationType === "check_box"
-            ) {
-              finalType = "CHECKBOX";
-            } else if (
-              normalizedPresentationType === "decimaltextbox" ||
-              normalizedPresentationType === "decimal_textbox"
-            ) {
-              finalType = "NUMERIC";
-            } else if (
-              normalizedPresentationType === "listbox" ||
-              normalizedPresentationType === "list_box"
-            ) {
-              finalType = "LIST";
+            if (!presentationEl) {
+              continue;
             }
-          } else if (isDropdownList && finalType !== "enum") {
-            finalType = "enum";
-          }
 
-          const processedItems = Array.isArray(items)
-            ? items
-                .filter(
-                  (item): item is Record<string, unknown> =>
-                    item !== null && typeof item === "object",
-                )
-                .map((item) => {
-                  const itemId = (item.id as number) || 0;
-                  let itemName = (item.name as string) || "";
+            const displayName = presentationEl.text || elementId;
+            const presentationType = presentationEl.type || "";
 
-                  if (!itemName && itemId) {
-                    itemName = String(itemId);
+            const normalizedPresentationType = presentationType.toLowerCase();
+            const isDropdownList =
+              normalizedPresentationType === "dropdownlist" ||
+              normalizedPresentationType === "dropdown_list" ||
+              normalizedPresentationType === "dropdown";
+
+            const items = el.itemsList || el.items || [];
+            const elementValueType = el.valueType || el.value_type || "";
+
+            const extractWrapperValueFromObject = (
+              value: unknown,
+            ): string | number | boolean | undefined => {
+              if (value === null || value === undefined) {
+                return undefined;
+              }
+              if (
+                typeof value === "string" ||
+                typeof value === "number" ||
+                typeof value === "boolean"
+              ) {
+                return value;
+              }
+              if (typeof value === "object") {
+                if (
+                  "value" in value &&
+                  typeof (value as { value: unknown }).value !== "undefined"
+                ) {
+                  return (value as { value: string | number | boolean }).value;
+                }
+                if (
+                  typeof (value as { getValue?: () => unknown }).getValue ===
+                  "function"
+                ) {
+                  const extracted = (
+                    value as { getValue: () => unknown }
+                  ).getValue();
+                  return extracted as string | number | boolean | undefined;
+                }
+              }
+              return undefined;
+            };
+
+            let finalType = el.type || "";
+
+            if (presentationType) {
+              if (isDropdownList) {
+                finalType = "enum";
+              } else if (
+                normalizedPresentationType === "textbox" ||
+                normalizedPresentationType === "text_box"
+              ) {
+                finalType = "TEXT";
+              } else if (
+                normalizedPresentationType === "checkbox" ||
+                normalizedPresentationType === "check_box"
+              ) {
+                finalType = "CHECKBOX";
+              } else if (
+                normalizedPresentationType === "decimaltextbox" ||
+                normalizedPresentationType === "decimal_textbox"
+              ) {
+                finalType = "NUMERIC";
+              } else if (
+                normalizedPresentationType === "listbox" ||
+                normalizedPresentationType === "list_box" ||
+                normalizedPresentationType === "list"
+              ) {
+                finalType = "LIST";
+              } else if (
+                normalizedPresentationType === "multitextbox" ||
+                normalizedPresentationType === "multi_textbox" ||
+                normalizedPresentationType === "multitext"
+              ) {
+                finalType = "multiTextBox";
+              }
+            } else if (isDropdownList && finalType !== "enum") {
+              finalType = "enum";
+            }
+
+            const extractDisplayName = (displayName: unknown): string => {
+              if (displayName === null || displayName === undefined) {
+                return "";
+              }
+              if (typeof displayName === "string") {
+                return displayName;
+              }
+              if (typeof displayName === "object") {
+                if (
+                  "value" in displayName &&
+                  typeof (displayName as { value: unknown }).value === "string"
+                ) {
+                  return (displayName as { value: string }).value;
+                }
+                if (
+                  "array" in displayName &&
+                  Array.isArray((displayName as { array?: unknown[] }).array)
+                ) {
+                  const arr = (displayName as { array: unknown[] }).array;
+                  if (arr.length > 0 && typeof arr[0] === "string") {
+                    return arr[0];
                   }
+                }
+                if (
+                  typeof (displayName as { getValue?: () => unknown })
+                    .getValue === "function"
+                ) {
+                  const extracted = (
+                    displayName as { getValue: () => unknown }
+                  ).getValue();
+                  return typeof extracted === "string" ? extracted : "";
+                }
+              }
+              return "";
+            };
 
-                  const itemDisplayName =
-                    (item.displayName as string) ||
-                    (item.display_name as string) ||
-                    "";
-                  const itemValueType =
-                    (item.valueType as string) ||
-                    (item.value_type as string) ||
-                    elementValueType ||
-                    "";
+            const processedItems = Array.isArray(items)
+              ? items
+                  .filter(
+                    (item): item is Record<string, unknown> =>
+                      item !== null && typeof item === "object",
+                  )
+                  .map((item) => {
+                    const itemId = (item.id as number) || 0;
+                    let itemName = (item.name as string) || "";
 
-                  const finalDisplayName =
-                    itemDisplayName ||
-                    itemName ||
-                    (itemValueType
-                      ? `Значение ${itemId} (${itemValueType})`
-                      : `Значение ${itemId}`);
+                    if (!itemName && itemId) {
+                      itemName = String(itemId);
+                    }
 
-                  return {
-                    id: itemId,
-                    name: itemName,
-                    display_name: finalDisplayName,
-                    value_type: itemValueType,
-                  };
-                })
-            : [];
+                    const itemDisplayNameRaw =
+                      item.displayName || item.display_name;
+                    const itemDisplayName =
+                      extractDisplayName(itemDisplayNameRaw);
 
-          elements.push({
-            id: el.id || 0,
-            element_id: elementId,
-            type: finalType,
-            value_name: el.valueName || el.value_name,
-            value_type: elementValueType,
-            registry_key: el.registryKey || el.registry_key,
-            required: el.required,
-            max_length: el.maxLength || el.max_length,
-            min_value: el.minValue || el.min_value,
-            max_value: el.maxValue || el.max_value,
-            display_name: displayName,
-            presentation_type: presentationType,
-            items: processedItems,
-          });
+                    const itemValueType =
+                      (item.valueType as string) ||
+                      (item.value_type as string) ||
+                      elementValueType ||
+                      "";
+
+                    const finalDisplayName =
+                      itemDisplayName ||
+                      itemName ||
+                      (itemValueType
+                        ? `Value ${itemId} (${itemValueType})`
+                        : `Value ${itemId}`);
+
+                    return {
+                      id: itemId,
+                      name: itemName,
+                      display_name: finalDisplayName,
+                      value_type: itemValueType,
+                    };
+                  })
+                  .filter((item, index, self) => {
+                    return (
+                      index ===
+                      self.findIndex(
+                        (t) => t.display_name === item.display_name,
+                      )
+                    );
+                  })
+              : [];
+
+            elements.push({
+              id: el.id || 0,
+              element_id: elementId,
+              type: finalType,
+              value_name: (() => {
+                const value = el.valueName || el.value_name;
+                const extracted = extractWrapperValueFromObject(value);
+                return typeof extracted === "string" ? extracted : undefined;
+              })(),
+              value_type: elementValueType,
+              registry_key: (() => {
+                const value = el.registryKey || el.registry_key;
+                const extracted = extractWrapperValueFromObject(value);
+                return typeof extracted === "string" ? extracted : undefined;
+              })(),
+              required: (() => {
+                const value = el.required;
+                const extracted = extractWrapperValueFromObject(value);
+                return typeof extracted === "boolean" ? extracted : undefined;
+              })(),
+              max_length: (() => {
+                const value = el.maxLength || el.max_length;
+                const extracted = extractWrapperValueFromObject(value);
+                return typeof extracted === "number" ? extracted : undefined;
+              })(),
+              min_value: (() => {
+                const value = el.minValue || el.min_value;
+                const extracted = extractWrapperValueFromObject(value);
+                return typeof extracted === "number" ? extracted : undefined;
+              })(),
+              max_value: (() => {
+                const value = el.maxValue || el.max_value;
+                const extracted = extractWrapperValueFromObject(value);
+                return typeof extracted === "number" ? extracted : undefined;
+              })(),
+              display_name: displayName,
+              presentation_type: presentationType,
+              items: processedItems,
+            });
+          } catch {}
         }
       }
     }
@@ -1465,12 +1721,7 @@ async function loadPolicyDetails(policy: GPOPolicy) {
       }
     }
   } catch (error) {
-    console.error(
-      "[GPOPolicySettingsDialog] Ошибка загрузки деталей политики:",
-      error,
-    );
-
-    let errorMessage = "Ошибка загрузки настроек политики";
+    let errorMessage = "Error loading policy settings";
     const errorStr = String(error);
     const errorMessageStr = error instanceof Error ? error.message : errorStr;
 
@@ -1481,27 +1732,26 @@ async function loadPolicyDetails(policy: GPOPolicy) {
       errorMessageStr.includes("Error when deserializing")
     ) {
       errorMessage =
-        `Ошибка десериализации ответа сервера для политики ${policy.id}. ` +
-        "Возможно, данные политики содержат некорректные поля (например, client_extension). " +
-        "Это проблема на стороне сервера или в protobuf определении. " +
-        "Попробуйте другую политику или обратитесь к администратору для исправления данных политики.";
+`Error deserializing the server response for the policy "${policy.displayName || policy.name }" (ID: ${policy.id }). ` +
+        "The problem is related to the client_extension field (OneOf->stringValue), which cannot be processed correctly. " +
+"This is a known problem with some policies. Try to choose a different policy or contact your administrator to update protobuf definitions.";
     } else if (
       errorMessageStr.includes("Exception was thrown by handler") ||
       errorMessageStr.includes("RpcError")
     ) {
-      errorMessage =
-        `Ошибка на сервере при загрузке деталей политики (ID: ${policy.id}). ` +
-        "Возможно, политика не существует или произошла ошибка на сервере. Проверьте логи сервера.";
+      errorMessage = "The policy does not exist";
     } else if (error instanceof Error) {
-      if (error.message.includes("Ошибка десериализации")) {
+      if (error.message.includes("Deserialization error")) {
         errorMessage = error.message;
       } else {
-        errorMessage = `Ошибка: ${error.message}`;
+        errorMessage = "The policy does not exist";
       }
     }
 
     notifyError(errorMessage);
     policyDetailsElements.value = [];
+    policySettingsValues.value = {};
+    presentationElements.value = [];
   } finally {
     loadingPolicyDetails.value = false;
   }
@@ -1599,7 +1849,7 @@ async function applyPolicy() {
   if (!props.agent) {
     policyEnabled.value[selectedPolicy.value.id] = true;
     emit("applied", selectedPolicy.value.id, policySettingsValues.value);
-    notifySuccess("Политика применена");
+    notifySuccess("Policy applied");
     return;
   }
 
@@ -1609,7 +1859,7 @@ async function applyPolicy() {
     if (!policyHash) {
       const policyId = Number.parseInt(selectedPolicy.value.id, 10);
       if (Number.isNaN(policyId)) {
-        throw new TypeError(`Неверный ID политики: ${selectedPolicy.value.id}`);
+        throw new TypeError(`Invalid Policy ID: ${selectedPolicy.value.id}`);
       }
 
       const metadata = createGrpcMetadata();
@@ -1633,7 +1883,7 @@ async function applyPolicy() {
 
       if (!policyHash) {
         throw new Error(
-          "Hash политики не найден. Не удалось получить детали политики.",
+          "The hash of the policy was not found. Couldn't get policy details.",
         );
       }
     }
@@ -1646,23 +1896,19 @@ async function applyPolicy() {
     await policyAssignmentClient.assignPolicy(
       policyHash,
       "agent",
-      { agentId: props.agent.id },
+      { agentId: String(props.agent.id) },
       processedSettings,
     );
 
     policyEnabled.value[selectedPolicy.value.id] = true;
     emit("applied", selectedPolicy.value.id, policySettingsValues.value);
-    notifySuccess("Политика успешно применена");
+    notifySuccess("Policy has been successfully applied");
   } catch (error) {
-    console.error(
-      "[GPOPolicySettingsDialog] Ошибка применения политики:",
-      error,
-    );
     const errorMessage =
       error instanceof Error
         ? error.message
-        : "Неизвестная ошибка применения политики";
-    notifyError(`Ошибка применения политики: ${errorMessage}`);
+        : "Unknown policy application error";
+    notifyError(`Policy application error: ${errorMessage}`);
   }
 }
 
@@ -1672,7 +1918,7 @@ async function disablePolicy() {
   if (!props.agent) {
     policyEnabled.value[selectedPolicy.value.id] = false;
     emit("disabled", selectedPolicy.value.id);
-    notifySuccess("Политика отключена");
+    notifySuccess("Policy is disabled");
     return;
   }
 
@@ -1682,7 +1928,7 @@ async function disablePolicy() {
     if (!policyHash) {
       const policyId = Number.parseInt(selectedPolicy.value.id, 10);
       if (Number.isNaN(policyId)) {
-        throw new TypeError(`Неверный ID политики: ${selectedPolicy.value.id}`);
+        throw new TypeError(`Invalid Policy ID: ${selectedPolicy.value.id}`);
       }
 
       const metadata = createGrpcMetadata();
@@ -1706,28 +1952,24 @@ async function disablePolicy() {
 
       if (!policyHash) {
         throw new Error(
-          "Hash политики не найден. Не удалось получить детали политики.",
+          "Hash of the policy was not found. Couldn't get policy details.",
         );
       }
     }
 
     await policyAssignmentClient.removePolicy(policyHash, "agent", {
-      agentId: props.agent.id,
+      agentId: String(props.agent.id),
     });
 
     policyEnabled.value[selectedPolicy.value.id] = false;
     emit("disabled", selectedPolicy.value.id);
-    notifySuccess("Политика успешно отключена");
+    notifySuccess("Policy has been successfully disabled");
   } catch (error) {
-    console.error(
-      "[GPOPolicySettingsDialog] Ошибка отключения политики:",
-      error,
-    );
     const errorMessage =
       error instanceof Error
         ? error.message
-        : "Неизвестная ошибка отключения политики";
-    notifyError(`Ошибка отключения политики: ${errorMessage}`);
+        : "Unknown policy disabling error";
+    notifyError(`Policy Deactivation error: ${errorMessage}`);
   }
 }
 </script>

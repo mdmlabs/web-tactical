@@ -7,14 +7,14 @@
   >
     <q-card class="apply-policy-dialog">
       <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6">Применить политику</div>
+        <div class="text-h6">Apply Policy</div>
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
 
       <q-card-section>
         <div v-if="agent" class="text-subtitle2 q-mb-md">
-          Устройство: {{ agent.hostname }}
+          Device: {{ agent.hostname }}
         </div>
 
         <q-tabs
@@ -28,14 +28,14 @@
           narrow-indicator
           no-caps
         >
-          <q-tab name="policies" icon="policy" label="Политики" />
-          <q-tab name="users" icon="people" label="Пользователи" />
+          <q-tab name="settings" icon="settings" label="Settings" />
+          <q-tab name="users" icon="people" label="Users" />
         </q-tabs>
 
         <q-separator />
 
         <q-tab-panels v-model="dialogTab" class="q-mt-md">
-          <q-tab-panel name="policies" class="q-pa-none">
+          <q-tab-panel name="settings" class="q-pa-none">
             <div
               class="row q-col-gutter-md"
               style="height: calc(100vh - 250px)"
@@ -43,10 +43,10 @@
               <div class="col-3">
                 <q-card flat bordered class="full-height">
                   <q-card-section>
-                    <div class="text-subtitle2 q-mb-md">Категории</div>
+                    <div class="text-subtitle2 q-mb-md">Categories</div>
                     <div v-if="loadingCategories" class="text-center q-pa-lg">
                       <q-spinner color="primary" size="2em" />
-                      <div class="q-mt-sm">Загрузка категорий...</div>
+                      <div class="q-mt-sm">Loading categories...</div>
                     </div>
                     <q-tree
                       v-else-if="categories.length > 0"
@@ -73,7 +73,7 @@
                     </q-tree>
                     <div v-else class="text-center q-pa-lg text-grey-6">
                       <q-icon name="info" size="2em" />
-                      <div class="q-mt-sm">Категории не найдены</div>
+                      <div class="q-mt-sm">Categories not found</div>
                     </div>
                   </q-card-section>
                 </q-card>
@@ -82,10 +82,10 @@
               <div class="col-3">
                 <q-card flat bordered class="full-height">
                   <q-card-section>
-                    <div class="text-subtitle2 q-mb-md">Политики</div>
+                    <div class="text-subtitle2 q-mb-md">Policies</div>
                     <div v-if="loadingPolicies" class="text-center q-pa-lg">
                       <q-spinner color="primary" size="2em" />
-                      <div class="q-mt-sm">Загрузка политик...</div>
+                      <div class="q-mt-sm">Loading policies...</div>
                     </div>
                     <q-list
                       v-else-if="selectedCategoryPolicies.length > 0"
@@ -112,11 +112,11 @@
                       class="text-center q-pa-lg text-grey-6"
                     >
                       <q-icon name="info" size="2em" />
-                      <div class="q-mt-sm">В категории нет политик</div>
+                      <div class="q-mt-sm">No policies in category</div>
                     </div>
                     <div v-else class="text-center q-pa-lg text-grey-6">
                       <q-icon name="info" size="2em" />
-                      <div class="q-mt-sm">Выберите категорию</div>
+                      <div class="q-mt-sm">Select a category</div>
                     </div>
                   </q-card-section>
                 </q-card>
@@ -125,243 +125,446 @@
               <div class="col-6">
                 <q-card flat bordered class="full-height">
                   <q-card-section v-if="selectedPolicy">
-                    <div
-                      v-if="loadingPolicyDetails"
-                      class="text-center q-pa-lg"
+                    <q-tabs
+                      v-model="settingsTab"
+                      dense
+                      inline-label
+                      class="text-grey"
+                      active-color="primary"
+                      indicator-color="primary"
+                      align="left"
+                      narrow-indicator
+                      no-caps
                     >
-                      <q-spinner color="primary" size="2em" />
-                      <div class="q-mt-sm">Загрузка настроек...</div>
-                    </div>
+                      <q-tab
+                        name="settings"
+                        icon="settings"
+                        label="Policy Settings"
+                      />
+                      <q-tab
+                        name="description"
+                        icon="description"
+                        label="Description"
+                      />
+                    </q-tabs>
 
-                    <div v-else class="policy-details-container">
-                      <div class="text-h6 q-mb-md">
-                        {{ selectedPolicy.displayName || selectedPolicy.name }}
-                      </div>
+                    <q-separator class="q-mt-sm" />
 
-                      <div
-                        v-if="
-                          selectedPolicy.description &&
-                          selectedPolicy.description.trim()
-                        "
-                        class="text-body2 text-grey-8 q-mb-md"
-                        style="white-space: normal; line-height: 1.6"
-                      >
-                        {{ selectedPolicy.description }}
-                      </div>
-                      <div
-                        v-else
-                        class="text-body2 text-grey-5 q-mb-md text-italic"
-                      >
-                        Описание отсутствует
-                      </div>
+                    <q-tab-panels
+                      v-model="settingsTab"
+                      class="q-mt-md"
+                      style="height: calc(100% - 100px); overflow-y: auto"
+                    >
+                      <q-tab-panel name="settings" class="q-pa-none">
+                        <div
+                          v-if="loadingPolicyDetails"
+                          class="text-center q-pa-lg"
+                        >
+                          <q-spinner color="primary" size="2em" />
+                          <div class="q-mt-sm">Loading settings...</div>
+                        </div>
 
-                      <div
-                        v-if="policyDetailsElements.length > 0"
-                        class="policy-settings-form q-mt-lg"
-                      >
-                        <q-form>
-                          <div
-                            v-for="element in policyDetailsElements"
-                            :key="element.id"
-                            class="q-mb-md"
-                          >
-                            <div class="policy-element">
-                              <div class="text-subtitle2 q-mb-xs">
-                                {{ element.display_name || element.element_id }}
-                              </div>
-                              <div
-                                v-if="element.description"
-                                class="text-caption text-grey-7 q-mb-sm"
-                              >
-                                {{ element.description }}
-                              </div>
+                        <div
+                          v-else-if="policyDetailsElements.length === 0"
+                          class="text-center q-pa-lg text-grey-6"
+                        >
+                          <q-icon name="info" size="2em" />
+                          <div class="q-mt-sm">No additional settings</div>
+                        </div>
 
-                              <q-toggle
-                                v-if="
-                                  element.type === 'CHECKBOX' ||
-                                  element.type === 'BOOL' ||
-                                  element.type === 'boolean' ||
-                                  element.presentation_type?.toLowerCase() ===
-                                    'checkbox' ||
-                                  element.presentation_type?.toLowerCase() ===
-                                    'check_box'
-                                "
-                                :model-value="
-                                  (policySettingsValues[
-                                    element.element_id
-                                  ] as boolean) || false
-                                "
-                                @update:model-value="
-                                  policySettingsValues[element.element_id] =
-                                    $event
-                                "
-                                :label="
-                                  element.display_name || element.element_id
-                                "
-                                color="primary"
-                              />
+                        <div v-else class="policy-settings-form">
+                          <q-form>
+                            <div
+                              v-for="element in policyDetailsElements"
+                              :key="element.id"
+                              class="q-mb-md"
+                            >
+                              <div class="policy-element">
+                                <div class="text-subtitle2 q-mb-xs">
+                                  {{
+                                    element.display_name || element.element_id
+                                  }}
+                                </div>
+                                <div
+                                  v-if="element.description"
+                                  class="text-caption text-grey-7 q-mb-sm"
+                                >
+                                  {{ element.description }}
+                                </div>
 
-                              <q-input
-                                v-else-if="
-                                  element.type === 'TEXT' ||
-                                  element.type === 'STRING' ||
-                                  element.type === 'string' ||
-                                  element.type === 'text' ||
-                                  element.presentation_type?.toLowerCase() ===
-                                    'textbox' ||
-                                  element.presentation_type?.toLowerCase() ===
-                                    'text_box' ||
-                                  element.presentation_type?.toLowerCase() ===
-                                    'text'
-                                "
-                                :model-value="
-                                  String(
-                                    policySettingsValues[element.element_id] ||
-                                      '',
-                                  )
-                                "
-                                @update:model-value="
-                                  policySettingsValues[element.element_id] =
-                                    $event
-                                "
-                                :label="
-                                  element.display_name || element.element_id
-                                "
-                                :maxlength="element.max_length"
-                                :hint="
-                                  element.required ? 'Обязательное поле' : ''
-                                "
-                                outlined
-                                dense
-                              />
-
-                              <q-input
-                                v-else-if="
-                                  element.type === 'NUMERIC' ||
-                                  element.type === 'INT' ||
-                                  element.type === 'int' ||
-                                  element.type === 'number' ||
-                                  element.value_type === 'decimal' ||
-                                  element.value_type === 'int' ||
-                                  element.value_type === 'integer'
-                                "
-                                :model-value="
-                                  Number(
-                                    policySettingsValues[element.element_id] ||
-                                      0,
-                                  )
-                                "
-                                @update:model-value="
-                                  policySettingsValues[element.element_id] =
-                                    $event
-                                "
-                                :label="
-                                  element.display_name || element.element_id
-                                "
-                                type="number"
-                                :min="element.min_value"
-                                :max="element.max_value"
-                                :step="
-                                  element.value_type === 'decimal' ? 0.01 : 1
-                                "
-                                :hint="
-                                  element.required ? 'Обязательное поле' : ''
-                                "
-                                outlined
-                                dense
-                              />
-
-                              <q-select
-                                v-else-if="
-                                  (element.type === 'LIST' ||
-                                    element.type === 'list' ||
-                                    element.type === 'enum' ||
+                                <q-toggle
+                                  v-if="
+                                    element.type === 'CHECKBOX' ||
+                                    element.type === 'BOOL' ||
+                                    element.type === 'boolean' ||
+                                    element.type === 'checkBox' ||
                                     element.presentation_type?.toLowerCase() ===
-                                      'dropdownlist' ||
+                                      'checkbox' ||
                                     element.presentation_type?.toLowerCase() ===
-                                      'dropdown_list') &&
-                                  element.items &&
-                                  element.items.length > 0
-                                "
-                                :model-value="
-                                  policySettingsValues[element.element_id] ??
-                                  null
-                                "
-                                @update:model-value="
-                                  policySettingsValues[element.element_id] =
-                                    $event
-                                "
-                                :label="
-                                  element.display_name || element.element_id
-                                "
-                                :options="element.items"
-                                option-label="display_name"
-                                option-value="id"
-                                :hint="
-                                  (element.required
-                                    ? 'Обязательное поле'
-                                    : '') +
-                                  (element.value_type
-                                    ? ` (тип значения: ${element.value_type})`
-                                    : '')
-                                "
-                                outlined
-                                dense
-                                emit-value
-                                map-options
-                              >
-                                <template v-slot:option="scope">
-                                  <q-item v-bind="scope.itemProps">
-                                    <q-item-section>
-                                      <q-item-label>{{
-                                        scope.opt.display_name ||
-                                        scope.opt.name ||
-                                        `Значение ${scope.opt.id}`
-                                      }}</q-item-label>
-                                    </q-item-section>
-                                  </q-item>
-                                </template>
-                              </q-select>
+                                      'check_box' ||
+                                    element.presentation_type === 'checkBox'
+                                  "
+                                  :model-value="
+                                    (policySettingsValues[
+                                      element.element_id
+                                    ] as boolean) || false
+                                  "
+                                  @update:model-value="
+                                    policySettingsValues[element.element_id] =
+                                      $event
+                                  "
+                                  :label="
+                                    element.display_name || element.element_id
+                                  "
+                                  color="primary"
+                                />
 
-                              <q-input
-                                v-else
-                                :model-value="
-                                  String(
-                                    policySettingsValues[element.element_id] ||
-                                      '',
-                                  )
-                                "
-                                @update:model-value="
-                                  policySettingsValues[element.element_id] =
-                                    $event
-                                "
-                                :label="
-                                  element.display_name || element.element_id
-                                "
-                                :hint="`Тип: ${element.type}${element.required ? ' (обязательное)' : ''}`"
-                                outlined
-                                dense
-                              />
+                                <q-input
+                                  v-else-if="
+                                    element.type === 'TEXT' ||
+                                    element.type === 'STRING' ||
+                                    element.type === 'string' ||
+                                    element.type === 'text' ||
+                                    element.type === 'multiTextbox' ||
+                                    element.type === 'multiTextBox' ||
+                                    element.presentation_type?.toLowerCase() ===
+                                      'textbox' ||
+                                    element.presentation_type?.toLowerCase() ===
+                                      'text_box' ||
+                                    element.presentation_type?.toLowerCase() ===
+                                      'text' ||
+                                    element.presentation_type?.toLowerCase() ===
+                                      'multitextbox' ||
+                                    element.presentation_type?.toLowerCase() ===
+                                      'multi_textbox' ||
+                                    element.presentation_type ===
+                                      'multiTextbox' ||
+                                    element.presentation_type === 'multiTextBox'
+                                  "
+                                  :model-value="
+                                    String(
+                                      policySettingsValues[
+                                        element.element_id
+                                      ] || '',
+                                    )
+                                  "
+                                  @update:model-value="
+                                    policySettingsValues[element.element_id] =
+                                      $event
+                                  "
+                                  :label="
+                                    element.display_name || element.element_id
+                                  "
+                                  :maxlength="element.max_length"
+                                  :type="
+                                    element.type === 'multiTextbox' ||
+                                    element.type === 'multiTextBox' ||
+                                    element.presentation_type?.toLowerCase() ===
+                                      'multitextbox' ||
+                                    element.presentation_type?.toLowerCase() ===
+                                      'multi_textbox' ||
+                                    element.presentation_type ===
+                                      'multiTextbox' ||
+                                    element.presentation_type === 'multiTextBox'
+                                      ? 'textarea'
+                                      : 'text'
+                                  "
+                                  :rows="
+                                    element.type === 'multiTextbox' ||
+                                    element.type === 'multiTextBox' ||
+                                    element.presentation_type?.toLowerCase() ===
+                                      'multitextbox' ||
+                                    element.presentation_type?.toLowerCase() ===
+                                      'multi_textbox' ||
+                                    element.presentation_type ===
+                                      'multiTextbox' ||
+                                    element.presentation_type === 'multiTextBox'
+                                      ? 3
+                                      : undefined
+                                  "
+                                  :hint="
+                                    element.required ? 'Required field' : ''
+                                  "
+                                  outlined
+                                  dense
+                                />
+
+                                <q-input
+                                  v-else-if="
+                                    element.type === 'NUMERIC' ||
+                                    element.type === 'INT' ||
+                                    element.type === 'int' ||
+                                    element.type === 'number' ||
+                                    element.type === 'decimalTextbox' ||
+                                    element.type === 'decimalTextBox' ||
+                                    element.value_type === 'decimal' ||
+                                    element.value_type === 'int' ||
+                                    element.value_type === 'integer' ||
+                                    element.presentation_type ===
+                                      'decimalTextbox' ||
+                                    element.presentation_type ===
+                                      'decimalTextBox'
+                                  "
+                                  :model-value="
+                                    Number(
+                                      policySettingsValues[
+                                        element.element_id
+                                      ] || 0,
+                                    )
+                                  "
+                                  @update:model-value="
+                                    policySettingsValues[element.element_id] =
+                                      $event
+                                  "
+                                  :label="
+                                    element.display_name || element.element_id
+                                  "
+                                  type="number"
+                                  :min="element.min_value"
+                                  :max="element.max_value"
+                                  :step="
+                                    element.value_type === 'decimal' ||
+                                    element.type === 'decimalTextbox' ||
+                                    element.type === 'decimalTextBox' ||
+                                    element.presentation_type ===
+                                      'decimalTextbox' ||
+                                    element.presentation_type ===
+                                      'decimalTextBox'
+                                      ? 0.01
+                                      : 1
+                                  "
+                                  :hint="
+                                    element.required ? 'Required field' : ''
+                                  "
+                                  outlined
+                                  dense
+                                />
+
+                                <q-select
+                                  v-else-if="
+                                    (element.type === 'LIST' ||
+                                      element.type === 'list' ||
+                                      element.type === 'List' ||
+                                      element.type === 'enum' ||
+                                      element.type === 'dropdownList' ||
+                                      element.presentation_type?.toLowerCase() ===
+                                        'dropdownlist' ||
+                                      element.presentation_type?.toLowerCase() ===
+                                        'dropdown_list' ||
+                                      element.presentation_type?.toLowerCase() ===
+                                        'dropdown' ||
+                                      element.presentation_type ===
+                                        'dropdownList') &&
+                                    element.items &&
+                                    element.items.length > 0
+                                  "
+                                  :model-value="
+                                    policySettingsValues[element.element_id] ??
+                                    null
+                                  "
+                                  @update:model-value="
+                                    policySettingsValues[element.element_id] =
+                                      $event
+                                  "
+                                  :label="
+                                    element.display_name || element.element_id
+                                  "
+                                  :options="element.items"
+                                  option-label="display_name"
+                                  option-value="id"
+                                  :hint="
+                                    (element.required ? 'Required field' : '') +
+                                    (element.value_type
+                                      ? ` (value type: ${element.value_type})`
+                                      : '')
+                                  "
+                                  outlined
+                                  dense
+                                  emit-value
+                                  map-options
+                                >
+                                  <template v-slot:option="scope">
+                                    <q-item v-bind="scope.itemProps">
+                                      <q-item-section>
+                                        <q-item-label>{{
+                                          scope.opt.display_name ||
+                                          scope.opt.name ||
+                                          `Value ${scope.opt.id}`
+                                        }}</q-item-label>
+                                      </q-item-section>
+                                    </q-item>
+                                  </template>
+                                </q-select>
+
+                                <q-select
+                                  v-else-if="
+                                    element.type === 'List' ||
+                                    element.presentation_type?.toLowerCase() ===
+                                      'multibox' ||
+                                    element.presentation_type?.toLowerCase() ===
+                                      'multi_box' ||
+                                    element.presentation_type?.toLowerCase() ===
+                                      'listbox' ||
+                                    element.presentation_type?.toLowerCase() ===
+                                      'list_box' ||
+                                    element.presentation_type?.toLowerCase() ===
+                                      'list' ||
+                                    element.presentation_type === 'List' ||
+                                    (element.type === 'LIST' &&
+                                      element.items &&
+                                      element.items.length > 0 &&
+                                      (element.presentation_type?.toLowerCase() ===
+                                        'listbox' ||
+                                        element.presentation_type?.toLowerCase() ===
+                                          'list'))
+                                  "
+                                  :model-value="
+                                    (policySettingsValues[
+                                      element.element_id
+                                    ] as unknown[]) || []
+                                  "
+                                  @update:model-value="
+                                    policySettingsValues[element.element_id] =
+                                      $event
+                                  "
+                                  :label="
+                                    element.display_name || element.element_id
+                                  "
+                                  :options="element.items"
+                                  option-label="display_name"
+                                  option-value="id"
+                                  multiple
+                                  use-chips
+                                  :hint="
+                                    (element.required ? 'Required field' : '') +
+                                    (element.value_type
+                                      ? ` (value type: ${element.value_type})`
+                                      : '')
+                                  "
+                                  outlined
+                                  dense
+                                  emit-value
+                                  map-options
+                                >
+                                  <template v-slot:option="scope">
+                                    <q-item v-bind="scope.itemProps">
+                                      <q-item-section>
+                                        <q-item-label>{{
+                                          scope.opt.display_name ||
+                                          scope.opt.name ||
+                                          `Value ${scope.opt.id}`
+                                        }}</q-item-label>
+                                      </q-item-section>
+                                    </q-item>
+                                  </template>
+                                </q-select>
+
+                                <q-input
+                                  v-else
+                                  :model-value="
+                                    String(
+                                      policySettingsValues[
+                                        element.element_id
+                                      ] || '',
+                                    )
+                                  "
+                                  @update:model-value="
+                                    policySettingsValues[element.element_id] =
+                                      $event
+                                  "
+                                  :label="
+                                    element.display_name || element.element_id
+                                  "
+                                  :hint="`Type: ${element.type}${element.required ? ' (required)' : ''}`"
+                                  outlined
+                                  dense
+                                />
+                              </div>
+                            </div>
+                          </q-form>
+                        </div>
+                      </q-tab-panel>
+
+                      <q-tab-panel name="description" class="q-pa-none">
+                        <div
+                          v-if="loadingPolicyDetails"
+                          class="text-center q-pa-lg"
+                        >
+                          <q-spinner color="primary" size="2em" />
+                          <div class="q-mt-sm">Loading description...</div>
+                        </div>
+
+                        <div
+                          v-else-if="selectedPolicy"
+                          class="policy-description"
+                        >
+                          <div class="q-pa-md">
+                            <div class="text-h6 q-mb-md">
+                              {{
+                                selectedPolicy.displayName ||
+                                selectedPolicy.name
+                              }}
+                            </div>
+
+                            <div
+                              v-if="
+                                selectedPolicy.description &&
+                                selectedPolicy.description.trim()
+                              "
+                              class="text-body2 text-grey-8 q-mb-md"
+                              style="white-space: normal; line-height: 1.6"
+                            >
+                              {{ selectedPolicy.description }}
+                            </div>
+                            <div
+                              v-else
+                              class="text-body2 text-grey-5 q-mb-md text-italic"
+                            >
+                              Description not available
+                            </div>
+
+                            <div
+                              v-if="presentationElements.length > 0"
+                              class="q-mt-lg"
+                            >
+                              <div class="text-subtitle2 q-mb-md">
+                                Presentation Elements
+                              </div>
+                              <q-list separator>
+                                <q-item
+                                  v-for="presEl in presentationElements"
+                                  :key="presEl.id"
+                                  class="presentation-item"
+                                >
+                                  <q-item-section>
+                                    <q-item-label class="text-weight-medium">
+                                      {{ presEl.text || presEl.ref_id }}
+                                    </q-item-label>
+                                    <q-item-label caption>
+                                      Type: {{ presEl.type || "Not specified" }}
+                                    </q-item-label>
+                                    <q-item-label
+                                      v-if="presEl.default_value"
+                                      caption
+                                      class="text-grey-7"
+                                    >
+                                      Default value:
+                                      {{ presEl.default_value }}
+                                    </q-item-label>
+                                  </q-item-section>
+                                </q-item>
+                              </q-list>
+                            </div>
+                            <div v-else class="text-center q-pa-lg text-grey-6">
+                              <q-icon name="info" size="2em" />
+                              <div class="q-mt-sm">
+                                No presentation elements
+                              </div>
                             </div>
                           </div>
-                        </q-form>
-                      </div>
-
-                      <div v-else class="text-center q-pa-lg text-grey-6">
-                        <q-icon name="info" size="2em" />
-                        <div class="q-mt-sm">Нет дополнительных настроек</div>
-                      </div>
-
-                      <div class="row q-mt-md q-gutter-sm">
-                        <q-btn
-                          flat
-                          :label="isPolicySelected ? 'Отключить' : 'Применить'"
-                          :color="isPolicySelected ? 'negative' : 'positive'"
-                          @click="togglePolicySelection"
-                          :disable="!selectedPolicy"
-                        />
-                      </div>
-                    </div>
+                        </div>
+                      </q-tab-panel>
+                    </q-tab-panels>
                   </q-card-section>
 
                   <q-card-section
@@ -369,7 +572,7 @@
                     class="text-center q-pa-lg text-grey-6"
                   >
                     <q-icon name="info" size="3em" />
-                    <div class="q-mt-md">Выберите политику для настройки</div>
+                    <div class="q-mt-md">Select a policy to configure</div>
                   </q-card-section>
                 </q-card>
               </div>
@@ -378,12 +581,12 @@
 
           <q-tab-panel name="users" class="q-pa-none">
             <div class="text-subtitle2 q-mb-md">
-              Выберите пользователя для применения политик
+              Select a user to apply policies
             </div>
             <q-radio
               v-model="selectedUser"
               val=""
-              label="Применить ко всем пользователям устройства"
+              label="Apply to all device users"
               class="q-mb-md"
             />
             <q-separator class="q-mb-md" />
@@ -418,13 +621,13 @@
       <q-card-actions align="right" class="q-pa-md">
         <q-btn
           flat
-          label="Отмена"
+          label="Cancel"
           color="primary"
           @click="dialogVisible = false"
         />
         <q-btn
           flat
-          label="Применить"
+          label="Apply"
           color="primary"
           @click="applyPolicies"
           :loading="applying"
@@ -494,10 +697,20 @@ interface PolicyDetail {
   hash?: string;
 }
 
+interface PolicyPresentationElement {
+  id: number;
+  type: string;
+  ref_id: string;
+  parent_element_id?: number;
+  default_value?: string;
+  text?: string;
+}
+
 const props = defineProps<{
   modelValue: boolean;
   agent: Agent | null;
   users: User[];
+  initialUserSid?: string;
 }>();
 
 const emit = defineEmits<{
@@ -510,7 +723,7 @@ const dialogVisible = computed({
   set: (value) => emit("update:modelValue", value),
 });
 
-const dialogTab = ref("policies");
+const dialogTab = ref("settings");
 const loadingCategories = ref(false);
 const categories = ref<CategoryNode[]>([]);
 const selectedCategoryId = ref<string | null>(null);
@@ -528,19 +741,22 @@ const policyDetailsElementsMap = ref<Record<string, PolicyDetailsElement[]>>(
 );
 const selectedUser = ref("");
 const applying = ref(false);
+const settingsTab = ref("settings");
+const presentationElements = ref<PolicyPresentationElement[]>([]);
 
 const hasSelectedPolicies = computed(() => {
   return Object.values(selectedPolicies).includes(true);
 });
 
-const isPolicySelected = computed(() => {
-  if (!selectedPolicy.value) return false;
-  return selectedPolicies.value[selectedPolicy.value.id] || false;
-});
-
 watch(dialogVisible, (newVal) => {
   if (newVal && props.agent) {
     loadCategories();
+    if (props.initialUserSid) {
+      selectedUser.value = props.initialUserSid;
+      dialogTab.value = "users";
+    } else {
+      dialogTab.value = "settings";
+    }
   } else {
     selectedPolicies.value = {};
     policyDetails.value = {};
@@ -552,6 +768,23 @@ watch(dialogVisible, (newVal) => {
     selectedPolicy.value = null;
     policyDetailsElements.value = [];
     policySettingsValues.value = {};
+    presentationElements.value = [];
+    settingsTab.value = "settings";
+    dialogTab.value = "settings";
+  }
+});
+
+watch(selectedUser, () => {
+  if (selectedCategory.value) {
+    loadPoliciesByCategory(selectedCategory.value.categoryName);
+  }
+});
+
+watch(dialogTab, (newTab) => {
+  if (newTab === "settings" && props.agent) {
+    if (categories.value.length === 0) {
+      loadCategories();
+    }
   }
 });
 
@@ -616,13 +849,8 @@ async function loadCategories() {
       .filter((n): n is CategoryNode => n !== null);
 
     categories.value = convertedCategories;
-    console.log(
-      "[ApplyPolicyDialog] Загружено категорий:",
-      convertedCategories.length,
-    );
   } catch (error) {
-    console.error("[ApplyPolicyDialog] Ошибка загрузки категорий:", error);
-    notifyError("Ошибка загрузки категорий");
+    notifyError("Error loading categories");
   } finally {
     loadingCategories.value = false;
   }
@@ -722,16 +950,8 @@ async function loadPoliciesByCategory(categoryName: string) {
     }
 
     selectedCategoryPolicies.value = policies;
-    console.log(
-      "[ApplyPolicyDialog] Загружено политик для категории:",
-      policies.length,
-    );
   } catch (error) {
-    console.error(
-      "[ApplyPolicyDialog] Ошибка загрузки политик по категории:",
-      error,
-    );
-    notifyError("Ошибка загрузки политик");
+    notifyError("Error loading policies");
   } finally {
     loadingPolicies.value = false;
   }
@@ -746,11 +966,12 @@ async function loadPolicyDetails(policy: GPOPolicy) {
   loadingPolicyDetails.value = true;
   policyDetailsElements.value = [];
   policySettingsValues.value = {};
+  presentationElements.value = [];
 
   try {
     const policyId = Number.parseInt(policy.id, 10);
     if (Number.isNaN(policyId)) {
-      throw new TypeError(`Неверный ID политики: ${policy.id}`);
+      throw new TypeError(`Invalid policy ID: ${policy.id}`);
     }
 
     const metadata = createGrpcMetadata();
@@ -783,36 +1004,94 @@ async function loadPolicyDetails(policy: GPOPolicy) {
 
       if (presentation) {
         const elementsList = presentation.getElementsList?.() || [];
+        const presentationElementsList = elementsList.map((el: unknown) => {
+          if (el && typeof el === "object" && "toObject" in el) {
+            try {
+              return (el as { toObject: () => unknown }).toObject();
+            } catch {
+              const elem = el as {
+                getId?: () => number;
+                getType?: () => string;
+                getRefId?: () => string;
+                getParentElementId?: () => unknown;
+                getDefaultValue?: () => unknown;
+                getText?: () => unknown;
+              };
+
+              const extractValue = (
+                value: unknown,
+              ): string | number | undefined => {
+                if (value === null || value === undefined) {
+                  return undefined;
+                }
+                if (typeof value === "string" || typeof value === "number") {
+                  return value;
+                }
+                if (typeof value === "object") {
+                  if (
+                    typeof (value as { getValue?: () => unknown }).getValue ===
+                    "function"
+                  ) {
+                    const extracted = (
+                      value as { getValue: () => unknown }
+                    ).getValue();
+                    return extracted as string | number | undefined;
+                  }
+                  if (
+                    "value" in value &&
+                    typeof (value as { value: unknown }).value !== "undefined"
+                  ) {
+                    return (value as { value: string | number }).value;
+                  }
+                }
+                return undefined;
+              };
+
+              return {
+                id: elem.getId?.() || 0,
+                type: elem.getType?.() || "",
+                ref_id: elem.getRefId?.() || "",
+                parent_element_id: (() => {
+                  try {
+                    const value = elem.getParentElementId?.();
+                    return extractValue(value) as number | undefined;
+                  } catch {
+                    return undefined;
+                  }
+                })(),
+                default_value: (() => {
+                  try {
+                    const value = elem.getDefaultValue?.();
+                    return extractValue(value) as string | undefined;
+                  } catch {
+                    return undefined;
+                  }
+                })(),
+                text: (() => {
+                  try {
+                    const value = elem.getText?.();
+                    return extractValue(value) as string | undefined;
+                  } catch {
+                    return undefined;
+                  }
+                })(),
+              };
+            }
+          }
+          return el;
+        });
+
+        presentationElements.value =
+          (presentationElementsList as PolicyPresentationElement[]) || [];
+
         responseObj.presentation = {
           id: presentation.getId?.() || 0,
           presentation_id: presentation.getPresentationId?.() || "",
           adml_file: presentation.getAdmlFile?.() || "",
-          elements: elementsList.map((el: unknown) => {
-            if (el && typeof el === "object" && "toObject" in el) {
-              try {
-                return (el as { toObject: () => unknown }).toObject();
-              } catch {
-                const elem = el as {
-                  getId?: () => number;
-                  getType?: () => string;
-                  getRefId?: () => string;
-                  getParentElementId?: () => unknown;
-                  getDefaultValue?: () => unknown;
-                  getText?: () => unknown;
-                };
-                return {
-                  id: elem.getId?.() || 0,
-                  type: elem.getType?.() || "",
-                  ref_id: elem.getRefId?.() || "",
-                  parent_element_id: elem.getParentElementId?.() || undefined,
-                  default_value: elem.getDefaultValue?.() || undefined,
-                  text: elem.getText?.() || undefined,
-                };
-              }
-            }
-            return el;
-          }),
+          elements: presentationElementsList,
         };
+      } else {
+        presentationElements.value = [];
       }
 
       responseObj.policy_elements = policyElementsList.map((el: unknown) => {
@@ -834,6 +1113,39 @@ async function loadPolicyDetails(policy: GPOPolicy) {
             getMinValue?: () => unknown;
             getMaxValue?: () => unknown;
             getItemsList?: () => unknown[];
+          };
+
+          const extractWrapperValue = (
+            value: unknown,
+          ): string | number | boolean | undefined => {
+            if (value === null || value === undefined) {
+              return undefined;
+            }
+            if (
+              typeof value === "string" ||
+              typeof value === "number" ||
+              typeof value === "boolean"
+            ) {
+              return value;
+            }
+            if (typeof value === "object") {
+              if (
+                typeof (value as { getValue?: () => unknown }).getValue ===
+                "function"
+              ) {
+                const extracted = (
+                  value as { getValue: () => unknown }
+                ).getValue();
+                return extracted as string | number | boolean | undefined;
+              }
+              if (
+                "value" in value &&
+                typeof (value as { value: unknown }).value !== "undefined"
+              ) {
+                return (value as { value: string | number | boolean }).value;
+              }
+            }
+            return undefined;
           };
 
           const itemsList = elem.getItemsList?.() || [];
@@ -859,10 +1171,38 @@ async function loadPolicyDetails(policy: GPOPolicy) {
                   parent_type: it.getParentType?.() || "",
                   type: it.getType?.() || "",
                   value_type: it.getValueType?.() || "",
-                  value_name: it.getValueName?.() || undefined,
-                  required: it.getRequired?.() || undefined,
-                  parent_id: it.getParentId?.() || undefined,
-                  display_name: it.getDisplayName?.() || undefined,
+                  value_name: (() => {
+                    try {
+                      const value = it.getValueName?.();
+                      return extractWrapperValue(value) as string | undefined;
+                    } catch {
+                      return undefined;
+                    }
+                  })(),
+                  required: (() => {
+                    try {
+                      const value = it.getRequired?.();
+                      return extractWrapperValue(value) as boolean | undefined;
+                    } catch {
+                      return undefined;
+                    }
+                  })(),
+                  parent_id: (() => {
+                    try {
+                      const value = it.getParentId?.();
+                      return extractWrapperValue(value) as number | undefined;
+                    } catch {
+                      return undefined;
+                    }
+                  })(),
+                  display_name: (() => {
+                    try {
+                      const value = it.getDisplayName?.();
+                      return extractWrapperValue(value) as string | undefined;
+                    } catch {
+                      return undefined;
+                    }
+                  })(),
                 };
               }
             }
@@ -873,22 +1213,60 @@ async function loadPolicyDetails(policy: GPOPolicy) {
             id: elem.getId?.() || 0,
             element_id: elem.getElementId?.() || "",
             type: elem.getType?.() || "",
-            value_name: elem.getValueName?.() || undefined,
-            registry_key: elem.getRegistryKey?.() || undefined,
-            required: elem.getRequired?.() || undefined,
-            max_length: elem.getMaxLength?.() || undefined,
-            min_value: elem.getMinValue?.() || undefined,
-            max_value: elem.getMaxValue?.() || undefined,
+            value_name: (() => {
+              try {
+                const value = elem.getValueName?.();
+                return extractWrapperValue(value) as string | undefined;
+              } catch {
+                return undefined;
+              }
+            })(),
+            registry_key: (() => {
+              try {
+                const value = elem.getRegistryKey?.();
+                return extractWrapperValue(value) as string | undefined;
+              } catch {
+                return undefined;
+              }
+            })(),
+            required: (() => {
+              try {
+                const value = elem.getRequired?.();
+                return extractWrapperValue(value) as boolean | undefined;
+              } catch {
+                return undefined;
+              }
+            })(),
+            max_length: (() => {
+              try {
+                const value = elem.getMaxLength?.();
+                return extractWrapperValue(value) as number | undefined;
+              } catch {
+                return undefined;
+              }
+            })(),
+            min_value: (() => {
+              try {
+                const value = elem.getMinValue?.();
+                return extractWrapperValue(value) as number | undefined;
+              } catch {
+                return undefined;
+              }
+            })(),
+            max_value: (() => {
+              try {
+                const value = elem.getMaxValue?.();
+                return extractWrapperValue(value) as number | undefined;
+              } catch {
+                return undefined;
+              }
+            })(),
             items: items,
           };
         }
         return el;
       });
-    } catch (manualParseError) {
-      console.warn(
-        "[ApplyPolicyDialog] Ошибка ручного парсинга:",
-        manualParseError,
-      );
+    } catch {
       try {
         if (response && typeof response.toObject === "function") {
           try {
@@ -902,11 +1280,7 @@ async function loadPolicyDetails(policy: GPOPolicy) {
         } else {
           responseObj = (response as unknown as Record<string, unknown>) || {};
         }
-      } catch (toObjectError) {
-        console.error(
-          "[ApplyPolicyDialog] Ошибка при вызове toObject():",
-          toObjectError,
-        );
+      } catch {
         responseObj = (response as unknown as Record<string, unknown>) || {};
       }
     }
@@ -941,16 +1315,46 @@ async function loadPolicyDetails(policy: GPOPolicy) {
             ref_id?: string;
             parentElementId?: number;
             parent_element_id?: number;
-            defaultValue?: string;
-            default_value?: string;
-            text?: string;
+            defaultValue?: string | { value?: string } | unknown;
+            default_value?: string | { value?: string } | unknown;
+            text?: string | { value?: string } | unknown;
           };
+
+          const extractStringValue = (value: unknown): string | undefined => {
+            if (value === null || value === undefined) {
+              return undefined;
+            }
+            if (typeof value === "string") {
+              return value;
+            }
+            if (typeof value === "object") {
+              if (
+                "value" in value &&
+                typeof (value as { value: unknown }).value === "string"
+              ) {
+                return (value as { value: string }).value;
+              }
+              if (
+                typeof (value as { getValue?: () => unknown }).getValue ===
+                "function"
+              ) {
+                const extracted = (
+                  value as { getValue: () => unknown }
+                ).getValue();
+                return typeof extracted === "string" ? extracted : undefined;
+              }
+            }
+            return undefined;
+          };
+
           const refId = p.refId || p.ref_id || "";
           if (refId) {
             presentationMap.set(refId, {
               type: p.type || "",
-              text: p.text,
-              default_value: p.defaultValue || p.default_value,
+              text: extractStringValue(p.text),
+              default_value: extractStringValue(
+                p.defaultValue || p.default_value,
+              ),
             });
           }
         }
@@ -971,9 +1375,6 @@ async function loadPolicyDetails(policy: GPOPolicy) {
 
     if (!presentation) {
       policyDetailsElements.value = [];
-      console.log(
-        "[ApplyPolicyDialog] Политика не имеет presentation, настроек нет",
-      );
     } else {
       const elements: PolicyDetailsElement[] = [];
       if (Array.isArray(policyElements)) {
@@ -1002,9 +1403,15 @@ async function loadPolicyDetails(policy: GPOPolicy) {
             };
 
             const elementId = el.elementId || el.element_id || "";
+
             const presentationEl = presentationMap.get(elementId);
-            const displayName = presentationEl?.text || elementId;
-            const presentationType = presentationEl?.type || "";
+
+            if (!presentationEl) {
+              continue;
+            }
+
+            const displayName = presentationEl.text || elementId;
+            const presentationType = presentationEl.type || "";
 
             const normalizedPresentationType = presentationType.toLowerCase();
             const isDropdownList =
@@ -1015,8 +1422,88 @@ async function loadPolicyDetails(policy: GPOPolicy) {
             const items = el.itemsList || el.items || [];
             const elementValueType = el.valueType || el.value_type || "";
 
+            const extractWrapperValueFromObject = (
+              value: unknown,
+            ): string | number | boolean | undefined => {
+              if (value === null || value === undefined) {
+                return undefined;
+              }
+              if (
+                typeof value === "string" ||
+                typeof value === "number" ||
+                typeof value === "boolean"
+              ) {
+                return value;
+              }
+              if (typeof value === "object") {
+                if (
+                  "value" in value &&
+                  typeof (value as { value: unknown }).value !== "undefined"
+                ) {
+                  return (value as { value: string | number | boolean }).value;
+                }
+                if (
+                  "array" in value &&
+                  Array.isArray((value as { array?: unknown[] }).array)
+                ) {
+                  const arr = (value as { array: unknown[] }).array;
+                  if (arr.length > 0) {
+                    const first = arr[0];
+                    if (
+                      typeof first === "string" ||
+                      typeof first === "number" ||
+                      typeof first === "boolean"
+                    ) {
+                      return first;
+                    }
+                  }
+                }
+                if (
+                  typeof (value as { getValue?: () => unknown }).getValue ===
+                  "function"
+                ) {
+                  const extracted = (
+                    value as { getValue: () => unknown }
+                  ).getValue();
+                  return extracted as string | number | boolean | undefined;
+                }
+              }
+              return undefined;
+            };
+
             let finalType = el.type || "";
-            if (isDropdownList && finalType !== "enum") {
+            if (presentationType) {
+              if (isDropdownList) {
+                finalType = "enum";
+              } else if (
+                normalizedPresentationType === "textbox" ||
+                normalizedPresentationType === "text_box"
+              ) {
+                finalType = "TEXT";
+              } else if (
+                normalizedPresentationType === "checkbox" ||
+                normalizedPresentationType === "check_box"
+              ) {
+                finalType = "CHECKBOX";
+              } else if (
+                normalizedPresentationType === "decimaltextbox" ||
+                normalizedPresentationType === "decimal_textbox"
+              ) {
+                finalType = "NUMERIC";
+              } else if (
+                normalizedPresentationType === "listbox" ||
+                normalizedPresentationType === "list_box" ||
+                normalizedPresentationType === "list"
+              ) {
+                finalType = "LIST";
+              } else if (
+                normalizedPresentationType === "multitextbox" ||
+                normalizedPresentationType === "multi_textbox" ||
+                normalizedPresentationType === "multitext"
+              ) {
+                finalType = "multiTextBox";
+              }
+            } else if (isDropdownList && finalType !== "enum") {
               finalType = "enum";
             }
 
@@ -1024,13 +1511,37 @@ async function loadPolicyDetails(policy: GPOPolicy) {
               id: el.id || 0,
               element_id: elementId,
               type: finalType,
-              value_name: el.valueName || el.value_name,
+              value_name: (() => {
+                const value = el.valueName || el.value_name;
+                const extracted = extractWrapperValueFromObject(value);
+                return typeof extracted === "string" ? extracted : undefined;
+              })(),
               value_type: elementValueType,
-              registry_key: el.registryKey || el.registry_key,
-              required: el.required,
-              max_length: el.maxLength || el.max_length,
-              min_value: el.minValue || el.min_value,
-              max_value: el.maxValue || el.max_value,
+              registry_key: (() => {
+                const value = el.registryKey || el.registry_key;
+                const extracted = extractWrapperValueFromObject(value);
+                return typeof extracted === "string" ? extracted : undefined;
+              })(),
+              required: (() => {
+                const value = el.required;
+                const extracted = extractWrapperValueFromObject(value);
+                return typeof extracted === "boolean" ? extracted : undefined;
+              })(),
+              max_length: (() => {
+                const value = el.maxLength || el.max_length;
+                const extracted = extractWrapperValueFromObject(value);
+                return typeof extracted === "number" ? extracted : undefined;
+              })(),
+              min_value: (() => {
+                const value = el.minValue || el.min_value;
+                const extracted = extractWrapperValueFromObject(value);
+                return typeof extracted === "number" ? extracted : undefined;
+              })(),
+              max_value: (() => {
+                const value = el.maxValue || el.max_value;
+                const extracted = extractWrapperValueFromObject(value);
+                return typeof extracted === "number" ? extracted : undefined;
+              })(),
               display_name: displayName,
               presentation_type: presentationType,
               items: Array.isArray(items)
@@ -1042,10 +1553,13 @@ async function loadPolicyDetails(policy: GPOPolicy) {
                     .map((item) => {
                       const itemId = (item.id as number) || 0;
                       const itemName = (item.name as string) || "";
-                      const itemDisplayName =
-                        (item.displayName as string) ||
-                        (item.display_name as string) ||
+                      const itemDisplayNameRaw =
+                        (item.displayName as unknown) ||
+                        (item.display_name as unknown) ||
                         "";
+                      const itemDisplayName = extractWrapperValueFromObject(
+                        itemDisplayNameRaw,
+                      ) as string | undefined;
                       const itemValueType =
                         (item.valueType as string) ||
                         (item.value_type as string) ||
@@ -1056,8 +1570,8 @@ async function loadPolicyDetails(policy: GPOPolicy) {
                         itemDisplayName ||
                         itemName ||
                         (itemValueType
-                          ? `Значение ${itemId} (${itemValueType})`
-                          : `Значение ${itemId}`);
+                          ? `Value ${itemId} (${itemValueType})`
+                          : `Value ${itemId}`);
 
                       return {
                         id: itemId,
@@ -1065,6 +1579,14 @@ async function loadPolicyDetails(policy: GPOPolicy) {
                         display_name: finalDisplayName,
                         value_type: itemValueType,
                       };
+                    })
+                    .filter((item, index, self) => {
+                      return (
+                        index ===
+                        self.findIndex(
+                          (t) => t.display_name === item.display_name,
+                        )
+                      );
                     })
                 : [],
             });
@@ -1074,7 +1596,6 @@ async function loadPolicyDetails(policy: GPOPolicy) {
 
       policyDetailsElements.value = elements;
 
-      // Сохраняем элементы политики для последующей обработки
       if (selectedPolicy.value) {
         const policyId = selectedPolicy.value.id;
         policyDetailsElementsMap.value[policyId] = elements;
@@ -1106,12 +1627,37 @@ async function loadPolicyDetails(policy: GPOPolicy) {
       }
     }
   } catch (error) {
-    console.error(
-      "[ApplyPolicyDialog] Ошибка загрузки деталей политики:",
-      error,
-    );
-    notifyError("Ошибка загрузки настроек политики");
+    let errorMessage = "Error loading policy settings";
+    const errorStr = String(error);
+    const errorMessageStr = error instanceof Error ? error.message : errorStr;
+
+    if (
+      errorMessageStr.includes("Cannot read properties of undefined") ||
+      errorMessageStr.includes("protobuf") ||
+      errorMessageStr.includes("deserializing") ||
+      errorMessageStr.includes("Error when deserializing")
+    ) {
+      errorMessage =
+        `Error deserializing server response for policy "${policy.displayName || policy.name}" (ID: ${policy.id}). ` +
+        "The policy data may contain invalid fields. " +
+        "Try another policy or contact the administrator.";
+    } else if (
+      errorMessageStr.includes("Exception was thrown by handler") ||
+      errorMessageStr.includes("RpcError")
+    ) {
+      errorMessage = "Policy does not exist";
+    } else if (error instanceof Error) {
+      if (error.message.includes("Error deserializing")) {
+        errorMessage = error.message;
+      } else {
+        errorMessage = "Policy does not exist";
+      }
+    }
+
+    notifyError(errorMessage);
     policyDetailsElements.value = [];
+    policySettingsValues.value = {};
+    presentationElements.value = [];
   } finally {
     loadingPolicyDetails.value = false;
   }
@@ -1208,26 +1754,6 @@ function processPolicySettings(
   return processed;
 }
 
-function togglePolicySelection() {
-  if (!selectedPolicy.value) return;
-
-  const policyId = selectedPolicy.value.id;
-  const isSelected = selectedPolicies.value[policyId] || false;
-
-  if (isSelected) {
-    selectedPolicies.value[policyId] = false;
-    delete policyDetails.value[policyId];
-    delete policyDetailsElementsMap.value[policyId];
-  } else {
-    selectedPolicies.value[policyId] = true;
-    policyDetails.value[policyId] = {
-      settings: { ...policySettingsValues.value },
-      policy: selectedPolicy.value,
-      hash: "",
-    };
-  }
-}
-
 async function applyPolicies() {
   if (!props.agent || !hasSelectedPolicies.value) {
     return;
@@ -1239,31 +1765,33 @@ async function applyPolicies() {
       (id) => selectedPolicies.value[id],
     );
 
-    const targetType = selectedUser.value ? "user" : "agent";
-    const targetParams = selectedUser.value
-      ? { agentId: props.agent.id, userSid: selectedUser.value }
-      : { agentId: props.agent.id };
+    const usersToApply: User[] = selectedUser.value
+      ? props.users.filter((u) => u.sid === selectedUser.value)
+      : props.users;
 
-    const applyPromises = selectedPolicyIds.map(async (policyId) => {
+    if (usersToApply.length === 0) {
+      throw new Error("No user selected for applying policies");
+    }
+
+    const applyPromises: Promise<unknown>[] = [];
+
+    for (const policyId of selectedPolicyIds) {
       const policyDetail = policyDetails.value[policyId];
 
       if (!policyDetail) {
-        throw new Error(`Детали политики ${policyId} не найдены`);
+        throw new Error(`Policy details ${policyId} not found`);
       }
 
       const policyHash = policyDetail.hash;
       if (!policyHash) {
         throw new Error(
-          `Hash политики ${policyId} не найден. Загрузите детали политики перед применением.`,
+          `Policy hash ${policyId} not found. Load policy details before applying.`,
         );
       }
 
-      // Используем актуальные настройки из policySettingsValues, если политика выбрана
-      // и это текущая выбранная политика, иначе используем сохраненные настройки
       let rawSettings: Record<string, unknown>;
       if (selectedPolicy.value?.id === policyId && policySettingsValues.value) {
         rawSettings = { ...policySettingsValues.value };
-        // Обновляем сохраненные настройки
         policyDetails.value[policyId].settings = rawSettings;
       } else {
         rawSettings = policyDetail.settings || {};
@@ -1271,40 +1799,48 @@ async function applyPolicies() {
 
       const elements = policyDetailsElementsMap.value[policyId] || [];
 
-      // Обрабатываем настройки перед отправкой, особенно для элементов с items
       const processedSettings = processPolicySettings(rawSettings, elements);
 
-      await policyAssignmentClient.assignPolicy(
-        policyHash,
-        targetType,
-        targetParams,
-        processedSettings,
-      );
-    });
+      for (const user of usersToApply) {
+        applyPromises.push(
+          policyAssignmentClient.assignPolicy(
+            policyHash,
+            "user",
+            { agentId: String(props.agent.id), userSid: String(user.sid) },
+            processedSettings,
+          ),
+        );
+      }
+    }
 
     await Promise.all(applyPromises);
 
-    const userName = selectedUser.value
-      ? props.users.find((u) => u.sid === selectedUser.value)?.name
-      : null;
-    const userText = userName ? ` (пользователь: ${userName})` : "";
+    let userText = "";
+    if (selectedUser.value) {
+      const userName = props.users.find(
+        (u) => u.sid === selectedUser.value,
+      )?.name;
+      userText = userName ? ` (user: ${userName})` : "";
+    } else {
+      userText = ` (${usersToApply.length} ${usersToApply.length === 1 ? "user" : "users"})`;
+    }
+
     const policiesCount = selectedPolicyIds.length;
     const policiesText =
       policiesCount === 1
-        ? "Политика успешно применена"
-        : `${policiesCount} политик успешно применено`;
+        ? "Policy successfully applied"
+        : `${policiesCount} policies successfully applied`;
 
-    notifySuccess(`${policiesText} для ${props.agent.hostname}${userText}`);
+    notifySuccess(`${policiesText} for ${props.agent.hostname}${userText}`);
 
     emit("applied");
     dialogVisible.value = false;
   } catch (error) {
-    console.error("[ApplyPolicyDialog] Ошибка применения политик:", error);
     const errorMessage =
       error instanceof Error
         ? error.message
-        : "Неизвестная ошибка применения политик";
-    notifyError(`Ошибка применения политик: ${errorMessage}`);
+        : "Unknown error applying policies";
+    notifyError(`Error applying policies: ${errorMessage}`);
   } finally {
     applying.value = false;
   }

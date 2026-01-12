@@ -17,21 +17,10 @@ if (!operator_pb) {
   throw new Error("operator_pb module failed to load");
 }
 
-interface WindowWithEnv extends Window {
-  _env_?: {
-    GRPC_URL?: string;
-  };
-}
-
-// if (isDebug) {
-//   console.log("[grpc-client] operator_pb loaded:", {
-//     hasListAgentsRequest: operator_pb.ListAgentsRequest !== undefined,
-//     hasGetAgentRequest: operator_pb.GetAgentRequest !== undefined,
-//     hasListPoliciesGroupedByScopeRequest:
-//       operator_pb.ListPoliciesGroupedByScopeRequest !== undefined,
-//     namespaceKeys: Object.keys(operator_pb).slice(0, 10), // первые 10 ключей для проверки
-//     totalKeys: Object.keys(operator_pb).length,
-//   });
+// interface WindowWithEnv extends Window {
+//   _env_?: {
+//     GRPC_URL?: string;
+//   };
 // }
 
 interface WindowWithEnv {
@@ -40,9 +29,6 @@ interface WindowWithEnv {
   };
 }
 
-/**
-
- */
 function getGrpcUrl(): string {
   if (import.meta.env.DEV) {
     return "/api/grpc";
@@ -83,14 +69,6 @@ function createClient<
   return new ClientClass(url, null, clientOptions);
 }
 
-// if (isDebug) {
-//   console.log("[grpc-client] Creating gRPC clients...");
-//   console.log(
-//     "[grpc-client] AgentServiceClient available:",
-//     AgentServiceClient !== undefined,
-//   );
-// }
-
 const agentServiceClient = createClient(AgentServiceClient);
 const userServiceClient = createClient(UserServiceClient);
 const admxServiceClient = createClient(AdmxServiceClient);
@@ -99,10 +77,6 @@ const policyAssignmentServiceClient = createClient(
   PolicyAssignmentServiceClient,
 );
 const policyStateServiceClient = createClient(PolicyStateServiceClient);
-
-// if (isDebug) {
-//   console.log("[grpc-client] All gRPC clients created successfully");
-// }
 
 export const policyCatalogClient = {
   async listPoliciesGroupedByScope(
@@ -175,12 +149,33 @@ export const policyCatalogClient = {
     request.setPolicyId(policyId);
     request.setLangCode(langCode);
 
-    const response = await policyCatalogServiceClient.getPolicyDetails(
-      request,
-      createGrpcMetadata(),
-    );
+    try {
+      const response = await policyCatalogServiceClient.getPolicyDetails(
+        request,
+        createGrpcMetadata(),
+      );
 
-    return response.toObject();
+      return response.toObject();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      if (
+        errorMessage.includes("deserializing") ||
+        errorMessage.includes("protobuf") ||
+        errorMessage.includes("Cannot read properties")
+      ) {
+        console.error(
+          "[policyCatalogClient.getPolicyDetails] Ошибка десериализации для политики ID:",
+          policyId,
+          "Ошибка:",
+          error,
+        );
+        console.error(
+          "[policyCatalogClient.getPolicyDetails] Возможно, проблема с полем client_extension (OneOf->StringValue)",
+        );
+      }
+      throw error;
+    }
   },
 
   async getPoliciesByCategory(
@@ -332,8 +327,6 @@ export function createPolicySelection(
   const selection = new operator_pb.PolicySelection();
   const elements: operator_pb.PolicyElementSelection[] = [];
   const listKeys: string[] = [];
-
-  // Если settings пустой объект, это legacy policy - используем значение "1" для включения
   const settingsKeys = Object.keys(settings);
   if (settingsKeys.length === 0) {
     selection.setValue("1");
@@ -399,8 +392,6 @@ export function createPolicySelection(
     selection.setListKeysList(listKeys);
   }
 
-  // Если нет элементов и нет listKeys, но settings не пустой,
-  // возможно все значения были null/undefined - используем legacy value
   if (
     elements.length === 0 &&
     listKeys.length === 0 &&
