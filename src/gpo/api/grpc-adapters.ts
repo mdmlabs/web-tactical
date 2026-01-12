@@ -91,14 +91,12 @@ export function adaptPoliciesFromGroups(
 ): GPOPolicy[] {
   const policies: GPOPolicy[] = [];
 
-  console.log("[Adapter] adaptPoliciesFromGroups input:", response);
 
   for (const group of response.groups || []) {
     if (group && typeof group === "object") {
       const policyGroup = group as PolicyGroup;
       const policiesArray = policyGroup.policiesList || policyGroup.policies || [];
 
-      console.log(`[Adapter] Processing group with scope: ${policyGroup.scope}, policies count: ${policiesArray.length}`);
 
       if (Array.isArray(policiesArray)) {
         for (const policy of policiesArray) {
@@ -108,14 +106,12 @@ export function adaptPoliciesFromGroups(
     }
   }
 
-  console.log(`[Adapter] adaptPoliciesFromGroups output: ${policies.length} policies`);
   return policies;
 }
 
 export function adaptCategoryTreeToPolicyTree(
   response: GetCategoryTreeResponse,
 ): GPOPolicyTree {
-  console.log("[Adapter] adaptCategoryTreeToPolicyTree input:", response);
 
   const convertCategory = (
     category: CategoryView | Record<string, unknown>,
@@ -161,7 +157,6 @@ export function adaptCategoryTreeToPolicyTree(
       ("id" in cat || "categoryName" in cat || "category_name" in cat),
   );
 
-  console.log(`[Adapter] Filtered ${categories.length} categories`);
 
   const root: GPOPolicyTree = {
     id: "root",
@@ -170,7 +165,6 @@ export function adaptCategoryTreeToPolicyTree(
     children: categories.map((cat) => convertCategory(cat)),
   };
 
-  console.log("[Adapter] adaptCategoryTreeToPolicyTree output:", root);
   return root;
 }
 
