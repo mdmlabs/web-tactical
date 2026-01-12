@@ -50,7 +50,7 @@ function getGrpcUrl(): string {
 
   const viteEnv = import.meta.env.VITE_GRPC_URL;
   const windowEnv = (globalThis.window as WindowWithEnv)?._env_?.GRPC_URL;
-  const fallback = "https://meshmaster.rmadm.org/grpc";
+  const fallback = "https://95.142.43.25:5000";
 
   const grpcUrl = viteEnv || windowEnv || fallback;
 
@@ -106,7 +106,7 @@ const policyStateServiceClient = createClient(PolicyStateServiceClient);
 
 export const policyCatalogClient = {
   async listPoliciesGroupedByScope(
-    langCode: string = "ru-RU",
+    langCode: string = "en-US",
   ): Promise<operator_pb_types.ListPoliciesGroupedByScopeResponse.AsObject> {
     if (!operator_pb.ListPoliciesGroupedByScopeRequest) {
       throw new Error(
@@ -126,7 +126,7 @@ export const policyCatalogClient = {
   },
 
   async getCategoryTree(
-    langCode: string = "ru-RU",
+    langCode: string = "en-US",
   ): Promise<operator_pb_types.GetCategoryTreeResponse.AsObject> {
     const request = new operator_pb.GetCategoryTreeRequest();
     request.setLangCode(langCode);
@@ -169,7 +169,7 @@ export const policyCatalogClient = {
 
   async getPolicyDetails(
     policyId: number,
-    langCode: string = "ru-RU",
+    langCode: string = "en-US",
   ): Promise<operator_pb_types.PolicyDetails.AsObject> {
     const request = new operator_pb.GetPolicyDetailsRequest();
     request.setPolicyId(policyId);
@@ -185,7 +185,7 @@ export const policyCatalogClient = {
 
   async getPoliciesByCategory(
     category: string,
-    langCode: string = "ru-RU",
+    langCode: string = "en-US",
   ): Promise<operator_pb_types.GetPoliciesByCategoryResponse.AsObject> {
     const request = new operator_pb.GetPoliciesByCategoryRequest();
     request.setCategory(category);
@@ -201,7 +201,7 @@ export const policyCatalogClient = {
 
   async getPoliciesByAdmx(
     admxFile: string,
-    langCode: string = "ru-RU",
+    langCode: string = "en-US",
   ): Promise<operator_pb_types.GetPoliciesByAdmxResponse.AsObject> {
     const request = new operator_pb.GetPoliciesByAdmxRequest();
     request.setAdmxFile(admxFile);
@@ -333,6 +333,13 @@ export function createPolicySelection(
   const elements: operator_pb.PolicyElementSelection[] = [];
   const listKeys: string[] = [];
 
+  // Если settings пустой объект, это legacy policy - используем значение "1" для включения
+  const settingsKeys = Object.keys(settings);
+  if (settingsKeys.length === 0) {
+    selection.setValue("1");
+    return selection;
+  }
+
   for (const [elementId, value] of Object.entries(settings)) {
     if (value === null || value === undefined) continue;
 
@@ -390,6 +397,16 @@ export function createPolicySelection(
   }
   if (listKeys.length > 0) {
     selection.setListKeysList(listKeys);
+  }
+
+  // Если нет элементов и нет listKeys, но settings не пустой,
+  // возможно все значения были null/undefined - используем legacy value
+  if (
+    elements.length === 0 &&
+    listKeys.length === 0 &&
+    settingsKeys.length > 0
+  ) {
+    selection.setValue("1");
   }
 
   return selection;

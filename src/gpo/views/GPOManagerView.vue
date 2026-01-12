@@ -2993,7 +2993,7 @@ async function removePolicyAssignment(policy: GPOPolicy) {
 
       const policyDetails = await policyCatalogClient.getPolicyDetails(
         policyId,
-        "ru-RU",
+        "en-US",
       );
       const policyHash = (policyDetails.policy?.hash as string) || "";
 
