@@ -54,19 +54,6 @@
                       failure/resolve actions</q-tooltip
                     >
                   </q-checkbox>
-                  <q-btn
-                    size="sm"
-                    round
-                    dense
-                    flat
-                    icon="warning"
-                    @click="
-                      openURL(
-                        'https://docs.tacticalrmm.com/functions/permissions/#permissions-with-extra-security-implications',
-                      )
-                    "
-                  >
-                  </q-btn>
                 </q-card-section>
                 <q-card-section v-if="!hosted" class="row">
                   <q-checkbox
@@ -75,19 +62,6 @@
                   >
                     <q-tooltip>Enable the web terminal</q-tooltip>
                   </q-checkbox>
-                  <q-btn
-                    size="sm"
-                    roundenable_server_webterminal
-                    dense
-                    flat
-                    icon="warning"
-                    @click="
-                      openURL(
-                        'https://docs.tacticalrmm.com/functions/permissions/#permissions-with-extra-security-implications',
-                      )
-                    "
-                  >
-                  </q-btn>
                 </q-card-section>
                 <q-card-section class="row">
                   <div class="col-4">Default agent timezone:</div>

@@ -344,47 +344,6 @@
             </q-list>
           </q-expansion-item>
 
-          <q-expansion-item
-            icon="assessment"
-            label="Reporting"
-            class="filebar-menu-section"
-          >
-            <q-list
-              v-if="
-                $integrations &&
-                $integrations.fileBarIntegrations &&
-                $integrations.fileBarIntegrations.length > 0
-              "
-            >
-              <q-item
-                v-for="integration in $integrations.fileBarIntegrations"
-                :key="integration.name"
-                clickable
-                v-ripple
-                @click="handleIntegration(integration)"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="bar_chart" />
-                </q-item-section>
-                <q-item-section>{{ integration.name }}</q-item-section>
-              </q-item>
-            </q-list>
-            <q-list v-else>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('reportingWarning')"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="bar_chart" />
-                </q-item-section>
-                <q-item-section>Reporting Manager</q-item-section>
-              </q-item>
-            </q-list>
-          </q-expansion-item>
-
           <!-- <q-expansion-item
             v-if="!hosted"
             icon="help"
@@ -500,9 +459,6 @@ import DeploymentTable from "@/components/clients/DeploymentTable.vue";
 import ServerMaintenance from "@/components/modals/core/ServerMaintenance.vue";
 import CodeSign from "@/components/modals/coresettings/CodeSign.vue";
 import PermissionsManager from "@/components/accounts/PermissionsManager.vue";
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { notifyWarning } from "@/utils/notify";
 
 export default {
   name: "FileBar",
@@ -621,12 +577,6 @@ export default {
         case "recoverAgents":
           this.bulkRecoverAgents();
           break;
-        case "reportingWarning":
-          this.notifyWarning(
-            "Reporting feature requires a Tier 2 or higher sponsorship. Please check the docs for more info.",
-            10000,
-          );
-          break;
         case "helpDocs":
           this.openHelp("docs");
           break;
@@ -650,14 +600,6 @@ export default {
         this.closeDrawer();
       }
       this.$router.push("/gpo");
-    },
-    handleIntegration(integration) {
-      if (this.overlayMode) {
-        this.closeDrawer();
-      }
-      if (integration.type === "dialog") {
-        this.$q.dialog({ component: integration.component });
-      }
     },
     clearCache() {
       this.$axios
