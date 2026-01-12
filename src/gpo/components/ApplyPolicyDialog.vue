@@ -441,6 +441,7 @@ import {
   policyCatalogServiceClient,
   createGrpcMetadata,
   operator_pb,
+  policyAssignmentClient,
 } from "../api/grpc-client";
 import { notifySuccess, notifyError } from "@/utils/notify";
 import type { GPOPolicy } from "../types/gpo";
@@ -487,6 +488,12 @@ interface PolicyDetailsElement {
   presentation_type?: string;
 }
 
+interface PolicyDetail {
+  settings: Record<string, unknown>;
+  policy: GPOPolicy;
+  hash?: string;
+}
+
 const props = defineProps<{
   modelValue: boolean;
   agent: Agent | null;
@@ -515,7 +522,7 @@ const loadingPolicyDetails = ref(false);
 const policyDetailsElements = ref<PolicyDetailsElement[]>([]);
 const policySettingsValues = ref<Record<string, unknown>>({});
 const selectedPolicies = ref<Record<string, boolean>>({});
-const policyDetails = ref<Record<string, Record<string, unknown>>>({});
+const policyDetails = ref<Record<string, PolicyDetail>>({});
 const selectedUser = ref("");
 const applying = ref(false);
 
@@ -949,7 +956,12 @@ async function loadPolicyDetails(policy: GPOPolicy) {
     const policyInfo = (responseObj as { policy?: Record<string, unknown> })
       .policy;
     if (policyInfo && typeof policyInfo === "object") {
-      if (presentation && presentationMap.size > 0) {
+      const policyHash = (policyInfo.hash as string) || "";
+      if (policyHash && selectedPolicy.value) {
+        const policyId = selectedPolicy.value.id;
+        if (policyDetails.value[policyId]) {
+          policyDetails.value[policyId].hash = policyHash;
+        }
       }
     }
 
@@ -1070,6 +1082,18 @@ async function loadPolicyDetails(policy: GPOPolicy) {
           }
         }
       }
+
+      if (selectedPolicy.value) {
+        const policyId = selectedPolicy.value.id;
+        const policyInfo = (responseObj as { policy?: Record<string, unknown> })
+          .policy;
+        if (policyInfo && typeof policyInfo === "object") {
+          const policyHash = (policyInfo.hash as string) || "";
+          if (policyHash && policyDetails.value[policyId]) {
+            policyDetails.value[policyId].hash = policyHash;
+          }
+        }
+      }
     }
   } catch (error) {
     console.error(
@@ -1116,10 +1140,10 @@ function togglePolicySelection() {
     selectedPolicies.value[policyId] = false;
     delete policyDetails.value[policyId];
   } else {
-    selectedPolicies.value[policyId] = true;
-    policyDetails.value[policyId] = {
+    selectedPolicies.value[policyId] = {
       settings: { ...policySettingsValues.value },
       policy: selectedPolicy.value,
+      hash: "",
     };
   }
 }
@@ -1129,8 +1153,6 @@ async function applyPolicies() {
 
   applying.value = true;
   try {
-    // TODO: Реализовать вызов API AssignPolicy
-    // Пока используем заглушку
     const selectedPolicyIds = Object.keys(selectedPolicies.value).filter(
       (id) => selectedPolicies.value[id],
     );
@@ -1142,22 +1164,67 @@ async function applyPolicies() {
       policyDetails: policyDetails.value,
     });
 
-    // типа запроса
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const targetType = selectedUser.value ? "user" : "agent";
+    const targetParams = selectedUser.value
+      ? { agentId: props.agent.id, userSid: selectedUser.value }
+      : { agentId: props.agent.id };
+
+    const applyPromises = selectedPolicyIds.map(async (policyId) => {
+      const policyDetail = policyDetails.value[policyId];
+
+      if (!policyDetail) {
+        throw new Error(`Детали политики ${policyId} не найдены`);
+      }
+
+      const policyHash = policyDetail.hash;
+      if (!policyHash) {
+        throw new Error(
+          `Hash политики ${policyId} не найден. Загрузите детали политики перед применением.`,
+        );
+      }
+
+      const settings = policyDetail.settings || {};
+
+      console.log(
+        `[ApplyPolicyDialog] Применение политики ${policyId} (hash: ${policyHash})`,
+        {
+          targetType,
+          targetParams,
+          settings,
+        },
+      );
+
+      await policyAssignmentClient.assignPolicy(
+        policyHash,
+        targetType,
+        targetParams,
+        settings,
+      );
+    });
+
+    await Promise.all(applyPromises);
 
     const userName = selectedUser.value
       ? props.users.find((u) => u.sid === selectedUser.value)?.name
       : null;
     const userText = userName ? ` (пользователь: ${userName})` : "";
-    notifySuccess(
-      `Политики успешно применены для ${props.agent.hostname}${userText}`,
-    );
+    const policiesCount = selectedPolicyIds.length;
+    const policiesText =
+      policiesCount === 1
+        ? "Политика успешно применена"
+        : `${policiesCount} политик успешно применено`;
+
+    notifySuccess(`${policiesText} для ${props.agent.hostname}${userText}`);
 
     emit("applied");
     dialogVisible.value = false;
   } catch (error) {
     console.error("[ApplyPolicyDialog] Ошибка применения политик:", error);
-    notifyError("Ошибка применения политик");
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Неизвестная ошибка применения политик";
+    notifyError(`Ошибка применения политик: ${errorMessage}`);
   } finally {
     applying.value = false;
   }

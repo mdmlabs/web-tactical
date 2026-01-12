@@ -164,6 +164,10 @@ import { ref, computed, watch } from "vue";
 import { notifySuccess, notifyError } from "@/utils/notify";
 import { QTableColumn } from "quasar";
 import type { GPOPolicy } from "../types/gpo";
+import {
+  policyAssignmentClient,
+  policyCatalogClient,
+} from "../api/grpc-client";
 
 interface Agent {
   id: string;
@@ -175,6 +179,7 @@ interface AppliedPolicy extends GPOPolicy {
   appliedDate?: string;
   userId?: string;
   userName?: string;
+  policyHash?: string;
 }
 
 const props = defineProps<{
@@ -291,11 +296,45 @@ async function removePolicy(policy: AppliedPolicy) {
   if (!props.agent) return;
 
   try {
-    // TODO: Реализовать вызов API RemovePolicy
+    let policyHash = policy.policyHash;
+
+    if (!policyHash) {
+      const policyId = Number.parseInt(policy.id, 10);
+      if (Number.isNaN(policyId)) {
+        throw new TypeError(`Неверный ID политики: ${policy.id}`);
+      }
+
+      const policyDetails = await policyCatalogClient.getPolicyDetails(
+        policyId,
+        "ru-RU",
+      );
+      policyHash = (policyDetails.policy?.hash as string) || "";
+
+      if (!policyHash) {
+        throw new Error(
+          "Hash политики не найден. Не удалось получить детали политики.",
+        );
+      }
+    }
+
+    const targetType = policy.userId ? "user" : "agent";
+    const targetParams = policy.userId
+      ? { agentId: props.agent.id, userSid: policy.userId }
+      : { agentId: props.agent.id };
+
     console.log("[AppliedPoliciesDialog] Удаление применения политики:", {
       agentId: props.agent.id,
       policyId: policy.id,
+      policyHash,
+      targetType,
+      targetParams,
     });
+
+    await policyAssignmentClient.removePolicy(
+      policyHash,
+      targetType,
+      targetParams,
+    );
 
     appliedPolicies.value = appliedPolicies.value.filter(
       (p) => p.id !== policy.id,
@@ -307,7 +346,11 @@ async function removePolicy(policy: AppliedPolicy) {
       "[AppliedPoliciesDialog] Ошибка удаления применения политики:",
       error,
     );
-    notifyError("Ошибка удаления применения политики");
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Неизвестная ошибка удаления применения политики";
+    notifyError(`Ошибка удаления применения политики: ${errorMessage}`);
   }
 }
 </script>

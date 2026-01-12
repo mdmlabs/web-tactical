@@ -1855,6 +1855,7 @@
 
       <GPOPolicySettingsDialog
         v-model="showApplyPolicyDialog"
+        :agent="selectedAgent"
         @applied="onPolicySettingsApplied"
         @disabled="onPolicySettingsDisabled"
       />
@@ -1876,6 +1877,8 @@ import {
   userServiceClient,
   createGrpcMetadata,
   operator_pb,
+  policyAssignmentClient,
+  policyCatalogClient,
 } from "../api/grpc-client";
 import GPOPolicyForm from "../components/GPOPolicyForm.vue";
 import GPOPolicySettingsDialog from "../components/GPOPolicySettingsDialog.vue";
@@ -2488,7 +2491,6 @@ async function loadUsersForAgent(agentId: string) {
   usersList.value = [];
 
   try {
-    console.log("[GPO] Loading users for agent:", agentId);
     const metadata = createGrpcMetadata();
 
     if (!operator_pb.ListUsersForAgentRequest) {
@@ -2499,12 +2501,27 @@ async function loadUsersForAgent(agentId: string) {
 
     const request = new operator_pb.ListUsersForAgentRequest();
     request.setAgentId(agentId);
-    console.log("[GPO] Created ListUsersForAgentRequest:", request);
 
     const response = await userServiceClient.listUsersForAgent(
       request,
       metadata,
     );
+
+    type GroupInfo = {
+      name?: string;
+      displayName?: string;
+      displayname?: string;
+      distinguishedName?: string;
+      distinguishedname?: string;
+      samAccountName?: string;
+      samaccountname?: string;
+      UserPrincipalName?: string;
+      userprincipalname?: string;
+      description?: string;
+      structuralObjectClass?: string;
+      structuralobjectclass?: string;
+      sid?: string;
+    };
 
     let users: Array<{
       name?: string;
@@ -2516,7 +2533,8 @@ async function loadUsersForAgent(agentId: string) {
       isEnabled?: boolean;
       last_logon_unix?: number | string;
       lastLogonUnix?: number | string;
-      groups?: string[];
+      groups?: GroupInfo[] | string[];
+      groupsList?: GroupInfo[] | string[];
     }> = [];
 
     if (response && typeof response === "object") {
@@ -2533,7 +2551,7 @@ async function loadUsersForAgent(agentId: string) {
               getAccountType?: () => number;
               getIsEnabled?: () => boolean;
               getLastLogonUnix?: () => number | string;
-              getGroupsList?: () => string[];
+              getGroupsList?: () => GroupInfo[] | string[];
               toObject?: (options?: {
                 longs?: typeof String;
                 enums?: typeof String;
@@ -2549,7 +2567,8 @@ async function loadUsersForAgent(agentId: string) {
                 accountType?: number;
                 isEnabled?: boolean;
                 lastLogonUnix?: number | string;
-                groups?: string[];
+                groups?: GroupInfo[] | string[];
+                groupsList?: GroupInfo[] | string[];
               };
             }>;
           }
@@ -2557,21 +2576,85 @@ async function loadUsersForAgent(agentId: string) {
 
         users = usersList.map((user) => {
           if (user.toObject) {
-            return user.toObject({
+            const userObj = user.toObject({
               longs: String,
               enums: String,
               bytes: String,
               defaults: true,
+              arrays: true,
+              objects: true,
+              oneofs: true,
             });
+            if (
+              userObj.groups &&
+              Array.isArray(userObj.groups) &&
+              userObj.groups.length > 0
+            )
+              if (
+                (userObj as { groupsList?: unknown[] }).groupsList &&
+                Array.isArray(
+                  (userObj as { groupsList: unknown[] }).groupsList,
+                ) &&
+                (userObj as { groupsList: unknown[] }).groupsList.length > 0
+              ) {
+                // console.log(
+                //   "[GPO] First group from groupsList toObject:",
+                //   (userObj as { groupsList: unknown[] }).groupsList[0],
+                // );
+              }
+            return userObj;
           }
-          return {
+
+          let groups: GroupInfo[] | undefined;
+          const groupsList = user.getGroupsList?.();
+          if (groupsList && groupsList.length > 0) {
+            groups = groupsList.map(
+              (group: {
+                toObject?: (options?: {
+                  longs?: typeof String;
+                  enums?: typeof String;
+                  bytes?: typeof String;
+                  defaults?: boolean;
+                  arrays?: boolean;
+                  objects?: boolean;
+                  oneofs?: boolean;
+                }) => GroupInfo;
+                getName?: () => string;
+                getDisplayName?: () => string;
+                getSamAccountName?: () => string;
+              }) => {
+                if (group.toObject) {
+                  return group.toObject({
+                    longs: String,
+                    enums: String,
+                    bytes: String,
+                    defaults: true,
+                    arrays: true,
+                    objects: true,
+                    oneofs: true,
+                  }) as GroupInfo;
+                }
+
+                return {
+                  name: group.getName?.(),
+                  displayName: group.getDisplayName?.(),
+                  samAccountName: group.getSamAccountName?.(),
+                } as GroupInfo;
+              },
+            );
+          }
+
+          const userData = {
+            name: user.getName?.() || user.getUserName?.(),
             userName: user.getName?.() || user.getUserName?.(),
             sid: user.getSid?.(),
             accountType: user.getAccountType?.(),
             isEnabled: user.getIsEnabled?.(),
             lastLogonUnix: user.getLastLogonUnix?.(),
-            groups: user.getGroupsList?.(),
+            groups,
           };
+
+          return userData;
         });
       } else if (
         typeof (response as { toObject?: () => unknown }).toObject ===
@@ -2598,13 +2681,19 @@ async function loadUsersForAgent(agentId: string) {
           objects: true,
           oneofs: true,
         });
+
         users = (obj.users || []) as Array<{
+          name?: string;
           userName?: string;
           sid?: string;
           accountType?: number;
+          account_type?: number;
           isEnabled?: boolean;
+          is_enabled?: boolean;
           lastLogonUnix?: number | string;
-          groups?: string[];
+          last_logon_unix?: number | string;
+          groups?: GroupInfo[] | string[];
+          groupsList?: GroupInfo[] | string[];
         }>;
       } else if ((response as { users?: unknown[] }).users) {
         const responseUsers = (
@@ -2615,20 +2704,39 @@ async function loadUsersForAgent(agentId: string) {
               account_type?: number;
               is_enabled?: boolean;
               last_logon_unix?: number | string;
-              groups?: string[];
+              groups?: GroupInfo[] | string[];
+              groupsList?: GroupInfo[] | string[];
             }>;
           }
         ).users;
         if (responseUsers) {
-          users = responseUsers.map((user) => ({
-            userName: user.name,
-            sid: user.sid,
-            accountType: user.account_type,
-            isEnabled: user.is_enabled,
-            lastLogonUnix: user.last_logon_unix,
-            groups: user.groups,
-          }));
+          users = responseUsers.map((user) => {
+            const mapped = {
+              userName: user.name,
+              sid: user.sid,
+              accountType: user.account_type,
+              isEnabled: user.is_enabled,
+              lastLogonUnix: user.last_logon_unix,
+              groups: user.groups,
+            };
+
+            return mapped;
+          });
         }
+      } else if (Array.isArray(response)) {
+        users = response as Array<{
+          name?: string;
+          userName?: string;
+          sid?: string;
+          account_type?: number;
+          accountType?: number;
+          is_enabled?: boolean;
+          isEnabled?: boolean;
+          last_logon_unix?: number | string;
+          lastLogonUnix?: number | string;
+          groups?: GroupInfo[] | string[];
+          groupsList?: GroupInfo[] | string[];
+        }>;
       }
     }
 
@@ -2655,26 +2763,111 @@ async function loadUsersForAgent(agentId: string) {
           accountType = "System";
         }
 
+        let groupsData: GroupInfo[] | string[] | undefined;
+
+        if ((user as { groupsList?: unknown[] }).groupsList) {
+          const groupsList = (user as { groupsList: unknown[] }).groupsList;
+
+          if (Array.isArray(groupsList) && groupsList.length > 0) {
+            groupsData = groupsList.map((group: unknown) => {
+              const groupObj = group as {
+                toObject?: (options?: {
+                  longs?: typeof String;
+                  enums?: typeof String;
+                  bytes?: typeof String;
+                  defaults?: boolean;
+                  arrays?: boolean;
+                  objects?: boolean;
+                  oneofs?: boolean;
+                }) => GroupInfo;
+                name?: string;
+                displayname?: string;
+                samaccountname?: string;
+              };
+              if (groupObj && typeof groupObj === "object") {
+                if (
+                  groupObj.toObject &&
+                  typeof groupObj.toObject === "function"
+                ) {
+                  return groupObj.toObject({
+                    longs: String,
+                    enums: String,
+                    bytes: String,
+                    defaults: true,
+                    arrays: true,
+                    objects: true,
+                    oneofs: true,
+                  }) as GroupInfo;
+                }
+
+                return groupObj as GroupInfo;
+              }
+              return groupObj as GroupInfo;
+            });
+          }
+        } else if (user.groups && user.groups.length > 0) {
+          groupsData = user.groups;
+        }
+
+        let groupsString: string | undefined;
+        if (groupsData && groupsData.length > 0) {
+          if (typeof groupsData[0] === "string") {
+            groupsString = (groupsData as string[]).join(", ");
+          } else {
+            const groupNames = (groupsData as GroupInfo[])
+              .map((group) => {
+                const name =
+                  group.name ||
+                  (
+                    group as {
+                      name?: string;
+                      displayname?: string;
+                      samaccountname?: string;
+                    }
+                  ).displayname ||
+                  group.displayName ||
+                  (
+                    group as {
+                      name?: string;
+                      displayname?: string;
+                      samaccountname?: string;
+                    }
+                  ).samaccountname ||
+                  group.samAccountName ||
+                  "";
+
+                return name;
+              })
+              .filter((name) => name !== "");
+            groupsString = groupNames.join(", ");
+          }
+        } else {
+        }
+
+        let lastLogon: string | undefined;
+        if (lastLogonUnix !== undefined && lastLogonUnix !== null) {
+          let timestamp: number;
+          if (typeof lastLogonUnix === "string") {
+            timestamp = Number.parseInt(lastLogonUnix, 10);
+          } else {
+            timestamp = lastLogonUnix;
+          }
+          if (timestamp === 0 || Number.isNaN(timestamp)) {
+            lastLogon = "Никогда";
+          } else {
+            lastLogon = formatDate(new Date(timestamp * 1000).toISOString());
+          }
+        }
+
         return {
           name: userName,
           sid: user.sid || "",
           type: accountType,
-          lastLogon: (() => {
-            if (!lastLogonUnix) return undefined;
-            let timestamp: number;
-            if (typeof lastLogonUnix === "string") {
-              timestamp = Number.parseInt(lastLogonUnix, 10);
-            } else {
-              timestamp = lastLogonUnix;
-            }
-            return formatDate(new Date(timestamp * 1000).toISOString());
-          })(),
-          groups: user.groups?.join(", ") || undefined,
+          lastLogon,
+          groups: groupsString,
         };
       });
-      console.log("[GPO] ✅ Users loaded:", usersList.value.length);
     } else {
-      console.log("[GPO] No users found for agent");
     }
   } catch (error) {
     const errorMessage = (error as { message?: string })?.message || "";
@@ -2686,14 +2879,14 @@ async function loadUsersForAgent(agentId: string) {
       errorMessage.includes("deserializing");
 
     if (is404) {
-      console.log(
-        "[GPO] ⚠️ UserService endpoint not implemented yet, using empty list",
-      );
+      // console.log(
+      //   "[GPO] ⚠️ UserService endpoint not implemented yet, using empty list",
+      // );
     } else if (isRpcError) {
-      console.log(
-        "[GPO] ⚠️ UserService endpoint error (possibly not implemented), using empty list",
-        error,
-      );
+      // console.log(
+      //   "[GPO] ⚠️ UserService endpoint error (possibly not implemented), using empty list",
+      //   error,
+      // );
     } else {
       console.error("[GPO] Error loading users:", error);
     }
@@ -2793,7 +2986,31 @@ async function removePolicyAssignment(policy: GPOPolicy) {
     persistent: true,
   }).onOk(async () => {
     try {
-      // TODO: Реализовать удаление назначения через API
+      const policyId = Number.parseInt(policy.id, 10);
+      if (Number.isNaN(policyId)) {
+        throw new TypeError(`Неверный ID политики: ${policy.id}`);
+      }
+
+      const policyDetails = await policyCatalogClient.getPolicyDetails(
+        policyId,
+        "ru-RU",
+      );
+      const policyHash = (policyDetails.policy?.hash as string) || "";
+
+      if (!policyHash) {
+        throw new Error(
+          "Hash политики не найден. Не удалось получить детали политики.",
+        );
+      }
+
+      if (!selectedAgent.value) {
+        throw new Error("Агент не выбран");
+      }
+
+      await policyAssignmentClient.removePolicy(policyHash, "agent", {
+        agentId: selectedAgent.value.id,
+      });
+
       assignedPolicies.value = assignedPolicies.value.filter(
         (p) => p.id !== policy.id,
       );
@@ -2810,7 +3027,11 @@ async function removePolicyAssignment(policy: GPOPolicy) {
       notifySuccess("Назначение политики удалено");
     } catch (error) {
       console.error("[GPO] Error removing policy assignment:", error);
-      notifyError("Ошибка удаления назначения");
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Неизвестная ошибка удаления назначения";
+      notifyError(`Ошибка удаления назначения: ${errorMessage}`);
     }
   });
 }
@@ -3292,14 +3513,12 @@ const openAppliedPoliciesDialog = () => {
 
 function onPolicySettingsApplied(
   policyId: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   settings: Record<string, unknown>,
 ) {
-  console.log("[GPOManagerView] Политика применена:", {
-    policyId,
-    settings,
-  });
   if (selectedAgent.value) {
     loadAssignedPolicies(selectedAgent.value.id);
+
     addActionToHistory({
       title: "Применение политики",
       description: `Политика ${policyId} применена`,
@@ -3310,9 +3529,9 @@ function onPolicySettingsApplied(
 }
 
 function onPolicySettingsDisabled(policyId: string) {
-  console.log("[GPOManagerView] Политика отключена:", policyId);
   if (selectedAgent.value) {
     loadAssignedPolicies(selectedAgent.value.id);
+
     addActionToHistory({
       title: "Отключение политики",
       description: `Политика ${policyId} отключена`,
