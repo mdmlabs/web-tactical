@@ -7,14 +7,14 @@
   >
     <q-card class="applied-policies-dialog">
       <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6">Примененные политики</div>
+        <div class="text-h6">Applied Policies</div>
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
 
       <q-card-section>
         <div v-if="agent" class="text-subtitle2 q-mb-md">
-          Устройство: {{ agent.hostname }}
+          Device: {{ agent.hostname }}
         </div>
 
         <q-tabs
@@ -28,8 +28,8 @@
           narrow-indicator
           no-caps
         >
-          <q-tab name="all" icon="list" label="Все политики" />
-          <q-tab name="users" icon="people" label="По пользователям" />
+          <q-tab name="all" icon="list" label="All Policies" />
+          <q-tab name="users" icon="people" label="By Users" />
         </q-tabs>
 
         <q-separator />
@@ -38,7 +38,7 @@
           <q-tab-panel name="all" class="q-pa-none">
             <div v-if="loading" class="text-center q-pa-lg">
               <q-spinner color="primary" size="3em" />
-              <div class="q-mt-md">Загрузка примененных политик...</div>
+              <div class="q-mt-md">Loading applied policies...</div>
             </div>
 
             <div
@@ -46,9 +46,9 @@
               class="text-center q-pa-lg text-grey-6"
             >
               <q-icon name="info" size="3em" class="q-mb-md" />
-              <div>Нет примененных политик</div>
+              <div>No applied policies</div>
               <div class="text-caption q-mt-sm">
-                Примените политики через диалог "Применить политику"
+                Apply policies through the "Apply Policy" dialog
               </div>
             </div>
 
@@ -65,7 +65,7 @@
                   <q-td :props="props">
                     <q-badge
                       :color="props.value ? 'positive' : 'negative'"
-                      :label="props.value ? 'Включена' : 'Отключена'"
+                      :label="props.value ? 'Enabled' : 'Disabled'"
                     />
                   </q-td>
                 </template>
@@ -80,7 +80,7 @@
                       size="sm"
                       @click="removePolicy(props.row)"
                     >
-                      <q-tooltip>Удалить применение</q-tooltip>
+                      <q-tooltip>Remove application</q-tooltip>
                     </q-btn>
                   </q-td>
                 </template>
@@ -91,7 +91,7 @@
           <q-tab-panel name="users" class="q-pa-none">
             <div v-if="loading" class="text-center q-pa-lg">
               <q-spinner color="primary" size="3em" />
-              <div class="q-mt-md">Загрузка...</div>
+              <div class="q-mt-md">Loading...</div>
             </div>
 
             <div v-else>
@@ -99,7 +99,7 @@
                 v-for="(userPolicies, userId) in policiesByUser"
                 :key="userId"
                 :label="getUserName(userId)"
-                :caption="`${userPolicies.length} политик`"
+                :caption="`${userPolicies.length} policies`"
                 icon="person"
                 class="q-mb-sm"
               >
@@ -118,7 +118,7 @@
                         <q-item-section side>
                           <q-badge
                             :color="policy.enabled ? 'positive' : 'negative'"
-                            :label="policy.enabled ? 'Включена' : 'Отключена'"
+                            :label="policy.enabled ? 'Enabled' : 'Disabled'"
                           />
                         </q-item-section>
                       </q-item>
@@ -132,7 +132,7 @@
                 class="text-center q-pa-lg text-grey-6"
               >
                 <q-icon name="info" size="2em" />
-                <div class="q-mt-sm">Нет политик по пользователям</div>
+                <div class="q-mt-sm">No policies by users</div>
               </div>
             </div>
           </q-tab-panel>
@@ -142,13 +142,13 @@
       <q-card-actions align="right" class="q-pa-md">
         <q-btn
           flat
-          label="Закрыть"
+          label="Close"
           color="primary"
           @click="dialogVisible = false"
         />
         <q-btn
           flat
-          label="Обновить"
+          label="Refresh"
           color="primary"
           icon="refresh"
           @click="loadAppliedPolicies"
@@ -204,27 +204,27 @@ const policyColumns: QTableColumn[] = [
   {
     name: "name",
     required: true,
-    label: "Имя политики",
+    label: "Policy Name",
     align: "left",
     field: "displayName",
     sortable: true,
   },
   {
     name: "description",
-    label: "Описание",
+    label: "Description",
     align: "left",
     field: "description",
   },
   {
     name: "status",
-    label: "Статус",
+    label: "Status",
     align: "center",
     field: "enabled",
     sortable: true,
   },
   {
     name: "appliedDate",
-    label: "Дата применения",
+    label: "Applied Date",
     align: "left",
     field: "appliedDate",
     format: (val: string) =>
@@ -232,7 +232,7 @@ const policyColumns: QTableColumn[] = [
   },
   {
     name: "actions",
-    label: "Действия",
+    label: "Actions",
     align: "center",
     field: "actions",
   },
@@ -258,9 +258,9 @@ watch(dialogVisible, (newVal) => {
 
 function getUserName(userId: string): string {
   if (userId === "all") {
-    return "Все пользователи";
+    return "All Users";
   }
-  // TODO: Получить имя пользователя из списка пользователей
+  // TODO: Get user name from user list
   return userId;
 }
 
@@ -269,24 +269,24 @@ async function loadAppliedPolicies() {
 
   loading.value = true;
   try {
-    // TODO: реализовать вызов API GetEffectivePolicies или GetAssignments
-    // пока используем заглушку
-    // типа загрузки
+    // TODO: implement API call GetEffectivePolicies or GetAssignments
+    // using a stub for now
+    // type of loading
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    // заглушка данных
+    // data stub
     appliedPolicies.value = [];
 
     console.log(
-      "[AppliedPoliciesDialog] Загрузка примененных политик для агента:",
+      "[AppliedPoliciesDialog] Loading applied policies for agent:",
       props.agent.id,
     );
   } catch (error) {
     console.error(
-      "[AppliedPoliciesDialog] Ошибка загрузки примененных политик:",
+      "[AppliedPoliciesDialog] Error loading applied policies:",
       error,
     );
-    notifyError("Ошибка загрузки примененных политик");
+    notifyError("Error loading applied policies");
   } finally {
     loading.value = false;
   }
@@ -311,9 +311,7 @@ async function removePolicy(policy: AppliedPolicy) {
       policyHash = (policyDetails.policy?.hash as string) || "";
 
       if (!policyHash) {
-        throw new Error(
-          "Hash политики не найден. Не удалось получить детали политики.",
-        );
+        throw new Error("Policy hash not found. Failed to get policy details.");
       }
     }
 
@@ -332,7 +330,7 @@ async function removePolicy(policy: AppliedPolicy) {
       (p) => p.id !== policy.id,
     );
 
-    notifySuccess("Применение политики удалено");
+    notifySuccess("Policy application removed");
   } catch (error) {
     console.error(
       "[AppliedPoliciesDialog] Ошибка удаления применения политики:",
@@ -341,8 +339,8 @@ async function removePolicy(policy: AppliedPolicy) {
     const errorMessage =
       error instanceof Error
         ? error.message
-        : "Неизвестная ошибка удаления применения политики";
-    notifyError(`Ошибка удаления применения политики: ${errorMessage}`);
+        : "Unknown error removing policy application";
+    notifyError(`Error removing policy application: ${errorMessage}`);
   }
 }
 </script>

@@ -16,31 +16,31 @@
           <q-tab
             name="dashboard"
             icon="dashboard"
-            label="Дэшборд"
+            label="Dashboard"
             class="gpo-nav-tab"
           />
           <q-tab
             name="network"
             icon="router"
-            label="Сеть"
+            label="Network"
             class="gpo-nav-tab"
           />
           <q-tab
             name="library"
             icon="library_books"
-            label="Библиотека политик"
+            label="Policy Library"
             class="gpo-nav-tab"
           />
           <q-tab
             name="windows"
             icon="windows"
-            label="Политики Windows"
+            label="Windows Policies"
             class="gpo-nav-tab"
           />
           <q-tab
             name="devices"
             icon="devices"
-            label="Политики по устройствам"
+            label="Device Policies"
             class="gpo-nav-tab"
           />
         </q-tabs>
@@ -92,7 +92,7 @@
                       flat
                       dense
                       icon="arrow_back"
-                      label="Назад к дашборду"
+                      label="Back to the dashboard"
                       color="primary"
                       @click="clearAgentSelection"
                     />
@@ -118,7 +118,7 @@
                             </div>
                           </div>
                           <div class="col-4">
-                            <div class="text-caption text-grey-7">Статус</div>
+                            <div class="text-caption text-grey-7">Status</div>
                             <q-badge
                               :color="
                                 getAgentStatusColor(
@@ -142,7 +142,7 @@
                           </div>
                           <div class="col-4">
                             <div class="text-caption text-grey-7">
-                              Последний ответ
+                              Last answer
                             </div>
                             <div>
                               {{
@@ -167,7 +167,7 @@
                         <div class="row q-gutter-md q-mt-md">
                           <div class="col-4">
                             <div class="text-caption text-grey-7">
-                              Операционная система
+                              Operating system
                             </div>
                             <div>
                               {{
@@ -180,14 +180,14 @@
                             </div>
                           </div>
                           <div class="col-4">
-                            <div class="text-caption text-grey-7">Модель</div>
+                            <div class="text-caption text-grey-7">Model</div>
                             <div>
                               {{ agentDetails?.nodeInfo?.model || "N/A" }}
                             </div>
                           </div>
                           <div class="col-4">
                             <div class="text-caption text-grey-7">
-                              Версия прошивки
+                              Firmware version
                             </div>
                             <div>
                               {{
@@ -200,7 +200,9 @@
                         </div>
                         <div class="row q-gutter-md q-mt-md">
                           <div class="col-4">
-                            <div class="text-caption text-grey-7">В домене</div>
+                            <div class="text-caption text-grey-7">
+                              In the domain
+                            </div>
                             <div>
                               {{
                                 (
@@ -212,8 +214,8 @@
                                       ? agentDetails.nodeInfo.is_domain_joined
                                       : false
                                 )
-                                  ? "Да"
-                                  : "Нет"
+                                  ? "Yes"
+                                  : "No"
                               }}
                             </div>
                           </div>
@@ -223,14 +225,14 @@
                         <q-btn
                           color="primary"
                           icon="policy"
-                          label="Применить политику"
+                          label="Apply Policy"
                           @click="openApplyPolicyDialog"
                           :loading="actionLoading"
                         />
                         <q-btn
                           color="secondary"
                           icon="visibility"
-                          label="Примененные политики"
+                          label="Applied policies"
                           @click="openAppliedPoliciesDialog"
                         />
                       </q-card-actions>
@@ -240,7 +242,7 @@
 
                 <q-tab-panel name="system" class="q-pa-md">
                   <div v-if="selectedAgent">
-                    <div class="text-h6 q-mb-md">Системная информация</div>
+                    <div class="text-h6 q-mb-md">System information</div>
                     <q-card v-if="agentDetails?.nodeInfo">
                       <q-card-section>
                         <q-scroll-area style="height: 600px">
@@ -258,9 +260,7 @@
                             </q-item>
                             <q-item>
                               <q-item-section>
-                                <q-item-label
-                                  >Операционная система</q-item-label
-                                >
+                                <q-item-label>Operating system</q-item-label>
                                 <q-item-label caption>{{
                                   agentDetails.nodeInfo.systemInfo?.osVersion ||
                                   agentDetails.nodeInfo.systemInfo
@@ -291,7 +291,7 @@
                             </q-item>
                             <q-item>
                               <q-item-section>
-                                <q-item-label>Материнская плата</q-item-label>
+                                <q-item-label>Motherboard</q-item-label>
                                 <q-item-label caption>{{
                                   agentDetails.nodeInfo.systemInfo
                                     ?.motherboard || "N/A"
@@ -305,7 +305,7 @@
                               "
                             >
                               <q-item-section>
-                                <q-item-label>Диски</q-item-label>
+                                <q-item-label>Disks</q-item-label>
                                 <q-item-label caption>
                                   <div
                                     v-for="(disk, index) in agentDetails
@@ -346,7 +346,7 @@
                               "
                             >
                               <q-item-section>
-                                <q-item-label>IP адреса</q-item-label>
+                                <q-item-label>IP address</q-item-label>
                                 <q-item-label caption>
                                   <div
                                     v-for="(ip, index) in agentDetails.nodeInfo
@@ -373,7 +373,7 @@
                               "
                             >
                               <q-item-section>
-                                <q-item-label>MAC адреса</q-item-label>
+                                <q-item-label>MAC adress</q-item-label>
                                 <q-item-label caption>
                                   <div
                                     v-for="(mac, index) in agentDetails.nodeInfo
@@ -384,7 +384,7 @@
                                     :key="index"
                                     class="q-mb-xs"
                                   >
-                                    {{ mac || "(пусто)" }}
+                                    {{ mac || "(empty)" }}
                                   </div>
                                 </q-item-label>
                               </q-item-section>
@@ -392,7 +392,7 @@
                             <q-separator />
                             <q-item>
                               <q-item-section>
-                                <q-item-label>Производитель</q-item-label>
+                                <q-item-label>Manufacturer</q-item-label>
                                 <q-item-label caption>{{
                                   agentDetails.nodeInfo.manufacturer || "N/A"
                                 }}</q-item-label>
@@ -400,7 +400,7 @@
                             </q-item>
                             <q-item>
                               <q-item-section>
-                                <q-item-label>Модель</q-item-label>
+                                <q-item-label>Model</q-item-label>
                                 <q-item-label caption>{{
                                   agentDetails.nodeInfo.model || "N/A"
                                 }}</q-item-label>
@@ -408,7 +408,7 @@
                             </q-item>
                             <q-item>
                               <q-item-section>
-                                <q-item-label>Версия прошивки</q-item-label>
+                                <q-item-label>Firmware version</q-item-label>
                                 <q-item-label caption>{{
                                   agentDetails.nodeInfo.firmwareVersion ||
                                   agentDetails.nodeInfo.firmware_version ||
@@ -418,7 +418,7 @@
                             </q-item>
                             <q-item>
                               <q-item-section>
-                                <q-item-label>Сборка ОС</q-item-label>
+                                <q-item-label>Assembling ОС</q-item-label>
                                 <q-item-label caption>{{
                                   agentDetails.nodeInfo.osBuild ||
                                   agentDetails.nodeInfo.os_build ||
@@ -428,7 +428,7 @@
                             </q-item>
                             <q-item>
                               <q-item-section>
-                                <q-item-label>Часовой пояс</q-item-label>
+                                <q-item-label>Time zone</q-item-label>
                                 <q-item-label caption>{{
                                   agentDetails.nodeInfo.timeZone ||
                                   agentDetails.nodeInfo.time_zone ||
@@ -438,7 +438,7 @@
                             </q-item>
                             <q-item>
                               <q-item-section>
-                                <q-item-label>В домене</q-item-label>
+                                <q-item-label>In the domain</q-item-label>
                                 <q-item-label caption>{{
                                   (
                                     agentDetails.nodeInfo.isDomainJoined !==
@@ -449,14 +449,14 @@
                                         ? agentDetails.nodeInfo.is_domain_joined
                                         : false
                                   )
-                                    ? "Да"
-                                    : "Нет"
+                                    ? "Yes"
+                                    : "No"
                                 }}</q-item-label>
                               </q-item-section>
                             </q-item>
                             <q-item>
                               <q-item-section>
-                                <q-item-label>Статус антивируса</q-item-label>
+                                <q-item-label>Antivirus status</q-item-label>
                                 <q-item-label caption>{{
                                   agentDetails.nodeInfo.antivirusStatus ||
                                   agentDetails.nodeInfo.antivirus_status ||
@@ -466,7 +466,7 @@
                             </q-item>
                             <q-item>
                               <q-item-section>
-                                <q-item-label>Онлайн статус</q-item-label>
+                                <q-item-label>Online status</q-item-label>
                                 <q-item-label caption>{{
                                   (
                                     agentDetails.nodeInfo.isOnline !== undefined
@@ -476,14 +476,14 @@
                                         ? agentDetails.nodeInfo.is_online
                                         : false
                                   )
-                                    ? "Онлайн"
-                                    : "Офлайн"
+                                    ? "Online"
+                                    : "Offline"
                                 }}</q-item-label>
                               </q-item-section>
                             </q-item>
                             <q-item>
                               <q-item-section>
-                                <q-item-label>Последняя загрузка</q-item-label>
+                                <q-item-label>Last download</q-item-label>
                                 <q-item-label caption>{{
                                   agentDetails.nodeInfo?.lastBootTimeUnix ||
                                   agentDetails.nodeInfo?.last_boot_time_unix
@@ -515,7 +515,7 @@
                     <q-card v-else>
                       <q-card-section>
                         <div class="text-center text-grey-6">
-                          Загрузка системной информации...
+                          Loading system information...
                         </div>
                       </q-card-section>
                     </q-card>
@@ -524,7 +524,7 @@
 
                 <q-tab-panel name="users" class="q-pa-md">
                   <div v-if="selectedAgent">
-                    <div class="text-h6 q-mb-md">Пользователи</div>
+                    <div class="text-h6 q-mb-md">Users</div>
                     <q-table
                       :rows="usersList"
                       :columns="usersColumns"
@@ -541,6 +541,20 @@
                             "
                             :label="props.value"
                           />
+                        </q-td>
+                      </template>
+                      <template v-slot:body-cell-actions="props">
+                        <q-td :props="props">
+                          <q-btn
+                            flat
+                            dense
+                            round
+                            icon="policy"
+                            color="primary"
+                            @click="openApplyPolicyDialogForUser(props.row)"
+                          >
+                            <q-tooltip>Assign a policy</q-tooltip>
+                          </q-btn>
                         </q-td>
                       </template>
                     </q-table>
@@ -566,29 +580,25 @@
                   narrow-indicator
                   no-caps
                 >
-                  <q-tab name="status" icon="info" label="Общий статус" />
-                  <q-tab name="events" icon="event" label="Последние события" />
-                  <q-tab
-                    name="agents"
-                    icon="computer"
-                    label="Активные агенты"
-                  />
-                  <q-tab name="errors" icon="error" label="Ошибки политик" />
-                  <q-tab name="overview" icon="visibility" label="Обзор" />
-                  <q-tab name="metrics" icon="bar_chart" label="Метрики" />
+                  <q-tab name="status" icon="info" label="General status" />
+                  <q-tab name="events" icon="event" label="Recent events" />
+                  <q-tab name="agents" icon="computer" label="Active agents" />
+                  <q-tab name="errors" icon="error" label="Policy errors" />
+                  <q-tab name="overview" icon="visibility" label="Review" />
+                  <q-tab name="metrics" icon="bar_chart" label="Metrics" />
                 </q-tabs>
                 <q-separator />
               </div>
 
               <q-tab-panels v-model="subTab" class="gpo-content-panels">
                 <q-tab-panel name="status" class="q-pa-md">
-                  <div class="text-h6 q-mb-md">Общий статус</div>
+                  <div class="text-h6 q-mb-md">General status</div>
                   <div class="row q-gutter-md">
                     <q-card class="col-4">
                       <q-card-section>
                         <div class="text-h6">{{ agentsList.length }}</div>
                         <div class="text-caption text-grey-7">
-                          Всего устройств
+                          Total devices
                         </div>
                       </q-card-section>
                     </q-card>
@@ -600,7 +610,7 @@
                               .length
                           }}
                         </div>
-                        <div class="text-caption text-grey-7">Онлайн</div>
+                        <div class="text-caption text-grey-7">Online</div>
                       </q-card-section>
                     </q-card>
                     <q-card class="col-4">
@@ -611,28 +621,28 @@
                               .length
                           }}
                         </div>
-                        <div class="text-caption text-grey-7">Просрочено</div>
+                        <div class="text-caption text-grey-7">Overdue</div>
                       </q-card-section>
                     </q-card>
                   </div>
                   <q-card class="q-mt-md">
                     <q-card-section>
                       <div class="text-subtitle1 q-mb-md">
-                        Статистика по устройствам
+                        Device statistics
                       </div>
                       <q-list>
                         <q-item>
                           <q-item-section>
-                            <q-item-label>Всего политик</q-item-label>
+                            <q-item-label>Total policy</q-item-label>
                             <q-item-label caption>
-                              {{ policiesStore.policies.value.length }} политик
+                              {{ policiesStore.policies.value.length }} policy
                             </q-item-label>
                           </q-item-section>
                         </q-item>
                         <q-item>
                           <q-item-section>
-                            <q-item-label>Активных назначений</q-item-label>
-                            <q-item-label caption>Загрузка...</q-item-label>
+                            <q-item-label>Active appointments</q-item-label>
+                            <q-item-label caption>Loading...</q-item-label>
                           </q-item-section>
                         </q-item>
                       </q-list>
@@ -641,7 +651,7 @@
                 </q-tab-panel>
 
                 <q-tab-panel name="events" class="q-pa-md">
-                  <div class="text-h6 q-mb-md">Последние события</div>
+                  <div class="text-h6 q-mb-md">Recent events</div>
                   <q-card>
                     <q-card-section>
                       <q-timeline color="primary">
@@ -657,12 +667,12 @@
                         </q-timeline-entry>
                         <q-timeline-entry
                           v-if="recentEvents.length === 0"
-                          title="Нет событий"
-                          subtitle="События появятся здесь"
+                          title="No events"
+                          subtitle="No events"
                           icon="info"
                         >
                           <div>
-                            События будут отображаться здесь после их появления
+                            Events will be displayed here after they appear.
                           </div>
                         </q-timeline-entry>
                       </q-timeline>
@@ -671,7 +681,7 @@
                 </q-tab-panel>
 
                 <q-tab-panel name="agents" class="q-pa-md">
-                  <div class="text-h6 q-mb-md">Активные агенты</div>
+                  <div class="text-h6 q-mb-md">Active agents</div>
                   <q-table
                     :rows="agentsList"
                     :columns="agentTableColumns"
@@ -697,7 +707,7 @@
                 </q-tab-panel>
 
                 <q-tab-panel name="errors" class="q-pa-md">
-                  <div class="text-h6 q-mb-md">Ошибки политик</div>
+                  <div class="text-h6 q-mb-md">Policy errors</div>
                   <q-card>
                     <q-card-section>
                       <div class="text-center q-pa-lg text-grey-6">
@@ -706,9 +716,9 @@
                           size="3em"
                           class="q-mb-md"
                         />
-                        <div>Ошибок не обнаружено</div>
+                        <div>No errors were found</div>
                         <div class="text-caption q-mt-sm">
-                          Все политики применяются корректно
+                          All policies are applied correctly
                         </div>
                       </div>
                     </q-card-section>
@@ -716,42 +726,42 @@
                 </q-tab-panel>
 
                 <q-tab-panel name="overview" class="q-pa-md">
-                  <div class="text-h6 q-mb-md">Обзор</div>
+                  <div class="text-h6 q-mb-md">Review</div>
                   <div class="row q-gutter-md">
                     <q-card class="col-6">
                       <q-card-section>
-                        <div class="text-subtitle1 q-mb-sm">Устройства</div>
+                        <div class="text-subtitle1 q-mb-sm">Devices</div>
                         <div class="text-h4">{{ agentsList.length }}</div>
                         <div class="text-caption text-grey-7">
-                          Всего устройств в системе
+                          Total devices in the system
                         </div>
                       </q-card-section>
                     </q-card>
                     <q-card class="col-6">
                       <q-card-section>
-                        <div class="text-subtitle1 q-mb-sm">Политики</div>
+                        <div class="text-subtitle1 q-mb-sm">Policies</div>
                         <div class="text-h4">
                           {{ policiesStore.policies.value.length }}
                         </div>
                         <div class="text-caption text-grey-7">
-                          Доступных политик
+                          Available policies
                         </div>
                       </q-card-section>
                     </q-card>
                   </div>
                   <q-card class="q-mt-md">
                     <q-card-section>
-                      <div class="text-subtitle1 q-mb-md">Быстрый доступ</div>
+                      <div class="text-subtitle1 q-mb-md">Quick access</div>
                       <div class="row q-gutter-sm">
                         <q-btn
                           color="primary"
-                          label="Библиотека политик"
+                          label="Policy Library"
                           icon="library_books"
                           @click="mainTab = 'library'"
                         />
                         <q-btn
                           color="secondary"
-                          label="Политики Windows"
+                          label="Windows Policies"
                           icon="windows"
                           @click="mainTab = 'windows'"
                         />
@@ -761,33 +771,35 @@
                 </q-tab-panel>
 
                 <q-tab-panel name="metrics" class="q-pa-md">
-                  <div class="text-h6 q-mb-md">Метрики</div>
+                  <div class="text-h6 q-mb-md">Metrics</div>
                   <div class="row q-gutter-md">
                     <q-card class="col-12">
                       <q-card-section>
                         <div class="text-subtitle1 q-mb-md">
-                          Статистика применения политик
+                          Policy application statistics
                         </div>
                         <q-list>
                           <q-item>
                             <q-item-section>
-                              <q-item-label>Политик применено</q-item-label>
+                              <q-item-label>Policy applied</q-item-label>
                               <q-item-label caption
-                                >Загрузка данных...</q-item-label
+                                >Uploading data...</q-item-label
                               >
                             </q-item-section>
                           </q-item>
                           <q-item>
                             <q-item-section>
-                              <q-item-label>Успешных применений</q-item-label>
+                              <q-item-label
+                                >Successful applications</q-item-label
+                              >
                               <q-item-label caption
-                                >Загрузка данных...</q-item-label
+                                >Uploading data...</q-item-label
                               >
                             </q-item-section>
                           </q-item>
                           <q-item>
                             <q-item-section>
-                              <q-item-label>Ошибок применения</q-item-label>
+                              <q-item-label>Application errors</q-item-label>
                               <q-item-label caption>0</q-item-label>
                             </q-item-section>
                           </q-item>
@@ -816,9 +828,9 @@
                   narrow-indicator
                   no-caps
                 >
-                  <q-tab name="agents" icon="computer" label="Агенты" />
-                  <q-tab name="management" icon="settings" label="Управление" />
-                  <q-tab name="network" icon="router" label="Сеть" />
+                  <q-tab name="agents" icon="computer" label="Agents" />
+                  <q-tab name="management" icon="settings" label="Management" />
+                  <q-tab name="network" icon="router" label="Network" />
                 </q-tabs>
                 <q-separator />
               </div>
@@ -827,16 +839,16 @@
                 <q-tab-panel name="agents" class="q-pa-md">
                   <div class="row q-mb-md items-center">
                     <div class="col-auto">
-                      <div class="text-h6">Агенты</div>
+                      <div class="text-h6">Agents</div>
                     </div>
                     <q-space />
                     <div class="col-auto">
                       <q-btn-toggle
                         v-model="networkStatusFilter"
                         :options="[
-                          { label: 'Все', value: 'all' },
-                          { label: 'Онлайн', value: 'online' },
-                          { label: 'Офлайн', value: 'offline' },
+                          { label: 'All', value: 'all' },
+                          { label: 'Online', value: 'online' },
+                          { label: 'Offline', value: 'offline' },
                         ]"
                         color="primary"
                         dense
@@ -869,7 +881,7 @@
                 </q-tab-panel>
 
                 <q-tab-panel name="management" class="q-pa-md">
-                  <div class="text-h6 q-mb-md">Управление</div>
+                  <div class="text-h6 q-mb-md">Management</div>
                   <div v-if="selectedAgent" class="q-mb-md">
                     <q-card>
                       <q-card-section>
@@ -879,7 +891,7 @@
                         <div class="row q-gutter-md">
                           <div class="col-4">
                             <div class="text-caption text-grey-7">
-                              Общий статус
+                              General status
                             </div>
                             <q-badge
                               :color="getAgentStatusColor(selectedAgent.status)"
@@ -889,7 +901,7 @@
                           </div>
                           <div class="col-4">
                             <div class="text-caption text-grey-7">
-                              Последний ответ
+                              Last answer
                             </div>
                             <div class="q-mt-xs">
                               {{ formatDate(selectedAgent.last_seen) }}
@@ -907,21 +919,21 @@
                         <q-btn
                           color="primary"
                           icon="refresh"
-                          label="Перезагрузить"
+                          label="Reboot"
                           @click="handleReboot"
                           :loading="actionLoading"
                         />
                         <q-btn
                           color="warning"
                           icon="power_settings_new"
-                          label="Выключить"
+                          label="Disable"
                           @click="handleShutdown"
                           :loading="actionLoading"
                         />
                         <q-btn
                           color="negative"
                           icon="delete"
-                          label="Удалить"
+                          label="Delete"
                           @click="handleDelete"
                           :loading="actionLoading"
                         />
@@ -935,18 +947,18 @@
                       class="q-mb-md text-grey-7"
                     />
                     <div class="text-grey-7">
-                      Выберите агента из списка для управления
+                      Select an agent from the list to manage
                     </div>
                   </div>
                 </q-tab-panel>
 
                 <q-tab-panel name="network" class="q-pa-md">
-                  <div class="text-h6 q-mb-md">Сеть</div>
+                  <div class="text-h6 q-mb-md">Network</div>
                   <div v-if="selectedAgent">
                     <q-card class="q-mb-md">
                       <q-card-section>
                         <div class="text-subtitle1 q-mb-md">
-                          IP-конфигурация
+                          IP-configuration
                         </div>
                         <q-list>
                           <q-item>
@@ -982,7 +994,7 @@
                             <q-btn
                               color="primary"
                               icon="network_check"
-                              label="Выполнить Ping"
+                              label="perform Ping"
                               @click="handlePing"
                               :loading="pingLoading"
                             />
@@ -996,8 +1008,8 @@
                               "
                               :label="
                                 pingResult.status === 'online'
-                                  ? 'Онлайн'
-                                  : 'Офлайн'
+                                  ? 'Online'
+                                  : 'Offline'
                               "
                             />
                             <div
@@ -1018,7 +1030,7 @@
                       class="q-mb-md text-grey-7"
                     />
                     <div class="text-grey-7">
-                      Выберите агента из списка для просмотра сетевой информации
+                      Select an agent from the list to view network information.
                     </div>
                   </div>
                 </q-tab-panel>
@@ -1045,9 +1057,9 @@
                   <q-tab
                     name="assignment"
                     icon="assignment"
-                    label="Назначение"
+                    label="Appointment"
                   />
-                  <q-tab name="history" icon="history" label="История" />
+                  <q-tab name="history" icon="history" label="History" />
                 </q-tabs>
                 <q-separator />
               </div>
@@ -1056,12 +1068,12 @@
                 <q-tab-panel name="assignment" class="q-pa-md">
                   <div v-if="selectedAgent">
                     <div class="text-h6 q-mb-md">
-                      Назначение политик для {{ selectedAgent.hostname }}
+                      Assigning policies for {{ selectedAgent.hostname }}
                     </div>
                     <q-card>
                       <q-card-section>
                         <div class="text-subtitle2 q-mb-md">
-                          Доступные политики
+                          Available policies
                         </div>
                         <q-scroll-area class="policy-assignment-scroll-area">
                           <q-table
@@ -1079,7 +1091,7 @@
                             <template v-slot:top>
                               <q-input
                                 v-model="policyFilter"
-                                placeholder="Поиск политик..."
+                                placeholder="Policy search..."
                                 dense
                                 outlined
                                 class="col-4"
@@ -1092,7 +1104,7 @@
                               <q-btn
                                 color="primary"
                                 icon="add"
-                                label="Назначить выбранные"
+                                label="Assign selected "
                                 :disable="
                                   selectedPoliciesForAssignment.length === 0
                                 "
@@ -1107,7 +1119,7 @@
                     <q-card class="q-mt-md">
                       <q-card-section>
                         <div class="text-subtitle2 q-mb-md">
-                          Назначенные политики
+                          Assigned policies
                         </div>
                         <q-scroll-area class="policy-assignment-scroll-area">
                           <q-table
@@ -1129,7 +1141,7 @@
                                   size="sm"
                                   @click="removePolicyAssignment(props.row)"
                                 >
-                                  <q-tooltip>Удалить назначение</q-tooltip>
+                                  <q-tooltip>Delete an appointment</q-tooltip>
                                 </q-btn>
                               </q-td>
                             </template>
@@ -1145,7 +1157,7 @@
                       class="q-mb-md text-grey-7"
                     />
                     <div class="text-grey-7">
-                      Выберите устройство для назначения политик
+                      Select the device to assign policies to
                     </div>
                   </div>
                 </q-tab-panel>
@@ -1153,7 +1165,7 @@
                 <q-tab-panel name="history" class="q-pa-md">
                   <div v-if="selectedAgent">
                     <div class="text-h6 q-mb-md">
-                      История действий для {{ selectedAgent.hostname }}
+                      History of actions for {{ selectedAgent.hostname }}
                     </div>
                     <q-card>
                       <q-card-section>
@@ -1161,7 +1173,7 @@
                           <q-btn
                             color="primary"
                             icon="refresh"
-                            label="Применить повторно"
+                            label="Apply again"
                             @click="reapplyPolicies"
                             :loading="actionLoading"
                             :disable="!selectedAgent"
@@ -1169,7 +1181,7 @@
                           <q-btn
                             color="warning"
                             icon="undo"
-                            label="Откатить"
+                            label="Roll back"
                             @click="rollbackPolicies"
                             :loading="actionLoading"
                             :disable="!selectedAgent"
@@ -1177,7 +1189,7 @@
                           <q-btn
                             color="secondary"
                             icon="sync"
-                            label="Синхронизировать"
+                            label="Synchronize"
                             @click="synchronizePolicies"
                             :loading="actionLoading"
                             :disable="!selectedAgent"
@@ -1188,7 +1200,7 @@
                     <q-card class="q-mt-md">
                       <q-card-section>
                         <div class="text-subtitle2 q-mb-md">
-                          История действий
+                          History of actions
                         </div>
                         <q-timeline color="primary">
                           <q-timeline-entry
@@ -1203,11 +1215,11 @@
                           </q-timeline-entry>
                           <q-timeline-entry
                             v-if="deviceActionHistory.length === 0"
-                            title="Нет действий"
-                            subtitle="История действий пуста"
+                            title="No action"
+                            subtitle="The action history is empty"
                             icon="info"
                           >
-                            <div>История действий будет отображаться здесь</div>
+                            <div>The action history will be displayed here</div>
                           </q-timeline-entry>
                         </q-timeline>
                       </q-card-section>
@@ -1220,7 +1232,7 @@
                       class="q-mb-md text-grey-7"
                     />
                     <div class="text-grey-7">
-                      Выберите устройство для просмотра истории действий
+                      Select a device to view the activity history.
                     </div>
                   </div>
                 </q-tab-panel>
@@ -1244,155 +1256,625 @@
                   narrow-indicator
                   no-caps
                 >
-                  <q-tab name="security" icon="security" label="Безопасность" />
-                  <q-tab name="system" icon="computer" label="Система" />
+                  <q-tab
+                    v-for="group in admxGroups"
+                    :key="group.group"
+                    :name="`admx-${group.group}`"
+                    :icon="getAdmxGroupIcon(group.group)"
+                    :label="group.ui_name"
+                  />
                 </q-tabs>
                 <q-separator />
               </div>
 
               <q-tab-panels v-model="windowsTab" class="gpo-content-panels">
-                <q-tab-panel name="security" class="q-pa-md">
-                  <div class="gpo-content-header q-mb-md">
-                    <q-tabs
-                      v-model="securitySubTab"
-                      dense
-                      inline-label
-                      class="text-grey"
-                      active-color="primary"
-                      indicator-color="primary"
-                      align="left"
-                      narrow-indicator
-                      no-caps
-                    >
-                      <q-tab name="passwords" icon="lock" label="Пароли" />
-                      <q-tab
-                        name="bitlocker"
-                        icon="vpn_key"
-                        label="BitLocker"
-                      />
-                      <q-tab name="firewall" icon="security" label="Firewall" />
-                    </q-tabs>
-                    <q-separator />
-                  </div>
+                <q-tab-panel
+                  v-for="group in admxGroups"
+                  :key="`admx-${group.group}`"
+                  :name="`admx-${group.group}`"
+                  class="q-pa-none admx-tab-panel"
+                >
+                  <q-scroll-area class="admx-scroll-area">
+                    <div class="q-pa-md">
+                      <div class="text-h6 q-mb-md">{{ group.ui_name }}</div>
+                      <div class="text-caption text-grey-7 q-mb-md">
+                        {{ group.description }}
+                      </div>
 
-                  <q-tab-panels
-                    v-model="securitySubTab"
-                    class="gpo-windows-sub-panels"
-                  >
-                    <q-tab-panel name="passwords" class="q-pa-md">
-                      <div class="text-h6 q-mb-md">Политики паролей</div>
-                      <q-card>
-                        <q-card-section>
-                          <div class="text-center q-pa-lg text-grey-6">
-                            <q-icon name="lock" size="3em" class="q-mb-md" />
-                            <div>Настройки политик паролей</div>
-                            <div class="text-caption q-mt-sm">
-                              Здесь будут отображаться настройки политик паролей
+                      <div v-if="admxLoading" class="text-center q-pa-lg">
+                        <q-spinner color="primary" size="3em" />
+                        <div class="q-mt-md">Uploading policies...</div>
+                      </div>
+
+                      <div v-else>
+                        <div
+                          class="row q-col-gutter-md"
+                          style="height: calc(100vh - 300px)"
+                        >
+                          <div
+                            :class="
+                              selectedAdmxFile &&
+                              selectedAdmxFileGroup === group.group
+                                ? 'col-3'
+                                : 'col-12'
+                            "
+                          >
+                            <q-card flat bordered class="full-height">
+                              <q-card-section>
+                                <div class="text-subtitle2 q-mb-md">
+                                  ADMX file
+                                </div>
+                                <q-scroll-area
+                                  :style="
+                                    selectedAdmxFile &&
+                                    selectedAdmxFileGroup === group.group
+                                      ? 'height: calc(100vh - 400px)'
+                                      : 'height: calc(100vh - 200px)'
+                                  "
+                                >
+                                  <div class="q-gutter-sm">
+                                    <q-card
+                                      v-for="admxFile in group.admx_files"
+                                      :key="admxFile.file"
+                                      class="cursor-pointer"
+                                      @click="
+                                        onAdmxFileClick(
+                                          admxFile.file,
+                                          group.group,
+                                        )
+                                      "
+                                      :class="{
+                                        'bg-primary text-white':
+                                          selectedAdmxFile === admxFile.file,
+                                      }"
+                                    >
+                                      <q-card-section>
+                                        <div class="text-subtitle2 q-mb-xs">
+                                          {{ admxFile.ui_name }}
+                                        </div>
+                                        <div
+                                          class="text-caption"
+                                          :class="{
+                                            'text-grey-3':
+                                              selectedAdmxFile ===
+                                              admxFile.file,
+                                            'text-grey-7':
+                                              selectedAdmxFile !==
+                                              admxFile.file,
+                                          }"
+                                        >
+                                          {{ admxFile.description }}
+                                        </div>
+                                      </q-card-section>
+                                    </q-card>
+                                  </div>
+                                </q-scroll-area>
+                              </q-card-section>
+                            </q-card>
+                          </div>
+
+                          <div
+                            v-if="
+                              selectedAdmxFile &&
+                              selectedAdmxFileGroup === group.group
+                            "
+                            class="col-9"
+                          >
+                            <div
+                              v-if="loadingAdmxPolicies"
+                              class="text-center q-pa-lg"
+                            >
+                              <q-spinner color="primary" size="2em" />
+                              <div class="q-mt-sm">Uploading policies...</div>
+                            </div>
+
+                            <div
+                              v-else-if="admxPoliciesError"
+                              class="text-center q-pa-lg text-negative"
+                            >
+                              <q-icon name="error" size="2em" />
+                              <div class="q-mt-sm">{{ admxPoliciesError }}</div>
+                              <q-btn
+                                flat
+                                dense
+                                color="primary"
+                                label="Repeat"
+                                @click="loadPoliciesByAdmx(selectedAdmxFile)"
+                                class="q-mt-sm"
+                              />
+                            </div>
+
+                            <div
+                              v-else-if="admxPolicies.length === 0"
+                              class="text-center q-pa-lg text-grey-6"
+                            >
+                              <q-icon name="info" size="2em" />
+                              <div class="q-mt-sm">
+                                There are no policies in this ADMX file
+                              </div>
+                            </div>
+
+                            <div v-else class="row q-col-gutter-md full-height">
+                              <div class="col-3">
+                                <q-card flat bordered class="full-height">
+                                  <q-card-section>
+                                    <div class="text-subtitle2 q-mb-md">
+                                      Policies
+                                    </div>
+                                    <q-scroll-area
+                                      style="height: calc(100vh - 400px)"
+                                    >
+                                      <q-list separator>
+                                        <q-item
+                                          v-for="policy in admxPolicies"
+                                          :key="policy.id"
+                                          clickable
+                                          v-ripple
+                                          :active="
+                                            selectedAdmxPolicy?.id === policy.id
+                                          "
+                                          @click="onAdmxPolicySelect(policy)"
+                                          class="q-mb-xs"
+                                        >
+                                          <q-item-section>
+                                            <q-item-label
+                                              class="text-weight-medium"
+                                            >
+                                              {{
+                                                policy.display_name ||
+                                                policy.name
+                                              }}
+                                            </q-item-label>
+                                          </q-item-section>
+                                        </q-item>
+                                      </q-list>
+                                    </q-scroll-area>
+                                  </q-card-section>
+                                </q-card>
+                              </div>
+
+                              <div class="col-9">
+                                <q-card flat bordered class="full-height">
+                                  <q-card-section
+                                    v-if="selectedAdmxPolicy"
+                                    class="q-pa-none"
+                                  >
+                                    <q-tabs
+                                      v-model="admxPolicySettingsTab"
+                                      dense
+                                      inline-label
+                                      class="text-grey q-px-md q-pt-md"
+                                      active-color="primary"
+                                      indicator-color="primary"
+                                      align="left"
+                                      narrow-indicator
+                                      no-caps
+                                    >
+                                      <q-tab
+                                        name="settings"
+                                        icon="settings"
+                                        label="Setting up Policies"
+                                      />
+                                      <q-tab
+                                        name="description"
+                                        icon="description"
+                                        label="Description"
+                                      />
+                                    </q-tabs>
+
+                                    <q-separator class="q-mt-sm" />
+
+                                    <q-tab-panels
+                                      v-model="admxPolicySettingsTab"
+                                      class="q-mt-md"
+                                      style="
+                                        height: calc(100vh - 500px);
+                                        overflow-y: auto;
+                                      "
+                                    >
+                                      <q-tab-panel
+                                        name="settings"
+                                        class="q-pa-md"
+                                      >
+                                        <div
+                                          v-if="loadingAdmxPolicyDetails"
+                                          class="text-center q-pa-lg"
+                                        >
+                                          <q-spinner
+                                            color="primary"
+                                            size="2em"
+                                          />
+                                          <div class="q-mt-sm">
+                                            Loading the settings...
+                                          </div>
+                                        </div>
+
+                                        <div
+                                          v-else-if="
+                                            admxPolicyDetailsElements.length ===
+                                            0
+                                          "
+                                          class="text-center q-pa-lg text-grey-6"
+                                        >
+                                          <q-icon name="info" size="2em" />
+                                          <div class="q-mt-sm">
+                                            There are no additional settings
+                                          </div>
+                                        </div>
+
+                                        <div
+                                          v-else
+                                          class="policy-settings-form"
+                                        >
+                                          <q-form>
+                                            <div
+                                              v-for="element in admxPolicyDetailsElements"
+                                              :key="element.id"
+                                              class="q-mb-md"
+                                            >
+                                              <div class="policy-element">
+                                                <div
+                                                  class="text-subtitle2 q-mb-xs"
+                                                >
+                                                  {{
+                                                    element.display_name ||
+                                                    element.element_id
+                                                  }}
+                                                </div>
+                                                <div
+                                                  v-if="element.description"
+                                                  class="text-caption text-grey-7 q-mb-sm"
+                                                >
+                                                  {{ element.description }}
+                                                </div>
+
+                                                <q-toggle
+                                                  v-if="
+                                                    element.type ===
+                                                      'CHECKBOX' ||
+                                                    element.type === 'BOOL' ||
+                                                    element.type ===
+                                                      'boolean' ||
+                                                    element.type ===
+                                                      'checkBox' ||
+                                                    element.presentation_type?.toLowerCase() ===
+                                                      'checkbox' ||
+                                                    element.presentation_type?.toLowerCase() ===
+                                                      'check_box' ||
+                                                    element.presentation_type ===
+                                                      'checkBox'
+                                                  "
+                                                  :model-value="
+                                                    (admxPolicySettingsValues[
+                                                      element.element_id
+                                                    ] as boolean) || false
+                                                  "
+                                                  @update:model-value="
+                                                    admxPolicySettingsValues[
+                                                      element.element_id
+                                                    ] = $event
+                                                  "
+                                                  :label="
+                                                    element.display_name ||
+                                                    element.element_id
+                                                  "
+                                                  color="primary"
+                                                />
+
+                                                <q-input
+                                                  v-else-if="
+                                                    element.type === 'TEXT' ||
+                                                    element.type === 'STRING' ||
+                                                    element.type === 'string' ||
+                                                    element.type === 'text' ||
+                                                    element.type ===
+                                                      'multiTextbox' ||
+                                                    element.type ===
+                                                      'multiTextBox' ||
+                                                    element.presentation_type?.toLowerCase() ===
+                                                      'textbox' ||
+                                                    element.presentation_type?.toLowerCase() ===
+                                                      'text_box' ||
+                                                    element.presentation_type?.toLowerCase() ===
+                                                      'text' ||
+                                                    element.presentation_type ===
+                                                      'multiTextbox' ||
+                                                    element.presentation_type ===
+                                                      'multiTextBox'
+                                                  "
+                                                  :model-value="
+                                                    String(
+                                                      admxPolicySettingsValues[
+                                                        element.element_id
+                                                      ] || '',
+                                                    )
+                                                  "
+                                                  @update:model-value="
+                                                    admxPolicySettingsValues[
+                                                      element.element_id
+                                                    ] = $event
+                                                  "
+                                                  :label="
+                                                    element.display_name ||
+                                                    element.element_id
+                                                  "
+                                                  :maxlength="
+                                                    element.max_length
+                                                  "
+                                                  :type="
+                                                    element.type ===
+                                                      'multiTextbox' ||
+                                                    element.type ===
+                                                      'multiTextBox' ||
+                                                    element.presentation_type ===
+                                                      'multiTextbox' ||
+                                                    element.presentation_type ===
+                                                      'multiTextBox'
+                                                      ? 'textarea'
+                                                      : 'text'
+                                                  "
+                                                  :rows="
+                                                    element.type ===
+                                                      'multiTextbox' ||
+                                                    element.type ===
+                                                      'multiTextBox' ||
+                                                    element.presentation_type ===
+                                                      'multiTextbox' ||
+                                                    element.presentation_type ===
+                                                      'multiTextBox'
+                                                      ? 3
+                                                      : undefined
+                                                  "
+                                                  :hint="
+                                                    element.required
+                                                      ? 'Required field'
+                                                      : ''
+                                                  "
+                                                  outlined
+                                                  dense
+                                                />
+
+                                                <q-input
+                                                  v-else-if="
+                                                    element.type ===
+                                                      'NUMERIC' ||
+                                                    element.type === 'INT' ||
+                                                    element.type === 'int' ||
+                                                    element.type === 'number' ||
+                                                    element.type ===
+                                                      'decimalTextbox' ||
+                                                    element.type ===
+                                                      'decimalTextBox' ||
+                                                    element.value_type ===
+                                                      'decimal' ||
+                                                    element.value_type ===
+                                                      'int' ||
+                                                    element.value_type ===
+                                                      'integer' ||
+                                                    element.presentation_type ===
+                                                      'decimalTextbox' ||
+                                                    element.presentation_type ===
+                                                      'decimalTextBox'
+                                                  "
+                                                  :model-value="
+                                                    Number(
+                                                      admxPolicySettingsValues[
+                                                        element.element_id
+                                                      ] || 0,
+                                                    )
+                                                  "
+                                                  @update:model-value="
+                                                    admxPolicySettingsValues[
+                                                      element.element_id
+                                                    ] = $event
+                                                  "
+                                                  :label="
+                                                    element.display_name ||
+                                                    element.element_id
+                                                  "
+                                                  type="number"
+                                                  :min="element.min_value"
+                                                  :max="element.max_value"
+                                                  :step="
+                                                    element.value_type ===
+                                                      'decimal' ||
+                                                    element.type ===
+                                                      'decimalTextbox' ||
+                                                    element.type ===
+                                                      'decimalTextBox' ||
+                                                    element.presentation_type ===
+                                                      'decimalTextbox' ||
+                                                    element.presentation_type ===
+                                                      'decimalTextBox'
+                                                      ? 0.01
+                                                      : 1
+                                                  "
+                                                  :hint="
+                                                    element.required
+                                                      ? 'Required field'
+                                                      : ''
+                                                  "
+                                                  outlined
+                                                  dense
+                                                />
+
+                                                <q-select
+                                                  v-else-if="
+                                                    (element.type === 'LIST' ||
+                                                      element.type === 'list' ||
+                                                      element.type === 'List' ||
+                                                      element.type === 'enum' ||
+                                                      element.type ===
+                                                        'dropdownList' ||
+                                                      element.presentation_type?.toLowerCase() ===
+                                                        'dropdownlist' ||
+                                                      element.presentation_type?.toLowerCase() ===
+                                                        'dropdown_list' ||
+                                                      element.presentation_type ===
+                                                        'dropdownList') &&
+                                                    element.items &&
+                                                    element.items.length > 0
+                                                  "
+                                                  :model-value="
+                                                    admxPolicySettingsValues[
+                                                      element.element_id
+                                                    ] ?? null
+                                                  "
+                                                  @update:model-value="
+                                                    admxPolicySettingsValues[
+                                                      element.element_id
+                                                    ] = $event
+                                                  "
+                                                  :label="
+                                                    element.display_name ||
+                                                    element.element_id
+                                                  "
+                                                  :options="element.items"
+                                                  option-label="display_name"
+                                                  option-value="id"
+                                                  :hint="
+                                                    (element.required
+                                                      ? 'Required field'
+                                                      : '') +
+                                                    (element.value_type
+                                                      ? ` (value type: ${element.value_type})`
+                                                      : '')
+                                                  "
+                                                  outlined
+                                                  dense
+                                                  emit-value
+                                                  map-options
+                                                />
+
+                                                <q-input
+                                                  v-else
+                                                  :model-value="
+                                                    String(
+                                                      admxPolicySettingsValues[
+                                                        element.element_id
+                                                      ] || '',
+                                                    )
+                                                  "
+                                                  @update:model-value="
+                                                    admxPolicySettingsValues[
+                                                      element.element_id
+                                                    ] = $event
+                                                  "
+                                                  :label="
+                                                    element.display_name ||
+                                                    element.element_id
+                                                  "
+                                                  :hint="`Type: ${element.type}${element.required ? ' (required)' : ''}`"
+                                                  outlined
+                                                  dense
+                                                />
+                                              </div>
+                                            </div>
+                                          </q-form>
+                                        </div>
+                                      </q-tab-panel>
+
+                                      <q-tab-panel
+                                        name="description"
+                                        class="q-pa-md"
+                                      >
+                                        <div
+                                          v-if="loadingAdmxPolicyDetails"
+                                          class="text-center q-pa-lg"
+                                        >
+                                          <q-spinner
+                                            color="primary"
+                                            size="2em"
+                                          />
+                                          <div class="q-mt-sm">
+                                            Uploading the description...
+                                          </div>
+                                        </div>
+
+                                        <div
+                                          v-else-if="selectedAdmxPolicy"
+                                          class="policy-description"
+                                        >
+                                          <div class="text-h6 q-mb-md">
+                                            {{
+                                              selectedAdmxPolicy.display_name ||
+                                              selectedAdmxPolicy.name
+                                            }}
+                                          </div>
+
+                                          <div
+                                            v-if="
+                                              selectedAdmxPolicy.explain_text
+                                            "
+                                            class="text-body2 text-grey-8 q-mb-md"
+                                            style="
+                                              white-space: normal;
+                                              line-height: 1.6;
+                                            "
+                                          >
+                                            {{
+                                              selectedAdmxPolicy.explain_text
+                                            }}
+                                          </div>
+                                          <div
+                                            v-else
+                                            class="text-body2 text-grey-5 q-mb-md text-italic"
+                                          >
+                                            The description is missing
+                                          </div>
+                                        </div>
+                                      </q-tab-panel>
+                                    </q-tab-panels>
+                                  </q-card-section>
+
+                                  <q-card-section
+                                    v-else
+                                    class="text-center q-pa-lg text-grey-6"
+                                  >
+                                    <q-icon name="info" size="3em" />
+                                    <div class="q-mt-md">
+                                      Select a policy to configure
+                                    </div>
+                                  </q-card-section>
+
+                                  <q-card-actions
+                                    v-if="selectedAdmxPolicy"
+                                    align="right"
+                                    class="q-pa-md"
+                                  >
+                                    <q-btn
+                                      flat
+                                      label="Disable"
+                                      color="negative"
+                                      @click="disableAdmxPolicy"
+                                      :disable="!selectedAdmxPolicy"
+                                    />
+                                    <q-btn
+                                      flat
+                                      label="Apply"
+                                      color="positive"
+                                      @click="applyAdmxPolicy"
+                                      :disable="!selectedAdmxPolicy"
+                                    />
+                                  </q-card-actions>
+                                </q-card>
+                              </div>
                             </div>
                           </div>
-                        </q-card-section>
-                      </q-card>
-                    </q-tab-panel>
+                        </div>
+                      </div>
 
-                    <q-tab-panel name="bitlocker" class="q-pa-md">
-                      <div class="text-h6 q-mb-md">BitLocker</div>
-                      <q-card>
-                        <q-card-section>
-                          <div class="text-center q-pa-lg text-grey-6">
-                            <q-icon name="vpn_key" size="3em" class="q-mb-md" />
-                            <div>Настройки BitLocker</div>
-                            <div class="text-caption q-mt-sm">
-                              Здесь будут отображаться настройки BitLocker
-                            </div>
-                          </div>
-                        </q-card-section>
-                      </q-card>
-                    </q-tab-panel>
-
-                    <q-tab-panel name="firewall" class="q-pa-md">
-                      <div class="text-h6 q-mb-md">Firewall</div>
-                      <q-card>
-                        <q-card-section>
-                          <div class="text-center q-pa-lg text-grey-6">
-                            <q-icon
-                              name="security"
-                              size="3em"
-                              class="q-mb-md"
-                            />
-                            <div>Настройки Firewall</div>
-                            <div class="text-caption q-mt-sm">
-                              Здесь будут отображаться настройки Firewall
-                            </div>
-                          </div>
-                        </q-card-section>
-                      </q-card>
-                    </q-tab-panel>
-                  </q-tab-panels>
-                </q-tab-panel>
-
-                <!-- Вкладка Система -->
-                <q-tab-panel name="system" class="q-pa-md">
-                  <div class="gpo-content-header q-mb-md">
-                    <q-tabs
-                      v-model="systemSubTab"
-                      dense
-                      inline-label
-                      class="text-grey"
-                      active-color="primary"
-                      indicator-color="primary"
-                      align="left"
-                      narrow-indicator
-                      no-caps
-                    >
-                      <q-tab
-                        name="services"
-                        icon="settings_applications"
-                        label="Службы"
-                      />
-                      <q-tab name="registry" icon="storage" label="Реестр" />
-                    </q-tabs>
-                    <q-separator />
-                  </div>
-
-                  <q-tab-panels
-                    v-model="systemSubTab"
-                    class="gpo-windows-sub-panels"
-                  >
-                    <!-- Службы -->
-                    <q-tab-panel name="services" class="q-pa-md">
-                      <div class="text-h6 q-mb-md">Службы</div>
-                      <q-card>
-                        <q-card-section>
-                          <div class="text-center q-pa-lg text-grey-6">
-                            <q-icon
-                              name="settings_applications"
-                              size="3em"
-                              class="q-mb-md"
-                            />
-                            <div>Настройки служб</div>
-                            <div class="text-caption q-mt-sm">
-                              Здесь будут отображаться настройки служб Windows
-                            </div>
-                          </div>
-                        </q-card-section>
-                      </q-card>
-                    </q-tab-panel>
-
-                    <q-tab-panel name="registry" class="q-pa-md">
-                      <div class="text-h6 q-mb-md">Реестр</div>
-                      <q-card>
-                        <q-card-section>
-                          <div class="text-center q-pa-lg text-grey-6">
-                            <q-icon name="storage" size="3em" class="q-mb-md" />
-                            <div>Настройки реестра</div>
-                            <div class="text-caption q-mt-sm">
-                              Здесь будут отображаться настройки реестра Windows
-                            </div>
-                          </div>
-                        </q-card-section>
-                      </q-card>
-                    </q-tab-panel>
-                  </q-tab-panels>
+                      <div
+                        v-if="group.admx_files.length === 0"
+                        class="text-center q-pa-lg text-grey-6"
+                      >
+                        <q-icon name="info" size="3em" class="q-mb-md" />
+                        <div>
+                          There are no ADMX files available in this group.
+                        </div>
+                      </div>
+                    </div>
+                  </q-scroll-area>
                 </q-tab-panel>
               </q-tab-panels>
             </div>
@@ -1405,7 +1887,7 @@
           >
             <div class="gpo-devices-header q-pa-sm">
               <div class="text-subtitle2 text-weight-medium">
-                Устройства
+                Devices
                 <q-badge
                   v-if="agentsList.length > 0"
                   color="primary"
@@ -1418,7 +1900,7 @@
             <q-scroll-area class="gpo-devices-scroll">
               <div v-if="agentsLoading" class="text-center q-pa-md">
                 <q-spinner color="primary" size="2em" />
-                <div class="q-mt-sm text-caption">Загрузка устройств...</div>
+                <div class="q-mt-sm text-caption">Loading devices...</div>
               </div>
 
               <div
@@ -1431,7 +1913,7 @@
                   flat
                   dense
                   size="sm"
-                  label="Повторить"
+                  label="Repeat"
                   @click="loadAgents"
                   class="q-mt-xs"
                 />
@@ -1442,7 +1924,7 @@
                 class="text-center q-pa-md text-grey-6"
               >
                 <q-icon name="devices_other" size="2em" />
-                <div class="q-mt-sm text-caption">нет агентов</div>
+                <div class="q-mt-sm text-caption">no agents</div>
               </div>
 
               <q-list
@@ -1496,7 +1978,7 @@
         class="gpo-content col-10 gpo-library-content"
       >
         <div class="gpo-content-header">
-          <div class="text-h6 q-pa-md">Библиотека политик</div>
+          <div class="text-h6 q-pa-md">Policy Library</div>
         </div>
         <div class="gpo-content-panels q-pa-md">
           <q-tabs
@@ -1510,8 +1992,8 @@
             narrow-indicator
             no-caps
           >
-            <q-tab name="policies" icon="rule" label="Политики" />
-            <q-tab name="management" icon="settings" label="Управление" />
+            <q-tab name="policies" icon="rule" label="Policies" />
+            <q-tab name="management" icon="settings" label="Management" />
           </q-tabs>
 
           <q-tab-panels v-model="libraryTab" class="gpo-library-panels">
@@ -1527,9 +2009,9 @@
                 narrow-indicator
                 no-caps
               >
-                <q-tab name="all" icon="list" label="Все политики" />
-                <q-tab name="templates" icon="description" label="Шаблоны" />
-                <q-tab name="archive" icon="archive" label="Архив" />
+                <q-tab name="all" icon="list" label="All policies" />
+                <q-tab name="templates" icon="description" label="Templates" />
+                <q-tab name="archive" icon="archive" label="Archive" />
               </q-tabs>
 
               <q-tab-panels
@@ -1540,7 +2022,7 @@
                   <div class="row q-mb-md">
                     <q-input
                       v-model="policyFilter"
-                      placeholder="Поиск политик..."
+                      placeholder="Policy search..."
                       dense
                       outlined
                       class="col-4"
@@ -1556,7 +2038,7 @@
                     class="text-center q-pa-lg"
                   >
                     <q-spinner color="primary" size="3em" />
-                    <div class="q-mt-md">Загрузка политик...</div>
+                    <div class="q-mt-md">Uploading policies...</div>
                   </div>
                   <div
                     v-else-if="policiesStore.isError.value"
@@ -1564,7 +2046,7 @@
                   >
                     <q-icon name="error" color="negative" size="3em" />
                     <div class="q-mt-md text-negative">
-                      Ошибка загрузки политик
+                      Policy loading error
                     </div>
                     <div
                       v-if="policiesStore.errorMessage.value"
@@ -1575,7 +2057,7 @@
                     <q-btn
                       flat
                       color="primary"
-                      label="Повторить"
+                      label="Repeat"
                       @click="policiesStore.fetchPolicies()"
                       class="q-mt-md"
                     />
@@ -1619,7 +2101,7 @@
                   <div class="row q-mb-md">
                     <q-input
                       v-model="policyFilter"
-                      placeholder="Поиск шаблонов..."
+                      placeholder="Search for templates..."
                       dense
                       outlined
                       class="col-4"
@@ -1635,7 +2117,7 @@
                     class="text-center q-pa-lg"
                   >
                     <q-spinner color="primary" size="3em" />
-                    <div class="q-mt-md">Загрузка шаблонов...</div>
+                    <div class="q-mt-md">Uploading templates...</div>
                   </div>
                   <div
                     v-else-if="policiesStore.isError.value"
@@ -1643,7 +2125,7 @@
                   >
                     <q-icon name="error" color="negative" size="3em" />
                     <div class="q-mt-md text-negative">
-                      Ошибка загрузки шаблонов
+                      Template loading error
                     </div>
                     <div
                       v-if="policiesStore.errorMessage.value"
@@ -1654,7 +2136,7 @@
                     <q-btn
                       flat
                       color="primary"
-                      label="Повторить"
+                      label="Repeat"
                       @click="policiesStore.fetchPolicies()"
                       class="q-mt-md"
                     />
@@ -1694,12 +2176,11 @@
                   </div>
                 </q-tab-panel>
 
-                <!-- Архив -->
                 <q-tab-panel name="archive" class="q-pa-none">
                   <div class="row q-mb-md">
                     <q-input
                       v-model="policyFilter"
-                      placeholder="Поиск в архиве..."
+                      placeholder="Search in the archive..."
                       dense
                       outlined
                       class="col-4"
@@ -1715,7 +2196,7 @@
                     class="text-center q-pa-lg"
                   >
                     <q-spinner color="primary" size="3em" />
-                    <div class="q-mt-md">Загрузка архива...</div>
+                    <div class="q-mt-md">Uploading the archive...</div>
                   </div>
                   <div
                     v-else-if="policiesStore.isError.value"
@@ -1723,7 +2204,7 @@
                   >
                     <q-icon name="error" color="negative" size="3em" />
                     <div class="q-mt-md text-negative">
-                      Ошибка загрузки архива
+                      Archive upload error
                     </div>
                     <div
                       v-if="policiesStore.errorMessage.value"
@@ -1734,7 +2215,7 @@
                     <q-btn
                       flat
                       color="primary"
-                      label="Повторить"
+                      label="Repeat"
                       @click="policiesStore.fetchPolicies()"
                       class="q-mt-md"
                     />
@@ -1777,20 +2258,20 @@
             </q-tab-panel>
 
             <q-tab-panel name="management" class="q-pa-md">
-              <div class="text-h6 q-mb-md">Управление политиками</div>
+              <div class="text-h6 q-mb-md">Policy management</div>
 
               <div class="row q-gutter-md q-mb-md">
                 <q-btn
                   color="primary"
                   icon="add"
-                  label="Создать"
+                  label="to Create"
                   @click="onCreatePolicy"
                   class="col-auto"
                 />
                 <q-btn
                   color="secondary"
                   icon="edit"
-                  label="Редактировать"
+                  label="Edit"
                   @click="onEditSelectedPolicy"
                   :disable="!selectedPolicyForManagement"
                   class="col-auto"
@@ -1798,7 +2279,7 @@
                 <q-btn
                   color="accent"
                   icon="content_copy"
-                  label="Клонировать"
+                  label="Clone"
                   @click="onClonePolicy"
                   :disable="!selectedPolicyForManagement"
                   class="col-auto"
@@ -1806,7 +2287,7 @@
                 <q-btn
                   color="negative"
                   icon="delete"
-                  label="Удалить"
+                  label="Delete"
                   @click="onDeleteSelectedPolicy"
                   :disable="!selectedPolicyForManagement"
                   class="col-auto"
@@ -1815,7 +2296,7 @@
 
               <div class="q-mt-md">
                 <div class="text-subtitle2 q-mb-sm">
-                  Выберите политику для управления:
+                  Select a policy to manage:
                 </div>
                 <q-table
                   :rows="filteredPolicies"
@@ -1829,7 +2310,7 @@
                   <template v-slot:top>
                     <q-input
                       v-model="policyFilter"
-                      placeholder="Поиск политик..."
+                      placeholder="Policy search..."
                       dense
                       outlined
                       class="col-4"
@@ -1864,6 +2345,13 @@
         v-model="showAppliedPoliciesDialog"
         :agent="selectedAgent"
       />
+
+      <ApplyPolicyDialog
+        v-model="showApplyPolicyDialogForUser"
+        :agent="selectedAgent"
+        :users="usersList"
+        :initial-user-sid="initialUserSid"
+      />
     </div>
   </q-page>
 </template>
@@ -1879,10 +2367,12 @@ import {
   operator_pb,
   policyAssignmentClient,
   policyCatalogClient,
+  policyCatalogServiceClient,
 } from "../api/grpc-client";
 import GPOPolicyForm from "../components/GPOPolicyForm.vue";
 import GPOPolicySettingsDialog from "../components/GPOPolicySettingsDialog.vue";
 import AppliedPoliciesDialog from "../components/AppliedPoliciesDialog.vue";
+import ApplyPolicyDialog from "../components/ApplyPolicyDialog.vue";
 import type {
   GPOPolicy,
   CreateGPOPolicyRequest,
@@ -1916,6 +2406,19 @@ interface User {
   groups?: string;
 }
 
+interface AdmxFile {
+  file: string;
+  ui_name: string;
+  description: string;
+}
+
+interface AdmxGroup {
+  group: string;
+  ui_name: string;
+  description: string;
+  admx_files: AdmxFile[];
+}
+
 const $q = useQuasar();
 
 const policiesStore = useGPOPolicies();
@@ -1928,9 +2431,52 @@ const libraryTab = ref("policies");
 const policiesSubTab = ref("all");
 const networkTab = ref("agents");
 const devicesTab = ref("assignment");
-const windowsTab = ref("security");
-const securitySubTab = ref("passwords");
-const systemSubTab = ref("services");
+const windowsTab = ref<string>("");
+const admxGroups = ref<AdmxGroup[]>([]);
+const admxLoading = ref(false);
+const selectedAdmxGroup = ref<string | null>(null);
+const selectedAdmxFile = ref<string | null>(null);
+const selectedAdmxFileGroup = ref<string | null>(null);
+
+interface AdmxPolicy {
+  id: string;
+  name: string;
+  display_name: string;
+  explain_text: string;
+}
+
+const admxPolicies = ref<AdmxPolicy[]>([]);
+const selectedAdmxPolicy = ref<AdmxPolicy | null>(null);
+const loadingAdmxPolicies = ref(false);
+const admxPoliciesError = ref<string | null>(null);
+const admxPolicySettingsTab = ref("settings");
+const loadingAdmxPolicyDetails = ref(false);
+
+interface PolicyDetailsElement {
+  id: number;
+  element_id: string;
+  type: string;
+  display_name?: string;
+  description?: string;
+  presentation_type?: string;
+  value_name?: string;
+  registry_key?: string;
+  required?: boolean;
+  max_length?: number;
+  min_value?: number;
+  max_value?: number;
+  value_type?: string;
+  items?: Array<{
+    id: number;
+    name: string;
+    display_name?: string;
+    value_type?: string;
+  }>;
+}
+
+const admxPolicyDetailsElements = ref<PolicyDetailsElement[]>([]);
+const admxPolicySettingsValues = ref<Record<string, unknown>>({});
+
 const selectedAgent = ref<Agent | null>(null);
 const usersLoading = ref(false);
 const policyFilter = ref("");
@@ -1941,6 +2487,8 @@ const showPolicyDialog = ref(false);
 const policyDialogMode = ref<"create" | "edit" | "clone">("create");
 const policyToEdit = ref<GPOPolicy | null>(null);
 const showApplyPolicyDialog = ref(false);
+const showApplyPolicyDialogForUser = ref(false);
+const initialUserSid = ref<string>("");
 const showAppliedPoliciesDialog = ref(false);
 
 const policyForForm = computed(() => {
@@ -1969,6 +2517,239 @@ const deviceActionHistory = ref<DeviceAction[]>([]);
 const agentsList = computed<Agent[]>(() => {
   return gpoAgents.value;
 });
+
+async function loadAdmxData() {
+  admxLoading.value = true;
+  try {
+    const lang = "en";
+    const fileName = `admx_full_grouped_${lang}.json`;
+    const response = await fetch(`/${fileName}`);
+    if (!response.ok) {
+      const fallbackResponse = await fetch("/admx_full_grouped_en.json");
+      if (!fallbackResponse.ok) {
+        throw new Error(`Failed to load ADMX data: ${response.statusText}`);
+      }
+      const fallbackData = await fallbackResponse.json();
+      admxGroups.value = fallbackData as AdmxGroup[];
+    } else {
+      const data = await response.json();
+      admxGroups.value = data as AdmxGroup[];
+    }
+
+    if (admxGroups.value.length > 0 && !selectedAdmxGroup.value) {
+      selectedAdmxGroup.value = admxGroups.value[0].group;
+      if (
+        !windowsTab.value ||
+        windowsTab.value === "security" ||
+        windowsTab.value === "system"
+      ) {
+        windowsTab.value = `admx-${admxGroups.value[0].group}`;
+      }
+    }
+  } catch (error) {
+    notifyError("Data loading error ADMX files");
+  } finally {
+    admxLoading.value = false;
+  }
+}
+
+async function loadPoliciesByAdmx(admxFile: string) {
+  loadingAdmxPolicies.value = true;
+  admxPoliciesError.value = null;
+  selectedAdmxPolicy.value = null;
+  try {
+    const langCode = "en-US";
+    const response = await policyCatalogClient.getPoliciesByAdmx(
+      admxFile,
+      langCode,
+    );
+
+    const responseObj = response as {
+      policiesList?: unknown[];
+      policies?: unknown[];
+    };
+    const policiesList = responseObj.policiesList || responseObj.policies || [];
+
+    admxPolicies.value = [];
+    for (const policy of policiesList) {
+      if (policy && typeof policy === "object") {
+        const p = policy as {
+          id?: number | string;
+          name?: string;
+          display_name?: string;
+          displayName?: string;
+          explain_text?: string;
+          explainText?: string;
+        };
+
+        admxPolicies.value.push({
+          id: String(p.id || ""),
+          name: p.name || "",
+          display_name: p.displayName || p.display_name || p.name || "",
+          explain_text: p.explainText || p.explain_text || "",
+        });
+      }
+    }
+  } catch (error) {
+    admxPoliciesError.value =
+      error instanceof Error ? error.message : "Policy loading error";
+    admxPolicies.value = [];
+  } finally {
+    loadingAdmxPolicies.value = false;
+  }
+}
+
+function onAdmxFileClick(admxFile: string, groupName: string) {
+  if (
+    selectedAdmxFile.value !== admxFile ||
+    selectedAdmxFileGroup.value !== groupName
+  ) {
+    selectedAdmxFile.value = admxFile;
+    selectedAdmxFileGroup.value = groupName;
+    selectedAdmxPolicy.value = null;
+    admxPolicies.value = [];
+    admxPolicyDetailsElements.value = [];
+    admxPolicySettingsValues.value = {};
+    loadPoliciesByAdmx(admxFile);
+  }
+}
+
+async function onAdmxPolicySelect(policy: AdmxPolicy) {
+  selectedAdmxPolicy.value = policy;
+  admxPolicySettingsTab.value = "settings";
+  await loadAdmxPolicyDetails(policy);
+}
+
+async function loadAdmxPolicyDetails(policy: AdmxPolicy) {
+  if (!policy || !policy.id) {
+    return;
+  }
+
+  loadingAdmxPolicyDetails.value = true;
+  admxPolicyDetailsElements.value = [];
+  admxPolicySettingsValues.value = {};
+
+  try {
+    const policyId = Number.parseInt(policy.id, 10);
+    if (Number.isNaN(policyId)) {
+      throw new TypeError(`Invalid Policy ID: ${policy.id}`);
+    }
+
+    const metadata = createGrpcMetadata();
+    const request = new operator_pb.GetPolicyDetailsRequest();
+    request.setPolicyId(policyId);
+    request.setLangCode("en-US");
+
+    const response = await policyCatalogServiceClient.getPolicyDetails(
+      request,
+      metadata,
+    );
+
+    if (!response) {
+      throw new Error("An empty response from the server");
+    }
+
+    const presentation = response.getPresentation?.();
+    if (presentation) {
+      const elementsList = presentation.getElementsList?.() || [];
+
+      admxPolicyDetailsElements.value = elementsList.map((el: unknown) => {
+        const elWithToObject = el as { toObject?: () => unknown };
+        const elementObj = elWithToObject?.toObject
+          ? elWithToObject.toObject()
+          : el;
+        const obj = elementObj as Record<string, unknown>;
+        return {
+          id: (obj.id as number) || 0,
+          element_id:
+            (obj.elementId as string) || (obj.element_id as string) || "",
+          type: (obj.type as string) || "",
+          display_name:
+            (obj.displayName as string) || (obj.display_name as string) || "",
+          description: (obj.description as string) || "",
+          presentation_type:
+            (obj.presentationType as string) ||
+            (obj.presentation_type as string) ||
+            "",
+          value_name:
+            (obj.valueName as string) || (obj.value_name as string) || "",
+          registry_key:
+            (obj.registryKey as string) || (obj.registry_key as string) || "",
+          required: (obj.required as boolean) || false,
+          max_length: (obj.maxLength as number) || (obj.max_length as number),
+          min_value: (obj.minValue as number) || (obj.min_value as number),
+          max_value: (obj.maxValue as number) || (obj.max_value as number),
+          value_type:
+            (obj.valueType as string) || (obj.value_type as string) || "",
+          items: ((obj.itemsList as unknown[]) ||
+            (obj.items as unknown[]) ||
+            []) as Array<{
+            id: number;
+            name: string;
+            display_name?: string;
+            value_type?: string;
+          }>,
+        };
+      });
+    }
+  } catch (error) {
+    notifyError("Error uploading policy details");
+  } finally {
+    loadingAdmxPolicyDetails.value = false;
+  }
+}
+
+async function applyAdmxPolicy() {
+  if (!selectedAdmxPolicy.value) {
+    return;
+  }
+
+  try {
+    notifySuccess("Policy applied");
+    // TODO: Реализовать применение политики через API
+  } catch (error) {
+    notifyError("Policy application error");
+  }
+}
+
+async function disableAdmxPolicy() {
+  if (!selectedAdmxPolicy.value) {
+    return;
+  }
+
+  try {
+    notifySuccess("Policy disabled");
+    // TODO: Реализовать отключение политики через API
+  } catch (error) {
+    notifyError("Policy Deactivation error");
+  }
+}
+
+function getAdmxGroupIcon(groupName: string): string {
+  const iconMap: Record<string, string> = {
+    Безопасность: "security",
+    Аутентификация: "vpn_key",
+    "Сеть и удалённый доступ": "router",
+    Обновления: "system_update",
+    Интерфейс: "desktop_windows",
+    Приложения: "apps",
+    Диагностика: "bug_report",
+    Хранилище: "storage",
+    Система: "computer",
+
+    "Security and Threat Protection": "security",
+    "Authentication and Identity": "vpn_key",
+    "Networking and Remote Access": "router",
+    "Windows Update and Servicing": "system_update",
+    "User Interface and Shell": "desktop_windows",
+    "Applications and Store": "apps",
+    "Diagnostics and Telemetry": "bug_report",
+    "Storage and File Systems": "storage",
+    "System and Core Components": "computer",
+  };
+
+  return iconMap[groupName] || "policy";
+}
 
 async function loadAgents() {
   agentsLoading.value = true;
@@ -2167,7 +2948,6 @@ async function loadAgents() {
       gpoAgents.value = [];
     }
   } catch (error) {
-    console.error("[GPO] Error loading agents from gRPC:", error);
     agentsError.value = true;
     gpoAgents.value = [];
   } finally {
@@ -2213,27 +2993,33 @@ const usersColumns: QTableColumn[] = [
     align: "left",
     field: "groups",
   },
+  {
+    name: "actions",
+    label: "Actions",
+    align: "center",
+    field: "actions",
+  },
 ];
 
 const agentTableColumns: QTableColumn[] = [
   {
     name: "hostname",
     required: true,
-    label: "Имя устройства",
+    label: "Device Name",
     align: "left",
     field: "hostname",
     sortable: true,
   },
   {
     name: "status",
-    label: "Статус",
+    label: "Status",
     align: "left",
     field: "status",
     sortable: true,
   },
   {
     name: "last_seen",
-    label: "Последний ответ",
+    label: "Last answer",
     align: "left",
     field: "last_seen",
     format: (val: string) => formatDate(val),
@@ -2262,33 +3048,33 @@ const policyColumns: QTableColumn[] = [
   {
     name: "name",
     required: true,
-    label: "Имя",
+    label: "Name",
     align: "left",
     field: "name",
     sortable: true,
   },
   {
     name: "displayName",
-    label: "Отображаемое имя",
+    label: "Display Name",
     align: "left",
     field: "displayName",
     sortable: true,
   },
   {
     name: "path",
-    label: "Путь",
+    label: "Path",
     align: "left",
     field: "path",
   },
   {
     name: "description",
-    label: "Описание",
+    label: "Description",
     align: "left",
     field: "description",
   },
   {
     name: "actions",
-    label: "Действия",
+    label: "Actions",
     align: "center",
     field: "actions",
   },
@@ -2298,30 +3084,30 @@ const policyManagementColumns: QTableColumn[] = [
   {
     name: "name",
     required: true,
-    label: "Имя",
+    label: "Name",
     align: "left",
     field: "name",
     sortable: true,
   },
   {
     name: "displayName",
-    label: "Отображаемое имя",
+    label: "DisplayName",
     align: "left",
     field: "displayName",
     sortable: true,
   },
   {
     name: "path",
-    label: "Путь",
+    label: "Path",
     align: "left",
     field: "path",
   },
   {
     name: "enabled",
-    label: "Статус",
+    label: "Status",
     align: "center",
     field: "enabled",
-    format: (val: boolean) => (val ? "Включена" : "Отключена"),
+    format: (val: boolean) => (val ? "Enabled" : "Disabled"),
   },
 ];
 
@@ -2350,14 +3136,14 @@ const filteredPoliciesByCategory = (
       (policy) =>
         policy.name.toLowerCase().includes("template") ||
         policy.path?.toLowerCase().includes("template") ||
-        policy.displayName?.toLowerCase().includes("шаблон"),
+        policy.displayName?.toLowerCase().includes("template"),
     );
   } else if (category === "archive") {
     policies = policies.filter(
       (policy) =>
         !policy.enabled ||
         policy.path?.toLowerCase().includes("archive") ||
-        policy.path?.toLowerCase().includes("архив"),
+        policy.path?.toLowerCase().includes("archive"),
     );
   }
 
@@ -2377,21 +3163,21 @@ const policyAssignmentColumns: QTableColumn[] = [
   {
     name: "name",
     required: true,
-    label: "Имя",
+    label: "Name",
     align: "left",
     field: "name",
     sortable: true,
   },
   {
     name: "displayName",
-    label: "Отображаемое имя",
+    label: "Display Name",
     align: "left",
     field: "displayName",
     sortable: true,
   },
   {
     name: "description",
-    label: "Описание",
+    label: "Description",
     align: "left",
     field: "description",
   },
@@ -2401,28 +3187,28 @@ const assignedPolicyColumns: QTableColumn[] = [
   {
     name: "name",
     required: true,
-    label: "Имя",
+    label: "Name",
     align: "left",
     field: "name",
     sortable: true,
   },
   {
     name: "displayName",
-    label: "Отображаемое имя",
+    label: "Display Name",
     align: "left",
     field: "displayName",
     sortable: true,
   },
   {
     name: "assignedDate",
-    label: "Дата назначения",
+    label: "Assigned Date",
     align: "left",
     field: "assignedDate",
     format: (val: string) => formatDate(val),
   },
   {
     name: "actions",
-    label: "Действия",
+    label: "Actions",
     align: "center",
     field: "actions",
   },
@@ -2597,10 +3383,6 @@ async function loadUsersForAgent(agentId: string) {
                 ) &&
                 (userObj as { groupsList: unknown[] }).groupsList.length > 0
               ) {
-                // console.log(
-                //   "[GPO] First group from groupsList toObject:",
-                //   (userObj as { groupsList: unknown[] }).groupsList[0],
-                // );
               }
             return userObj;
           }
@@ -2853,7 +3635,7 @@ async function loadUsersForAgent(agentId: string) {
             timestamp = lastLogonUnix;
           }
           if (timestamp === 0 || Number.isNaN(timestamp)) {
-            lastLogon = "Никогда";
+            lastLogon = "Never";
           } else {
             lastLogon = formatDate(new Date(timestamp * 1000).toISOString());
           }
@@ -2879,16 +3661,7 @@ async function loadUsersForAgent(agentId: string) {
       errorMessage.includes("deserializing");
 
     if (is404) {
-      // console.log(
-      //   "[GPO] ⚠️ UserService endpoint not implemented yet, using empty list",
-      // );
     } else if (isRpcError) {
-      // console.log(
-      //   "[GPO] ⚠️ UserService endpoint error (possibly not implemented), using empty list",
-      //   error,
-      // );
-    } else {
-      console.error("[GPO] Error loading users:", error);
     }
     usersList.value = [];
   } finally {
@@ -2919,16 +3692,14 @@ const clearAgentSelection = () => {
   assignedPolicies.value = [];
 };
 
-async function loadAssignedPolicies(agentId: string) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function loadAssignedPolicies(_agentId: string) {
   try {
     // TODO: реализовать загрузку назначенных политик через API
     // Пока используем заглушку
-    // agentId будет использоваться для загрузки политик конкретного устройства
-    console.log("[GPO] Loading assigned policies for agent:", agentId);
     assignedPolicies.value = [];
   } catch (error) {
-    console.error("[GPO] Error loading assigned policies:", error);
-    notifyError("Ошибка загрузки назначенных политик");
+    notifyError("Error loading assigned policies");
   }
 }
 
@@ -2956,19 +3727,18 @@ async function assignPolicies() {
     }
 
     addActionToHistory({
-      title: "Назначение политик",
-      description: `Назначено ${policiesToAssign.length} политик устройству ${selectedAgent.value.hostname}`,
+      title: "Assigning policies",
+      description: `Assigned ${policiesToAssign.length} device policy ${selectedAgent.value.hostname}`,
       icon: "assignment",
       color: "primary",
     });
 
     selectedPoliciesForAssignment.value = [];
     notifySuccess(
-      `Политики успешно назначены устройству ${selectedAgent.value.hostname}`,
+      `Policies have been successfully assigned to the device ${selectedAgent.value.hostname}`,
     );
   } catch (error) {
-    console.error("[GPO] Error assigning policies:", error);
-    notifyError("Ошибка назначения политик");
+    notifyError("Policy assignment error");
   } finally {
     assignmentLoading.value = false;
   }
@@ -2980,15 +3750,15 @@ async function removePolicyAssignment(policy: GPOPolicy) {
   }
 
   $q.dialog({
-    title: "Подтверждение",
-    message: `Удалить назначение политики "${policy.displayName || policy.name}" для устройства ${selectedAgent.value.hostname}?`,
+    title: "Confirmation",
+    message: `Delete a policy assignment"${policy.displayName || policy.name}" for the device ${selectedAgent.value.hostname}?`,
     cancel: true,
     persistent: true,
   }).onOk(async () => {
     try {
       const policyId = Number.parseInt(policy.id, 10);
       if (Number.isNaN(policyId)) {
-        throw new TypeError(`Неверный ID политики: ${policy.id}`);
+        throw new TypeError(`Invalid Policy ID: ${policy.id}`);
       }
 
       const policyDetails = await policyCatalogClient.getPolicyDetails(
@@ -2999,12 +3769,12 @@ async function removePolicyAssignment(policy: GPOPolicy) {
 
       if (!policyHash) {
         throw new Error(
-          "Hash политики не найден. Не удалось получить детали политики.",
+          "Hash policy was not found. Couldn't get policy details.",
         );
       }
 
       if (!selectedAgent.value) {
-        throw new Error("Агент не выбран");
+        throw new Error("Agent is not selected");
       }
 
       await policyAssignmentClient.removePolicy(policyHash, "agent", {
@@ -3017,21 +3787,20 @@ async function removePolicyAssignment(policy: GPOPolicy) {
 
       if (selectedAgent.value) {
         addActionToHistory({
-          title: "Удаление назначения",
-          description: `Удалено назначение политики "${policy.displayName || policy.name}" для устройства ${selectedAgent.value.hostname}`,
+          title: "Deleting an appointment",
+          description: `Policy assignment removed "${policy.displayName || policy.name}" for the device ${selectedAgent.value.hostname}`,
           icon: "delete",
           color: "negative",
         });
       }
 
-      notifySuccess("Назначение политики удалено");
+      notifySuccess("Policy assignment removed");
     } catch (error) {
-      console.error("[GPO] Error removing policy assignment:", error);
       const errorMessage =
         error instanceof Error
           ? error.message
-          : "Неизвестная ошибка удаления назначения";
-      notifyError(`Ошибка удаления назначения: ${errorMessage}`);
+          : "Unknown destination deletion error";
+      notifyError(`Assignment deletion error: ${errorMessage}`);
     }
   });
 }
@@ -3047,16 +3816,15 @@ async function reapplyPolicies() {
     await new Promise((resolve) => setTimeout(resolve, 1000)); // типа запроса
 
     addActionToHistory({
-      title: "Повторное применение политик",
-      description: `Политики применены повторно для устройства ${selectedAgent.value.hostname}`,
+      title: "Re-applying policies",
+      description: `Policies have been reapplied for the device ${selectedAgent.value.hostname}`,
       icon: "refresh",
       color: "primary",
     });
 
-    notifySuccess("Политики применены повторно");
+    notifySuccess("Policies have been applied repeatedly");
   } catch (error) {
-    console.error("[GPO] Error reapplying policies:", error);
-    notifyError("Ошибка повторного применения политик");
+    notifyError("Policy Reapplication error");
   } finally {
     actionLoading.value = false;
   }
@@ -3068,8 +3836,8 @@ async function rollbackPolicies() {
   }
 
   $q.dialog({
-    title: "Подтверждение",
-    message: `Откатить политики для устройства ${selectedAgent.value.hostname}?`,
+    title: "Confirmation",
+    message: `Roll back Device policies ${selectedAgent.value.hostname}?`,
     cancel: true,
     persistent: true,
   }).onOk(async () => {
@@ -3080,17 +3848,16 @@ async function rollbackPolicies() {
 
       if (selectedAgent.value) {
         addActionToHistory({
-          title: "Откат политик",
-          description: `Политики откачены для устройства ${selectedAgent.value.hostname}`,
+          title: "Rollback of policies",
+          description: `Policies have been rolled out for the device ${selectedAgent.value.hostname}`,
           icon: "undo",
           color: "warning",
         });
       }
 
-      notifySuccess("Политики откачены");
+      notifySuccess("Policy have been pumped out");
     } catch (error) {
-      console.error("[GPO] Error rolling back policies:", error);
-      notifyError("Ошибка отката политик");
+      notifyError("Policy Rollback error");
     } finally {
       actionLoading.value = false;
     }
@@ -3110,16 +3877,15 @@ async function synchronizePolicies() {
     await loadAssignedPolicies(selectedAgent.value.id);
 
     addActionToHistory({
-      title: "Синхронизация политик",
-      description: `Политики синхронизированы для устройства ${selectedAgent.value.hostname}`,
+      title: "Policy synchronization",
+      description: `Politics are synchronized for the device ${selectedAgent.value.hostname}`,
       icon: "sync",
       color: "secondary",
     });
 
-    notifySuccess("Политики синхронизированы");
+    notifySuccess("Policies are synchronized");
   } catch (error) {
-    console.error("[GPO] Error synchronizing policies:", error);
-    notifyError("Ошибка синхронизации политик");
+    notifyError("Policy synchronization error");
   } finally {
     actionLoading.value = false;
   }
@@ -3220,16 +3986,14 @@ async function loadNetworkInfo(agentId: string) {
         local_ips: localIps,
         public_ip: "N/A",
       };
-    } catch (apiError) {
-      console.error("[GPO] Error fetching agent from gRPC:", apiError);
+    } catch {
       agentDetails.value = null;
       networkInfo.value = {
         local_ips: "N/A",
         public_ip: "N/A",
       };
     }
-  } catch (error) {
-    console.error("[GPO] Error loading network info:", error);
+  } catch {
     agentDetails.value = null;
     networkInfo.value = {
       local_ips: "N/A",
@@ -3242,18 +4006,17 @@ async function handleReboot() {
   if (!selectedAgent.value) return;
 
   $q.dialog({
-    title: "Подтверждение",
-    message: `Перезагрузить ${selectedAgent.value.hostname}?`,
+    title: "Confirmation",
+    message: `Reboot ${selectedAgent.value.hostname}?`,
     cancel: true,
     persistent: true,
   }).onOk(async () => {
     actionLoading.value = true;
     try {
       await agentRebootNow(selectedAgent.value!.id);
-      notifySuccess(`${selectedAgent.value!.hostname} будет перезагружен`);
+      notifySuccess(`${selectedAgent.value!.hostname} will be rebooted`);
     } catch (error) {
-      console.error("[GPO] Error rebooting agent:", error);
-      notifyError("Ошибка при перезагрузке агента");
+      notifyError("Error when restarting the agent");
     } finally {
       actionLoading.value = false;
     }
@@ -3265,24 +4028,23 @@ async function handleShutdown() {
 
   const clean = DOMPurify.sanitize(selectedAgent.value.hostname);
   $q.dialog({
-    title: `Введите <code style="color:red">yes</code> для подтверждения выключения <span style="color:red">${clean}</span>.`,
+    title: `Enter <code style="color:red">yes</code> o confirm the disable <span style="color:red">${clean}</span>.`,
     prompt: {
       model: "",
       type: "text",
       isValid: (val) => val.toLowerCase() === "yes",
     },
     cancel: true,
-    ok: { label: "Выключить", color: "negative" },
+    ok: { label: "Disable", color: "negative" },
     persistent: true,
     html: true,
   }).onOk(async () => {
     actionLoading.value = true;
     try {
       await agentShutdown(selectedAgent.value!.id);
-      notifySuccess(`${selectedAgent.value!.hostname} будет выключен`);
+      notifySuccess(`${selectedAgent.value!.hostname} will be turned off`);
     } catch (error) {
-      console.error("[GPO] Error shutting down agent:", error);
-      notifyError("Ошибка при выключении агента");
+      notifyError("Error when turning off the agent");
     } finally {
       actionLoading.value = false;
     }
@@ -3294,14 +4056,14 @@ async function handleDelete() {
 
   const clean = DOMPurify.sanitize(selectedAgent.value.hostname);
   $q.dialog({
-    title: `Введите <code style="color:red">yes</code> для подтверждения удаления <span style="color:red">${clean}</span>.`,
+    title: `Enter <code style="color:red">yes</code> to confirm the deletion <span style="color:red">${clean}</span>.`,
     prompt: {
       model: "",
       type: "text",
       isValid: (val) => val.toLowerCase() === "yes",
     },
     cancel: true,
-    ok: { label: "Удалить", color: "negative" },
+    ok: { label: "Delete", color: "negative" },
     persistent: true,
     html: true,
   }).onOk(async () => {
@@ -3312,8 +4074,7 @@ async function handleDelete() {
       selectedAgent.value = null;
       await loadAgents();
     } catch (error) {
-      console.error("[GPO] Error deleting agent:", error);
-      notifyError("Ошибка при удалении агента");
+      notifyError("Error deleting the agent");
     } finally {
       actionLoading.value = false;
     }
@@ -3327,58 +4088,54 @@ async function handlePing() {
   pingResult.value = null;
   try {
     const data = await sendAgentPing(selectedAgent.value.id);
-    let message = "Неизвестный статус";
+    let message = "Unknown status";
     if (data.status === "online") {
-      message = "Агент доступен";
+      message = "Agent is available";
     } else if (data.status === "offline") {
-      message = "Агент недоступен";
+      message = "Agent is unavailable";
     }
     pingResult.value = {
       status: data.status || "unknown",
       message,
     };
     if (data.status === "online") {
-      notifySuccess("Ping успешен: агент онлайн");
+      notifySuccess("Ping successful: online agent");
     } else {
-      notifyError("Ping неудачен: агент офлайн");
+      notifyError("Ping unsuccessful: offline agent");
     }
   } catch (error) {
-    console.error("[GPO] Error pinging agent:", error);
     pingResult.value = {
       status: "error",
-      message: "Ошибка при выполнении ping",
+      message: "Error during execution ping",
     };
-    notifyError("Ошибка при выполнении ping");
+    notifyError("Error during execution ping");
   } finally {
     pingLoading.value = false;
   }
 }
 
 const onEditPolicy = (policy: unknown) => {
-  console.log("Edit policy:", policy);
   policyToEdit.value = policy as GPOPolicy;
   policyDialogMode.value = "edit";
   showPolicyDialog.value = true;
 };
 
 const onDeletePolicy = (policy: unknown) => {
-  console.log("Delete policy:", policy);
   const policyToDelete = policy as GPOPolicy;
   $q.dialog({
-    title: "Удалить политику?",
-    message: `Вы уверены, что хотите удалить политику "${policyToDelete.displayName || policyToDelete.name}"?`,
+    title: "Delete a policy?",
+    message: `Are you sure you want to delete the policy "${policyToDelete.displayName || policyToDelete.name}"?`,
     cancel: true,
     persistent: true,
-    ok: { label: "Удалить", color: "negative" },
+    ok: { label: "Delete", color: "negative" },
   }).onOk(async () => {
     try {
       await policiesStore.deletePolicy(policyToDelete.id);
-      notifySuccess("Политика успешно удалена");
+      notifySuccess("Policy was successfully deleted");
       await policiesStore.fetchPolicies();
       await treeStore.fetchPolicyTree();
     } catch (error) {
-      console.error("[GPO] Error deleting policy:", error);
-      notifyError("Ошибка при удалении политики");
+      notifyError("Error deleting the policy");
     }
   });
 };
@@ -3401,7 +4158,7 @@ const onClonePolicy = () => {
     policyToEdit.value = {
       ...policy,
       name: `${policy.name}_copy`,
-      displayName: `${policy.displayName || policy.name} (копия)`,
+      displayName: `${policy.displayName || policy.name} (copy)`,
       id: "",
     } as GPOPolicy;
     policyDialogMode.value = "clone";
@@ -3423,6 +4180,19 @@ watch(selectedPoliciesForManagement, (newSelection) => {
   }
 });
 
+watch(windowsTab, (newTab) => {
+  if (newTab && newTab.startsWith("admx-")) {
+    const groupName = newTab.replace("admx-", "");
+    if (selectedAdmxFileGroup.value !== groupName) {
+      selectedAdmxFile.value = null;
+      selectedAdmxFileGroup.value = null;
+      selectedAdmxPolicy.value = null;
+      admxPolicies.value = [];
+      admxPoliciesError.value = null;
+    }
+  }
+});
+
 const onPolicyFormSubmit = async (
   data: CreateGPOPolicyRequest | UpdateGPOPolicyRequest,
 ) => {
@@ -3432,13 +4202,13 @@ const onPolicyFormSubmit = async (
         policyToEdit.value.id,
         data as UpdateGPOPolicyRequest,
       );
-      notifySuccess("Политика успешно обновлена");
+      notifySuccess("Policy has been successfully updated");
     } else if (policyDialogMode.value === "clone" && policyToEdit.value) {
       await policiesStore.createPolicy(data as CreateGPOPolicyRequest);
-      notifySuccess("Политика успешно склонирована");
+      notifySuccess("Policy has been successfully clone");
     } else {
       await policiesStore.createPolicy(data as CreateGPOPolicyRequest);
-      notifySuccess("Политика успешно создана");
+      notifySuccess("Policy was successfully created");
     }
     showPolicyDialog.value = false;
     policyToEdit.value = null;
@@ -3447,8 +4217,7 @@ const onPolicyFormSubmit = async (
     await policiesStore.fetchPolicies();
     await treeStore.fetchPolicyTree();
   } catch (error) {
-    console.error("[GPO] Error saving policy:", error);
-    notifyError("Ошибка при сохранении политики");
+    notifyError("Error saving the policy");
   }
 };
 
@@ -3468,26 +4237,26 @@ const getAgentStatusColor = (status: string) => {
 const getAgentStatusLabel = (status: string) => {
   switch (status) {
     case "online":
-      return "Онлайн";
+      return "Online";
     case "offline":
-      return "Офлайн";
+      return "Offline";
     case "overdue":
-      return "Просрочен";
+      return "Overdue";
     default:
-      return "Неизвестно";
+      return "Unknown";
   }
 };
 
 const getAgentStatusTooltip = (status: string) => {
   switch (status) {
     case "online":
-      return "Устройство активно и отправляет heartbeat";
+      return "Device is active and sending heartbeat";
     case "offline":
-      return "Устройство недоступно";
+      return "Device is unavailable";
     case "overdue":
-      return "Устройство не отправляло heartbeat дольше установленного времени.";
+      return "Device did not send heartbeat longer than the set time.";
     default:
-      return "Статус неизвестен";
+      return "Status is unknown";
   }
 };
 
@@ -3499,12 +4268,31 @@ watch(mainTab, (newTab) => {
     if (!treeStore.tree.value) {
       treeStore.fetchPolicyTree();
     }
+  } else if (newTab === "windows") {
+    if (
+      admxGroups.value.length > 0 &&
+      (!windowsTab.value || !windowsTab.value.startsWith("admx-"))
+    ) {
+      windowsTab.value = `admx-${admxGroups.value[0].group}`;
+    }
   }
 });
 
 const openApplyPolicyDialog = () => {
   showApplyPolicyDialog.value = true;
 };
+
+const openApplyPolicyDialogForUser = (user: { sid: string; name: string }) => {
+  if (!selectedAgent.value) return;
+  initialUserSid.value = user.sid;
+  showApplyPolicyDialogForUser.value = true;
+};
+
+watch(showApplyPolicyDialogForUser, (newVal) => {
+  if (!newVal) {
+    initialUserSid.value = "";
+  }
+});
 
 const openAppliedPoliciesDialog = () => {
   if (!selectedAgent.value) return;
@@ -3520,8 +4308,8 @@ function onPolicySettingsApplied(
     loadAssignedPolicies(selectedAgent.value.id);
 
     addActionToHistory({
-      title: "Применение политики",
-      description: `Политика ${policyId} применена`,
+      title: "Policy application",
+      description: `Politics ${policyId} applied`,
       icon: "policy",
       color: "positive",
     });
@@ -3533,8 +4321,8 @@ function onPolicySettingsDisabled(policyId: string) {
     loadAssignedPolicies(selectedAgent.value.id);
 
     addActionToHistory({
-      title: "Отключение политики",
-      description: `Политика ${policyId} отключена`,
+      title: "Disabling policy",
+      description: `Politics ${policyId} disabled`,
       icon: "policy",
       color: "negative",
     });
@@ -3543,6 +4331,7 @@ function onPolicySettingsDisabled(policyId: string) {
 
 onMounted(() => {
   loadAgents();
+  loadAdmxData();
 
   if (mainTab.value === "library") {
     policiesStore.fetchPolicies();
@@ -3676,6 +4465,9 @@ onMounted(() => {
 .gpo-content-panels
   flex: 1
   overflow-y: auto
+  min-height: 0
+  display: flex
+  flex-direction: column
 
 .body--dark .gpo-sidebar
   background: linear-gradient(135deg, rgba(30, 30, 30, 0.98) 0%, rgba(40, 45, 55, 0.98) 100%)
@@ -3728,6 +4520,27 @@ onMounted(() => {
 
 .gpo-windows-sub-panels
   min-height: 300px
+
+.admx-tab-panel
+  height: 100%
+  display: flex
+  flex-direction: column
+  overflow: hidden
+  flex: 1
+  min-height: 0
+
+.admx-scroll-area
+  flex: 1
+  height: 100%
+  min-height: 0
+  width: 100%
+
+.gpo-content-panels .q-tab-panel.admx-tab-panel
+  height: 100%
+  display: flex
+  flex-direction: column
+  min-height: 0
+  overflow: hidden
 
 .table-container
   max-height: 600px

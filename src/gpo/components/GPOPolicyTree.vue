@@ -80,7 +80,6 @@ const expandedNodes = ref<string[]>([]);
 
 const treeNodes = computed<TreeNode[]>(() => {
   if (!props.tree) {
-    console.log("[GPOPolicyTree] Tree is null");
     return [];
   }
 
@@ -114,7 +113,6 @@ const treeNodes = computed<TreeNode[]>(() => {
   };
 
   const result = [convertNode(props.tree)];
-  console.log("[GPOPolicyTree] Converted tree nodes:", result);
   return result;
 });
 
@@ -127,7 +125,7 @@ const getNodeIcon = (node: TreeNode): string => {
     case "site":
       return "location_on";
     case "policy":
-      return "settings"; // Используем стандартную иконку вместо "policy"
+      return "settings";
     default:
       return "folder";
   }
