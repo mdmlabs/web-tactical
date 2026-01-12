@@ -99,6 +99,9 @@ export default function () {
       SET_CLIENT_SPLITTER(state, val) {
         state.clientTreeSplitter = val;
       },
+      setTableHeight(state, height) {
+        state.tableHeight = height;
+      },
       setShowCommunityScripts(state, show) {
         state.showCommunityScripts = show;
       },
@@ -203,17 +206,21 @@ export default function () {
         commit("AGENT_TABLE_LOADING", true);
 
         let localParams = null;
-        if (state.defaultAgentTblTab !== "mixed") {
+        if (
+          state.defaultAgentTblTab &&
+          state.defaultAgentTblTab !== "mixed" &&
+          state.defaultAgentTblTab !== "null"
+        ) {
           if (localParams)
             localParams += `&monitoring_type=${state.defaultAgentTblTab}`;
           else localParams = `?monitoring_type=${state.defaultAgentTblTab}`;
         }
 
-        if (state.selectedTree.includes("Client")) {
+        if (state.selectedTree && state.selectedTree.includes("Client")) {
           if (localParams)
             localParams += `&client=${state.selectedTree.split("|")[1]}`;
           else localParams = `?client=${state.selectedTree.split("|")[1]}`;
-        } else if (state.selectedTree.includes("Site")) {
+        } else if (state.selectedTree && state.selectedTree.includes("Site")) {
           if (localParams)
             localParams += `&site=${state.selectedTree.split("|")[1]}`;
           else localParams = `?site=${state.selectedTree.split("|")[1]}`;

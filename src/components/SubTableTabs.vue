@@ -167,7 +167,8 @@
 
 <script>
 // composition imports
-import { ref } from "vue";
+import { ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 // ui imports
 import SummaryTab from "@/components/agents/SummaryTab.vue";
@@ -213,8 +214,41 @@ export default {
     },
   },
   setup(props) {
+    const route = useRoute();
+    const router = useRouter();
+
+    // Получаем активную вкладку из URL или используем первую доступную
+    const getInitialTab = () => {
+      const tabFromUrl = route.query.tab;
+      if (tabFromUrl && props.activeTabs.includes(tabFromUrl)) {
+        return tabFromUrl;
+      }
+      return props.activeTabs[0];
+    };
+
+    const subtab = ref(getInitialTab());
+
+    // Обновляем URL при изменении вкладки
+    watch(subtab, (newTab) => {
+      if (route.query.tab !== newTab) {
+        router.replace({
+          query: { ...route.query, tab: newTab },
+        });
+      }
+    });
+
+    // Синхронизируем с URL при изменении маршрута
+    watch(
+      () => route.query.tab,
+      (newTab) => {
+        if (newTab && props.activeTabs.includes(newTab) && subtab.value !== newTab) {
+          subtab.value = newTab;
+        }
+      }
+    );
+
     return {
-      subtab: ref(props.activeTabs[0]),
+      subtab,
     };
   },
 };

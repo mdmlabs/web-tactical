@@ -226,204 +226,196 @@
       </template>
 
       <template v-slot:after>
-        <q-splitter
-          v-model="innerModel"
-          reverse
-          unit="px"
-          horizontal
-          @update:model-value="$store.commit('SET_SPLITTER', innerModel)"
-          after-class="hide-scrollbar"
-          before-class="hide-scrollbar"
-          emit-immediately
-        >
-          <template v-slot:before>
-            <div class="row">
-              <q-tabs
-                v-model="tab"
-                dense
-                no-caps
-                inline-label
-                class="text-grey"
-                active-color="primary"
-                indicator-color="primary"
-                align="left"
-                narrow-indicator
-              >
-                <q-tab name="server" icon="dns" label="Servers" />
-                <q-tab name="workstation" icon="laptop" label="Workstations" />
-                <q-tab name="mixed" icon="view_module" label="Mixed" />
-              </q-tabs>
-              <q-space />
-              <q-input
-                v-model="search"
-                style="width: 450px"
-                label="Search"
-                dense
-                outlined
-                clearable
-                @clear="clearFilter"
-                class="q-pr-md q-pb-xs"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="manage_search" color="primary" />
-                </template>
-                <template v-slot:after>
-                  <q-btn
-                    round
-                    dense
-                    flat
-                    icon="tune"
-                    :color="isFilteringTable ? 'green' : ''"
-                  >
-                    <q-menu>
-                      <q-list dense>
-                        <q-item-label header>Filter Agent Table</q-item-label>
+        <div class="column full-height" style="overflow: hidden">
+          <div class="row q-pb-xs no-wrap">
+            <q-tabs
+              v-model="tab"
+              dense
+              no-caps
+              inline-label
+              class="text-grey"
+              active-color="primary"
+              indicator-color="primary"
+              align="left"
+              narrow-indicator
+            >
+              <q-tab name="server" icon="dns" label="Servers" />
+              <q-tab name="workstation" icon="laptop" label="Workstations" />
+              <q-tab name="mixed" icon="view_module" label="Mixed" />
+            </q-tabs>
+            <q-space />
+            <q-btn
+              round
+              dense
+              flat
+              :icon="showAlertColumns ? 'visibility' : 'visibility_off'"
+              :color="showAlertColumns ? 'primary' : 'grey'"
+              @click="showAlertColumns = !showAlertColumns"
+              class="q-mr-sm"
+            >
+              <q-tooltip>
+                {{
+                  showAlertColumns
+                    ? "Hide notification columns"
+                    : "Show notification columns"
+                }}
+              </q-tooltip>
+            </q-btn>
+            <q-input
+              v-model="search"
+              style="width: 450px"
+              label="Search"
+              dense
+              outlined
+              clearable
+              @clear="clearFilter"
+              class="q-pr-md q-pb-xs"
+            >
+              <template v-slot:prepend>
+                <q-icon name="manage_search" color="primary" />
+              </template>
+              <template v-slot:after>
+                <q-btn
+                  round
+                  dense
+                  flat
+                  icon="tune"
+                  :color="isFilteringTable ? 'green' : ''"
+                >
+                  <q-menu>
+                    <q-list dense>
+                      <q-item-label header>Filter Agent Table</q-item-label>
 
-                        <q-item>
-                          <q-item-section side>
-                            <q-checkbox v-model="filterChecksFailing" />
-                          </q-item-section>
+                      <q-item>
+                        <q-item-section side>
+                          <q-checkbox v-model="filterChecksFailing" />
+                        </q-item-section>
 
-                          <q-item-section>
-                            <q-item-label>Checks Failing</q-item-label>
-                          </q-item-section>
-                        </q-item>
+                        <q-item-section>
+                          <q-item-label>Checks Failing</q-item-label>
+                        </q-item-section>
+                      </q-item>
 
-                        <q-item>
-                          <q-item-section side>
-                            <q-checkbox v-model="filterPatchesPending" />
-                          </q-item-section>
+                      <q-item>
+                        <q-item-section side>
+                          <q-checkbox v-model="filterPatchesPending" />
+                        </q-item-section>
 
-                          <q-item-section>
-                            <q-item-label>Patches Pending</q-item-label>
-                          </q-item-section>
-                        </q-item>
+                        <q-item-section>
+                          <q-item-label>Patches Pending</q-item-label>
+                        </q-item-section>
+                      </q-item>
 
-                        <q-item>
-                          <q-item-section side>
-                            <q-checkbox v-model="filterActionsPending" />
-                          </q-item-section>
+                      <q-item>
+                        <q-item-section side>
+                          <q-checkbox v-model="filterActionsPending" />
+                        </q-item-section>
 
-                          <q-item-section>
-                            <q-item-label>Actions Pending</q-item-label>
-                          </q-item-section>
-                        </q-item>
+                        <q-item-section>
+                          <q-item-label>Actions Pending</q-item-label>
+                        </q-item-section>
+                      </q-item>
 
-                        <q-item>
-                          <q-item-section side>
-                            <q-checkbox v-model="filterRebootNeeded" />
-                          </q-item-section>
+                      <q-item>
+                        <q-item-section side>
+                          <q-checkbox v-model="filterRebootNeeded" />
+                        </q-item-section>
 
-                          <q-item-section>
-                            <q-item-label>Reboot Needed</q-item-label>
-                          </q-item-section>
-                        </q-item>
+                        <q-item-section>
+                          <q-item-label>Reboot Needed</q-item-label>
+                        </q-item-section>
+                      </q-item>
 
-                        <q-item-label header>Availability</q-item-label>
+                      <q-item-label header>Availability</q-item-label>
 
-                        <q-item>
-                          <q-item-section side>
-                            <q-radio val="all" v-model="filterAvailability" />
-                          </q-item-section>
+                      <q-item>
+                        <q-item-section side>
+                          <q-radio val="all" v-model="filterAvailability" />
+                        </q-item-section>
 
-                          <q-item-section>
-                            <q-item-label>Show All Agents</q-item-label>
-                          </q-item-section>
-                        </q-item>
+                        <q-item-section>
+                          <q-item-label>Show All Agents</q-item-label>
+                        </q-item-section>
+                      </q-item>
 
-                        <q-item>
-                          <q-item-section side>
-                            <q-radio
-                              val="online"
-                              v-model="filterAvailability"
-                            />
-                          </q-item-section>
+                      <q-item>
+                        <q-item-section side>
+                          <q-radio val="online" v-model="filterAvailability" />
+                        </q-item-section>
 
-                          <q-item-section>
-                            <q-item-label>Show Online Only</q-item-label>
-                          </q-item-section>
-                        </q-item>
+                        <q-item-section>
+                          <q-item-label>Show Online Only</q-item-label>
+                        </q-item-section>
+                      </q-item>
 
-                        <q-item>
-                          <q-item-section side>
-                            <q-radio
-                              val="offline"
-                              v-model="filterAvailability"
-                            />
-                          </q-item-section>
+                      <q-item>
+                        <q-item-section side>
+                          <q-radio val="offline" v-model="filterAvailability" />
+                        </q-item-section>
 
-                          <q-item-section>
-                            <q-item-label>Show Offline Only</q-item-label>
-                          </q-item-section>
-                        </q-item>
+                        <q-item-section>
+                          <q-item-label>Show Offline Only</q-item-label>
+                        </q-item-section>
+                      </q-item>
 
-                        <q-item>
-                          <q-item-section side>
-                            <q-radio
-                              val="overdue"
-                              v-model="filterAvailability"
-                            />
-                          </q-item-section>
+                      <q-item>
+                        <q-item-section side>
+                          <q-radio val="overdue" v-model="filterAvailability" />
+                        </q-item-section>
 
-                          <q-item-section>
-                            <q-item-label>Show Overdue Only</q-item-label>
-                          </q-item-section>
-                        </q-item>
+                        <q-item-section>
+                          <q-item-label>Show Overdue Only</q-item-label>
+                        </q-item-section>
+                      </q-item>
 
-                        <q-item>
-                          <q-item-section side>
-                            <q-radio
-                              val="offline_30days"
-                              v-model="filterAvailability"
-                            />
-                          </q-item-section>
-
-                          <q-item-section>
-                            <q-item-label
-                              >Show Offline for over 30 days</q-item-label
-                            >
-                          </q-item-section>
-                        </q-item>
-                      </q-list>
-
-                      <div class="row no-wrap q-pa-md">
-                        <div class="column">
-                          <q-btn
-                            v-close-popup
-                            label="Apply"
-                            color="primary"
-                            @click="applyFilter"
+                      <q-item>
+                        <q-item-section side>
+                          <q-radio
+                            val="offline_30days"
+                            v-model="filterAvailability"
                           />
-                        </div>
-                        <q-space />
-                        <div class="column">
-                          <q-btn label="Clear" @click="clearFilter" />
-                        </div>
+                        </q-item-section>
+
+                        <q-item-section>
+                          <q-item-label
+                            >Show Offline for over 30 days</q-item-label
+                          >
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+
+                    <div class="row no-wrap q-pa-md">
+                      <div class="column">
+                        <q-btn
+                          v-close-popup
+                          label="Apply"
+                          color="primary"
+                          @click="applyFilter"
+                        />
                       </div>
-                    </q-menu>
-                  </q-btn>
-                </template>
-              </q-input>
-            </div>
+                      <q-space />
+                      <div class="column">
+                        <q-btn label="Clear" @click="clearFilter" />
+                      </div>
+                    </div>
+                  </q-menu>
+                </q-btn>
+              </template>
+            </q-input>
+          </div>
+          <div
+            class="col"
+            style="flex: 1 1 auto; min-height: 0; overflow: hidden"
+          >
             <AgentTable
               :agents="filteredAgents"
               :columns="columns"
               :search="search"
               :visibleColumns="visibleColumns"
+              :showAlertColumns="showAlertColumns"
             />
-          </template>
-          <template v-slot:separator>
-            <q-avatar
-              color="primary"
-              text-color="white"
-              size="20px"
-              icon="more_vert"
-            />
-          </template>
-          <template v-slot:after>
-            <SubTableTabs />
-          </template>
-        </q-splitter>
+          </div>
+        </div>
       </template>
     </q-splitter>
 
@@ -439,7 +431,6 @@ import mixins from "@/mixins/mixins";
 import { openURL } from "quasar";
 import { mapState } from "vuex";
 import AgentTable from "@/components/AgentTable.vue";
-import SubTableTabs from "@/components/SubTableTabs.vue";
 import PolicyAdd from "@/components/automation/modals/PolicyAdd.vue";
 import ClientsForm from "@/components/clients/ClientsForm.vue";
 import SitesForm from "@/components/clients/SitesForm.vue";
@@ -454,16 +445,13 @@ export default {
   name: "DashboardView",
   components: {
     AgentTable,
-    SubTableTabs,
     InstallAgent,
     IntegrationsContextMenu,
   },
   // allow child components to refresh table
   provide() {
     return {
-      refreshDashboard: (clearTreeSelected, clearSubTable) => {
-        if (clearSubTable) this.$store.commit("destroySubTable");
-
+      refreshDashboard: (clearTreeSelected) => {
         this.$store.dispatch("refreshDashboard", clearTreeSelected);
       },
     };
@@ -473,7 +461,6 @@ export default {
     return {
       showInstallAgentModal: false,
       sitePk: null,
-      innerModel: (this.$q.screen.height - 82) / 2,
       search: this.$route.query.search ? this.$route.query.search : "",
       filterTextLength: 0,
       filterAvailability: "all",
@@ -482,6 +469,7 @@ export default {
       filterChecksFailing: false,
       filterRebootNeeded: false,
       urlActions: [],
+      showAlertColumns: false,
       columns: [
         {
           name: "smsalert",
@@ -860,7 +848,6 @@ export default {
       },
       set(newVal) {
         this.$store.commit("SET_DEFAULT_AGENT_TBL_TAB", newVal);
-        this.$store.commit("destroySubTable");
       },
     },
     selectedTree: {
@@ -869,7 +856,6 @@ export default {
       },
       set(newVal) {
         this.$store.commit("setSelectedTree", newVal);
-        this.$store.commit("destroySubTable");
       },
     },
     allClientsActive() {
@@ -892,8 +878,8 @@ export default {
   mounted() {
     this.getTree();
 
-    // set initial value for agent table and agent tabs
-    this.$store.commit("SET_SPLITTER", this.innerModel);
+    const tableHeight = this.$q.screen.height - 50 - 40 - 80;
+    this.$store.commit("setTableHeight", `${tableHeight}px`);
   },
 };
 </script>
@@ -922,5 +908,10 @@ export default {
 .my-menu-link {
   color: white;
   background: lightgray;
+}
+
+.dashboard-page .row,
+.dashboard-page .column {
+  flex-wrap: nowrap !important;
 }
 </style>
