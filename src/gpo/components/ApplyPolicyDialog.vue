@@ -81,32 +81,35 @@
 
               <div class="col-3">
                 <q-card flat bordered class="full-height">
-                  <q-card-section>
+                  <q-card-section class="policy-list-section">
                     <div class="text-subtitle2 q-mb-md">Policies</div>
                     <div v-if="loadingPolicies" class="text-center q-pa-lg">
                       <q-spinner color="primary" size="2em" />
                       <div class="q-mt-sm">Loading policies...</div>
                     </div>
-                    <q-list
+                    <q-scroll-area
                       v-else-if="selectedCategoryPolicies.length > 0"
-                      separator
+                      class="policy-list-scroll"
+                      :style="{ height: 'calc(100vh - 320px)' }"
                     >
-                      <q-item
-                        v-for="policy in selectedCategoryPolicies"
-                        :key="policy.id"
-                        clickable
-                        v-ripple
-                        :active="selectedPolicy?.id === policy.id"
-                        @click="selectPolicy(policy)"
-                        class="policy-item"
-                      >
-                        <q-item-section>
-                          <q-item-label>{{
-                            policy.displayName || policy.name
-                          }}</q-item-label>
-                        </q-item-section>
-                      </q-item>
-                    </q-list>
+                      <q-list separator>
+                        <q-item
+                          v-for="policy in selectedCategoryPolicies"
+                          :key="policy.id"
+                          clickable
+                          v-ripple
+                          :active="selectedPolicy?.id === policy.id"
+                          @click="selectPolicy(policy)"
+                          class="policy-item"
+                        >
+                          <q-item-section>
+                            <q-item-label>{{
+                              policy.displayName || policy.name
+                            }}</q-item-label>
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+                    </q-scroll-area>
                     <div
                       v-else-if="selectedCategory"
                       class="text-center q-pa-lg text-grey-6"
@@ -124,7 +127,10 @@
 
               <div class="col-6">
                 <q-card flat bordered class="full-height">
-                  <q-card-section v-if="selectedPolicy">
+                  <q-card-section
+                    v-if="selectedPolicy"
+                    class="policy-settings-section"
+                  >
                     <q-tabs
                       v-model="settingsTab"
                       dense
@@ -150,421 +156,395 @@
 
                     <q-separator class="q-mt-sm" />
 
-                    <q-tab-panels
-                      v-model="settingsTab"
-                      class="q-mt-md"
-                      style="height: calc(100% - 100px); overflow-y: auto"
+                    <q-scroll-area
+                      class="policy-tab-panels-scroll"
+                      :style="{ height: 'calc(100vh - 370px)' }"
                     >
-                      <q-tab-panel name="settings" class="q-pa-none">
-                        <div
-                          v-if="loadingPolicyDetails"
-                          class="text-center q-pa-lg"
-                        >
-                          <q-spinner color="primary" size="2em" />
-                          <div class="q-mt-sm">Loading settings...</div>
-                        </div>
+                      <q-tab-panels v-model="settingsTab" class="q-mt-md">
+                        <q-tab-panel name="settings" class="q-pa-none">
+                          <div
+                            v-if="loadingPolicyDetails"
+                            class="text-center q-pa-lg"
+                          >
+                            <q-spinner color="primary" size="2em" />
+                            <div class="q-mt-sm">Loading settings...</div>
+                          </div>
 
-                        <div
-                          v-else-if="policyDetailsElements.length === 0"
-                          class="text-center q-pa-lg text-grey-6"
-                        >
-                          <q-icon name="info" size="2em" />
-                          <div class="q-mt-sm">No additional settings</div>
-                        </div>
+                          <div
+                            v-else-if="policyDetailsElements.length === 0"
+                            class="text-center q-pa-lg text-grey-6"
+                          >
+                            <q-icon name="info" size="2em" />
+                            <div class="q-mt-sm">No additional settings</div>
+                          </div>
 
-                        <div v-else class="policy-settings-form">
-                          <q-form>
-                            <div
-                              v-for="element in policyDetailsElements"
-                              :key="element.id"
-                              class="q-mb-md"
-                            >
-                              <div class="policy-element">
-                                <div class="text-subtitle2 q-mb-xs">
-                                  {{
-                                    element.display_name || element.element_id
-                                  }}
-                                </div>
-                                <div
-                                  v-if="element.description"
-                                  class="text-caption text-grey-7 q-mb-sm"
-                                >
-                                  {{ element.description }}
-                                </div>
+                          <div v-else class="policy-settings-form">
+                            <q-form>
+                              <div
+                                v-for="element in policyDetailsElements"
+                                :key="element.id"
+                                class="q-mb-md"
+                              >
+                                <div class="policy-element">
+                                  <div class="text-subtitle2 q-mb-xs">
+                                    {{
+                                      element.display_name || element.element_id
+                                    }}
+                                  </div>
+                                  <div
+                                    v-if="element.description"
+                                    class="text-caption text-grey-7 q-mb-sm"
+                                  >
+                                    {{ element.description }}
+                                  </div>
 
-                                <q-toggle
-                                  v-if="
-                                    element.type === 'CHECKBOX' ||
-                                    element.type === 'BOOL' ||
-                                    element.type === 'boolean' ||
-                                    element.type === 'checkBox' ||
-                                    element.presentation_type?.toLowerCase() ===
-                                      'checkbox' ||
-                                    element.presentation_type?.toLowerCase() ===
-                                      'check_box' ||
-                                    element.presentation_type === 'checkBox'
-                                  "
-                                  :model-value="
-                                    (policySettingsValues[
-                                      element.element_id
-                                    ] as boolean) || false
-                                  "
-                                  @update:model-value="
-                                    policySettingsValues[element.element_id] =
-                                      $event
-                                  "
-                                  :label="
-                                    element.display_name || element.element_id
-                                  "
-                                  color="primary"
-                                />
-
-                                <q-input
-                                  v-else-if="
-                                    element.type === 'TEXT' ||
-                                    element.type === 'STRING' ||
-                                    element.type === 'string' ||
-                                    element.type === 'text' ||
-                                    element.type === 'multiTextbox' ||
-                                    element.type === 'multiTextBox' ||
-                                    element.presentation_type?.toLowerCase() ===
-                                      'textbox' ||
-                                    element.presentation_type?.toLowerCase() ===
-                                      'text_box' ||
-                                    element.presentation_type?.toLowerCase() ===
-                                      'text' ||
-                                    element.presentation_type?.toLowerCase() ===
-                                      'multitextbox' ||
-                                    element.presentation_type?.toLowerCase() ===
-                                      'multi_textbox' ||
-                                    element.presentation_type ===
-                                      'multiTextbox' ||
-                                    element.presentation_type === 'multiTextBox'
-                                  "
-                                  :model-value="
-                                    String(
-                                      policySettingsValues[
+                                  <q-toggle
+                                    v-if="
+                                      element.type === 'CHECKBOX' ||
+                                      element.type === 'BOOL' ||
+                                      element.type === 'boolean' ||
+                                      element.type === 'checkBox' ||
+                                      element.presentation_type?.toLowerCase() ===
+                                        'checkbox' ||
+                                      element.presentation_type?.toLowerCase() ===
+                                        'check_box' ||
+                                      element.presentation_type === 'checkBox'
+                                    "
+                                    :model-value="
+                                      (policySettingsValues[
                                         element.element_id
-                                      ] || '',
-                                    )
-                                  "
-                                  @update:model-value="
-                                    policySettingsValues[element.element_id] =
-                                      $event
-                                  "
-                                  :label="
-                                    element.display_name || element.element_id
-                                  "
-                                  :maxlength="element.max_length"
-                                  :type="
-                                    element.type === 'multiTextbox' ||
-                                    element.type === 'multiTextBox' ||
-                                    element.presentation_type?.toLowerCase() ===
-                                      'multitextbox' ||
-                                    element.presentation_type?.toLowerCase() ===
-                                      'multi_textbox' ||
-                                    element.presentation_type ===
-                                      'multiTextbox' ||
-                                    element.presentation_type === 'multiTextBox'
-                                      ? 'textarea'
-                                      : 'text'
-                                  "
-                                  :rows="
-                                    element.type === 'multiTextbox' ||
-                                    element.type === 'multiTextBox' ||
-                                    element.presentation_type?.toLowerCase() ===
-                                      'multitextbox' ||
-                                    element.presentation_type?.toLowerCase() ===
-                                      'multi_textbox' ||
-                                    element.presentation_type ===
-                                      'multiTextbox' ||
-                                    element.presentation_type === 'multiTextBox'
-                                      ? 3
-                                      : undefined
-                                  "
-                                  :hint="
-                                    element.required ? 'Required field' : ''
-                                  "
-                                  outlined
-                                  dense
-                                />
+                                      ] as boolean) || false
+                                    "
+                                    @update:model-value="
+                                      policySettingsValues[element.element_id] =
+                                        $event
+                                    "
+                                    :label="
+                                      element.display_name || element.element_id
+                                    "
+                                    color="primary"
+                                  />
 
-                                <q-input
-                                  v-else-if="
-                                    element.type === 'NUMERIC' ||
-                                    element.type === 'INT' ||
-                                    element.type === 'int' ||
-                                    element.type === 'number' ||
-                                    element.type === 'decimalTextbox' ||
-                                    element.type === 'decimalTextBox' ||
-                                    element.value_type === 'decimal' ||
-                                    element.value_type === 'int' ||
-                                    element.value_type === 'integer' ||
-                                    element.presentation_type ===
-                                      'decimalTextbox' ||
-                                    element.presentation_type ===
-                                      'decimalTextBox'
-                                  "
-                                  :model-value="
-                                    Number(
-                                      policySettingsValues[
-                                        element.element_id
-                                      ] || 0,
-                                    )
-                                  "
-                                  @update:model-value="
-                                    policySettingsValues[element.element_id] =
-                                      $event
-                                  "
-                                  :label="
-                                    element.display_name || element.element_id
-                                  "
-                                  type="number"
-                                  :min="element.min_value"
-                                  :max="element.max_value"
-                                  :step="
-                                    element.value_type === 'decimal' ||
-                                    element.type === 'decimalTextbox' ||
-                                    element.type === 'decimalTextBox' ||
-                                    element.presentation_type ===
-                                      'decimalTextbox' ||
-                                    element.presentation_type ===
-                                      'decimalTextBox'
-                                      ? 0.01
-                                      : 1
-                                  "
-                                  :hint="
-                                    element.required ? 'Required field' : ''
-                                  "
-                                  outlined
-                                  dense
-                                />
-
-                                <q-select
-                                  v-else-if="
-                                    (element.type === 'LIST' ||
-                                      element.type === 'list' ||
-                                      element.type === 'List' ||
-                                      element.type === 'enum' ||
-                                      element.type === 'dropdownList' ||
+                                  <q-input
+                                    v-else-if="
+                                      element.type === 'TEXT' ||
+                                      element.type === 'STRING' ||
+                                      element.type === 'string' ||
+                                      element.type === 'text' ||
+                                      element.type === 'multiTextbox' ||
+                                      element.type === 'multiTextBox' ||
                                       element.presentation_type?.toLowerCase() ===
-                                        'dropdownlist' ||
+                                        'textbox' ||
                                       element.presentation_type?.toLowerCase() ===
-                                        'dropdown_list' ||
+                                        'text_box' ||
                                       element.presentation_type?.toLowerCase() ===
-                                        'dropdown' ||
+                                        'text' ||
+                                      element.presentation_type?.toLowerCase() ===
+                                        'multitextbox' ||
+                                      element.presentation_type?.toLowerCase() ===
+                                        'multi_textbox' ||
                                       element.presentation_type ===
-                                        'dropdownList') &&
-                                    element.items &&
-                                    element.items.length > 0
-                                  "
-                                  :model-value="
-                                    policySettingsValues[element.element_id] ??
-                                    null
-                                  "
-                                  @update:model-value="
-                                    policySettingsValues[element.element_id] =
-                                      $event
-                                  "
-                                  :label="
-                                    element.display_name || element.element_id
-                                  "
-                                  :options="element.items"
-                                  option-label="display_name"
-                                  option-value="id"
-                                  :hint="
-                                    (element.required ? 'Required field' : '') +
-                                    (element.value_type
-                                      ? ` (value type: ${element.value_type})`
-                                      : '')
-                                  "
-                                  outlined
-                                  dense
-                                  emit-value
-                                  map-options
-                                >
-                                  <template v-slot:option="scope">
-                                    <q-item v-bind="scope.itemProps">
-                                      <q-item-section>
-                                        <q-item-label>{{
-                                          scope.opt.display_name ||
-                                          scope.opt.name ||
-                                          `Value ${scope.opt.id}`
-                                        }}</q-item-label>
-                                      </q-item-section>
-                                    </q-item>
-                                  </template>
-                                </q-select>
+                                        'multiTextbox' ||
+                                      element.presentation_type ===
+                                        'multiTextBox'
+                                    "
+                                    :model-value="
+                                      String(
+                                        policySettingsValues[
+                                          element.element_id
+                                        ] || '',
+                                      )
+                                    "
+                                    @update:model-value="
+                                      policySettingsValues[element.element_id] =
+                                        $event
+                                    "
+                                    :label="
+                                      element.display_name || element.element_id
+                                    "
+                                    :maxlength="element.max_length"
+                                    :type="
+                                      element.type === 'multiTextbox' ||
+                                      element.type === 'multiTextBox' ||
+                                      element.presentation_type?.toLowerCase() ===
+                                        'multitextbox' ||
+                                      element.presentation_type?.toLowerCase() ===
+                                        'multi_textbox' ||
+                                      element.presentation_type ===
+                                        'multiTextbox' ||
+                                      element.presentation_type ===
+                                        'multiTextBox'
+                                        ? 'textarea'
+                                        : 'text'
+                                    "
+                                    :rows="
+                                      element.type === 'multiTextbox' ||
+                                      element.type === 'multiTextBox' ||
+                                      element.presentation_type?.toLowerCase() ===
+                                        'multitextbox' ||
+                                      element.presentation_type?.toLowerCase() ===
+                                        'multi_textbox' ||
+                                      element.presentation_type ===
+                                        'multiTextbox' ||
+                                      element.presentation_type ===
+                                        'multiTextBox'
+                                        ? 3
+                                        : undefined
+                                    "
+                                    :hint="
+                                      element.required ? 'Required field' : ''
+                                    "
+                                    outlined
+                                    dense
+                                  />
 
-                                <q-select
-                                  v-else-if="
-                                    element.type === 'List' ||
-                                    element.presentation_type?.toLowerCase() ===
-                                      'multibox' ||
-                                    element.presentation_type?.toLowerCase() ===
-                                      'multi_box' ||
-                                    element.presentation_type?.toLowerCase() ===
-                                      'listbox' ||
-                                    element.presentation_type?.toLowerCase() ===
-                                      'list_box' ||
-                                    element.presentation_type?.toLowerCase() ===
-                                      'list' ||
-                                    element.presentation_type === 'List' ||
-                                    (element.type === 'LIST' &&
-                                      element.items &&
-                                      element.items.length > 0 &&
-                                      (element.presentation_type?.toLowerCase() ===
-                                        'listbox' ||
+                                  <q-input
+                                    v-else-if="
+                                      element.type === 'NUMERIC' ||
+                                      element.type === 'INT' ||
+                                      element.type === 'int' ||
+                                      element.type === 'number' ||
+                                      element.type === 'decimalTextbox' ||
+                                      element.type === 'decimalTextBox' ||
+                                      element.value_type === 'decimal' ||
+                                      element.value_type === 'int' ||
+                                      element.value_type === 'integer' ||
+                                      element.presentation_type ===
+                                        'decimalTextbox' ||
+                                      element.presentation_type ===
+                                        'decimalTextBox'
+                                    "
+                                    :model-value="
+                                      Number(
+                                        policySettingsValues[
+                                          element.element_id
+                                        ] || 0,
+                                      )
+                                    "
+                                    @update:model-value="
+                                      policySettingsValues[element.element_id] =
+                                        $event
+                                    "
+                                    :label="
+                                      element.display_name || element.element_id
+                                    "
+                                    type="number"
+                                    :min="element.min_value"
+                                    :max="element.max_value"
+                                    :step="
+                                      element.value_type === 'decimal' ||
+                                      element.type === 'decimalTextbox' ||
+                                      element.type === 'decimalTextBox' ||
+                                      element.presentation_type ===
+                                        'decimalTextbox' ||
+                                      element.presentation_type ===
+                                        'decimalTextBox'
+                                        ? 0.01
+                                        : 1
+                                    "
+                                    :hint="
+                                      element.required ? 'Required field' : ''
+                                    "
+                                    outlined
+                                    dense
+                                  />
+
+                                  <q-select
+                                    v-else-if="
+                                      (element.type === 'LIST' ||
+                                        element.type === 'list' ||
+                                        element.type === 'List' ||
+                                        element.type === 'enum' ||
+                                        element.type === 'dropdownList' ||
                                         element.presentation_type?.toLowerCase() ===
-                                          'list'))
-                                  "
-                                  :model-value="
-                                    (policySettingsValues[
-                                      element.element_id
-                                    ] as unknown[]) || []
-                                  "
-                                  @update:model-value="
-                                    policySettingsValues[element.element_id] =
-                                      $event
-                                  "
-                                  :label="
-                                    element.display_name || element.element_id
-                                  "
-                                  :options="element.items"
-                                  option-label="display_name"
-                                  option-value="id"
-                                  multiple
-                                  use-chips
-                                  :hint="
-                                    (element.required ? 'Required field' : '') +
-                                    (element.value_type
-                                      ? ` (value type: ${element.value_type})`
-                                      : '')
-                                  "
-                                  outlined
-                                  dense
-                                  emit-value
-                                  map-options
-                                >
-                                  <template v-slot:option="scope">
-                                    <q-item v-bind="scope.itemProps">
-                                      <q-item-section>
-                                        <q-item-label>{{
-                                          scope.opt.display_name ||
-                                          scope.opt.name ||
-                                          `Value ${scope.opt.id}`
-                                        }}</q-item-label>
-                                      </q-item-section>
-                                    </q-item>
-                                  </template>
-                                </q-select>
-
-                                <q-input
-                                  v-else
-                                  :model-value="
-                                    String(
+                                          'dropdownlist' ||
+                                        element.presentation_type?.toLowerCase() ===
+                                          'dropdown_list' ||
+                                        element.presentation_type?.toLowerCase() ===
+                                          'dropdown' ||
+                                        element.presentation_type ===
+                                          'dropdownList') &&
+                                      element.items &&
+                                      element.items.length > 0
+                                    "
+                                    :model-value="
                                       policySettingsValues[
                                         element.element_id
-                                      ] || '',
-                                    )
-                                  "
-                                  @update:model-value="
-                                    policySettingsValues[element.element_id] =
-                                      $event
-                                  "
-                                  :label="
-                                    element.display_name || element.element_id
-                                  "
-                                  :hint="`Type: ${element.type}${element.required ? ' (required)' : ''}`"
-                                  outlined
-                                  dense
-                                />
+                                      ] ?? null
+                                    "
+                                    @update:model-value="
+                                      policySettingsValues[element.element_id] =
+                                        $event
+                                    "
+                                    :label="
+                                      element.display_name || element.element_id
+                                    "
+                                    :options="element.items"
+                                    option-label="display_name"
+                                    option-value="id"
+                                    :hint="
+                                      (element.required
+                                        ? 'Required field'
+                                        : '') +
+                                      (element.value_type
+                                        ? ` (value type: ${element.value_type})`
+                                        : '')
+                                    "
+                                    outlined
+                                    dense
+                                    emit-value
+                                    map-options
+                                  >
+                                    <template v-slot:option="scope">
+                                      <q-item v-bind="scope.itemProps">
+                                        <q-item-section>
+                                          <q-item-label>{{
+                                            scope.opt.display_name ||
+                                            scope.opt.name ||
+                                            `Value ${scope.opt.id}`
+                                          }}</q-item-label>
+                                        </q-item-section>
+                                      </q-item>
+                                    </template>
+                                  </q-select>
+
+                                  <q-select
+                                    v-else-if="
+                                      element.type === 'List' ||
+                                      element.presentation_type?.toLowerCase() ===
+                                        'multibox' ||
+                                      element.presentation_type?.toLowerCase() ===
+                                        'multi_box' ||
+                                      element.presentation_type?.toLowerCase() ===
+                                        'listbox' ||
+                                      element.presentation_type?.toLowerCase() ===
+                                        'list_box' ||
+                                      element.presentation_type?.toLowerCase() ===
+                                        'list' ||
+                                      element.presentation_type === 'List' ||
+                                      (element.type === 'LIST' &&
+                                        element.items &&
+                                        element.items.length > 0 &&
+                                        (element.presentation_type?.toLowerCase() ===
+                                          'listbox' ||
+                                          element.presentation_type?.toLowerCase() ===
+                                            'list'))
+                                    "
+                                    :model-value="
+                                      (policySettingsValues[
+                                        element.element_id
+                                      ] as unknown[]) || []
+                                    "
+                                    @update:model-value="
+                                      policySettingsValues[element.element_id] =
+                                        $event
+                                    "
+                                    :label="
+                                      element.display_name || element.element_id
+                                    "
+                                    :options="element.items || []"
+                                    option-label="display_name"
+                                    option-value="id"
+                                    multiple
+                                    use-chips
+                                    use-input
+                                    hide-dropdown-icon
+                                    input-debounce="0"
+                                    new-value-mode="add"
+                                    :hint="
+                                      (element.required
+                                        ? 'Required field'
+                                        : '') +
+                                      (element.value_type
+                                        ? ` (value type: ${element.value_type})`
+                                        : '')
+                                    "
+                                    outlined
+                                    dense
+                                    emit-value
+                                    map-options
+                                  >
+                                    <template v-slot:option="scope">
+                                      <q-item v-bind="scope.itemProps">
+                                        <q-item-section>
+                                          <q-item-label>{{
+                                            scope.opt.display_name ||
+                                            scope.opt.name ||
+                                            `Value ${scope.opt.id}`
+                                          }}</q-item-label>
+                                        </q-item-section>
+                                      </q-item>
+                                    </template>
+                                  </q-select>
+
+                                  <q-input
+                                    v-else
+                                    :model-value="
+                                      String(
+                                        policySettingsValues[
+                                          element.element_id
+                                        ] || '',
+                                      )
+                                    "
+                                    @update:model-value="
+                                      policySettingsValues[element.element_id] =
+                                        $event
+                                    "
+                                    :label="
+                                      element.display_name || element.element_id
+                                    "
+                                    :hint="`Type: ${element.type}${element.required ? ' (required)' : ''}`"
+                                    outlined
+                                    dense
+                                  />
+                                </div>
                               </div>
-                            </div>
-                          </q-form>
-                        </div>
-                      </q-tab-panel>
+                            </q-form>
+                          </div>
+                        </q-tab-panel>
 
-                      <q-tab-panel name="description" class="q-pa-none">
-                        <div
-                          v-if="loadingPolicyDetails"
-                          class="text-center q-pa-lg"
-                        >
-                          <q-spinner color="primary" size="2em" />
-                          <div class="q-mt-sm">Loading description...</div>
-                        </div>
+                        <q-tab-panel name="description" class="q-pa-none">
+                          <div
+                            v-if="loadingPolicyDetails"
+                            class="text-center q-pa-lg"
+                          >
+                            <q-spinner color="primary" size="2em" />
+                            <div class="q-mt-sm">Loading description...</div>
+                          </div>
 
-                        <div
-                          v-else-if="selectedPolicy"
-                          class="policy-description"
-                        >
-                          <div class="q-pa-md">
-                            <div class="text-h6 q-mb-md">
-                              {{
-                                selectedPolicy.displayName ||
-                                selectedPolicy.name
-                              }}
-                            </div>
-
-                            <div
-                              v-if="
-                                selectedPolicy.description &&
-                                selectedPolicy.description.trim()
-                              "
-                              class="text-body2 text-grey-8 q-mb-md"
-                              style="white-space: normal; line-height: 1.6"
-                            >
-                              {{ selectedPolicy.description }}
-                            </div>
-                            <div
-                              v-else
-                              class="text-body2 text-grey-5 q-mb-md text-italic"
-                            >
-                              Description not available
-                            </div>
-
-                            <div
-                              v-if="presentationElements.length > 0"
-                              class="q-mt-lg"
-                            >
-                              <div class="text-subtitle2 q-mb-md">
-                                Presentation Elements
+                          <div
+                            v-else-if="selectedPolicy"
+                            class="policy-description"
+                          >
+                            <div class="q-pa-md">
+                              <div class="text-h6 q-mb-md">
+                                {{
+                                  selectedPolicy.displayName ||
+                                  selectedPolicy.name
+                                }}
                               </div>
-                              <q-list separator>
-                                <q-item
-                                  v-for="presEl in presentationElements"
-                                  :key="presEl.id"
-                                  class="presentation-item"
-                                >
-                                  <q-item-section>
-                                    <q-item-label class="text-weight-medium">
-                                      {{ presEl.text || presEl.ref_id }}
-                                    </q-item-label>
-                                    <q-item-label caption>
-                                      Type: {{ presEl.type || "Not specified" }}
-                                    </q-item-label>
-                                    <q-item-label
-                                      v-if="presEl.default_value"
-                                      caption
-                                      class="text-grey-7"
-                                    >
-                                      Default value:
-                                      {{ presEl.default_value }}
-                                    </q-item-label>
-                                  </q-item-section>
-                                </q-item>
-                              </q-list>
-                            </div>
-                            <div v-else class="text-center q-pa-lg text-grey-6">
-                              <q-icon name="info" size="2em" />
-                              <div class="q-mt-sm">
-                                No presentation elements
+
+                              <div
+                                v-if="
+                                  selectedPolicy.description &&
+                                  selectedPolicy.description.trim()
+                                "
+                                class="text-body2 text-grey-8 q-mb-md"
+                                style="white-space: normal; line-height: 1.6"
+                              >
+                                {{ selectedPolicy.description }}
+                              </div>
+                              <div
+                                v-else
+                                class="text-body2 text-grey-5 q-mb-md text-italic"
+                              >
+                                Description not available
                               </div>
                             </div>
                           </div>
-                        </div>
-                      </q-tab-panel>
-                    </q-tab-panels>
+                        </q-tab-panel>
+                      </q-tab-panels>
+                    </q-scroll-area>
                   </q-card-section>
 
                   <q-card-section
@@ -621,14 +601,16 @@
       <q-card-actions align="right" class="q-pa-md">
         <q-btn
           flat
-          label="Cancel"
-          color="primary"
-          @click="dialogVisible = false"
+          label="Disable"
+          color="negative"
+          @click="removePolicies"
+          :loading="applying"
+          :disable="!hasSelectedPolicies"
         />
         <q-btn
           flat
           label="Apply"
-          color="primary"
+          color="positive"
           @click="applyPolicies"
           :loading="applying"
           :disable="!hasSelectedPolicies"
@@ -1367,8 +1349,17 @@ async function loadPolicyDetails(policy: GPOPolicy) {
       const policyHash = (policyInfo.hash as string) || "";
       if (policyHash && selectedPolicy.value) {
         const policyId = selectedPolicy.value.id;
-        if (policyDetails.value[policyId]) {
+        if (!policyDetails.value[policyId]) {
+          policyDetails.value[policyId] = {
+            settings: {},
+            policy: selectedPolicy.value,
+            hash: policyHash,
+          };
+        } else {
           policyDetails.value[policyId].hash = policyHash;
+        }
+        if (!selectedPolicies.value[policyId]) {
+          selectedPolicies.value[policyId] = true;
         }
       }
     }
@@ -1620,8 +1611,19 @@ async function loadPolicyDetails(policy: GPOPolicy) {
           .policy;
         if (policyInfo && typeof policyInfo === "object") {
           const policyHash = (policyInfo.hash as string) || "";
-          if (policyHash && policyDetails.value[policyId]) {
-            policyDetails.value[policyId].hash = policyHash;
+          if (policyHash) {
+            if (!policyDetails.value[policyId]) {
+              policyDetails.value[policyId] = {
+                settings: {},
+                policy: selectedPolicy.value,
+                hash: policyHash,
+              };
+            } else {
+              policyDetails.value[policyId].hash = policyHash;
+            }
+            if (!selectedPolicies.value[policyId]) {
+              selectedPolicies.value[policyId] = true;
+            }
           }
         }
       }
@@ -1845,6 +1847,84 @@ async function applyPolicies() {
     applying.value = false;
   }
 }
+
+async function removePolicies() {
+  if (!props.agent || !hasSelectedPolicies.value) {
+    return;
+  }
+
+  applying.value = true;
+  try {
+    const selectedPolicyIds = Object.keys(selectedPolicies.value).filter(
+      (id) => selectedPolicies.value[id],
+    );
+
+    const usersToRemove: User[] = selectedUser.value
+      ? props.users.filter((u) => u.sid === selectedUser.value)
+      : props.users;
+
+    if (usersToRemove.length === 0) {
+      throw new Error("No user selected for removing policies");
+    }
+
+    const removePromises: Promise<unknown>[] = [];
+
+    for (const policyId of selectedPolicyIds) {
+      const policyDetail = policyDetails.value[policyId];
+
+      if (!policyDetail) {
+        throw new Error(`Policy details ${policyId} not found`);
+      }
+
+      const policyHash = policyDetail.hash;
+      if (!policyHash) {
+        throw new Error(
+          `Policy hash ${policyId} not found. Load policy details before removing.`,
+        );
+      }
+
+      for (const user of usersToRemove) {
+        removePromises.push(
+          policyAssignmentClient.removePolicy(policyHash, "user", {
+            agentId: String(props.agent.id),
+            userSid: String(user.sid),
+          }),
+        );
+      }
+    }
+
+    await Promise.all(removePromises);
+
+    let userText = "";
+    if (selectedUser.value) {
+      const userName = props.users.find(
+        (u) => u.sid === selectedUser.value,
+      )?.name;
+      userText = userName ? ` (user: ${userName})` : "";
+    } else {
+      userText = ` (${usersToRemove.length} ${usersToRemove.length === 1 ? "user" : "users"})`;
+    }
+
+    const policiesCount = selectedPolicyIds.length;
+    const policiesText =
+      policiesCount === 1
+        ? "Policy successfully disabled"
+        : `${policiesCount} policies successfully disabled`;
+
+    notifySuccess(`${policiesText} for ${props.agent.hostname}${userText}`);
+
+    emit("applied");
+    dialogVisible.value = false;
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Unknown error removing policies";
+    notifyError(`Error removing policies: ${errorMessage}`);
+  } finally {
+    applying.value = false;
+  }
+}
 </script>
 
 <style scoped lang="sass">
@@ -1855,6 +1935,14 @@ async function applyPolicies() {
 .category-tree
   max-height: calc(100vh - 300px)
   overflow-y: auto
+
+.policy-list-section
+  display: flex
+  flex-direction: column
+  height: 100%
+
+.policy-list-scroll
+  margin-top: 8px
 
 .policy-item
   padding: 8px 16px
@@ -1867,9 +1955,16 @@ async function applyPolicies() {
   max-height: calc(100vh - 300px)
   overflow-y: auto
 
+.policy-settings-section
+  display: flex
+  flex-direction: column
+  height: 100%
+
+.policy-tab-panels-scroll
+  margin-top: 16px
+
 .policy-settings-form
-  max-height: 500px
-  overflow-y: auto
+  padding: 8px 0
 
 .policy-element
   padding: 12px
