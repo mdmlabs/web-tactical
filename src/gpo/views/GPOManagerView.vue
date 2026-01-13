@@ -1301,9 +1301,9 @@
                           >
                             <q-card flat bordered class="full-height">
                               <q-card-section>
-                                <div class="text-subtitle2 q-mb-md">
+                                <!-- <div class="text-subtitle2 q-mb-md">
                                   ADMX file
-                                </div>
+                                </div> -->
                                 <q-scroll-area
                                   :style="
                                     selectedAdmxFile &&
@@ -1390,7 +1390,7 @@
                             >
                               <q-icon name="info" size="2em" />
                               <div class="q-mt-sm">
-                                There are no policies in this ADMX file
+                                There are no policies in this file
                               </div>
                             </div>
 
