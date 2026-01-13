@@ -1804,6 +1804,7 @@
 
                                           <div
                                             v-if="
+                                              admxPolicyFullDescription ||
                                               selectedAdmxPolicy.explain_text
                                             "
                                             class="text-body2 text-grey-8 q-mb-md"
@@ -1813,6 +1814,7 @@
                                             "
                                           >
                                             {{
+                                              admxPolicyFullDescription ||
                                               selectedAdmxPolicy.explain_text
                                             }}
                                           </div>
@@ -2476,6 +2478,7 @@ interface PolicyDetailsElement {
 
 const admxPolicyDetailsElements = ref<PolicyDetailsElement[]>([]);
 const admxPolicySettingsValues = ref<Record<string, unknown>>({});
+const admxPolicyFullDescription = ref<string>("");
 
 const selectedAgent = ref<Agent | null>(null);
 const usersLoading = ref(false);
@@ -2610,6 +2613,7 @@ function onAdmxFileClick(admxFile: string, groupName: string) {
     admxPolicies.value = [];
     admxPolicyDetailsElements.value = [];
     admxPolicySettingsValues.value = {};
+    admxPolicyFullDescription.value = "";
     loadPoliciesByAdmx(admxFile);
   }
 }
@@ -2628,6 +2632,7 @@ async function loadAdmxPolicyDetails(policy: AdmxPolicy) {
   loadingAdmxPolicyDetails.value = true;
   admxPolicyDetailsElements.value = [];
   admxPolicySettingsValues.value = {};
+  admxPolicyFullDescription.value = "";
 
   try {
     const policyId = Number.parseInt(policy.id, 10);
@@ -2649,51 +2654,219 @@ async function loadAdmxPolicyDetails(policy: AdmxPolicy) {
       throw new Error("An empty response from the server");
     }
 
+    admxPolicyFullDescription.value = policy.explain_text || "";
+
+    const policyElementsList = response.getPolicyElementsList?.() || [];
+
+    const extractWrapperValue = (
+      value: unknown,
+    ): string | number | boolean | undefined => {
+      if (value === null || value === undefined) {
+        return undefined;
+      }
+      if (
+        typeof value === "string" ||
+        typeof value === "number" ||
+        typeof value === "boolean"
+      ) {
+        return value;
+      }
+      if (typeof value === "object") {
+        if (
+          typeof (value as { getValue?: () => unknown }).getValue === "function"
+        ) {
+          const extracted = (value as { getValue: () => unknown }).getValue();
+          return extracted as string | number | boolean | undefined;
+        }
+        if (
+          "value" in value &&
+          typeof (value as { value: unknown }).value !== "undefined"
+        ) {
+          return (value as { value: string | number | boolean }).value;
+        }
+      }
+      return undefined;
+    };
+
+    const processedPolicyElements = policyElementsList
+      .map((el: unknown) => {
+        if (el && typeof el === "object") {
+          const elem = el as {
+            getId?: () => number;
+            getElementId?: () => string;
+            getType?: () => string;
+            getValueName?: () => unknown;
+            getRegistryKey?: () => unknown;
+            getRequired?: () => unknown;
+            getMaxLength?: () => unknown;
+            getMinValue?: () => unknown;
+            getMaxValue?: () => unknown;
+            getItemsList?: () => unknown[];
+          };
+
+          const itemsList = elem.getItemsList?.() || [];
+          const items = itemsList
+            .map((item: unknown) => {
+              if (item && typeof item === "object") {
+                try {
+                  const it = item as {
+                    getId?: () => number;
+                    getName?: () => string;
+                    getParentType?: () => string;
+                    getType?: () => string;
+                    getValueType?: () => string;
+                    getValueName?: () => string;
+                    getRequired?: () => boolean;
+                    getParentId?: () => number;
+                    getDisplayName?: () => string;
+                  };
+                  return {
+                    id: it.getId?.() || 0,
+                    name: it.getName?.() || "",
+                    display_name: (() => {
+                      try {
+                        const value = it.getDisplayName?.();
+                        return extractWrapperValue(value) as string | undefined;
+                      } catch {
+                        return undefined;
+                      }
+                    })(),
+                    value_type: it.getValueType?.() || "",
+                  };
+                } catch {
+                  return null;
+                }
+              }
+              return null;
+            })
+            .filter((item): item is NonNullable<typeof item> => item !== null)
+            .filter((item, index, self) => {
+              return (
+                index ===
+                self.findIndex((t) => t.display_name === item.display_name)
+              );
+            });
+
+          return {
+            id: elem.getId?.() || 0,
+            element_id: elem.getElementId?.() || "",
+            type: elem.getType?.() || "",
+            value_name: (() => {
+              try {
+                const value = elem.getValueName?.();
+                return extractWrapperValue(value) as string | undefined;
+              } catch {
+                return undefined;
+              }
+            })(),
+            registry_key: (() => {
+              try {
+                const value = elem.getRegistryKey?.();
+                return extractWrapperValue(value) as string | undefined;
+              } catch {
+                return undefined;
+              }
+            })(),
+            required: (() => {
+              try {
+                const value = elem.getRequired?.();
+                return extractWrapperValue(value) as boolean | undefined;
+              } catch {
+                return undefined;
+              }
+            })(),
+            max_length: (() => {
+              try {
+                const value = elem.getMaxLength?.();
+                return extractWrapperValue(value) as number | undefined;
+              } catch {
+                return undefined;
+              }
+            })(),
+            min_value: (() => {
+              try {
+                const value = elem.getMinValue?.();
+                return extractWrapperValue(value) as number | undefined;
+              } catch {
+                return undefined;
+              }
+            })(),
+            max_value: (() => {
+              try {
+                const value = elem.getMaxValue?.();
+                return extractWrapperValue(value) as number | undefined;
+              } catch {
+                return undefined;
+              }
+            })(),
+            items: items,
+          };
+        }
+        return null;
+      })
+      .filter((el): el is NonNullable<typeof el> => el !== null);
+
     const presentation = response.getPresentation?.();
+    const presentationMap = new Map<string, { text?: string; type?: string }>();
+
     if (presentation) {
       const elementsList = presentation.getElementsList?.() || [];
-
-      admxPolicyDetailsElements.value = elementsList.map((el: unknown) => {
-        const elWithToObject = el as { toObject?: () => unknown };
-        const elementObj = elWithToObject?.toObject
-          ? elWithToObject.toObject()
-          : el;
-        const obj = elementObj as Record<string, unknown>;
-        return {
-          id: (obj.id as number) || 0,
-          element_id:
-            (obj.elementId as string) || (obj.element_id as string) || "",
-          type: (obj.type as string) || "",
-          display_name:
-            (obj.displayName as string) || (obj.display_name as string) || "",
-          description: (obj.description as string) || "",
-          presentation_type:
-            (obj.presentationType as string) ||
-            (obj.presentation_type as string) ||
-            "",
-          value_name:
-            (obj.valueName as string) || (obj.value_name as string) || "",
-          registry_key:
-            (obj.registryKey as string) || (obj.registry_key as string) || "",
-          required: (obj.required as boolean) || false,
-          max_length: (obj.maxLength as number) || (obj.max_length as number),
-          min_value: (obj.minValue as number) || (obj.min_value as number),
-          max_value: (obj.maxValue as number) || (obj.max_value as number),
-          value_type:
-            (obj.valueType as string) || (obj.value_type as string) || "",
-          items: ((obj.itemsList as unknown[]) ||
-            (obj.items as unknown[]) ||
-            []) as Array<{
-            id: number;
-            name: string;
-            display_name?: string;
-            value_type?: string;
-          }>,
-        };
-      });
+      for (const presEl of elementsList) {
+        if (presEl && typeof presEl === "object") {
+          const p = presEl as {
+            getRefId?: () => string;
+            getText?: () => unknown;
+            getType?: () => string;
+          };
+          const refId = p.getRefId?.() || "";
+          if (refId) {
+            const extractStringValue = (value: unknown): string | undefined => {
+              if (value === null || value === undefined) {
+                return undefined;
+              }
+              if (typeof value === "string") {
+                return value;
+              }
+              if (typeof value === "object") {
+                if (
+                  "value" in value &&
+                  typeof (value as { value: unknown }).value === "string"
+                ) {
+                  return (value as { value: string }).value;
+                }
+                if (
+                  typeof (value as { getValue?: () => unknown }).getValue ===
+                  "function"
+                ) {
+                  const extracted = (
+                    value as { getValue: () => unknown }
+                  ).getValue();
+                  return typeof extracted === "string" ? extracted : undefined;
+                }
+              }
+              return undefined;
+            };
+            presentationMap.set(refId, {
+              text: extractStringValue(p.getText?.()),
+              type: p.getType?.() || "",
+            });
+          }
+        }
+      }
     }
+
+    admxPolicyDetailsElements.value = processedPolicyElements.map((el) => {
+      const presentationEl = presentationMap.get(el.element_id);
+      return {
+        ...el,
+        display_name: presentationEl?.text || el.element_id,
+        presentation_type: presentationEl?.type || "",
+        description: "",
+      };
+    });
   } catch (error) {
     notifyError("Error uploading policy details");
+    console.error("Error loading policy details:", error);
   } finally {
     loadingAdmxPolicyDetails.value = false;
   }
