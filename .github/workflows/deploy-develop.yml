@@ -30,6 +30,52 @@ jobs:
           echo "📦 Running build..."
           npm install --legacy-peer-deps
           npm run proto:generate
+
+
+          echo "Appending exports into operator_pb.js..."
+          cat << 'EOF2' >> src/generated/operator_pb.js
+          
+          export {
+            ListAgentsRequest,
+            ListAgentsResponse,
+            GetAgentRequest,
+            AgentDetails,
+            ListUsersForAgentRequest,
+            ListUsersForAgentResponse,
+            ListUserGroupsForAgentRequest,
+            ListUserGroupsForAgentResponse,
+            ListAdmxFilesRequest,
+            ListAdmxFilesResponse,
+            GetAdmxSnapshotRequest,
+            AdmxSnapshot,
+            ImportAdmxZipRequest,
+            ImportAdmxResponse,
+            ImportAdmxFileRequest,
+            ListPoliciesRequest,
+            ListPoliciesResponse,
+            GetPolicyRequest,
+            PolicyDescriptor,
+            ListPoliciesGroupedByScopeRequest,
+            ListPoliciesGroupedByScopeResponse,
+            GetCategoryTreeRequest,
+            GetCategoryTreeResponse,
+            GetPoliciesByCategoryRequest,
+            GetPoliciesByCategoryResponse,
+            GetPoliciesByAdmxRequest,
+            GetPoliciesByAdmxResponse,
+            GetPolicyDetailsRequest,
+            PolicyDetails,
+            AssignPolicyRequest,
+            AssignPolicyResponse,
+            RemovePolicyRequest,
+            RemovePolicyResponse,
+            GetEffectivePoliciesRequest,
+            GetEffectivePoliciesResponse,
+            GetAssignmentsRequest,
+            GetAssignmentsResponse
+          };
+
+
           npm run build
           
           cd ~/mdmlabsrmm/
