@@ -34,7 +34,6 @@ jobs:
 
           echo "Appending exports into operator_pb.js..."
           cat << 'EOF2' >> src/generated/operator_pb.js
-          
           export {
             ListAgentsRequest,
             ListAgentsResponse,
@@ -74,6 +73,8 @@ jobs:
             GetAssignmentsRequest,
             GetAssignmentsResponse
           };
+          EOF2
+
 
 
           npm run build
