@@ -30,6 +30,10 @@ jobs:
           echo "📦 Running build..."
           npm install --legacy-peer-deps
           npm run build
+          
+          cd ~/mdmlabsrmm/
+
+          docker build --pull --no-cache -t "mdmlabs-frontend" -f "docker/containers/mdmlabs-frontend/dockerfile" .
 
           echo "🛑 Stopping frontend container..."
           docker stop mdmlabs-frontend || true
