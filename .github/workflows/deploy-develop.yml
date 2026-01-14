@@ -29,6 +29,7 @@ jobs:
 
           echo "📦 Running build..."
           npm install --legacy-peer-deps
+          npm run proto:generate
           npm run build
           
           cd ~/mdmlabsrmm/
