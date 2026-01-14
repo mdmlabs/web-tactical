@@ -219,9 +219,6 @@
                                       policySettingsValues[element.element_id] =
                                         $event
                                     "
-                                    :label="
-                                      element.display_name || element.element_id
-                                    "
                                     color="primary"
                                   />
 
@@ -258,9 +255,6 @@
                                     @update:model-value="
                                       policySettingsValues[element.element_id] =
                                         $event
-                                    "
-                                    :label="
-                                      element.display_name || element.element_id
                                     "
                                     :maxlength="element.max_length"
                                     :type="
@@ -325,9 +319,6 @@
                                       policySettingsValues[element.element_id] =
                                         $event
                                     "
-                                    :label="
-                                      element.display_name || element.element_id
-                                    "
                                     type="number"
                                     :min="element.min_value"
                                     :max="element.max_value"
@@ -376,9 +367,6 @@
                                       policySettingsValues[element.element_id] =
                                         $event
                                     "
-                                    :label="
-                                      element.display_name || element.element_id
-                                    "
                                     :options="element.items"
                                     option-label="display_name"
                                     option-value="id"
@@ -407,6 +395,41 @@
                                       </q-item>
                                     </template>
                                   </q-select>
+
+                                  <MultiTextBox
+                                    v-else-if="
+                                      (element.type === 'list' ||
+                                        element.type === 'LIST' ||
+                                        element.type === 'List') &&
+                                      (element.presentation_type?.toLowerCase() ===
+                                        'listbox' ||
+                                        element.presentation_type?.toLowerCase() ===
+                                          'list_box' ||
+                                        element.presentation_type?.toLowerCase() ===
+                                          'list' ||
+                                        element.presentation_type === 'List') &&
+                                      (!element.items ||
+                                        element.items.length === 0)
+                                    "
+                                    :model-value="
+                                      (policySettingsValues[
+                                        element.element_id
+                                      ] as string[]) || []
+                                    "
+                                    @update:model-value="
+                                      policySettingsValues[element.element_id] =
+                                        $event
+                                    "
+                                    :hint="
+                                      (element.required
+                                        ? 'Required field'
+                                        : '') +
+                                      (element.value_type
+                                        ? ` (value type: ${element.value_type})`
+                                        : '')
+                                    "
+                                    :maxlength="element.max_length"
+                                  />
 
                                   <q-select
                                     v-else-if="
@@ -438,9 +461,6 @@
                                     @update:model-value="
                                       policySettingsValues[element.element_id] =
                                         $event
-                                    "
-                                    :label="
-                                      element.display_name || element.element_id
                                     "
                                     :options="element.items || []"
                                     option-label="display_name"
@@ -489,9 +509,6 @@
                                     @update:model-value="
                                       policySettingsValues[element.element_id] =
                                         $event
-                                    "
-                                    :label="
-                                      element.display_name || element.element_id
                                     "
                                     :hint="`Type: ${element.type}${element.required ? ' (required)' : ''}`"
                                     outlined
@@ -561,26 +578,39 @@
 
           <q-tab-panel name="users" class="q-pa-none">
             <div class="text-subtitle2 q-mb-md">
-              Select a user to apply policies
+              Select users to apply policies
             </div>
-            <q-radio
-              v-model="selectedUser"
-              val=""
-              label="Apply to all device users"
-              class="q-mb-md"
-            />
-            <q-separator class="q-mb-md" />
+            <div class="q-mb-sm">
+              <q-btn
+                flat
+                dense
+                size="sm"
+                label="Select All"
+                @click="selectAllUsers"
+                class="q-mr-sm"
+              />
+              <q-btn
+                flat
+                dense
+                size="sm"
+                label="Deselect All"
+                @click="deselectAllUsers"
+              />
+            </div>
             <q-list separator>
               <q-item
                 v-for="user in users"
                 :key="user.sid"
                 clickable
                 v-ripple
-                :active="selectedUser === user.sid"
-                @click="selectedUser = user.sid"
+                :active="selectedUsers.includes(user.sid)"
+                @click="toggleUser(user.sid)"
               >
                 <q-item-section avatar>
-                  <q-radio v-model="selectedUser" :val="user.sid" />
+                  <q-checkbox
+                    :model-value="selectedUsers.includes(user.sid)"
+                    @update:model-value="() => toggleUser(user.sid)"
+                  />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>{{ user.name }}</q-item-label>
@@ -594,6 +624,13 @@
                 </q-item-section>
               </q-item>
             </q-list>
+            <div
+              v-if="selectedUsers.length > 0"
+              class="q-mt-md text-body2 text-primary"
+            >
+              Selected: {{ selectedUsers.length }}
+              {{ selectedUsers.length === 1 ? "user" : "users" }}
+            </div>
           </q-tab-panel>
         </q-tab-panels>
       </q-card-section>
@@ -605,7 +642,7 @@
           color="negative"
           @click="removePolicies"
           :loading="applying"
-          :disable="!hasSelectedPolicies"
+          :disable="!hasSelectedPolicies || selectedUsers.length === 0"
         />
         <q-btn
           flat
@@ -613,7 +650,7 @@
           color="positive"
           @click="applyPolicies"
           :loading="applying"
-          :disable="!hasSelectedPolicies"
+          :disable="!hasSelectedPolicies || selectedUsers.length === 0"
         />
       </q-card-actions>
     </q-card>
@@ -630,6 +667,7 @@ import {
 } from "../api/grpc-client";
 import { notifySuccess, notifyError } from "@/utils/notify";
 import type { GPOPolicy } from "../types/gpo";
+import MultiTextBox from "@/components/ui/MultiTextBox.vue";
 
 interface Agent {
   id: string;
@@ -721,7 +759,7 @@ const policyDetails = ref<Record<string, PolicyDetail>>({});
 const policyDetailsElementsMap = ref<Record<string, PolicyDetailsElement[]>>(
   {},
 );
-const selectedUser = ref("");
+const selectedUsers = ref<string[]>([]);
 const applying = ref(false);
 const settingsTab = ref("settings");
 const presentationElements = ref<PolicyPresentationElement[]>([]);
@@ -734,16 +772,16 @@ watch(dialogVisible, (newVal) => {
   if (newVal && props.agent) {
     loadCategories();
     if (props.initialUserSid) {
-      selectedUser.value = props.initialUserSid;
-      dialogTab.value = "users";
-    } else {
+      selectedUsers.value = [props.initialUserSid];
       dialogTab.value = "settings";
+    } else {
+      dialogTab.value = "users";
     }
   } else {
     selectedPolicies.value = {};
     policyDetails.value = {};
     policyDetailsElementsMap.value = {};
-    selectedUser.value = "";
+    selectedUsers.value = [];
     selectedCategoryId.value = null;
     selectedCategory.value = null;
     selectedCategoryPolicies.value = [];
@@ -756,7 +794,7 @@ watch(dialogVisible, (newVal) => {
   }
 });
 
-watch(selectedUser, () => {
+watch(selectedUsers, () => {
   if (selectedCategory.value) {
     loadPoliciesByCategory(selectedCategory.value.categoryName);
   }
@@ -1698,6 +1736,18 @@ function processPolicySettings(
     const elementId = element.element_id;
     const value = settings[elementId];
 
+    if (
+      (!element.items || element.items.length === 0) &&
+      (element.type === "list" ||
+        element.type === "LIST" ||
+        element.type === "List") &&
+      Array.isArray(value) &&
+      value.every((v) => typeof v === "string")
+    ) {
+      processed[elementId] = value;
+      continue;
+    }
+
     if (element.items && element.items.length > 0 && value !== undefined) {
       if (typeof value === "number" || typeof value === "string") {
         const itemId =
@@ -1756,6 +1806,23 @@ function processPolicySettings(
   return processed;
 }
 
+function toggleUser(userSid: string) {
+  const index = selectedUsers.value.indexOf(userSid);
+  if (index === -1) {
+    selectedUsers.value.push(userSid);
+  } else {
+    selectedUsers.value.splice(index, 1);
+  }
+}
+
+function selectAllUsers() {
+  selectedUsers.value = props.users.map((u) => u.sid);
+}
+
+function deselectAllUsers() {
+  selectedUsers.value = [];
+}
+
 async function applyPolicies() {
   if (!props.agent || !hasSelectedPolicies.value) {
     return;
@@ -1767,12 +1834,13 @@ async function applyPolicies() {
       (id) => selectedPolicies.value[id],
     );
 
-    const usersToApply: User[] = selectedUser.value
-      ? props.users.filter((u) => u.sid === selectedUser.value)
-      : props.users;
+    const usersToApply: User[] =
+      selectedUsers.value.length > 0
+        ? props.users.filter((u) => selectedUsers.value.includes(u.sid))
+        : [];
 
     if (usersToApply.length === 0) {
-      throw new Error("No user selected for applying policies");
+      throw new Error("No users selected for applying policies");
     }
 
     const applyPromises: Promise<unknown>[] = [];
@@ -1817,15 +1885,7 @@ async function applyPolicies() {
 
     await Promise.all(applyPromises);
 
-    let userText = "";
-    if (selectedUser.value) {
-      const userName = props.users.find(
-        (u) => u.sid === selectedUser.value,
-      )?.name;
-      userText = userName ? ` (user: ${userName})` : "";
-    } else {
-      userText = ` (${usersToApply.length} ${usersToApply.length === 1 ? "user" : "users"})`;
-    }
+    const userText = ` (${usersToApply.length} ${usersToApply.length === 1 ? "user" : "users"})`;
 
     const policiesCount = selectedPolicyIds.length;
     const policiesText =
@@ -1859,12 +1919,13 @@ async function removePolicies() {
       (id) => selectedPolicies.value[id],
     );
 
-    const usersToRemove: User[] = selectedUser.value
-      ? props.users.filter((u) => u.sid === selectedUser.value)
-      : props.users;
+    const usersToRemove: User[] =
+      selectedUsers.value.length > 0
+        ? props.users.filter((u) => selectedUsers.value.includes(u.sid))
+        : [];
 
     if (usersToRemove.length === 0) {
-      throw new Error("No user selected for removing policies");
+      throw new Error("No users selected for removing policies");
     }
 
     const removePromises: Promise<unknown>[] = [];
@@ -1895,15 +1956,7 @@ async function removePolicies() {
 
     await Promise.all(removePromises);
 
-    let userText = "";
-    if (selectedUser.value) {
-      const userName = props.users.find(
-        (u) => u.sid === selectedUser.value,
-      )?.name;
-      userText = userName ? ` (user: ${userName})` : "";
-    } else {
-      userText = ` (${usersToRemove.length} ${usersToRemove.length === 1 ? "user" : "users"})`;
-    }
+    const userText = ` (${usersToRemove.length} ${usersToRemove.length === 1 ? "user" : "users"})`;
 
     const policiesCount = selectedPolicyIds.length;
     const policiesText =

@@ -195,9 +195,6 @@
                                   policySettingsValues[element.element_id] =
                                     $event
                                 "
-                                :label="
-                                  element.display_name || element.element_id
-                                "
                                 color="primary"
                               />
 
@@ -232,9 +229,6 @@
                                 @update:model-value="
                                   policySettingsValues[element.element_id] =
                                     $event
-                                "
-                                :label="
-                                  element.display_name || element.element_id
                                 "
                                 :maxlength="element.max_length"
                                 :type="
@@ -293,9 +287,6 @@
                                   policySettingsValues[element.element_id] =
                                     $event
                                 "
-                                :label="
-                                  element.display_name || element.element_id
-                                "
                                 type="number"
                                 :min="element.min_value"
                                 :max="element.max_value"
@@ -340,9 +331,6 @@
                                   policySettingsValues[element.element_id] =
                                     $event
                                 "
-                                :label="
-                                  element.display_name || element.element_id
-                                "
                                 :options="element.items"
                                 option-label="display_name"
                                 option-value="id"
@@ -369,6 +357,38 @@
                                   </q-item>
                                 </template>
                               </q-select>
+
+                              <MultiTextBox
+                                v-else-if="
+                                  (element.type === 'list' ||
+                                    element.type === 'LIST' ||
+                                    element.type === 'List') &&
+                                  (element.presentation_type?.toLowerCase() ===
+                                    'listbox' ||
+                                    element.presentation_type?.toLowerCase() ===
+                                      'list_box' ||
+                                    element.presentation_type?.toLowerCase() ===
+                                      'list' ||
+                                    element.presentation_type === 'List') &&
+                                  (!element.items || element.items.length === 0)
+                                "
+                                :model-value="
+                                  (policySettingsValues[
+                                    element.element_id
+                                  ] as string[]) || []
+                                "
+                                @update:model-value="
+                                  policySettingsValues[element.element_id] =
+                                    $event
+                                "
+                                :hint="
+                                  (element.required ? 'Required field' : '') +
+                                  (element.value_type
+                                    ? ` (value type: ${element.value_type})`
+                                    : '')
+                                "
+                                :maxlength="element.max_length"
+                              />
 
                               <q-select
                                 v-else-if="
@@ -400,9 +420,6 @@
                                 @update:model-value="
                                   policySettingsValues[element.element_id] =
                                     $event
-                                "
-                                :label="
-                                  element.display_name || element.element_id
                                 "
                                 :options="element.items || []"
                                 option-label="display_name"
@@ -448,9 +465,6 @@
                                 @update:model-value="
                                   policySettingsValues[element.element_id] =
                                     $event
-                                "
-                                :label="
-                                  element.display_name || element.element_id
                                 "
                                 :hint="`Тип: ${element.type}${element.required ? ' (required)' : ''}`"
                                 outlined
@@ -545,6 +559,7 @@ import {
 } from "../api/grpc-client";
 import { notifySuccess, notifyError } from "@/utils/notify";
 import type { GPOPolicy } from "../types/gpo";
+import MultiTextBox from "@/components/ui/MultiTextBox.vue";
 
 interface CategoryNode {
   id: string;
@@ -1739,6 +1754,20 @@ function processPolicySettings(
   for (const element of elements) {
     const elementId = element.element_id;
     const value = settings[elementId];
+
+    // Обработка для MultiTextBox (list с пустым items) - массив строк
+    if (
+      (!element.items || element.items.length === 0) &&
+      (element.type === "list" ||
+        element.type === "LIST" ||
+        element.type === "List") &&
+      Array.isArray(value) &&
+      value.every((v) => typeof v === "string")
+    ) {
+      // Для list с пустым items просто передаем массив строк как есть
+      processed[elementId] = value;
+      continue;
+    }
 
     if (element.items && element.items.length > 0 && value !== undefined) {
       if (typeof value === "number" || typeof value === "string") {

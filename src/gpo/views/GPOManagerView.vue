@@ -85,6 +85,7 @@
                         label="System Info"
                       />
                       <q-tab name="users" icon="people" label="Users" />
+                      <q-tab name="groups" icon="group" label="Groups" />
                     </q-tabs>
                   </div>
                   <div class="col-auto q-pa-sm">
@@ -557,6 +558,21 @@
                           </q-btn>
                         </q-td>
                       </template>
+                    </q-table>
+                  </div>
+                </q-tab-panel>
+
+                <q-tab-panel name="groups" class="q-pa-md">
+                  <div v-if="selectedAgent">
+                    <div class="text-h6 q-mb-md">Groups</div>
+                    <q-table
+                      :rows="groupsList"
+                      :columns="groupsColumns"
+                      row-key="sid"
+                      :loading="groupsLoading"
+                      flat
+                      bordered
+                    >
                     </q-table>
                   </div>
                 </q-tab-panel>
@@ -1554,10 +1570,6 @@
                                                       element.element_id
                                                     ] = $event
                                                   "
-                                                  :label="
-                                                    element.display_name ||
-                                                    element.element_id
-                                                  "
                                                   color="primary"
                                                 />
 
@@ -1593,10 +1605,6 @@
                                                     admxPolicySettingsValues[
                                                       element.element_id
                                                     ] = $event
-                                                  "
-                                                  :label="
-                                                    element.display_name ||
-                                                    element.element_id
                                                   "
                                                   :maxlength="
                                                     element.max_length
@@ -1668,10 +1676,6 @@
                                                       element.element_id
                                                     ] = $event
                                                   "
-                                                  :label="
-                                                    element.display_name ||
-                                                    element.element_id
-                                                  "
                                                   type="number"
                                                   :min="element.min_value"
                                                   :max="element.max_value"
@@ -1696,6 +1700,47 @@
                                                   "
                                                   outlined
                                                   dense
+                                                />
+
+                                                <MultiTextBox
+                                                  v-else-if="
+                                                    (element.type === 'list' ||
+                                                      element.type === 'LIST' ||
+                                                      element.type ===
+                                                        'List') &&
+                                                    (element.presentation_type?.toLowerCase() ===
+                                                      'listbox' ||
+                                                      element.presentation_type?.toLowerCase() ===
+                                                        'list_box' ||
+                                                      element.presentation_type?.toLowerCase() ===
+                                                        'list' ||
+                                                      element.presentation_type ===
+                                                        'List') &&
+                                                    (!element.items ||
+                                                      element.items.length ===
+                                                        0)
+                                                  "
+                                                  :model-value="
+                                                    (admxPolicySettingsValues[
+                                                      element.element_id
+                                                    ] as string[]) || []
+                                                  "
+                                                  @update:model-value="
+                                                    admxPolicySettingsValues[
+                                                      element.element_id
+                                                    ] = $event
+                                                  "
+                                                  :hint="
+                                                    (element.required
+                                                      ? 'Required field'
+                                                      : '') +
+                                                    (element.value_type
+                                                      ? ` (value type: ${element.value_type})`
+                                                      : '')
+                                                  "
+                                                  :maxlength="
+                                                    element.max_length
+                                                  "
                                                 />
 
                                                 <q-select
@@ -1724,10 +1769,6 @@
                                                     admxPolicySettingsValues[
                                                       element.element_id
                                                     ] = $event
-                                                  "
-                                                  :label="
-                                                    element.display_name ||
-                                                    element.element_id
                                                   "
                                                   :options="element.items"
                                                   option-label="display_name"
@@ -1759,10 +1800,6 @@
                                                     admxPolicySettingsValues[
                                                       element.element_id
                                                     ] = $event
-                                                  "
-                                                  :label="
-                                                    element.display_name ||
-                                                    element.element_id
                                                   "
                                                   :hint="`Type: ${element.type}${element.required ? ' (required)' : ''}`"
                                                   outlined
@@ -1888,15 +1925,28 @@
             class="gpo-devices-panel col-3"
           >
             <div class="gpo-devices-header q-pa-sm">
-              <div class="text-subtitle2 text-weight-medium">
-                Devices
-                <q-badge
-                  v-if="agentsList.length > 0"
-                  color="primary"
-                  :label="agentsList.length"
-                  rounded
-                  class="q-ml-sm"
-                />
+              <div class="row items-center justify-between">
+                <div class="text-subtitle2 text-weight-medium">
+                  Devices
+                  <q-badge
+                    v-if="agentsList.length > 0"
+                    color="primary"
+                    :label="agentsList.length"
+                    rounded
+                    class="q-ml-sm"
+                  />
+                </div>
+                <q-btn
+                  round
+                  dense
+                  flat
+                  icon="refresh"
+                  :loading="agentsLoading"
+                  @click="loadAgents"
+                  size="sm"
+                >
+                  <q-tooltip>Update the list of agents</q-tooltip>
+                </q-btn>
               </div>
             </div>
             <q-scroll-area class="gpo-devices-scroll">
@@ -1910,7 +1960,7 @@
                 class="text-center q-pa-md text-negative"
               >
                 <q-icon name="error" size="2em" />
-                <div class="q-mt-sm text-caption">Ошибка загрузки</div>
+                <div class="q-mt-sm text-caption">Download error</div>
                 <q-btn
                   flat
                   dense
@@ -2375,6 +2425,7 @@ import GPOPolicyForm from "../components/GPOPolicyForm.vue";
 import GPOPolicySettingsDialog from "../components/GPOPolicySettingsDialog.vue";
 import AppliedPoliciesDialog from "../components/AppliedPoliciesDialog.vue";
 import ApplyPolicyDialog from "../components/ApplyPolicyDialog.vue";
+import MultiTextBox from "@/components/ui/MultiTextBox.vue";
 import type {
   GPOPolicy,
   CreateGPOPolicyRequest,
@@ -2864,6 +2915,39 @@ async function loadAdmxPolicyDetails(policy: AdmxPolicy) {
         description: "",
       };
     });
+
+    for (const element of admxPolicyDetailsElements.value) {
+      if (!(element.element_id in admxPolicySettingsValues.value)) {
+        if (
+          (element.type === "list" ||
+            element.type === "LIST" ||
+            element.type === "List") &&
+          (!element.items || element.items.length === 0)
+        ) {
+          admxPolicySettingsValues.value[element.element_id] = [];
+        } else if (
+          element.type === "CHECKBOX" ||
+          element.type === "BOOL" ||
+          element.type === "boolean"
+        ) {
+          admxPolicySettingsValues.value[element.element_id] = false;
+        } else if (
+          element.type === "TEXT" ||
+          element.type === "STRING" ||
+          element.type === "string"
+        ) {
+          admxPolicySettingsValues.value[element.element_id] = "";
+        } else if (
+          element.type === "NUMERIC" ||
+          element.type === "INT" ||
+          element.type === "int" ||
+          element.type === "number"
+        ) {
+          admxPolicySettingsValues.value[element.element_id] =
+            element.min_value || 0;
+        }
+      }
+    }
   } catch (error) {
     notifyError("Error uploading policy details");
     console.error("Error loading policy details:", error);
@@ -3120,6 +3204,17 @@ async function loadAgents() {
     } else {
       gpoAgents.value = [];
     }
+
+    if (selectedAgent.value?.id) {
+      const agentId = selectedAgent.value.id;
+      Promise.all([
+        loadNetworkInfo(agentId),
+        loadGroupsForAgent(agentId),
+        loadUsersForAgent(agentId),
+      ]).catch((error) => {
+        console.error("Error refreshing agent data:", error);
+      });
+    }
   } catch (error) {
     agentsError.value = true;
     gpoAgents.value = [];
@@ -3129,6 +3224,53 @@ async function loadAgents() {
 }
 
 const usersList = ref<User[]>([]);
+
+const groupsList = ref<
+  Array<{
+    name?: string;
+    displayName?: string;
+    distinguishedName?: string;
+    samAccountName?: string;
+    UserPrincipalName?: string;
+    description?: string;
+    structuralObjectClass?: string;
+    sid?: string;
+  }>
+>([]);
+
+const groupsLoading = ref(false);
+
+const groupsColumns: QTableColumn[] = [
+  {
+    name: "name",
+    required: true,
+    label: "Name",
+    align: "left",
+    field: "name",
+    sortable: true,
+  },
+  {
+    name: "samAccountName",
+    label: "SAM Account Name",
+    align: "left",
+    field: "samAccountName",
+    sortable: true,
+  },
+  {
+    name: "description",
+    label: "Description",
+    align: "left",
+    field: "description",
+    sortable: true,
+  },
+  {
+    name: "sid",
+    label: "SID",
+    align: "left",
+    field: "sid",
+    sortable: true,
+  },
+];
 
 const usersColumns: QTableColumn[] = [
   {
@@ -3842,6 +3984,176 @@ async function loadUsersForAgent(agentId: string) {
   }
 }
 
+async function loadGroupsForAgent(agentId: string) {
+  groupsLoading.value = true;
+  groupsList.value = [];
+
+  try {
+    const metadata = createGrpcMetadata();
+
+    if (!operator_pb.ListUserGroupsForAgentRequest) {
+      throw new Error(
+        "ListUserGroupsForAgentRequest class not found in operator_pb",
+      );
+    }
+
+    const request = new operator_pb.ListUserGroupsForAgentRequest();
+    request.setAgentId(agentId);
+
+    const response = await userServiceClient.listUserGroupsForAgent(
+      request,
+      metadata,
+    );
+
+    type GroupInfo = {
+      name?: string;
+      displayName?: string;
+      displayname?: string;
+      distinguishedName?: string;
+      distinguishedname?: string;
+      samAccountName?: string;
+      samaccountname?: string;
+      UserPrincipalName?: string;
+      userprincipalname?: string;
+      description?: string;
+      structuralObjectClass?: string;
+      structuralobjectclass?: string;
+      sid?: string;
+    };
+
+    let groups: GroupInfo[] = [];
+
+    if (response && typeof response === "object") {
+      if (
+        typeof (response as { getGroupsList?: () => unknown[] })
+          .getGroupsList === "function"
+      ) {
+        const groupsList = (
+          response as {
+            getGroupsList: () => Array<{
+              getName?: () => string;
+              getDisplayName?: () => string;
+              getDistinguishedName?: () => string;
+              getSamAccountName?: () => string;
+              getUserPrincipalName?: () => string;
+              getDescription?: () => string;
+              getStructuralObjectClass?: () => string;
+              getSid?: () => string;
+              toObject?: (options?: {
+                longs?: typeof String;
+                enums?: typeof String;
+                bytes?: typeof String;
+                defaults?: boolean;
+                arrays?: boolean;
+                objects?: boolean;
+                oneofs?: boolean;
+              }) => GroupInfo;
+            }>;
+          }
+        ).getGroupsList();
+
+        groups = groupsList.map((group) => {
+          if (group.toObject) {
+            const groupObj = group.toObject({
+              longs: String,
+              enums: String,
+              bytes: String,
+              defaults: true,
+              arrays: true,
+              objects: true,
+              oneofs: true,
+            }) as GroupInfo;
+            return {
+              name: groupObj.name || groupObj.displayname,
+              displayName: groupObj.displayName || groupObj.displayname,
+              distinguishedName:
+                groupObj.distinguishedName || groupObj.distinguishedname,
+              samAccountName:
+                groupObj.samAccountName || groupObj.samaccountname,
+              UserPrincipalName:
+                groupObj.UserPrincipalName || groupObj.userprincipalname,
+              description: groupObj.description,
+              structuralObjectClass:
+                groupObj.structuralObjectClass ||
+                groupObj.structuralobjectclass,
+              sid: groupObj.sid,
+            };
+          }
+
+          return {
+            name: group.getName?.(),
+            displayName: group.getDisplayName?.(),
+            distinguishedName: group.getDistinguishedName?.(),
+            samAccountName: group.getSamAccountName?.(),
+            UserPrincipalName: group.getUserPrincipalName?.(),
+            description: group.getDescription?.(),
+            structuralObjectClass: group.getStructuralObjectClass?.(),
+            sid: group.getSid?.(),
+          } as GroupInfo;
+        });
+      } else if (
+        typeof (response as { toObject?: () => unknown }).toObject ===
+        "function"
+      ) {
+        const responseObj = (
+          response as {
+            toObject: (options?: {
+              longs?: typeof String;
+              enums?: typeof String;
+              bytes?: typeof String;
+              defaults?: boolean;
+              arrays?: boolean;
+              objects?: boolean;
+              oneofs?: boolean;
+            }) => { groups?: GroupInfo[] };
+          }
+        ).toObject({
+          longs: String,
+          enums: String,
+          bytes: String,
+          defaults: true,
+          arrays: true,
+          objects: true,
+          oneofs: true,
+        });
+
+        if (responseObj.groups && Array.isArray(responseObj.groups)) {
+          groups = responseObj.groups.map((group) => ({
+            name: group.name || group.displayname,
+            displayName: group.displayName || group.displayname,
+            distinguishedName:
+              group.distinguishedName || group.distinguishedname,
+            samAccountName: group.samAccountName || group.samaccountname,
+            UserPrincipalName:
+              group.UserPrincipalName || group.userprincipalname,
+            description: group.description,
+            structuralObjectClass:
+              group.structuralObjectClass || group.structuralobjectclass,
+            sid: group.sid,
+          }));
+        }
+      }
+    }
+
+    groupsList.value = groups;
+  } catch (error) {
+    const errorMessage = (error as { message?: string })?.message || "";
+    const is404 =
+      (error as { response?: { status?: number } })?.response?.status === 404 ||
+      errorMessage.includes("404");
+    const isRpcError =
+      errorMessage.includes("RpcError") ||
+      errorMessage.includes("deserializing");
+
+    if (is404) {
+    } else if (isRpcError) {
+    }
+    groupsList.value = [];
+  } finally {
+    groupsLoading.value = false;
+  }
+}
+
 const selectAgent = (agent: Agent) => {
   if (selectedAgent.value?.id === agent.id) {
     clearAgentSelection();
@@ -3850,6 +4162,7 @@ const selectAgent = (agent: Agent) => {
   selectedAgent.value = agent;
   if (agent.id) {
     loadUsersForAgent(agent.id);
+    loadGroupsForAgent(agent.id);
     loadNetworkInfo(agent.id);
     loadAssignedPolicies(agent.id);
   }
@@ -3859,6 +4172,7 @@ const selectAgent = (agent: Agent) => {
 const clearAgentSelection = () => {
   selectedAgent.value = null;
   usersList.value = [];
+  groupsList.value = [];
   agentDetails.value = null;
   networkInfo.value = {};
   pingResult.value = null;

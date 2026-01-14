@@ -33,7 +33,6 @@ export function useGPOPolicies() {
       const responseObj = response as { groupsList?: unknown[]; groups?: unknown[] };
 
 
-      // toObject() возвращает camelCase: groupsList вместо groups
       const groupsList = responseObj.groupsList || responseObj.groups || [];
 
       policies.value = adaptPoliciesFromGroups({

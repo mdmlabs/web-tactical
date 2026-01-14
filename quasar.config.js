@@ -104,10 +104,6 @@ module.exports = configure(function (/* ctx */) {
             process.env.USE_PROXY_INSECURE === "true" ||
             process.env.USE_PROXY_INSECURE === true;
 
-          console.log(
-            `[Proxy Config] API URL: ${apiUrl}, Insecure: ${insecure}`,
-          );
-
           // для работы с самоподписанными сертификатами нужен специальный agent
           let httpsAgent = null;
           if (insecure) {
@@ -115,7 +111,6 @@ module.exports = configure(function (/* ctx */) {
             httpsAgent = new https.Agent({
               rejectUnauthorized: false, // Игнорь ошибок SSL
             });
-            console.log("[Proxy Config] Using insecure HTTPS agent");
           }
 
           const grpcUrl =
@@ -130,10 +125,7 @@ module.exports = configure(function (/* ctx */) {
 
               rewrite: (path) => path.replace(/^\/api\/grpc/, ""),
               configure: (proxy) => {
-                proxy.on("error", (err) => {
-                  console.log("[gRPC Proxy] error", err);
-                });
-                proxy.on("proxyReq", (proxyReq, req) => {
+                proxy.on("proxyReq", (proxyReq) => {
                   const contentType = proxyReq.getHeader("Content-Type");
                   if (
                     contentType &&
@@ -145,15 +137,8 @@ module.exports = configure(function (/* ctx */) {
                       "application/grpc-web+proto",
                     );
                   }
-                  console.log(
-                    "[gRPC Proxy] Sending Request to:",
-                    req.method,
-                    req.url,
-                    "Target path:",
-                    proxyReq.path,
-                  );
                 });
-                proxy.on("proxyRes", (proxyRes, req) => {
+                proxy.on("proxyRes", (proxyRes) => {
                   const contentType = proxyRes.headers["content-type"];
                   if (
                     !contentType ||
@@ -162,13 +147,6 @@ module.exports = configure(function (/* ctx */) {
                     proxyRes.headers["content-type"] =
                       "application/grpc-web+proto";
                   }
-                  console.log(
-                    "[gRPC Proxy] Received Response:",
-                    proxyRes.statusCode,
-                    req.url,
-                    "Content-Type:",
-                    proxyRes.headers["content-type"],
-                  );
                 });
               },
             },
@@ -179,25 +157,6 @@ module.exports = configure(function (/* ctx */) {
               secure: !insecure, // false для самоподписанных сертификатов
               agent: httpsAgent, // использовать agent для игнорирования SSL ошибок
               rewrite: (path) => path.replace(/^\/api/, ""),
-              configure: (proxy) => {
-                proxy.on("error", (err) => {
-                  console.log("proxy error", err);
-                });
-                proxy.on("proxyReq", (proxyReq, req) => {
-                  console.log(
-                    "Sending Request to the Target:",
-                    req.method,
-                    req.url,
-                  );
-                });
-                proxy.on("proxyRes", (proxyRes, req) => {
-                  console.log(
-                    "Received Response from the Target:",
-                    proxyRes.statusCode,
-                    req.url,
-                  );
-                });
-              },
             },
           };
         }
