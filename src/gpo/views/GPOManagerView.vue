@@ -1924,7 +1924,7 @@
             :key="`devices-${mainTab}`"
             class="gpo-devices-panel col-3"
           >
-            <div class="gpo-devices-header q-pa-sm">
+            <div class="gpo-devices-header">
               <div class="row items-center justify-between">
                 <div class="text-subtitle2 text-weight-medium">
                   Devices
@@ -2309,71 +2309,207 @@
               </q-tab-panels>
             </q-tab-panel>
 
-            <q-tab-panel name="management" class="q-pa-md">
-              <div class="text-h6 q-mb-md">Policy management</div>
+            <q-tab-panel name="management" class="q-pa-none">
+              <q-scroll-area
+                class="management-scroll-area"
+                :style="{ height: 'calc(100vh - 200px)' }"
+              >
+                <div class="q-pa-md">
+                  <div class="text-h6 q-mb-md">Policy management</div>
+                  <q-card class="q-mb-md">
+                    <q-card-section>
+                      <div class="text-subtitle1 q-mb-sm">
+                        Import ADMX Files
+                      </div>
+                      <div class="text-caption text-grey-7 q-mb-md">
+                        Upload a ZIP archive containing ADMX files (max 50MB)
+                      </div>
+                      <q-file
+                        v-model="admxZipFile"
+                        label="Select ZIP archive with ADMX files"
+                        accept=".zip,application/zip,application/x-zip-compressed"
+                        outlined
+                        dense
+                        :clearable="!admxZipUploading"
+                        :disable="admxZipUploading"
+                        :error="!!fileError"
+                        :error-message="fileError"
+                        :hint="
+                          admxZipFile ? formatFileSize(admxZipFile.size) : ''
+                        "
+                        class="q-mb-md"
+                        @update:model-value="handleFileChange"
+                      >
+                        <template v-slot:prepend>
+                          <q-icon name="archive" />
+                        </template>
+                      </q-file>
+                      <q-linear-progress
+                        v-if="admxZipUploading && uploadProgress > 0"
+                        :value="uploadProgress / 100"
+                        color="primary"
+                        size="8px"
+                        class="q-mb-md"
+                      >
+                        <div class="absolute-full flex flex-center">
+                          <q-badge
+                            color="white"
+                            text-color="primary"
+                            :label="`${uploadProgress}%`"
+                          />
+                        </div>
+                      </q-linear-progress>
+                      <div class="row q-gutter-sm">
+                        <q-btn
+                          color="primary"
+                          icon="cloud_upload"
+                          label="Import ADMX ZIP"
+                          :loading="admxZipUploading"
+                          :disable="!canUpload"
+                          @click="handleImportAdmxZip"
+                        />
+                        <q-btn
+                          v-if="admxZipUploading"
+                          flat
+                          color="negative"
+                          icon="cancel"
+                          label="Cancel"
+                          @click="handleCancelUpload"
+                        />
+                      </div>
+                    </q-card-section>
+                  </q-card>
 
-              <div class="row q-gutter-md q-mb-md">
-                <q-btn
-                  color="primary"
-                  icon="add"
-                  label="to Create"
-                  @click="onCreatePolicy"
-                  class="col-auto"
-                />
-                <q-btn
-                  color="secondary"
-                  icon="edit"
-                  label="Edit"
-                  @click="onEditSelectedPolicy"
-                  :disable="!selectedPolicyForManagement"
-                  class="col-auto"
-                />
-                <q-btn
-                  color="accent"
-                  icon="content_copy"
-                  label="Clone"
-                  @click="onClonePolicy"
-                  :disable="!selectedPolicyForManagement"
-                  class="col-auto"
-                />
-                <q-btn
-                  color="negative"
-                  icon="delete"
-                  label="Delete"
-                  @click="onDeleteSelectedPolicy"
-                  :disable="!selectedPolicyForManagement"
-                  class="col-auto"
-                />
-              </div>
+                  <q-card class="q-mb-md">
+                    <q-card-section>
+                      <div class="row items-center justify-between q-mb-md">
+                        <div class="text-subtitle1">Loaded ADMX Files</div>
+                        <q-btn
+                          icon="refresh"
+                          label="Refresh"
+                          color="primary"
+                          outline
+                          dense
+                          :loading="loadingAdmxFiles"
+                          @click="loadAdmxFilesList"
+                        />
+                      </div>
+                      <q-scroll-area
+                        class="admx-files-table-scroll"
+                        style="height: 400px"
+                      >
+                        <q-table
+                          :rows="loadedAdmxFiles"
+                          :columns="admxFilesColumns"
+                          :loading="loadingAdmxFiles"
+                          row-key="file_hash"
+                          flat
+                          :pagination="{ rowsPerPage: 0 }"
+                          hide-pagination
+                          no-data-label="No ADMX files loaded"
+                        >
+                          <template v-slot:body-cell-file_name="props">
+                            <q-td :props="props">
+                              <div class="text-weight-medium">
+                                {{ props.value }}
+                              </div>
+                            </q-td>
+                          </template>
+                          <template v-slot:body-cell-file_hash="props">
+                            <q-td :props="props">
+                              <div
+                                class="text-caption text-grey-7"
+                                style="font-family: monospace"
+                              >
+                                {{ props.value }}
+                              </div>
+                            </q-td>
+                          </template>
+                          <template v-slot:body-cell-loaded_at_unix="props">
+                            <q-td :props="props">
+                              {{
+                                formatAdmxFileDate(
+                                  props.value as number | string,
+                                )
+                              }}
+                            </q-td>
+                          </template>
+                        </q-table>
+                      </q-scroll-area>
+                    </q-card-section>
+                  </q-card>
 
-              <div class="q-mt-md">
-                <div class="text-subtitle2 q-mb-sm">
-                  Select a policy to manage:
-                </div>
-                <q-table
-                  :rows="filteredPolicies"
-                  :columns="policyManagementColumns"
-                  row-key="id"
-                  :loading="policiesStore.isLoading.value"
-                  flat
-                  bordered
-                  v-model:selected="selectedPoliciesForManagement"
-                >
-                  <template v-slot:top>
-                    <q-input
-                      v-model="policyFilter"
-                      placeholder="Policy search..."
-                      dense
-                      outlined
-                      class="col-4"
+                  <q-separator class="q-my-md" />
+
+                  <div class="row q-gutter-md q-mb-md">
+                    <q-btn
+                      color="primary"
+                      icon="add"
+                      label="to Create"
+                      @click="onCreatePolicy"
+                      class="col-auto"
+                    />
+                    <q-btn
+                      color="secondary"
+                      icon="edit"
+                      label="Edit"
+                      @click="onEditSelectedPolicy"
+                      :disable="!selectedPolicyForManagement"
+                      class="col-auto"
+                    />
+                    <q-btn
+                      color="accent"
+                      icon="content_copy"
+                      label="Clone"
+                      @click="onClonePolicy"
+                      :disable="!selectedPolicyForManagement"
+                      class="col-auto"
+                    />
+                    <q-btn
+                      color="negative"
+                      icon="delete"
+                      label="Delete"
+                      @click="onDeleteSelectedPolicy"
+                      :disable="!selectedPolicyForManagement"
+                      class="col-auto"
+                    />
+                  </div>
+
+                  <div class="q-mt-md">
+                    <div class="text-subtitle2 q-mb-sm">
+                      Select a policy to manage:
+                    </div>
+                    <q-scroll-area
+                      class="policies-table-scroll"
+                      style="height: 500px"
                     >
-                      <template v-slot:append>
-                        <q-icon name="search" />
-                      </template>
-                    </q-input>
-                  </template>
-                </q-table>
-              </div>
+                      <q-table
+                        :rows="filteredPolicies"
+                        :columns="policyManagementColumns"
+                        row-key="id"
+                        :loading="policiesStore.isLoading.value"
+                        flat
+                        bordered
+                        v-model:selected="selectedPoliciesForManagement"
+                      >
+                        <template v-slot:top>
+                          <q-input
+                            v-model="policyFilter"
+                            placeholder="Policy search..."
+                            dense
+                            outlined
+                            class="col-4"
+                          >
+                            <template v-slot:append>
+                              <q-icon name="search" />
+                            </template>
+                          </q-input>
+                        </template>
+                      </q-table>
+                    </q-scroll-area>
+                  </div>
+                </div>
+              </q-scroll-area>
             </q-tab-panel>
           </q-tab-panels>
         </div>
@@ -2409,7 +2545,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch, onBeforeUnmount } from "vue";
 import { formatDate } from "@/utils/format";
 import { useGPOPolicies, useGPOPolicyTree } from "../api/gpo";
 import {
@@ -2420,6 +2556,8 @@ import {
   policyAssignmentClient,
   policyCatalogClient,
   policyCatalogServiceClient,
+  admxServiceClientWrapper,
+  AdmxUploadError,
 } from "../api/grpc-client";
 import GPOPolicyForm from "../components/GPOPolicyForm.vue";
 import GPOPolicySettingsDialog from "../components/GPOPolicySettingsDialog.vue";
@@ -2530,6 +2668,25 @@ interface PolicyDetailsElement {
 const admxPolicyDetailsElements = ref<PolicyDetailsElement[]>([]);
 const admxPolicySettingsValues = ref<Record<string, unknown>>({});
 const admxPolicyFullDescription = ref<string>("");
+const admxZipFile = ref<File | null>(null);
+const admxZipUploading = ref(false);
+const uploadProgress = ref(0);
+const uploadAbortController = ref<AbortController | null>(null);
+const fileError = ref("");
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
+
+const canUpload = computed(() => {
+  return admxZipFile.value && !fileError.value && !admxZipUploading.value;
+});
+
+interface LoadedAdmxFile {
+  file_name: string;
+  file_hash: string;
+  loaded_at_unix: number | string;
+}
+
+const loadedAdmxFiles = ref<LoadedAdmxFile[]>([]);
+const loadingAdmxFiles = ref(false);
 
 const selectedAgent = ref<Agent | null>(null);
 const usersLoading = ref(false);
@@ -3526,6 +3683,31 @@ const assignedPolicyColumns: QTableColumn[] = [
     label: "Actions",
     align: "center",
     field: "actions",
+  },
+];
+
+const admxFilesColumns: QTableColumn[] = [
+  {
+    name: "file_name",
+    required: true,
+    label: "File Name",
+    align: "left",
+    field: "file_name",
+    sortable: true,
+  },
+  {
+    name: "file_hash",
+    label: "Hash",
+    align: "left",
+    field: "file_hash",
+    sortable: true,
+  },
+  {
+    name: "loaded_at_unix",
+    label: "Loaded At",
+    align: "left",
+    field: "loaded_at_unix",
+    sortable: true,
   },
 ];
 
@@ -4600,6 +4782,153 @@ async function handlePing() {
     pingLoading.value = false;
   }
 }
+function handleFileChange(file: File | null) {
+  fileError.value = "";
+
+  if (!file) return;
+  if (!file.name.toLowerCase().endsWith(".zip")) {
+    fileError.value = "Please select a ZIP file";
+    admxZipFile.value = null;
+    return;
+  }
+
+  if (file.size > MAX_FILE_SIZE) {
+    fileError.value = `File too large (max ${MAX_FILE_SIZE / (1024 * 1024)}MB)`;
+    admxZipFile.value = null;
+    return;
+  }
+
+  if (file.size === 0) {
+    fileError.value = "File is empty";
+    admxZipFile.value = null;
+    return;
+  }
+}
+
+async function handleImportAdmxZip() {
+  if (!admxZipFile.value || !canUpload.value) return;
+  uploadAbortController.value = new AbortController();
+  admxZipUploading.value = true;
+  uploadProgress.value = 0;
+
+  try {
+    const response = await admxServiceClientWrapper.importAdmxZip(
+      admxZipFile.value,
+      {
+        signal: uploadAbortController.value.signal,
+        maxFileSize: MAX_FILE_SIZE,
+        onProgress: (progress) => {
+          uploadProgress.value = Math.round(progress.percentage);
+        },
+      },
+    );
+
+    if (response.success) {
+      notifySuccess(response.message || "ADMX files successfully imported");
+      admxZipFile.value = null;
+      uploadProgress.value = 0;
+      fileError.value = "";
+      await loadAdmxFilesList();
+    } else {
+      notifyError(response.message || "Failed to import ADMX files");
+    }
+  } catch (error) {
+    handleUploadError(error);
+  } finally {
+    admxZipUploading.value = false;
+    uploadAbortController.value = null;
+  }
+}
+
+function handleCancelUpload() {
+  if (uploadAbortController.value) {
+    uploadAbortController.value.abort();
+  }
+}
+
+function handleUploadError(error: unknown) {
+  if (error instanceof AdmxUploadError) {
+    switch (error.code) {
+      case "CANCELLED":
+        break;
+      case "FILE_TOO_LARGE":
+        notifyError(error.message);
+        fileError.value = error.message;
+        break;
+      case "INVALID_FORMAT":
+        notifyError(error.message);
+        fileError.value = error.message;
+        break;
+      case "UPLOAD_FAILED":
+        notifyError(error.message);
+        console.error("ADMX upload failed:", error);
+        break;
+    }
+  } else {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unexpected error during upload";
+    notifyError(errorMessage);
+    console.error("ADMX ZIP import error:", error);
+  }
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+}
+
+async function loadAdmxFilesList() {
+  loadingAdmxFiles.value = true;
+  try {
+    const response = await admxServiceClientWrapper.listAdmxFiles();
+    const filesList =
+      response.filesList || (response as { files?: unknown[] }).files || [];
+    loadedAdmxFiles.value = filesList.map((file: unknown) => {
+      const f = file as {
+        fileName?: string;
+        file_name?: string;
+        fileHash?: string;
+        file_hash?: string;
+        loadedAtUnix?: number | string;
+        loaded_at_unix?: number | string;
+      };
+      return {
+        file_name: f.fileName || f.file_name || "",
+        file_hash: f.fileHash || f.file_hash || "",
+        loaded_at_unix: f.loadedAtUnix || f.loaded_at_unix || 0,
+      };
+    });
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Error loading ADMX files list";
+    notifyError(errorMessage);
+    console.error("Error loading ADMX files list:", error);
+    loadedAdmxFiles.value = [];
+  } finally {
+    loadingAdmxFiles.value = false;
+  }
+}
+
+function formatAdmxFileDate(timestamp: number | string): string {
+  if (!timestamp) return "-";
+  const date = new Date(
+    typeof timestamp === "string"
+      ? Number.parseInt(timestamp, 10) * 1000
+      : timestamp * 1000,
+  );
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString("ru-RU", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
 
 const onEditPolicy = (policy: unknown) => {
   policyToEdit.value = policy as GPOPolicy;
@@ -4762,6 +5091,8 @@ watch(mainTab, (newTab) => {
     ) {
       windowsTab.value = `admx-${admxGroups.value[0].group}`;
     }
+  } else if (newTab === "management") {
+    loadAdmxFilesList();
   }
 });
 
@@ -4815,6 +5146,12 @@ function onPolicySettingsDisabled(policyId: string) {
     });
   }
 }
+
+onBeforeUnmount(() => {
+  if (uploadAbortController.value) {
+    uploadAbortController.value.abort();
+  }
+});
 
 onMounted(() => {
   loadAgents();
@@ -4898,13 +5235,15 @@ onMounted(() => {
 
 .gpo-devices-header
   background: rgba(255, 255, 255, 0.8)
-  border-bottom: 1px solid rgba(18, 177, 209, 0.2)
+  border-bottom: 2px solid rgba(18, 177, 209, 0.2)
   flex-shrink: 0
+  padding: 6px 8px
 
 .gpo-devices-scroll
   flex: 1
   height: 100%
   overflow-y: auto
+  overflow-x: hidden
 
 .gpo-main-content
   display: flex
@@ -4977,7 +5316,7 @@ onMounted(() => {
 
 .body--dark .gpo-devices-header
   background: rgba(30, 30, 30, 0.8)
-  border-bottom: 1px solid rgba(18, 177, 209, 0.3)
+  border-bottom: 2px solid rgba(18, 177, 209, 0.3)
 
 .gpo-library-content
   display: flex
@@ -5039,5 +5378,15 @@ onMounted(() => {
   width: 100%
 
 .policy-assignment-table
+  width: 100%
+
+.management-scroll-area
+  width: 100%
+  height: 100%
+
+.admx-files-table-scroll
+  width: 100%
+
+.policies-table-scroll
   width: 100%
 </style>
