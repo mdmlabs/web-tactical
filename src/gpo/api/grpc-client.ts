@@ -524,6 +524,118 @@ export const policyStateClient = {
   },
 };
 
+export interface UploadProgress {
+  loaded: number;
+  total: number;
+  percentage: number;
+}
+
+export interface UploadOptions {
+  onProgress?: (progress: UploadProgress) => void;
+  signal?: AbortSignal;
+  maxFileSize?: number;
+}
+
+export class AdmxUploadError extends Error {
+  constructor(
+    message: string,
+    public code:
+      | "FILE_TOO_LARGE"
+      | "INVALID_FORMAT"
+      | "UPLOAD_FAILED"
+      | "CANCELLED",
+  ) {
+    super(message);
+    this.name = "AdmxUploadError";
+  }
+}
+
+export const admxServiceClientWrapper = {
+  async importAdmxZip(
+    zipFile: File | Uint8Array | ArrayBuffer,
+    options: UploadOptions = {},
+  ): Promise<operator_pb_types.ImportAdmxResponse.AsObject> {
+    const { onProgress, signal, maxFileSize = 50 * 1024 * 1024 } = options;
+
+    if (zipFile instanceof File) {
+      if (zipFile.size > maxFileSize) {
+        throw new AdmxUploadError(
+          `File size exceeds ${maxFileSize / (1024 * 1024)}MB limit`,
+          "FILE_TOO_LARGE",
+        );
+      }
+
+      if (
+        zipFile.type &&
+        zipFile.type !== "application/zip" &&
+        zipFile.type !== "application/x-zip-compressed"
+      ) {
+        throw new AdmxUploadError(
+          "Invalid file type. Expected ZIP archive",
+          "INVALID_FORMAT",
+        );
+      }
+    }
+    if (signal?.aborted) {
+      throw new AdmxUploadError("Upload cancelled", "CANCELLED");
+    }
+
+    let zipContent: Uint8Array;
+    if (zipFile instanceof File) {
+      const arrayBuffer = await zipFile.arrayBuffer();
+      zipContent = new Uint8Array(arrayBuffer);
+    } else if (zipFile instanceof ArrayBuffer) {
+      zipContent = new Uint8Array(zipFile);
+    } else {
+      zipContent = zipFile;
+    }
+
+    const totalSize = zipContent.length;
+    const request = new operator_pb.ImportAdmxZipRequest();
+    request.setZipContent(zipContent);
+
+    onProgress?.({ loaded: totalSize * 0.5, total: totalSize, percentage: 50 });
+    const abortListener = () => {
+      throw new AdmxUploadError("Upload cancelled by user", "CANCELLED");
+    };
+    signal?.addEventListener("abort", abortListener);
+
+    try {
+      const response = await admxServiceClient.importAdmxZip(
+        request,
+        createGrpcMetadata(),
+      );
+
+      onProgress?.({
+        loaded: totalSize,
+        total: totalSize,
+        percentage: 100,
+      });
+      return response.toObject();
+    } catch (error) {
+      if (signal?.aborted) {
+        throw new AdmxUploadError("Upload cancelled", "CANCELLED");
+      }
+      throw new AdmxUploadError(
+        error instanceof Error ? error.message : "Upload failed",
+        "UPLOAD_FAILED",
+      );
+    } finally {
+      signal?.removeEventListener("abort", abortListener);
+    }
+  },
+
+  async listAdmxFiles(): Promise<operator_pb_types.ListAdmxFilesResponse.AsObject> {
+    const request = new operator_pb.ListAdmxFilesRequest();
+
+    const response = await admxServiceClient.listAdmxFiles(
+      request,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+};
+
 export {
   agentServiceClient,
   userServiceClient,
