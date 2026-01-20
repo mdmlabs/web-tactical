@@ -578,6 +578,22 @@ export default {
           align: "left",
         },
         {
+          name: "windows_policy_status",
+          label: "Windows Policy Status",
+          field: "windows_policy_status",
+          style: "width: 80px;",
+          sortable: true,
+          align: "left",
+        },
+        {
+          name: "windows_policy_last_seen",
+          label: "Windows Policy Last Seen",
+          field: "windows_policy_last_seen",
+          style: "width: 80px;",
+          sortable: true,
+          align: "left",
+        },
+        {
           name: "boot_time",
           label: "Boot Time",
           field: "boot_time",
@@ -602,6 +618,8 @@ export default {
         "agentstatus",
         "needs_reboot",
         "last_seen",
+        "windows_policy_status",
+        "windows_policy_last_seen",
         "boot_time",
       ],
     };
@@ -876,7 +894,7 @@ export default {
     },
   },
   mounted() {
-    this.getTree();
+    this.$store.dispatch("refreshDashboard");
 
     const tableHeight = this.$q.screen.height - 50 - 40 - 80;
     this.$store.commit("setTableHeight", `${tableHeight}px`);

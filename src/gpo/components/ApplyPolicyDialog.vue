@@ -7,7 +7,7 @@
   >
     <q-card class="apply-policy-dialog">
       <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6">Apply Policy</div>
+        <div class="text-h6">Setting up Policies</div>
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
@@ -36,41 +36,42 @@
 
         <q-tab-panels v-model="dialogTab" class="q-mt-md">
           <q-tab-panel name="settings" class="q-pa-none">
-            <div
-              class="row q-col-gutter-md"
-              style="height: calc(100vh - 250px)"
-            >
+            <div class="row q-col-gutter-md">
               <div class="col-3">
-                <q-card flat bordered class="full-height">
+                <q-card flat bordered style="height: calc(100vh - 250px)">
                   <q-card-section>
                     <div class="text-subtitle2 q-mb-md">Categories</div>
                     <div v-if="loadingCategories" class="text-center q-pa-lg">
                       <q-spinner color="primary" size="2em" />
                       <div class="q-mt-sm">Loading categories...</div>
                     </div>
-                    <q-tree
+                    <q-scroll-area
                       v-else-if="categories.length > 0"
-                      :nodes="categories"
-                      node-key="id"
-                      v-model:selected="selectedCategoryId"
-                      @update:selected="onCategorySelected"
-                      default-expand-all
-                      class="category-tree"
+                      :style="{ height: 'calc(100vh - 330px)' }"
                     >
-                      <template v-slot:default-header="prop">
-                        <div class="row items-center full-width">
-                          <q-icon
-                            :name="prop.node.icon || 'folder'"
-                            class="q-mr-sm"
-                          />
-                          <div class="col">
-                            <div class="text-weight-medium">
-                              {{ prop.node.label }}
+                      <q-tree
+                        :nodes="categories"
+                        node-key="id"
+                        v-model:selected="selectedCategoryId"
+                        @update:selected="onCategorySelected"
+                        default-expand-all
+                        class="category-tree"
+                      >
+                        <template v-slot:default-header="prop">
+                          <div class="row items-center full-width">
+                            <q-icon
+                              :name="prop.node.icon || 'folder'"
+                              class="q-mr-sm"
+                            />
+                            <div class="col">
+                              <div class="text-weight-medium">
+                                {{ prop.node.label }}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </template>
-                    </q-tree>
+                        </template>
+                      </q-tree>
+                    </q-scroll-area>
                     <div v-else class="text-center q-pa-lg text-grey-6">
                       <q-icon name="info" size="2em" />
                       <div class="q-mt-sm">Categories not found</div>
@@ -80,7 +81,7 @@
               </div>
 
               <div class="col-3">
-                <q-card flat bordered class="full-height">
+                <q-card flat bordered style="height: calc(100vh - 250px)">
                   <q-card-section class="policy-list-section">
                     <div class="text-subtitle2 q-mb-md">Policies</div>
                     <div v-if="loadingPolicies" class="text-center q-pa-lg">
@@ -126,7 +127,7 @@
               </div>
 
               <div class="col-6">
-                <q-card flat bordered class="full-height">
+                <q-card flat bordered style="height: calc(100vh - 250px)">
                   <q-card-section
                     v-if="selectedPolicy"
                     class="policy-settings-section"
@@ -1982,11 +1983,9 @@ async function removePolicies() {
 
 <style scoped lang="sass">
 .apply-policy-dialog
-  min-width: 800px
-  max-width: 1200px
+  min-width: 1200px
 
 .category-tree
-  max-height: calc(100vh - 300px)
   overflow-y: auto
 
 .policy-list-section

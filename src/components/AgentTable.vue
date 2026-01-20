@@ -96,6 +96,22 @@
           </q-icon>
         </q-th>
       </template>
+      <template v-slot:header-cell-windows_policy_status="props">
+        <q-th :props="props">
+          <q-icon name="policy" size="1.5em">
+            <q-tooltip>Windows Agent Status</q-tooltip>
+          </q-icon>
+          Windows Agent Status
+        </q-th>
+      </template>
+      <template v-slot:header-cell-windows_policy_last_seen="props">
+        <q-th :props="props">
+          <q-icon name="schedule" size="1.5em">
+            <q-tooltip>Windows Agent Last Seen</q-tooltip>
+          </q-icon>
+          Windows Agent Last Seen
+        </q-th>
+      </template>
       <!-- body slots -->
       <template v-slot:body="props">
         <q-tr
@@ -372,6 +388,46 @@
           <q-td key="last_seen" :props="props">{{
             formatDate(props.row.last_seen)
           }}</q-td>
+          <q-td key="windows_policy_status" :props="props">
+            <div
+              v-if="props.row.windows_policy_status !== null"
+              class="row items-center q-gutter-xs"
+            >
+              <span
+                :class="
+                  props.row.windows_policy_status === 'online'
+                    ? 'text-positive'
+                    : 'text-warning'
+                "
+                style="font-size: 1em"
+              >
+                {{
+                  props.row.windows_policy_status === "online"
+                    ? "Online"
+                    : "Offline"
+                }}
+              </span>
+              <q-btn
+                flat
+                dense
+                round
+                size="xs"
+                icon="settings"
+                color="primary"
+                @click.stop="openPolicyManager(props.row.agent_id)"
+                class="q-ml-xs"
+              >
+                <q-tooltip>Open Policy Manager</q-tooltip>
+              </q-btn>
+            </div>
+            <div v-else class="text-grey-7">—</div>
+          </q-td>
+          <q-td key="windows_policy_last_seen" :props="props">
+            <div v-if="props.row.windows_policy_last_seen">
+              {{ formatDate(props.row.windows_policy_last_seen) }}
+            </div>
+            <div v-else class="text-grey-7">—</div>
+          </q-td>
           <q-td key="boot_time" :props="props">{{
             bootTime(props.row.boot_time)
           }}</q-td>
@@ -535,8 +591,6 @@ export default {
       });
     },
     handleRowClick(agent_id, agentPlatform, event) {
-      // Предотвращаем переход при клике на чекбоксы или другие интерактивные элементы
-      // Интерактивные элементы должны использовать @click.stop для предотвращения всплытия
       const target = event.target;
       const isInteractiveElement =
         target.closest("input") ||
@@ -544,21 +598,24 @@ export default {
         target.closest(".q-menu") ||
         target.closest("a");
 
-      // Если клик на интерактивном элементе - не переходим на страницу
       if (isInteractiveElement) {
         return;
       }
 
-      // Обычный клик на строку - переходим на страницу агента
       this.agentRowSelected(agent_id, agentPlatform);
     },
     agentRowSelected(agent_id, agentPlatform) {
       this.$store.commit("setActiveRow", agent_id);
       this.$store.commit("setAgentPlatform", agentPlatform);
-      // Просто выделяем строку, без перехода на страницу
     },
     viewAgentDetails(agent_id) {
       this.$router.push({ name: "Agent", params: { agent_id } });
+    },
+    openPolicyManager(agent_id) {
+      this.$router.push({
+        name: "GPOManager",
+        query: { agent_id: agent_id },
+      });
     },
     overdueAlert(category, agent, alert_action) {
       let db_field = "";

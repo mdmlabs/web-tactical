@@ -1,7 +1,7 @@
 <template>
   <q-page class="gpo-manager-page">
     <div class="row gpo-main-row">
-      <div class="gpo-sidebar col-2">
+      <div class="gpo-sidebar col-1.5">
         <div class="gpo-sidebar-header">
           <div class="text-h6 q-pa-md">Policy Manager</div>
         </div>
@@ -374,7 +374,7 @@
                               "
                             >
                               <q-item-section>
-                                <q-item-label>MAC adress</q-item-label>
+                                <q-item-label>MAC address</q-item-label>
                                 <q-item-label caption>
                                   <div
                                     v-for="(mac, index) in agentDetails.nodeInfo
@@ -2546,6 +2546,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, onBeforeUnmount } from "vue";
+import { useRoute } from "vue-router";
 import { formatDate } from "@/utils/format";
 import { useGPOPolicies, useGPOPolicyTree } from "../api/gpo";
 import {
@@ -2611,6 +2612,7 @@ interface AdmxGroup {
 }
 
 const $q = useQuasar();
+const route = useRoute();
 
 const policiesStore = useGPOPolicies();
 const treeStore = useGPOPolicyTree();
@@ -3431,6 +3433,12 @@ const groupsColumns: QTableColumn[] = [
 
 const usersColumns: QTableColumn[] = [
   {
+    name: "actions",
+    label: "Actions",
+    align: "center",
+    field: "actions",
+  },
+  {
     name: "name",
     required: true,
     label: "Name",
@@ -3464,12 +3472,6 @@ const usersColumns: QTableColumn[] = [
     label: "Groups",
     align: "left",
     field: "groups",
-  },
-  {
-    name: "actions",
-    label: "Actions",
-    align: "center",
-    field: "actions",
   },
 ];
 
@@ -5153,13 +5155,21 @@ onBeforeUnmount(() => {
   }
 });
 
-onMounted(() => {
-  loadAgents();
+onMounted(async () => {
+  await loadAgents();
   loadAdmxData();
 
   if (mainTab.value === "library") {
     policiesStore.fetchPolicies();
     treeStore.fetchPolicyTree();
+  }
+  const agentIdFromQuery = route.query.agent_id as string | undefined;
+  if (agentIdFromQuery) {
+    const agent = gpoAgents.value.find((a) => a.id === agentIdFromQuery);
+    if (agent) {
+      selectAgent(agent);
+      mainTab.value = "dashboard";
+    }
   }
 });
 </script>
@@ -5237,7 +5247,7 @@ onMounted(() => {
   background: rgba(255, 255, 255, 0.8)
   border-bottom: 2px solid rgba(18, 177, 209, 0.2)
   flex-shrink: 0
-  padding: 6px 8px
+  padding: 12px 8px
 
 .gpo-devices-scroll
   flex: 1
@@ -5287,6 +5297,12 @@ onMounted(() => {
   background: white
   border-bottom: 1px solid rgba(18, 177, 209, 0.2)
   flex-shrink: 0
+
+.gpo-content-header .q-tabs
+  padding: 6px
+
+.gpo-content-header .q-tabs__content
+  padding: 0
 
 .gpo-content-panels
   flex: 1
