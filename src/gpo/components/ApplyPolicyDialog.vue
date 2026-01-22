@@ -103,6 +103,17 @@
                           @click="selectPolicy(policy)"
                           class="policy-item"
                         >
+                          <q-item-section avatar>
+                            <q-checkbox
+                              :model-value="
+                                selectedPolicies[policy.id] || false
+                              "
+                              @update:model-value="
+                                togglePolicySelection(policy.id)
+                              "
+                              @click.stop
+                            />
+                          </q-item-section>
                           <q-item-section>
                             <q-item-label>{{
                               policy.displayName || policy.name
@@ -110,6 +121,24 @@
                           </q-item-section>
                         </q-item>
                       </q-list>
+                      <div
+                        v-if="
+                          Object.keys(selectedPolicies).filter(
+                            (id) => selectedPolicies[id],
+                          ).length > 0
+                        "
+                        class="q-pa-sm q-mt-sm bg-primary text-white rounded-borders"
+                      >
+                        <div class="text-caption">
+                          Selected:
+                          {{
+                            Object.keys(selectedPolicies).filter(
+                              (id) => selectedPolicies[id],
+                            ).length
+                          }}
+                          policy(ies)
+                        </div>
+                      </div>
                     </q-scroll-area>
                     <div
                       v-else-if="selectedCategory"
@@ -578,9 +607,7 @@
           </q-tab-panel>
 
           <q-tab-panel name="users" class="q-pa-none">
-            <div class="text-subtitle2 q-mb-md">
-              Select users to apply policies
-            </div>
+            <div class="text-subtitle2 q-mb-md">Select users</div>
             <div class="q-mb-sm">
               <q-btn
                 flat
@@ -637,38 +664,169 @@
       </q-card-section>
 
       <q-card-actions align="right" class="q-pa-md">
-        <q-btn
-          flat
-          label="Disable"
-          color="negative"
-          @click="removePolicies"
-          :loading="applying"
-          :disable="!hasSelectedPolicies || selectedUsers.length === 0"
-        />
-        <q-btn
-          flat
-          label="Apply"
-          color="positive"
-          @click="applyPolicies"
-          :loading="applying"
-          :disable="!hasSelectedPolicies || selectedUsers.length === 0"
-        />
+        <div class="row items-center q-gutter-sm">
+          <q-select
+            v-model="selectedCollectionId"
+            :options="collectionsOptions"
+            option-label="label"
+            option-value="value"
+            emit-value
+            map-options
+            outlined
+            dense
+            label="Collection"
+            style="min-width: 200px"
+            :loading="loadingCollections"
+            clearable
+            @update:model-value="onCollectionSelected"
+          >
+            <template v-slot:no-option>
+              <q-item>
+                <q-item-section class="text-grey">
+                  No collections available
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-select>
+          <div
+            v-if="selectedCollectionId && collectionPolicies.length > 0"
+            class="q-mt-sm q-pa-sm bg-grey-2 rounded-borders"
+          >
+            <div class="text-caption text-weight-medium q-mb-xs">
+              Policies in collection ({{ collectionPolicies.length }}):
+            </div>
+            <div class="text-caption text-grey-7">
+              <div
+                v-for="(policy, index) in collectionPolicies.slice(0, 3)"
+                :key="index"
+              >
+                • {{ policy }}
+              </div>
+              <div v-if="collectionPolicies.length > 3" class="q-mt-xs">
+                ... and {{ collectionPolicies.length - 3 }} more
+              </div>
+            </div>
+          </div>
+          <q-btn
+            flat
+            icon="add"
+            label="New Collection"
+            color="primary"
+            @click="showCreateCollectionDialog = true"
+            :disable="applying"
+          />
+          <q-btn
+            v-if="selectedCollectionId"
+            flat
+            icon="delete"
+            label="Delete Collection"
+            color="negative"
+            @click="deleteSelectedCollection"
+            :loading="applying"
+            :disable="applying"
+          />
+          <q-btn
+            flat
+            icon="shopping_cart"
+            label="Add to Collection"
+            color="primary"
+            @click="addPoliciesToCollection"
+            :loading="applying"
+            :disable="!hasSelectedPolicies || !selectedCollectionId"
+          />
+          <q-btn
+            flat
+            icon="play_arrow"
+            label="Apply Collection"
+            color="positive"
+            @click="applyCollection"
+            :loading="applying"
+            :disable="!selectedCollectionId || selectedUsers.length === 0"
+          />
+          <q-separator vertical />
+          <q-btn
+            flat
+            icon="check_circle"
+            label="Apply Selected Policy"
+            color="primary"
+            @click="applySelectedPolicy"
+            :loading="applying"
+            :disable="!selectedPolicy || selectedUsers.length === 0"
+          />
+          <q-btn
+            flat
+            icon="remove_circle"
+            label="Remove Selected Policy"
+            color="negative"
+            @click="removeSelectedPolicy"
+            :loading="applying"
+            :disable="!selectedPolicy || selectedUsers.length === 0"
+          />
+        </div>
       </q-card-actions>
+
+      <q-dialog v-model="showCreateCollectionDialog">
+        <q-card style="min-width: 400px">
+          <q-card-section>
+            <div class="text-h6">Create New Collection</div>
+          </q-card-section>
+
+          <q-card-section>
+            <q-input
+              v-model="newCollectionName"
+              label="Collection Name"
+              outlined
+              dense
+              :rules="[(val) => !!val || 'Name is required']"
+            />
+            <q-input
+              v-model="newCollectionDescription"
+              label="Description (optional)"
+              outlined
+              dense
+              type="textarea"
+              rows="3"
+              class="q-mt-md"
+            />
+          </q-card-section>
+
+          <q-card-actions align="right">
+            <q-btn
+              flat
+              label="Cancel"
+              color="negative"
+              v-close-popup
+              @click="resetNewCollectionForm"
+            />
+            <q-btn
+              flat
+              label="Create"
+              color="primary"
+              @click="createNewCollection"
+              :disable="!newCollectionName"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
     </q-card>
   </q-dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+import { useQuasar } from "quasar";
 import {
   policyCatalogServiceClient,
   createGrpcMetadata,
   operator_pb,
   policyAssignmentClient,
+  collectionsClient,
 } from "../api/grpc-client";
 import { notifySuccess, notifyError } from "@/utils/notify";
 import type { GPOPolicy } from "../types/gpo";
 import MultiTextBox from "@/components/ui/MultiTextBox.vue";
+
+const $q = useQuasar();
 
 interface Agent {
   id: string;
@@ -714,7 +872,12 @@ interface PolicyDetailsElement {
 
 interface PolicyDetail {
   settings: Record<string, unknown>;
-  policy: GPOPolicy;
+  policy: Omit<Partial<GPOPolicy>, "id" | "name"> & {
+    id: string | number;
+    name: string;
+    hash?: string;
+    scope?: string;
+  };
   hash?: string;
 }
 
@@ -764,6 +927,13 @@ const selectedUsers = ref<string[]>([]);
 const applying = ref(false);
 const settingsTab = ref("settings");
 const presentationElements = ref<PolicyPresentationElement[]>([]);
+const selectedCollectionId = ref<number | null>(null);
+const collectionsOptions = ref<Array<{ label: string; value: number }>>([]);
+const loadingCollections = ref(false);
+const showCreateCollectionDialog = ref(false);
+const newCollectionName = ref("");
+const newCollectionDescription = ref("");
+const collectionPolicies = ref<string[]>([]);
 
 const hasSelectedPolicies = computed(() => {
   return Object.values(selectedPolicies).includes(true);
@@ -772,6 +942,7 @@ const hasSelectedPolicies = computed(() => {
 watch(dialogVisible, (newVal) => {
   if (newVal && props.agent) {
     loadCategories();
+    loadCollections();
     if (props.initialUserSid) {
       selectedUsers.value = [props.initialUserSid];
       dialogTab.value = "settings";
@@ -792,6 +963,10 @@ watch(dialogVisible, (newVal) => {
     presentationElements.value = [];
     settingsTab.value = "settings";
     dialogTab.value = "settings";
+    selectedCollectionId.value = null;
+    newCollectionName.value = "";
+    newCollectionDescription.value = "";
+    showCreateCollectionDialog.value = false;
   }
 });
 
@@ -959,10 +1134,11 @@ async function loadPoliciesByCategory(categoryName: string) {
             ? explainText.trim()
             : undefined;
 
+        const policyName = p.name || "";
         policies.push({
           id: String(p.id || ""),
-          name: p.name || "",
-          displayName: p.display_name || p.displayName || p.name || "",
+          name: policyName,
+          displayName: p.display_name || p.displayName || policyName || "",
           path: `CN={${p.id}},CN=Policies,CN=System`,
           enabled: true,
           description: description,
@@ -981,6 +1157,20 @@ async function loadPoliciesByCategory(categoryName: string) {
 function selectPolicy(policy: GPOPolicy) {
   selectedPolicy.value = policy;
   loadPolicyDetails(policy);
+}
+
+function togglePolicySelection(policyId: string) {
+  if (!selectedPolicies.value[policyId]) {
+    selectedPolicies.value[policyId] = true;
+    const policy = selectedCategoryPolicies.value.find(
+      (p) => p.id === policyId,
+    );
+    if (policy && !policyDetails.value[policyId]) {
+      loadPolicyDetails(policy);
+    }
+  } else {
+    selectedPolicies.value[policyId] = false;
+  }
 }
 
 async function loadPolicyDetails(policy: GPOPolicy) {
@@ -1386,19 +1576,35 @@ async function loadPolicyDetails(policy: GPOPolicy) {
       .policy;
     if (policyInfo && typeof policyInfo === "object") {
       const policyHash = (policyInfo.hash as string) || "";
-      if (policyHash && selectedPolicy.value) {
-        const policyId = selectedPolicy.value.id;
+      if (policyHash) {
+        const policyIdFromApi = String(policyInfo.id || policy.id);
+        const policyId = policyIdFromApi || policy.id;
+
         if (!policyDetails.value[policyId]) {
           policyDetails.value[policyId] = {
             settings: {},
-            policy: selectedPolicy.value,
+            policy: policyInfo as {
+              id: number | string;
+              name: string;
+              hash: string;
+              scope?: string;
+            },
             hash: policyHash,
           };
         } else {
+          policyDetails.value[policyId].policy = policyInfo as {
+            id: number | string;
+            name: string;
+            hash: string;
+            scope?: string;
+          };
           policyDetails.value[policyId].hash = policyHash;
         }
-        if (!selectedPolicies.value[policyId]) {
-          selectedPolicies.value[policyId] = true;
+
+        if (selectedPolicy.value && selectedPolicy.value.id === policyId) {
+          if (!selectedPolicies.value[policyId]) {
+            selectedPolicies.value[policyId] = true;
+          }
         }
       }
     }
@@ -1644,22 +1850,36 @@ async function loadPolicyDetails(policy: GPOPolicy) {
         }
       }
 
-      if (selectedPolicy.value) {
-        const policyId = selectedPolicy.value.id;
-        const policyInfo = (responseObj as { policy?: Record<string, unknown> })
-          .policy;
-        if (policyInfo && typeof policyInfo === "object") {
-          const policyHash = (policyInfo.hash as string) || "";
-          if (policyHash) {
-            if (!policyDetails.value[policyId]) {
-              policyDetails.value[policyId] = {
-                settings: {},
-                policy: selectedPolicy.value,
-                hash: policyHash,
-              };
-            } else {
-              policyDetails.value[policyId].hash = policyHash;
-            }
+      const policyInfo = (responseObj as { policy?: Record<string, unknown> })
+        .policy;
+      if (policyInfo && typeof policyInfo === "object") {
+        const policyHash = (policyInfo.hash as string) || "";
+        if (policyHash) {
+          const policyIdFromApi = String(policyInfo.id || policy.id);
+          const policyId = policyIdFromApi || policy.id;
+
+          if (!policyDetails.value[policyId]) {
+            policyDetails.value[policyId] = {
+              settings: {},
+              policy: policyInfo as {
+                id: number | string;
+                name: string;
+                hash: string;
+                scope?: string;
+              },
+              hash: policyHash,
+            };
+          } else {
+            policyDetails.value[policyId].policy = policyInfo as {
+              id: number | string;
+              name: string;
+              hash: string;
+              scope?: string;
+            };
+            policyDetails.value[policyId].hash = policyHash;
+          }
+
+          if (selectedPolicy.value && selectedPolicy.value.id === policyId) {
             if (!selectedPolicies.value[policyId]) {
               selectedPolicies.value[policyId] = true;
             }
@@ -1727,86 +1947,6 @@ function getDefaultValue(element: PolicyDetailsElement): unknown {
   }
 }
 
-function processPolicySettings(
-  settings: Record<string, unknown>,
-  elements: PolicyDetailsElement[],
-): Record<string, unknown> {
-  const processed: Record<string, unknown> = { ...settings };
-
-  for (const element of elements) {
-    const elementId = element.element_id;
-    const value = settings[elementId];
-
-    if (
-      (!element.items || element.items.length === 0) &&
-      (element.type === "list" ||
-        element.type === "LIST" ||
-        element.type === "List") &&
-      Array.isArray(value) &&
-      value.every((v) => typeof v === "string")
-    ) {
-      processed[elementId] = value;
-      continue;
-    }
-
-    if (element.items && element.items.length > 0 && value !== undefined) {
-      if (typeof value === "number" || typeof value === "string") {
-        const itemId =
-          typeof value === "string" ? Number.parseInt(value, 10) : value;
-        type ItemType = { id: number; name?: string; value_type?: string };
-        const itemsArray = element.items as ItemType[];
-        const foundItem = itemsArray.find((it) => it.id === itemId);
-        if (foundItem) {
-          const itemKey = foundItem.name || String(foundItem.id);
-
-          let itemValue: string;
-          if (
-            foundItem.value_type === "decimal" ||
-            foundItem.value_type === "int"
-          ) {
-            itemValue = String(itemId);
-          } else {
-            itemValue = "1";
-          }
-
-          if (itemKey) {
-            processed[elementId] = { [itemKey]: itemValue };
-          }
-        }
-      } else if (Array.isArray(value)) {
-        const itemsObject: Record<string, string> = {};
-        type ItemType = { id: number; name?: string; value_type?: string };
-        const itemsArray = element.items as ItemType[];
-        for (const itemId of value) {
-          const foundItem = itemsArray.find((it) => it.id === itemId);
-          if (foundItem) {
-            const itemKey = foundItem.name || String(foundItem.id);
-
-            let itemValue: string;
-            if (
-              foundItem.value_type === "decimal" ||
-              foundItem.value_type === "int"
-            ) {
-              itemValue = String(itemId);
-            } else {
-              itemValue = "1";
-            }
-
-            if (itemKey) {
-              itemsObject[itemKey] = itemValue;
-            }
-          }
-        }
-        if (Object.keys(itemsObject).length > 0) {
-          processed[elementId] = itemsObject;
-        }
-      }
-    }
-  }
-
-  return processed;
-}
-
 function toggleUser(userSid: string) {
   const index = selectedUsers.value.indexOf(userSid);
   if (index === -1) {
@@ -1824,16 +1964,334 @@ function deselectAllUsers() {
   selectedUsers.value = [];
 }
 
-async function applyPolicies() {
-  if (!props.agent || !hasSelectedPolicies.value) {
+async function loadCollections() {
+  loadingCollections.value = true;
+  try {
+    const response = await collectionsClient.getAllCollections("en-US");
+    const collectionsList =
+      (response as { collectionsList?: unknown[]; collections?: unknown[] })
+        .collectionsList ||
+      (response as { collectionsList?: unknown[]; collections?: unknown[] })
+        .collections ||
+      [];
+    collectionsOptions.value = collectionsList.map((col: unknown) => {
+      const c = col as { id?: number; name?: string };
+      return {
+        label: c.name || `Collection ${c.id || ""}`,
+        value: c.id || 0,
+      };
+    });
+  } catch (error) {
+    notifyError("Error loading collections");
+  } finally {
+    loadingCollections.value = false;
+  }
+}
+
+async function onCollectionSelected(collectionId: number | null) {
+  selectedCollectionId.value = collectionId;
+  collectionPolicies.value = [];
+
+  if (collectionId) {
+    try {
+      const response = await collectionsClient.getPoliciesInCollection(
+        collectionId,
+        "en-US",
+      );
+
+      const policiesList =
+        (response as { policiesList?: unknown[]; policies?: unknown[] })
+          .policiesList ||
+        (response as { policiesList?: unknown[]; policies?: unknown[] })
+          .policies ||
+        [];
+
+      collectionPolicies.value = policiesList.map((p: unknown) => {
+        const policy = p as {
+          name?: string;
+          displayName?: string;
+          display_name?: string;
+        };
+        return (
+          policy.displayName ||
+          policy.display_name ||
+          policy.name ||
+          "Unknown policy"
+        );
+      });
+    } catch (error) {
+      try {
+        const response = await collectionsClient.getCollectionById(
+          collectionId,
+          "en-US",
+        );
+        const collection = response.collection;
+        if (collection) {
+          const policiesList =
+            (collection as { policiesList?: unknown[]; policies?: unknown[] })
+              .policiesList ||
+            (collection as { policiesList?: unknown[]; policies?: unknown[] })
+              .policies ||
+            [];
+
+          collectionPolicies.value = policiesList.map((p: unknown) => {
+            const policy = p as {
+              name?: string;
+              displayName?: string;
+              display_name?: string;
+            };
+            return (
+              policy.displayName ||
+              policy.display_name ||
+              policy.name ||
+              "Unknown policy"
+            );
+          });
+        }
+      } catch (fallbackError) {
+        // Fallback failed, ignore
+      }
+    }
+  }
+}
+
+async function deleteSelectedCollection() {
+  if (!selectedCollectionId.value) {
+    return;
+  }
+
+  const collectionName =
+    collectionsOptions.value.find((c) => c.value === selectedCollectionId.value)
+      ?.label || "Collection";
+
+  $q.dialog({
+    title: "Confirm the deletion",
+    message: `Are you sure you want to delete the collection "${collectionName}"? This action cannot be undone..`,
+    cancel: {
+      label: "Cancel",
+      color: "grey",
+      flat: true,
+    },
+    ok: {
+      label: "Delete",
+      color: "negative",
+      flat: true,
+    },
+    persistent: true,
+  })
+    .onOk(async () => {
+      applying.value = true;
+      try {
+        await collectionsClient.deleteCollection(selectedCollectionId.value!);
+        collectionsOptions.value = collectionsOptions.value.filter(
+          (c) => c.value !== selectedCollectionId.value,
+        );
+        selectedCollectionId.value = null;
+        collectionPolicies.value = [];
+
+        notifySuccess(`Collection "${collectionName}" successfully deleted`);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Unknown error deleting collection";
+        notifyError(`Error when deleting a collection: ${errorMessage}`);
+      } finally {
+        applying.value = false;
+      }
+    })
+    .onCancel(() => {});
+}
+
+function resetNewCollectionForm() {
+  newCollectionName.value = "";
+  newCollectionDescription.value = "";
+}
+
+async function createNewCollection() {
+  if (!newCollectionName.value.trim()) {
+    notifyError("Collection name is required");
     return;
   }
 
   applying.value = true;
   try {
-    const selectedPolicyIds = Object.keys(selectedPolicies.value).filter(
-      (id) => selectedPolicies.value[id],
+    const response = await collectionsClient.createCollection(
+      newCollectionName.value.trim(),
+      newCollectionDescription.value.trim(),
     );
+
+    const collection = response.collection;
+    if (collection && collection.id) {
+      collectionsOptions.value.push({
+        label: collection.name || newCollectionName.value,
+        value: collection.id,
+      });
+      selectedCollectionId.value = collection.id;
+      showCreateCollectionDialog.value = false;
+      resetNewCollectionForm();
+      await onCollectionSelected(collection.id);
+      notifySuccess("Collection created successfully");
+    }
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Unknown error creating collection";
+    notifyError(`Error creating collection: ${errorMessage}`);
+  } finally {
+    applying.value = false;
+  }
+}
+
+async function addPoliciesToCollection() {
+  if (!selectedCollectionId.value) {
+    notifyError("Please select a collection first");
+    return;
+  }
+
+  const selectedPolicyIds = Object.keys(selectedPolicies.value).filter(
+    (id) => selectedPolicies.value[id] === true,
+  );
+
+  if (selectedPolicyIds.length === 0) {
+    notifyError("Please select at least one policy");
+    return;
+  }
+
+  applying.value = true;
+  try {
+    const policyNames: string[] = [];
+    for (const policyId of selectedPolicyIds) {
+      let policyName: string | undefined;
+      let policyDetail = policyDetails.value[policyId];
+
+      if (!policyDetail || !policyDetail.policy?.name) {
+        const policy = selectedCategoryPolicies.value.find(
+          (p) => p.id === policyId,
+        );
+        if (policy) {
+          await loadPolicyDetails(policy);
+          policyDetail = policyDetails.value[policyId];
+
+          if (!policyDetail || !policyDetail.policy?.name) {
+            const policyIdNum = Number.parseInt(policyId, 10);
+            if (!Number.isNaN(policyIdNum)) {
+              try {
+                const policyDetailsResponse =
+                  await policyCatalogServiceClient.getPolicyDetails(
+                    new operator_pb.GetPolicyDetailsRequest()
+                      .setPolicyId(policyIdNum)
+                      .setLangCode("en-US"),
+                    createGrpcMetadata(),
+                  );
+
+                const policyData = policyDetailsResponse.getPolicy?.();
+                if (policyData) {
+                  const policyNameFromApi = policyData.getName?.() || "";
+                  if (policyNameFromApi) {
+                    policyName = policyNameFromApi.trim();
+                  }
+                }
+              } catch (error) {
+                // Ignore error, will try to get name from policyDetails later
+              }
+            }
+          }
+        }
+      }
+
+      if (!policyName && policyDetail?.policy?.name) {
+        policyName = policyDetail.policy.name.trim();
+      }
+
+      if (policyName && policyName.length > 0) {
+        policyNames.push(policyName);
+      }
+    }
+
+    if (policyNames.length === 0) {
+      throw new Error(
+        `Could not get policy names for ${selectedPolicyIds.length} selected policy(ies). ` +
+          "Please make sure policies are loaded and try selecting them again.",
+      );
+    }
+
+    if (
+      !selectedCollectionId.value ||
+      typeof selectedCollectionId.value !== "number"
+    ) {
+      throw new Error("Invalid collection ID");
+    }
+
+    if (!policyNames || policyNames.length === 0) {
+      throw new Error("No policy names to add");
+    }
+
+    await collectionsClient.createCollectionsPolicies(
+      selectedCollectionId.value,
+      policyNames,
+    );
+
+    await onCollectionSelected(selectedCollectionId.value);
+
+    const policiesCount = policyNames.length;
+    const policiesText =
+      policiesCount === 1
+        ? "Policy added to collection"
+        : `${policiesCount} policies added to collection`;
+
+    notifySuccess(policiesText);
+  } catch (error) {
+    let errorMessage = "Unknown error adding policies to collection";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+
+      if (errorMessage.includes("Exception was thrown by handler")) {
+        errorMessage =
+          "Server error: The collection or policies may not exist, or there was a problem processing the request. " +
+          "Please check that the collection exists and policy names are correct.";
+      } else if (errorMessage.includes("Invalid collection ID")) {
+        errorMessage = "Please select a valid collection";
+      } else if (errorMessage.includes("No policy names")) {
+        errorMessage =
+          "No valid policy names found. Please select policies again.";
+      }
+    }
+
+    notifyError(`Error adding policies: ${errorMessage}`);
+  } finally {
+    applying.value = false;
+  }
+}
+
+async function applyCollection() {
+  if (!selectedCollectionId.value || !props.agent) {
+    return;
+  }
+
+  applying.value = true;
+  try {
+    const collectionResponse = await collectionsClient.getCollectionById(
+      selectedCollectionId.value,
+      "en-US",
+    );
+
+    const collection = collectionResponse.collection;
+    if (!collection) {
+      throw new Error("Collection not found");
+    }
+
+    const policiesList =
+      (collection as { policiesList?: unknown[]; policies?: unknown[] })
+        .policiesList ||
+      (collection as { policiesList?: unknown[]; policies?: unknown[] })
+        .policies ||
+      [];
+
+    if (policiesList.length === 0) {
+      throw new Error("Collection is empty");
+    }
 
     const usersToApply: User[] =
       selectedUsers.value.length > 0
@@ -1841,36 +2299,49 @@ async function applyPolicies() {
         : [];
 
     if (usersToApply.length === 0) {
-      throw new Error("No users selected for applying policies");
+      throw new Error("No users selected for applying collection");
     }
 
     const applyPromises: Promise<unknown>[] = [];
 
-    for (const policyId of selectedPolicyIds) {
-      const policyDetail = policyDetails.value[policyId];
+    for (const policySummary of policiesList) {
+      const policy = policySummary as {
+        id?: number;
+        name?: string;
+        displayName?: string;
+        explainText?: string;
+      };
 
-      if (!policyDetail) {
-        throw new Error(`Policy details ${policyId} not found`);
+      if (!policy.id || !policy.name) {
+        continue;
       }
 
-      const policyHash = policyDetail.hash;
+      let policyHash: string | undefined;
+      try {
+        const policyDetailsResponse =
+          await policyCatalogServiceClient.getPolicyDetails(
+            new operator_pb.GetPolicyDetailsRequest()
+              .setPolicyId(policy.id)
+              .setLangCode("en-US"),
+            createGrpcMetadata(),
+          );
+
+        const policyData = policyDetailsResponse.getPolicy?.();
+        if (policyData) {
+          policyHash = policyData.getHash?.() || "";
+        }
+      } catch (error) {
+        continue;
+      }
+
       if (!policyHash) {
-        throw new Error(
-          `Policy hash ${policyId} not found. Load policy details before applying.`,
-        );
+        continue;
       }
 
-      let rawSettings: Record<string, unknown>;
-      if (selectedPolicy.value?.id === policyId && policySettingsValues.value) {
-        rawSettings = { ...policySettingsValues.value };
-        policyDetails.value[policyId].settings = rawSettings;
-      } else {
-        rawSettings = policyDetail.settings || {};
-      }
-
-      const elements = policyDetailsElementsMap.value[policyId] || [];
-
-      const processedSettings = processPolicySettings(rawSettings, elements);
+      const usersToApply: User[] =
+        selectedUsers.value.length > 0
+          ? props.users.filter((u) => selectedUsers.value.includes(u.sid))
+          : [];
 
       for (const user of usersToApply) {
         applyPromises.push(
@@ -1878,7 +2349,7 @@ async function applyPolicies() {
             policyHash,
             "user",
             { agentId: String(props.agent.id), userSid: String(user.sid) },
-            processedSettings,
+            {},
           ),
         );
       }
@@ -1886,15 +2357,17 @@ async function applyPolicies() {
 
     await Promise.all(applyPromises);
 
-    const userText = ` (${usersToApply.length} ${usersToApply.length === 1 ? "user" : "users"})`;
-
-    const policiesCount = selectedPolicyIds.length;
+    const collectionName = collection.name || "Collection";
+    const policiesCount = policiesList.length;
     const policiesText =
       policiesCount === 1
-        ? "Policy successfully applied"
-        : `${policiesCount} policies successfully applied`;
+        ? "Policy from collection successfully applied"
+        : `${policiesCount} policies from collection successfully applied`;
 
-    notifySuccess(`${policiesText} for ${props.agent.hostname}${userText}`);
+    const usersCount = selectedUsers.value.length;
+    const targetText = ` to ${usersCount} ${usersCount === 1 ? "user" : "users"} on ${props.agent.hostname}`;
+
+    notifySuccess(`${policiesText} "${collectionName}"${targetText}`);
 
     emit("applied");
     dialogVisible.value = false;
@@ -1902,79 +2375,178 @@ async function applyPolicies() {
     const errorMessage =
       error instanceof Error
         ? error.message
-        : "Unknown error applying policies";
-    notifyError(`Error applying policies: ${errorMessage}`);
+        : "Unknown error applying collection";
+    notifyError(`Error applying collection: ${errorMessage}`);
   } finally {
     applying.value = false;
   }
 }
 
-async function removePolicies() {
-  if (!props.agent || !hasSelectedPolicies.value) {
+async function applySelectedPolicy() {
+  if (!selectedPolicy.value || !props.agent) {
+    return;
+  }
+
+  if (selectedUsers.value.length === 0) {
+    notifyError("Please select users");
     return;
   }
 
   applying.value = true;
   try {
-    const selectedPolicyIds = Object.keys(selectedPolicies.value).filter(
-      (id) => selectedPolicies.value[id],
-    );
+    const policyId = Number.parseInt(selectedPolicy.value.id, 10);
+    if (Number.isNaN(policyId)) {
+      throw new Error(`Invalid policy ID: ${selectedPolicy.value.id}`);
+    }
+
+    let policyHash: string | undefined;
+
+    const policyDetail = policyDetails.value[selectedPolicy.value.id];
+    if (policyDetail?.hash) {
+      policyHash = policyDetail.hash;
+    } else {
+      const policyDetailsResponse =
+        await policyCatalogServiceClient.getPolicyDetails(
+          new operator_pb.GetPolicyDetailsRequest()
+            .setPolicyId(policyId)
+            .setLangCode("en-US"),
+          createGrpcMetadata(),
+        );
+
+      const policyData = policyDetailsResponse.getPolicy?.();
+      if (policyData) {
+        policyHash = policyData.getHash?.() || "";
+      }
+    }
+
+    if (!policyHash) {
+      throw new Error(
+        "Could not get policy hash. Please try selecting the policy again.",
+      );
+    }
+
+    let processedSettings: Record<string, unknown> = {};
+    if (
+      policySettingsValues.value &&
+      Object.keys(policySettingsValues.value).length > 0
+    ) {
+      processedSettings = { ...policySettingsValues.value };
+    } else if (policyDetail?.settings) {
+      processedSettings = policyDetail.settings;
+    }
+
+    const applyPromises: Promise<unknown>[] = [];
+
+    const usersToApply: User[] =
+      selectedUsers.value.length > 0
+        ? props.users.filter((u) => selectedUsers.value.includes(u.sid))
+        : [];
+
+    for (const user of usersToApply) {
+      applyPromises.push(
+        policyAssignmentClient.assignPolicy(
+          policyHash,
+          "user",
+          { agentId: String(props.agent.id), userSid: String(user.sid) },
+          processedSettings,
+        ),
+      );
+    }
+
+    await Promise.all(applyPromises);
+
+    const policyName =
+      selectedPolicy.value.displayName || selectedPolicy.value.name;
+    const usersCount = selectedUsers.value.length;
+    const targetText = ` to ${usersCount} ${usersCount === 1 ? "user" : "users"} on ${props.agent.hostname}`;
+
+    notifySuccess(`Policy "${policyName}" successfully applied${targetText}`);
+
+    emit("applied");
+    dialogVisible.value = false;
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error applying policy";
+    notifyError(`Error applying policy: ${errorMessage}`);
+  } finally {
+    applying.value = false;
+  }
+}
+
+async function removeSelectedPolicy() {
+  if (!selectedPolicy.value || !props.agent) {
+    return;
+  }
+
+  if (selectedUsers.value.length === 0) {
+    notifyError("Please select users");
+    return;
+  }
+
+  applying.value = true;
+  try {
+    const policyId = Number.parseInt(selectedPolicy.value.id, 10);
+    if (Number.isNaN(policyId)) {
+      throw new Error(`Invalid policy ID: ${selectedPolicy.value.id}`);
+    }
+
+    let policyHash: string | undefined;
+
+    const policyDetail = policyDetails.value[selectedPolicy.value.id];
+    if (policyDetail?.hash) {
+      policyHash = policyDetail.hash;
+    } else {
+      const policyDetailsResponse =
+        await policyCatalogServiceClient.getPolicyDetails(
+          new operator_pb.GetPolicyDetailsRequest()
+            .setPolicyId(policyId)
+            .setLangCode("en-US"),
+          createGrpcMetadata(),
+        );
+
+      const policyData = policyDetailsResponse.getPolicy?.();
+      if (policyData) {
+        policyHash = policyData.getHash?.() || "";
+      }
+    }
+
+    if (!policyHash) {
+      throw new Error(
+        "Could not get policy hash. Please try selecting the policy again.",
+      );
+    }
+
+    const removePromises: Promise<unknown>[] = [];
 
     const usersToRemove: User[] =
       selectedUsers.value.length > 0
         ? props.users.filter((u) => selectedUsers.value.includes(u.sid))
         : [];
 
-    if (usersToRemove.length === 0) {
-      throw new Error("No users selected for removing policies");
-    }
-
-    const removePromises: Promise<unknown>[] = [];
-
-    for (const policyId of selectedPolicyIds) {
-      const policyDetail = policyDetails.value[policyId];
-
-      if (!policyDetail) {
-        throw new Error(`Policy details ${policyId} not found`);
-      }
-
-      const policyHash = policyDetail.hash;
-      if (!policyHash) {
-        throw new Error(
-          `Policy hash ${policyId} not found. Load policy details before removing.`,
-        );
-      }
-
-      for (const user of usersToRemove) {
-        removePromises.push(
-          policyAssignmentClient.removePolicy(policyHash, "user", {
-            agentId: String(props.agent.id),
-            userSid: String(user.sid),
-          }),
-        );
-      }
+    for (const user of usersToRemove) {
+      removePromises.push(
+        policyAssignmentClient.removePolicy(policyHash, "user", {
+          agentId: String(props.agent.id),
+          userSid: String(user.sid),
+        }),
+      );
     }
 
     await Promise.all(removePromises);
 
-    const userText = ` (${usersToRemove.length} ${usersToRemove.length === 1 ? "user" : "users"})`;
+    const policyName =
+      selectedPolicy.value.displayName || selectedPolicy.value.name;
+    const usersCount = selectedUsers.value.length;
+    const targetText = ` from ${usersCount} ${usersCount === 1 ? "user" : "users"} on ${props.agent.hostname}`;
 
-    const policiesCount = selectedPolicyIds.length;
-    const policiesText =
-      policiesCount === 1
-        ? "Policy successfully disabled"
-        : `${policiesCount} policies successfully disabled`;
-
-    notifySuccess(`${policiesText} for ${props.agent.hostname}${userText}`);
+    notifySuccess(`Policy "${policyName}" successfully removed${targetText}`);
 
     emit("applied");
     dialogVisible.value = false;
   } catch (error) {
     const errorMessage =
-      error instanceof Error
-        ? error.message
-        : "Unknown error removing policies";
-    notifyError(`Error removing policies: ${errorMessage}`);
+      error instanceof Error ? error.message : "Unknown error removing policy";
+    notifyError(`Error removing policy: ${errorMessage}`);
   } finally {
     applying.value = false;
   }

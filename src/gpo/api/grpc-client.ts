@@ -1,6 +1,7 @@
 import * as grpcWeb from "grpc-web";
 import {
   AgentServiceClient,
+  CollectionsControlServiceClient,
   UserServiceClient,
   AdmxServiceClient,
   PolicyCatalogServiceClient,
@@ -70,6 +71,9 @@ function createClient<
 }
 
 const agentServiceClient = createClient(AgentServiceClient);
+const collectionsControlServiceClient = createClient(
+  CollectionsControlServiceClient,
+);
 const userServiceClient = createClient(UserServiceClient);
 const admxServiceClient = createClient(AdmxServiceClient);
 const policyCatalogServiceClient = createClient(PolicyCatalogServiceClient);
@@ -157,23 +161,6 @@ export const policyCatalogClient = {
 
       return response.toObject();
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      if (
-        errorMessage.includes("deserializing") ||
-        errorMessage.includes("protobuf") ||
-        errorMessage.includes("Cannot read properties")
-      ) {
-        console.error(
-          "[policyCatalogClient.getPolicyDetails] Ошибка десериализации для политики ID:",
-          policyId,
-          "Ошибка:",
-          error,
-        );
-        console.error(
-          "[policyCatalogClient.getPolicyDetails] Возможно, проблема с полем client_extension (OneOf->StringValue)",
-        );
-      }
       throw error;
     }
   },
@@ -636,8 +623,196 @@ export const admxServiceClientWrapper = {
   },
 };
 
+export const collectionsClient = {
+  async getAllCollections(
+    langCode: string = "en-US",
+  ): Promise<operator_pb_types.GetAllCollectionsResponse.AsObject> {
+    const request = new operator_pb.GetAllCollectionsRequest();
+    request.setLangCode(langCode);
+
+    const response = await collectionsControlServiceClient.getAllCollections(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async getCollectionById(
+    collectionId: number,
+    langCode: string = "en-US",
+  ): Promise<operator_pb_types.CollectionDetailsResponse.AsObject> {
+    const request = new operator_pb.GetCollectionByIdRequest();
+    request.setCollectionId(collectionId);
+    request.setLangCode(langCode);
+
+    const response = await collectionsControlServiceClient.getCollectionById(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async createCollection(
+    name: string,
+    explainText: string = "",
+    translations: Array<{
+      langCode: string;
+      name: string;
+      explainText: string;
+    }> = [],
+  ): Promise<operator_pb_types.CollectionDetailsResponse.AsObject> {
+    const request = new operator_pb.CreateCollectionRequest();
+    request.setName(name);
+    request.setExplainText(explainText);
+
+    const translationsList = translations.map((trans) => {
+      const translation = new operator_pb.CollectionTranslation();
+      translation.setLangCode(trans.langCode);
+      translation.setName(trans.name);
+      translation.setExplainText(trans.explainText);
+      return translation;
+    });
+
+    request.setTranslationsList(translationsList);
+
+    const response = await collectionsControlServiceClient.createCollection(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async createCollectionsPolicies(
+    collectionId: number,
+    policyNames: string[],
+  ): Promise<operator_pb_types.CreateCollectionsPoliciesResponse.AsObject> {
+    if (!collectionId || collectionId <= 0) {
+      throw new Error(
+        "Invalid collection ID: collection ID must be a positive number",
+      );
+    }
+
+    if (!Array.isArray(policyNames) || policyNames.length === 0) {
+      throw new Error(
+        "Invalid policy names: policy names must be a non-empty array",
+      );
+    }
+
+    const invalidNames = policyNames.filter(
+      (name) => typeof name !== "string" || !name.trim(),
+    );
+    if (invalidNames.length > 0) {
+      throw new Error(
+        `Invalid policy names: all policy names must be non-empty strings. Invalid names: ${invalidNames.join(", ")}`,
+      );
+    }
+
+    const request = new operator_pb.CreateCollectionsPoliciesRequest();
+    const collectionIdNum = Math.floor(Number(collectionId));
+    if (
+      !Number.isFinite(collectionIdNum) ||
+      collectionIdNum <= 0 ||
+      collectionIdNum !== Number(collectionId)
+    ) {
+      throw new Error(
+        `Invalid collection ID: ${collectionId} (must be a positive integer)`,
+      );
+    }
+    request.setCollectionId(collectionIdNum);
+
+    const setValue = request.getCollectionId();
+    if (setValue !== collectionIdNum) {
+      throw new Error(
+        `Collection ID mismatch: set ${collectionIdNum}, got ${setValue}`,
+      );
+    }
+
+    const validPolicyNames = policyNames
+      .map((name) => (typeof name === "string" ? name.trim() : String(name)))
+      .filter((name) => name.length > 0);
+
+    if (validPolicyNames.length === 0) {
+      throw new Error("No valid policy names after filtering");
+    }
+
+    request.clearPolicyNamesList();
+
+    for (const policyName of validPolicyNames) {
+      request.addPolicyNames(policyName);
+    }
+
+    const checkNames = request.getPolicyNamesList();
+    if (!checkNames || checkNames.length === 0) {
+      throw new Error("Failed to set policy names in request");
+    }
+
+    if (checkNames.length !== validPolicyNames.length) {
+      throw new Error(
+        `Policy names count mismatch: expected ${validPolicyNames.length}, got ${checkNames.length}`,
+      );
+    }
+
+    try {
+      const response =
+        await collectionsControlServiceClient.createCollectionsPolicies(
+          request,
+          createGrpcMetadata(),
+        );
+
+      return response.toObject();
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes("Exception was thrown by handler")) {
+          throw new Error(
+            "Server error: Could not add policies to collection. " +
+              `Collection ID: ${collectionIdNum}, ` +
+              `Policy names: ${validPolicyNames.join(", ")}. ` +
+              "The collection or policies may not exist, or policy names may be incorrect.",
+          );
+        }
+      }
+      throw error;
+    }
+  },
+
+  async deleteCollection(
+    collectionId: number,
+  ): Promise<operator_pb_types.DeleteCollectionResponse.AsObject> {
+    const request = new operator_pb.DeleteCollectionRequest();
+    request.setCollectionId(collectionId);
+
+    const response = await collectionsControlServiceClient.deleteCollection(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async getPoliciesInCollection(
+    collectionId: number,
+    langCode: string = "en-US",
+  ): Promise<operator_pb_types.GetPoliciesInCollectionResponse.AsObject> {
+    const request = new operator_pb.GetPoliciesInCollectionRequest();
+    request.setCollectionId(collectionId);
+    request.setLangCode(langCode);
+
+    const response =
+      await collectionsControlServiceClient.getPoliciesInCollection(
+        request,
+        createGrpcMetadata(),
+      );
+
+    return response.toObject();
+  },
+};
+
 export {
   agentServiceClient,
+  collectionsControlServiceClient,
   userServiceClient,
   admxServiceClient,
   policyCatalogServiceClient,
