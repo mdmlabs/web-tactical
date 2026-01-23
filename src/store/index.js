@@ -229,6 +229,143 @@ export default function () {
           const { data } = await axios.get(
             `/agents/${localParams ? localParams : ""}`,
           );
+
+          try {
+            const { agentServiceClient, createGrpcMetadata, operator_pb } =
+              await import("@/gpo/api/grpc-client");
+
+            const policyAgentsMapById = new Map();
+            const policyAgentsMapByHostname = new Map();
+
+            try {
+              const metadata = createGrpcMetadata();
+              const request = new operator_pb.ListAgentsRequest();
+              const response = await agentServiceClient.listAgents(
+                request,
+                metadata,
+              );
+
+              let agents = [];
+              if (response && typeof response === "object") {
+                if (response.agentsList && Array.isArray(response.agentsList)) {
+                  agents = response.agentsList;
+                } else if (typeof response.getAgentsList === "function") {
+                  const agentsList = response.getAgentsList();
+
+                  agents = agentsList.map((agent) => {
+                    if (agent && typeof agent.toObject === "function") {
+                      return agent.toObject({
+                        longs: String,
+                        enums: String,
+                        bytes: String,
+                        defaults: true,
+                      });
+                    }
+                    return {
+                      agentId:
+                        agent && agent.getAgentId
+                          ? agent.getAgentId()
+                          : undefined,
+                      hostName:
+                        agent && agent.getHostName
+                          ? agent.getHostName()
+                          : undefined,
+                      isOnline:
+                        agent && agent.getIsOnline
+                          ? agent.getIsOnline()
+                          : undefined,
+                      lastHeartbeatUnix:
+                        agent && agent.getLastHeartbeatUnix
+                          ? agent.getLastHeartbeatUnix()
+                          : undefined,
+                    };
+                  });
+                } else if (typeof response.toObject === "function") {
+                  const obj = response.toObject({
+                    longs: String,
+                    enums: String,
+                    bytes: String,
+                    defaults: true,
+                    arrays: true,
+                    objects: true,
+                    oneofs: true,
+                  });
+                  agents = obj.agentsList || obj.agents || [];
+                } else if (response.agents && Array.isArray(response.agents)) {
+                  agents = response.agents;
+                }
+              }
+
+              agents.forEach((agent) => {
+                const agentId = agent.agentId || agent.agent_id || "";
+                const hostName = agent.hostName || agent.host_name || "";
+                if (agentId) {
+                  const isOnline =
+                    agent.isOnline !== undefined
+                      ? agent.isOnline
+                      : agent.is_online !== undefined
+                        ? agent.is_online
+                        : false;
+                  const lastHeartbeatUnix =
+                    agent.lastHeartbeatUnix !== undefined
+                      ? agent.lastHeartbeatUnix
+                      : agent.last_heartbeat_unix !== undefined
+                        ? agent.last_heartbeat_unix
+                        : null;
+
+                  const policyAgentData = {
+                    isOnline,
+                    lastHeartbeatUnix,
+                  };
+
+                  policyAgentsMapById.set(agentId, policyAgentData);
+                  if (hostName) {
+                    policyAgentsMapByHostname.set(
+                      hostName.toLowerCase(),
+                      policyAgentData,
+                    );
+                  }
+                }
+              });
+            } catch (grpcError) {
+              console.error("Failed to load Windows Policy agents:", grpcError);
+            }
+
+            data.forEach((agent) => {
+              let policyAgent =
+                policyAgentsMapById.get(agent.agent_id) ||
+                policyAgentsMapById.get(String(agent.agent_id));
+
+              if (!policyAgent && agent.hostname) {
+                policyAgent = policyAgentsMapByHostname.get(
+                  agent.hostname.toLowerCase(),
+                );
+              }
+
+              if (policyAgent) {
+                agent.windows_policy_status = policyAgent.isOnline
+                  ? "online"
+                  : "offline";
+                agent.windows_policy_last_seen = policyAgent.lastHeartbeatUnix
+                  ? new Date(
+                      (typeof policyAgent.lastHeartbeatUnix === "string"
+                        ? Number.parseInt(policyAgent.lastHeartbeatUnix, 10)
+                        : policyAgent.lastHeartbeatUnix) * 1000,
+                    ).toISOString()
+                  : null;
+              } else {
+                agent.windows_policy_status = null;
+                agent.windows_policy_last_seen = null;
+              }
+            });
+          } catch (gRpcError) {
+            console.warn("Windows Policy status unavailable:", gRpcError);
+            data.forEach((agent) => {
+              agent.windows_policy_status = null;
+              agent.windows_policy_last_seen = null;
+            });
+          }
+
           commit("setAgents", data);
         } catch (e) {
           console.error(e);
