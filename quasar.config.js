@@ -114,7 +114,7 @@ module.exports = configure(function (/* ctx */) {
           }
 
           const grpcUrl =
-            process.env.DEV_GRPC_URL || "https://95.142.43.25:5000";
+            process.env.DEV_GRPC_URL || "https://mesh-stage.rmadm.org:5000";
 
           viteConf.server.proxy = {
             "/api/grpc": {

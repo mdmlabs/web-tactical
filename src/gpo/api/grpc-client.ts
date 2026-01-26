@@ -36,7 +36,7 @@ function getGrpcUrl(): string {
 
   const viteEnv = import.meta.env.VITE_GRPC_URL;
   const windowEnv = (globalThis.window as WindowWithEnv)?._env_?.GRPC_URL;
-  const fallback = "https://95.142.43.25:5000";
+  const fallback = "https://mesh-stage.rmadm.org:5000";
 
   const grpcUrl = viteEnv || windowEnv || fallback;
 
