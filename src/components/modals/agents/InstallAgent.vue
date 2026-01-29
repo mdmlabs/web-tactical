@@ -39,7 +39,7 @@
               val="windows"
               label="Windows"
               @update:model-value="
-                installMethod = 'exe';
+                installMethod = 'powershell';
                 goarch = GOARCH_AMD64;
               "
             />
@@ -151,24 +151,24 @@
         <q-card-section>
           Installation Method
           <div class="q-gutter-sm">
-            <q-radio
+            <!-- <q-radio
               v-model="installMethod"
               val="exe"
               v-show="agentOS === 'windows'"
               label="Dynamically generated exe"
-            />
+            /> -->
             <q-radio
               v-model="installMethod"
               val="powershell"
               v-show="agentOS === 'windows'"
               label="Powershell"
             />
-            <q-radio
+            <!-- <q-radio
               v-model="installMethod"
               val="manual"
               v-show="agentOS === 'windows'"
               label="Manual"
-            />
+            /> -->
           </div>
         </q-card-section>
         <q-card-actions align="left">
@@ -216,7 +216,7 @@ export default {
       ping: false,
       showAgentDownload: false,
       info: {},
-      installMethod: "exe",
+      installMethod: "powershell",
       goarch: GOARCH_AMD64,
       agentOS: "windows",
     };

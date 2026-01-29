@@ -27,7 +27,7 @@
             </div>
           </q-card-section>
 
-          <div class="text-subtitle2">Reporting</div>
+          <!-- <div class="text-subtitle2">Reporting</div>
           <q-separator />
           <q-card-section class="row">
             <div class="q-gutter-sm">
@@ -40,7 +40,7 @@
                 label="Reporting Manager"
               />
             </div>
-          </q-card-section>
+          </q-card-section> -->
 
           <div class="text-subtitle2">Accounts</div>
           <q-separator />

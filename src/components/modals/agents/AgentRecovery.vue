@@ -16,7 +16,7 @@
               dense
               v-model="state.mode"
               val="tacagent"
-              label="Tactical Agent"
+              label="MDM-labs Agent"
             />
           </div>
         </q-card-section>

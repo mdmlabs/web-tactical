@@ -90,7 +90,7 @@
           <div class="row items-center q-gutter-sm">
             <span class="logo-text">MDM-labs</span>
             <q-chip dense square class="version-chip">
-              v{{ currentTRMMVersion }}
+              v1.0.1
             </q-chip>
 
             <!-- Update Available -->
@@ -142,7 +142,7 @@
         </label>
 
         <!-- Web Terminal -->
-        <q-btn
+        <!-- <q-btn
           v-if="!hosted"
           flat
           dense
@@ -152,7 +152,7 @@
           @click="openWebTerm"
         >
           <q-tooltip>Web Terminal</q-tooltip>
-        </q-btn>
+        </q-btn> -->
 
         <!-- Devices Counter -->
         <q-chip clickable class="devices-chip">
@@ -729,7 +729,7 @@ import { storeToRefs } from "pinia";
 import axios from "axios";
 
 // webtermn
-import { checkWebTermPerms, openWebTerminal } from "@/api/core";
+// import { checkWebTermPerms, openWebTerminal } from "@/api/core";
 
 // ui imports
 import AlertsIcon from "@/components/AlertsIcon.vue";
@@ -801,18 +801,18 @@ function resetPassword() {
   });
 }
 
-async function openWebTerm() {
-  try {
-    const { message, status } = await checkWebTermPerms();
-    if (status === 412) {
-      notifyError(message);
-    } else {
-      openWebTerminal();
-    }
-  } catch (e) {
-    console.error(e);
-  }
-}
+// async function openWebTerm() {
+//   try {
+//     const { message, status } = await checkWebTermPerms();
+//     if (status === 412) {
+//       notifyError(message);
+//     } else {
+//       openWebTerminal();
+//     }
+//   } catch (e) {
+//     console.error(e);
+//   }
+// }
 
 const updateAvailable = computed(() => {
   if (

@@ -81,8 +81,9 @@ export default {
       this.$axios
         .get("/agents/versions/")
         .then((r) => {
-          this.versions = r.data.versions;
-          this.version = r.data.versions[0];
+          // Hardcoded version to 1.0.1
+          this.versions = ["1.0.1"];
+          this.version = "1.0.1";
           this.agents = r.data.agents;
           this.$q.loading.hide();
         })
