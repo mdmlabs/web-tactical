@@ -21,6 +21,14 @@ jobs:
       - name: Deploy to server
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_STAGE }}@${{ secrets.SSH_HOST_STAGE }} << 'EOF'
+
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+          nvm use 20
+          
+          node -v
+          npm -v
+
           
           cd ~/mdmlabsrmm/web-tactical/
 
