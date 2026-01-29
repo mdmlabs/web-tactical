@@ -1,0 +1,53 @@
+name: Deploy to Server (Develop)
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY_STAGE }}
+
+      - name: Deploy to server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_STAGE }}@${{ secrets.SSH_HOST_STAGE }} << 'EOF'
+          
+          cd ~/mdmlabsrmm/web-tactical/
+
+          echo "🌐 Pulling latest changes..."
+          git pull
+
+          echo "📦 Running build..."
+          npm install --legacy-peer-deps
+          npm run proto:generate
+          echo "📦 Replacing operator_pb.js with updated version..."
+          mkdir -p /root/mdmlabsrmm/web-tactical/src/generated
+          cp /root/mdmlabsrmm/operator_pb.js /root/mdmlabsrmm/web-tactical/src/generated/operator_pb.js
+
+          npm run build
+          
+          cd ~/mdmlabsrmm/
+
+          docker build --pull --no-cache -t "mdmlabs-frontend" -f "docker/containers/mdmlabs-frontend/dockerfile" .
+
+          echo "🛑 Stopping frontend container..."
+          docker stop mdmlabs-frontend || true
+
+          echo "🗑 Removing frontend container..."
+          docker rm mdmlabs-frontend || true
+
+          echo "🚀 Starting new frontend container..."
+          cd ~/mdmlabsrmm/docker/
+          docker compose up -d mdmlabs-frontend
+          
+          EOF
