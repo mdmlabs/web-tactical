@@ -620,6 +620,62 @@ export const policyStateClient = {
 
     return response.toObject();
   },
+
+  async getEffectivePoliciesFor(
+    targetType: "global" | "agent" | "user",
+    targetParams: { agentId?: string; userSid?: string } = {},
+  ): Promise<operator_pb_types.GetEffectivePoliciesResponse.AsObject> {
+    let target: operator_pb.PolicyTarget;
+    switch (targetType) {
+      case "global":
+        target = createGlobalTarget();
+        break;
+      case "agent":
+        if (!targetParams.agentId) {
+          throw new Error("agentId обязателен для типа 'agent'");
+        }
+        target = createAgentTarget(targetParams.agentId);
+        break;
+      case "user":
+        if (!targetParams.agentId || !targetParams.userSid) {
+          throw new Error("agentId и userSid обязательны для типа 'user'");
+        }
+        target = createUserTarget(targetParams.agentId, targetParams.userSid);
+        break;
+      default:
+        throw new Error(`Неизвестный тип цели: ${targetType}`);
+    }
+
+    return await this.getEffectivePolicies(target);
+  },
+
+  async getAssignmentsFor(
+    targetType: "global" | "agent" | "user",
+    targetParams: { agentId?: string; userSid?: string } = {},
+  ): Promise<operator_pb_types.GetAssignmentsResponse.AsObject> {
+    let target: operator_pb.PolicyTarget;
+    switch (targetType) {
+      case "global":
+        target = createGlobalTarget();
+        break;
+      case "agent":
+        if (!targetParams.agentId) {
+          throw new Error("agentId обязателен для типа 'agent'");
+        }
+        target = createAgentTarget(targetParams.agentId);
+        break;
+      case "user":
+        if (!targetParams.agentId || !targetParams.userSid) {
+          throw new Error("agentId и userSid обязательны для типа 'user'");
+        }
+        target = createUserTarget(targetParams.agentId, targetParams.userSid);
+        break;
+      default:
+        throw new Error(`Неизвестный тип цели: ${targetType}`);
+    }
+
+    return await this.getAssignments(target);
+  },
 };
 
 export interface UploadProgress {

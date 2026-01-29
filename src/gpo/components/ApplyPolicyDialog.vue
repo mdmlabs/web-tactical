@@ -721,29 +721,6 @@
               :disable="!selectedCollectionId || selectedUsers.length === 0"
               @click="applyCollection('selected')"
             />
-            <q-btn
-              flat
-              color="positive"
-              icon="arrow_drop_down"
-              :disable="!selectedCollectionId || selectedUsers.length === 0"
-              @click.stop="openApplyMenu"
-            />
-            <q-popup-proxy
-              ref="applyPopupRef"
-              anchor="bottom left"
-              self="top left"
-              transition-show="scale"
-              transition-hide="scale"
-            >
-              <q-list>
-                <q-item clickable @click="applyCollection('selected')">
-                  <q-item-section>Apply to selected users</q-item-section>
-                </q-item>
-                <q-item clickable @click="applyCollection('all')">
-                  <q-item-section>Apply to all users</q-item-section>
-                </q-item>
-              </q-list>
-            </q-popup-proxy>
           </div>
 
           <q-btn
@@ -794,14 +771,14 @@
                 :disable="!selectedCollectionId || selectedUsers.length === 0"
                 @click="removeCollectionAssignments"
               >
-                <q-item-section>Remove Collection</q-item-section>
+                <q-item-section>Disabled Collection</q-item-section>
               </q-item>
               <q-item
                 clickable
                 :disable="!selectedPolicy || selectedUsers.length === 0"
                 @click="removeSelectedPolicy"
               >
-                <q-item-section>Remove Selected Policy</q-item-section>
+                <q-item-section>Disabled Selected Policy</q-item-section>
               </q-item>
             </q-list>
           </q-popup-proxy>
@@ -979,14 +956,7 @@ const newCollectionDescription = ref("");
 const collectionPolicies = ref<string[]>([]);
 
 const isSelectOpen = ref(false);
-const applyPopupRef = ref<{ show?: () => void } | null>(null);
 const overflowPopupRef = ref<{ show?: () => void } | null>(null);
-
-function openApplyMenu() {
-  if (!isSelectOpen.value) {
-    applyPopupRef.value?.show?.();
-  }
-}
 
 function openOverflowMenu() {
   if (!isSelectOpen.value) {
@@ -2347,41 +2317,63 @@ async function applyCollection(applyTo: "selected" | "all" = "selected") {
     return;
   }
 
-  applying.value = true;
-  try {
-    const applyPromises: Promise<unknown>[] = usersToApply.map((user) =>
-      policyAssignmentClient.assignPolicyCollection(
-        selectedCollectionId.value!,
-        "user",
-        { agentId: String(props.agent!.id), userSid: String(user.sid) },
-        {},
-      ),
-    );
+  const usersListHtml = usersToApply
+    .map((u) => `<div>${u.name || u.sid} (${u.sid})</div>`)
+    .join("");
 
-    await Promise.all(applyPromises);
+  $q.dialog({
+    title: "Confirm apply collection",
+    html: true,
+    message: `
+        <div>You're about to apply the selected collection to the following users on <strong>${props.agent!.hostname}</strong>:</div>
+        <div style="margin-top:8px">${usersListHtml}</div>
+        <div style="margin-top:12px; font-weight:600">Proceed?</div>
+      `,
+    cancel: true,
+    persistent: true,
+  }).onOk(async () => {
+    applying.value = true;
+    try {
+      const applyPromises: Promise<unknown>[] = usersToApply.map((user) => {
+        const target = {
+          agentId: String(props.agent!.id),
+          userSid: String(user.sid),
+        };
 
-    const collectionName =
-      collectionsOptions.value.find(
-        (c) => c.value === selectedCollectionId.value,
-      )?.label || "Collection";
-    const usersCount = usersToApply.length;
-    notifySuccess(
-      `Collection "${collectionName}" successfully applied to ${usersCount} ${
-        usersCount === 1 ? "user" : "users"
-      } on ${props.agent.hostname}`,
-    );
+        return policyAssignmentClient.assignPolicyCollection(
+          selectedCollectionId.value!,
+          "user",
+          target,
+          {},
+        );
+      });
 
-    emit("applied");
-    dialogVisible.value = false;
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : "Unknown error applying collection";
-    notifyError(`Error applying collection: ${errorMessage}`);
-  } finally {
-    applying.value = false;
-  }
+      await Promise.all(applyPromises);
+
+      const collectionName =
+        collectionsOptions.value.find(
+          (c) => c.value === selectedCollectionId.value,
+        )?.label || "Collection";
+      const usersCount = usersToApply.length;
+
+      notifySuccess(
+        `Collection "${collectionName}" successfully applied to ${usersCount} ${
+          usersCount === 1 ? "user" : "users"
+        } on ${props.agent!.hostname}`,
+      );
+
+      emit("applied");
+      dialogVisible.value = false;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Unknown error applying collection";
+      notifyError(`Error applying collection: ${errorMessage}`);
+    } finally {
+      applying.value = false;
+    }
+  });
 }
 
 async function applySelectedPolicy() {

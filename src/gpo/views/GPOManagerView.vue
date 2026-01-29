@@ -1086,52 +1086,7 @@
                     <div class="text-h6 q-mb-md">
                       Assigning policies for {{ selectedAgent.hostname }}
                     </div>
-                    <q-card>
-                      <q-card-section>
-                        <div class="text-subtitle2 q-mb-md">
-                          Available policies
-                        </div>
-                        <q-scroll-area class="policy-assignment-scroll-area">
-                          <q-table
-                            :rows="policiesStore.policies.value"
-                            :columns="policyAssignmentColumns"
-                            row-key="id"
-                            :loading="policiesStore.isLoading.value"
-                            flat
-                            bordered
-                            :filter="policyFilter"
-                            selection="multiple"
-                            v-model:selected="selectedPoliciesForAssignment"
-                            class="policy-assignment-table"
-                          >
-                            <template v-slot:top>
-                              <q-input
-                                v-model="policyFilter"
-                                placeholder="Policy search..."
-                                dense
-                                outlined
-                                class="col-4"
-                              >
-                                <template v-slot:append>
-                                  <q-icon name="search" />
-                                </template>
-                              </q-input>
-                              <q-space />
-                              <q-btn
-                                color="primary"
-                                icon="add"
-                                label="Assign selected "
-                                :disable="
-                                  selectedPoliciesForAssignment.length === 0
-                                "
-                                @click="assignPolicies"
-                                :loading="assignmentLoading"
-                              />
-                            </template>
-                          </q-table>
-                        </q-scroll-area>
-                      </q-card-section>
-                    </q-card>
+
                     <q-card class="q-mt-md">
                       <q-card-section>
                         <div class="text-subtitle2 q-mb-md">
@@ -1227,7 +1182,25 @@
                             :icon="action.icon"
                             :color="action.color"
                           >
-                            <div>{{ action.description }}</div>
+                            <div class="row items-center no-wrap">
+                              <div class="col">
+                                {{ action.description }}
+                              </div>
+                              <div class="col-auto" v-if="action.policyHash">
+                                <q-btn
+                                  dense
+                                  flat
+                                  round
+                                  size="sm"
+                                  icon="policy"
+                                  @click.stop="
+                                    openPolicyDetails(action.policyHash)
+                                  "
+                                >
+                                  <q-tooltip>Policy details</q-tooltip>
+                                </q-btn>
+                              </div>
+                            </div>
                           </q-timeline-entry>
                           <q-timeline-entry
                             v-if="deviceActionHistory.length === 0"
@@ -2532,6 +2505,16 @@
       <AppliedPoliciesDialog
         v-model="showAppliedPoliciesDialog"
         :agent="selectedAgent"
+        :assignments="appliedDialogAssignments"
+        :effective-policies="appliedDialogEffective"
+        :loading="showAppliedPoliciesLoading"
+        @refresh="
+          () => {
+            if (selectedAgent.value) {
+              loadAssignedPolicies(selectedAgent.value.id);
+            }
+          }
+        "
       />
 
       <ApplyPolicyDialog
@@ -2557,6 +2540,7 @@ import {
   policyAssignmentClient,
   policyCatalogClient,
   policyCatalogServiceClient,
+  policyStateClient,
   admxServiceClientWrapper,
   AdmxUploadError,
 } from "../api/grpc-client";
@@ -2703,6 +2687,9 @@ const showApplyPolicyDialog = ref(false);
 const showApplyPolicyDialogForUser = ref(false);
 const initialUserSid = ref<string>("");
 const showAppliedPoliciesDialog = ref(false);
+const appliedDialogAssignments = ref<Array<Record<string, unknown>>>([]);
+const appliedDialogEffective = ref<Array<Record<string, unknown>>>([]);
+const showAppliedPoliciesLoading = ref(false);
 
 const policyForForm = computed(() => {
   return policyToEdit.value || undefined;
@@ -2712,9 +2699,12 @@ const agentsLoading = ref(false);
 const agentsError = ref(false);
 const gpoAgents = ref<Agent[]>([]);
 
-const selectedPoliciesForAssignment = ref<GPOPolicy[]>([]);
-const assignedPolicies = ref<GPOPolicy[]>([]);
-const assignmentLoading = ref(false);
+interface AssignedPolicy extends GPOPolicy {
+  applied?: boolean;
+  policyHash?: string;
+  assignedDate?: string;
+}
+const assignedPolicies = ref<AssignedPolicy[]>([]);
 const actionLoading = ref(false);
 
 interface DeviceAction {
@@ -2723,6 +2713,12 @@ interface DeviceAction {
   icon: string;
   color: string;
   description: string;
+}
+interface DeviceAction {
+  policyHash?: string;
+  policyName?: string;
+  actionType?: string;
+  details?: string;
 }
 
 const deviceActionHistory = ref<DeviceAction[]>([]);
@@ -3633,30 +3629,6 @@ const filteredNetworkAgents = computed(() => {
   );
 });
 
-const policyAssignmentColumns: QTableColumn[] = [
-  {
-    name: "name",
-    required: true,
-    label: "Name",
-    align: "left",
-    field: "name",
-    sortable: true,
-  },
-  {
-    name: "displayName",
-    label: "Display Name",
-    align: "left",
-    field: "displayName",
-    sortable: true,
-  },
-  {
-    name: "description",
-    label: "Description",
-    align: "left",
-    field: "description",
-  },
-];
-
 const assignedPolicyColumns: QTableColumn[] = [
   {
     name: "name",
@@ -3679,6 +3651,13 @@ const assignedPolicyColumns: QTableColumn[] = [
     align: "left",
     field: "assignedDate",
     format: (val: string) => formatDate(val),
+  },
+  {
+    name: "applied",
+    label: "Applied",
+    align: "center",
+    field: (row: AssignedPolicy) => row.applied,
+    format: (val: boolean) => (val ? "Yes" : "No"),
   },
   {
     name: "actions",
@@ -4348,7 +4327,6 @@ const selectAgent = (agent: Agent) => {
     loadUsersForAgent(agent.id);
     loadGroupsForAgent(agent.id);
     loadNetworkInfo(agent.id);
-    loadAssignedPolicies(agent.id);
   }
   pingResult.value = null;
 };
@@ -4364,54 +4342,76 @@ const clearAgentSelection = () => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function loadAssignedPolicies(_agentId: string) {
+async function loadAssignedPolicies(agentId: string) {
   try {
-    // TODO: реализовать загрузку назначенных политик через API
-    // Пока используем заглушку
     assignedPolicies.value = [];
-  } catch (error) {
-    notifyError("Error loading assigned policies");
-  }
-}
 
-async function assignPolicies() {
-  if (
-    !selectedAgent.value ||
-    selectedPoliciesForAssignment.value.length === 0
-  ) {
-    return;
-  }
-
-  assignmentLoading.value = true;
-  try {
-    // TODO: Реализовать назначение политик через API
-    // Пока используем заглушку
-    const policiesToAssign = selectedPoliciesForAssignment.value;
-
-    // Добавляем политики в список назначенных
-    for (const policy of policiesToAssign) {
-      const assignedPolicy = {
-        ...policy,
-        assignedDate: new Date().toISOString(),
-      };
-      assignedPolicies.value.push(assignedPolicy);
-    }
-
-    addActionToHistory({
-      title: "Assigning policies",
-      description: `Assigned ${policiesToAssign.length} device policy ${selectedAgent.value.hostname}`,
-      icon: "assignment",
-      color: "primary",
+    const assignmentsResp = await policyStateClient.getAssignmentsFor("agent", {
+      agentId,
     });
 
-    selectedPoliciesForAssignment.value = [];
-    notifySuccess(
-      `Policies have been successfully assigned to the device ${selectedAgent.value.hostname}`,
+    const effectiveResp = await policyStateClient.getEffectivePoliciesFor(
+      "agent",
+      { agentId },
     );
+
+    const assignmentsObj = assignmentsResp as unknown as Record<
+      string,
+      unknown
+    >;
+    const assignments = ((assignmentsObj["assignmentsList"] as unknown) ||
+      (assignmentsObj["assignments"] as unknown) ||
+      []) as Array<Record<string, unknown>>;
+
+    const effectiveObj = effectiveResp as unknown as Record<string, unknown>;
+    const effectivePolicies = ((effectiveObj["policiesList"] as unknown) ||
+      (effectiveObj["policies"] as unknown) ||
+      []) as Array<Record<string, unknown>>;
+
+    const effectiveSet = new Set<string>(
+      effectivePolicies.map((p: Record<string, unknown>) =>
+        String(p["policyHash"] || p["policy_hash"] || ""),
+      ),
+    );
+
+    for (const a of assignments as Array<Record<string, unknown>>) {
+      const policyHash = String(a["policyHash"] || a["policy_hash"] || "");
+      let name = policyHash;
+      let displayName = policyHash;
+
+      try {
+        const pd = await policyCatalogClient.getPolicy(policyHash);
+        const pdObj = pd as unknown as Record<string, unknown>;
+        name = String(
+          pdObj["name"] ||
+            pdObj["policy_name"] ||
+            pdObj["policy_hash"] ||
+            policyHash,
+        );
+        displayName = String(
+          pdObj["displayName"] ||
+            pdObj["display_name"] ||
+            pdObj["name"] ||
+            name,
+        );
+      } catch (e) {
+        // ignore
+      }
+
+      assignedPolicies.value.push({
+        id: policyHash, // используем hash как id (удобно для удаления при отсутствии numeric id)
+        name,
+        displayName,
+        path: "",
+        enabled: true,
+        description: "",
+        assignedDate: new Date().toISOString(),
+        applied: effectiveSet.has(policyHash),
+        policyHash,
+      } as AssignedPolicy);
+    }
   } catch (error) {
-    notifyError("Policy assignment error");
-  } finally {
-    assignmentLoading.value = false;
+    notifyError("Error loading assigned policies");
   }
 }
 
@@ -4427,25 +4427,35 @@ async function removePolicyAssignment(policy: GPOPolicy) {
     persistent: true,
   }).onOk(async () => {
     try {
-      const policyId = Number.parseInt(policy.id, 10);
-      if (Number.isNaN(policyId)) {
-        throw new TypeError(`Invalid Policy ID: ${policy.id}`);
-      }
+      let policyHash: string | undefined;
 
-      const policyDetails = await policyCatalogClient.getPolicyDetails(
-        policyId,
-        "en-US",
-      );
-      const policyHash = (policyDetails.policy?.hash as string) || "";
-
-      if (!policyHash) {
-        throw new Error(
-          "Hash policy was not found. Couldn't get policy details.",
+      const parsedId = Number.parseInt(policy.id, 10);
+      if (!Number.isNaN(parsedId)) {
+        const policyDetails = await policyCatalogClient.getPolicyDetails(
+          parsedId,
+          "en-US",
         );
+        policyHash = (policyDetails.policy?.hash as string) || undefined;
+        if (!policyHash) {
+          throw new Error(
+            "Hash policy was not found. Couldn't get policy details.",
+          );
+        }
+      } else if (
+        "policyHash" in policy &&
+        (policy as AssignedPolicy).policyHash
+      ) {
+        policyHash = (policy as AssignedPolicy).policyHash;
+      } else {
+        policyHash = policy.id;
       }
 
       if (!selectedAgent.value) {
         throw new Error("Agent is not selected");
+      }
+
+      if (!policyHash) {
+        throw new Error("Policy hash is undefined");
       }
 
       await policyAssignmentClient.removePolicy(policyHash, "agent", {
@@ -4457,11 +4467,29 @@ async function removePolicyAssignment(policy: GPOPolicy) {
       );
 
       if (selectedAgent.value) {
+        let policyNameForHistory =
+          policy.displayName || policy.name || policyHash;
+        try {
+          const pd = await policyCatalogClient.getPolicy(policyHash);
+          const pdObj = pd as unknown as Record<string, unknown>;
+          policyNameForHistory = String(
+            pdObj["displayName"] ||
+              pdObj["display_name"] ||
+              pdObj["name"] ||
+              policyNameForHistory,
+          );
+        } catch (e) {
+          // ignore
+        }
+
         addActionToHistory({
           title: "Deleting an appointment",
-          description: `Policy assignment removed "${policy.displayName || policy.name}" for the device ${selectedAgent.value.hostname}`,
+          description: `Policy assignment removed "${policyNameForHistory}" for the device ${selectedAgent.value.hostname}`,
           icon: "delete",
           color: "negative",
+          policyHash,
+          policyName: policyNameForHistory,
+          actionType: "remove",
         });
       }
 
@@ -4570,6 +4598,41 @@ function addActionToHistory(action: Omit<DeviceAction, "date">) {
 
   if (deviceActionHistory.value.length > 50) {
     deviceActionHistory.value = deviceActionHistory.value.slice(0, 50);
+  }
+}
+
+async function openPolicyDetails(policyHash: string) {
+  if (!policyHash) {
+    return;
+  }
+
+  try {
+    const pd = await policyCatalogClient.getPolicy(policyHash);
+    const pdObj = pd as unknown as Record<string, unknown>;
+    const name = String(
+      pdObj["displayName"] ||
+        pdObj["display_name"] ||
+        pdObj["name"] ||
+        policyHash,
+    );
+    const description = String(
+      pdObj["explain_text"] || pdObj["explainText"] || "",
+    );
+
+    $q.dialog({
+      title: `Policy: ${name}`,
+      message: `
+        <div><strong>Hash:</strong> ${policyHash}</div>
+        <div style="margin-top:8px;"><strong>Description:</strong> ${description}</div>
+      `,
+      html: true,
+      ok: true,
+    });
+  } catch (error) {
+    $q.dialog({
+      title: "Policy details",
+      message: `Could not load policy details for ${policyHash}`,
+    });
   }
 }
 
@@ -5116,7 +5179,76 @@ watch(showApplyPolicyDialogForUser, (newVal) => {
 
 const openAppliedPoliciesDialog = () => {
   if (!selectedAgent.value) return;
-  showAppliedPoliciesDialog.value = true;
+  showAppliedPoliciesLoading.value = true;
+  appliedDialogAssignments.value = [];
+  appliedDialogEffective.value = [];
+
+  (async () => {
+    try {
+      const agentId = selectedAgent.value!.id;
+      const [assignmentsResp, effectiveResp] = await Promise.all([
+        policyStateClient.getAssignmentsFor("agent", { agentId }),
+        policyStateClient.getEffectivePoliciesFor("agent", { agentId }),
+      ]);
+
+      const assignmentsObj = assignmentsResp as unknown as Record<
+        string,
+        unknown
+      >;
+      const assignments = ((assignmentsObj["assignmentsList"] as unknown) ||
+        (assignmentsObj["assignments"] as unknown) ||
+        []) as Array<Record<string, unknown>>;
+
+      const effectiveObj = effectiveResp as unknown as Record<string, unknown>;
+      const effectivePolicies = ((effectiveObj["policiesList"] as unknown) ||
+        (effectiveObj["policies"] as unknown) ||
+        []) as Array<Record<string, unknown>>;
+
+      appliedDialogAssignments.value = await Promise.all(
+        assignments.map(async (a) => {
+          const policyHash = String(a["policyHash"] || a["policy_hash"] || "");
+          let displayName = policyHash;
+          try {
+            const pdRes = (await policyCatalogClient.getPolicy(
+              policyHash,
+            )) as unknown as Record<string, unknown>;
+            displayName =
+              String(
+                pdRes["displayName"] ||
+                  pdRes["display_name"] ||
+                  pdRes["name"] ||
+                  policyHash,
+              ) || policyHash;
+          } catch (e) {
+            // ignore
+          }
+          return {
+            ...a,
+            policyHash,
+            id: policyHash,
+            displayName,
+          };
+        }),
+      );
+
+      appliedDialogEffective.value = effectivePolicies.map((p) => {
+        const policyHash = String(p["policyHash"] || p["policy_hash"] || "");
+        return {
+          ...p,
+          policyHash,
+          id: policyHash,
+          displayName: String(
+            p["displayName"] || p["display_name"] || p["name"] || policyHash,
+          ),
+        };
+      });
+    } catch (error) {
+      notifyError("Error loading applied policies");
+    } finally {
+      showAppliedPoliciesLoading.value = false;
+      showAppliedPoliciesDialog.value = true;
+    }
+  })();
 };
 
 function onPolicySettingsApplied(
@@ -5127,12 +5259,31 @@ function onPolicySettingsApplied(
   if (selectedAgent.value) {
     loadAssignedPolicies(selectedAgent.value.id);
 
-    addActionToHistory({
-      title: "Policy application",
-      description: `Politics ${policyId} applied`,
-      icon: "policy",
-      color: "positive",
-    });
+    (async () => {
+      let policyName = String(policyId);
+      try {
+        const pd = await policyCatalogClient.getPolicy(String(policyId));
+        const pdObj = pd as unknown as Record<string, unknown>;
+        policyName = String(
+          pdObj["displayName"] ||
+            pdObj["display_name"] ||
+            pdObj["name"] ||
+            policyName,
+        );
+      } catch (e) {
+        // ignore
+      }
+
+      addActionToHistory({
+        title: "Policy application",
+        description: `Policy ${policyName} applied`,
+        icon: "policy",
+        color: "positive",
+        policyHash: String(policyId),
+        policyName,
+        actionType: "apply",
+      });
+    })();
   }
 }
 
@@ -5140,12 +5291,31 @@ function onPolicySettingsDisabled(policyId: string) {
   if (selectedAgent.value) {
     loadAssignedPolicies(selectedAgent.value.id);
 
-    addActionToHistory({
-      title: "Disabling policy",
-      description: `Politics ${policyId} disabled`,
-      icon: "policy",
-      color: "negative",
-    });
+    (async () => {
+      let policyName = String(policyId);
+      try {
+        const pd = await policyCatalogClient.getPolicy(String(policyId));
+        const pdObj = pd as unknown as Record<string, unknown>;
+        policyName = String(
+          pdObj["displayName"] ||
+            pdObj["display_name"] ||
+            pdObj["name"] ||
+            policyName,
+        );
+      } catch (e) {
+        // ignore
+      }
+
+      addActionToHistory({
+        title: "Disabling policy",
+        description: `Policy ${policyName} disabled`,
+        icon: "policy",
+        color: "negative",
+        policyHash: String(policyId),
+        policyName,
+        actionType: "disable",
+      });
+    })();
   }
 }
 
