@@ -28,13 +28,13 @@ jobs:
           git pull
 
           echo "📦 Running build..."
-          npm install --legacy-peer-deps
-          npm run proto:generate
+          /usr/bin/npm install --legacy-peer-deps
+          /usr/bin/npm run proto:generate
           echo "📦 Replacing operator_pb.js with updated version..."
           mkdir -p /root/mdmlabsrmm/web-tactical/src/generated
           cp /root/mdmlabsrmm/operator_pb.js /root/mdmlabsrmm/web-tactical/src/generated/operator_pb.js
 
-          npm run build
+          /usr/bin/npm run build
           
           cd ~/mdmlabsrmm/
 
