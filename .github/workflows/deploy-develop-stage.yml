@@ -3,7 +3,7 @@ name: Deploy to Server (Develop)
 on:
   push:
     branches:
-      - preprod
+      - develop
 
 jobs:
   deploy:
@@ -16,26 +16,33 @@ jobs:
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.SSH_KEY }}
+          ssh-private-key: ${{ secrets.SSH_KEY_STAGE }}
 
       - name: Deploy to server
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_STAGE }}@${{ secrets.SSH_HOST_STAGE }} << 'EOF'
+
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+          nvm use 20
+          
+          node -v
+          npm -v
+
           
           cd ~/mdmlabsrmm/web-tactical/
 
           echo "🌐 Pulling latest changes..."
-          git reset --hard
           git pull
 
           echo "📦 Running build..."
-          npm install --legacy-peer-deps
-          npm run proto:generate
+          /root/.nvm/versions/node/v20.20.0/bin/npm install --legacy-peer-deps
+          /root/.nvm/versions/node/v20.20.0/bin/npm run proto:generate
           echo "📦 Replacing operator_pb.js with updated version..."
           mkdir -p /root/mdmlabsrmm/web-tactical/src/generated
           cp /root/mdmlabsrmm/operator_pb.js /root/mdmlabsrmm/web-tactical/src/generated/operator_pb.js
 
-          npm run build
+          /root/.nvm/versions/node/v20.20.0/bin/npm run build
           
           cd ~/mdmlabsrmm/
 
