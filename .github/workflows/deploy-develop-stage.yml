@@ -39,7 +39,6 @@ jobs:
           /root/.nvm/versions/node/v20.20.0/bin/npm install --legacy-peer-deps
           echo "📦 Replacing operator_pb.js with updated version..."
           mkdir -p /root/mdmlabsrmm/web-tactical/src/generated
-          cp /root/mdmlabsrmm/operator_pb.js /root/mdmlabsrmm/web-tactical/src/generated/operator_pb.js
 
           /root/.nvm/versions/node/v20.20.0/bin/npm run build
           
