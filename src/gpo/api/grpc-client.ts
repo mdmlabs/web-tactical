@@ -479,6 +479,117 @@ export const policyAssignmentClient = {
 
     return response.toObject();
   },
+
+  async assignPolicyCollection(
+    collectionId: number,
+    targetType: "global" | "agent" | "user",
+    targetParams: { agentId?: string; userSid?: string } = {},
+    selection?: Record<string, unknown> | operator_pb_types.PolicySelection,
+  ): Promise<operator_pb_types.AssignPolicyCollectionResponse.AsObject> {
+    const request = new operator_pb.AssignPolicyCollectionRequest();
+
+    const collectionIdNum = Math.floor(Number(collectionId));
+    if (
+      !Number.isFinite(collectionIdNum) ||
+      collectionIdNum <= 0 ||
+      collectionIdNum !== Number(collectionId)
+    ) {
+      throw new Error(
+        `Invalid collection ID: ${collectionId} (must be a positive integer)`,
+      );
+    }
+    request.setCollectionId(collectionIdNum);
+
+    let target: operator_pb.PolicyTarget;
+    switch (targetType) {
+      case "global":
+        target = createGlobalTarget();
+        break;
+      case "agent":
+        if (!targetParams.agentId) {
+          throw new Error("agentId обязателен для типа 'agent'");
+        }
+        target = createAgentTarget(targetParams.agentId);
+        break;
+      case "user":
+        if (!targetParams.agentId || !targetParams.userSid) {
+          throw new Error("agentId и userSid обязательны для типа 'user'");
+        }
+        target = createUserTarget(targetParams.agentId, targetParams.userSid);
+        break;
+      default:
+        throw new Error(`Неизвестный тип цели: ${targetType}`);
+    }
+
+    request.setTarget(target);
+
+    if (selection) {
+      let policySelection: operator_pb.PolicySelection;
+      if (selection instanceof operator_pb.PolicySelection) {
+        policySelection = selection;
+      } else {
+        policySelection = createPolicySelection(selection);
+      }
+      request.setSelection(policySelection);
+    }
+
+    const response = await policyAssignmentServiceClient.assignPolicyCollection(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async removePolicyCollection(
+    collectionId: number,
+    targetType: "global" | "agent" | "user",
+    targetParams: { agentId?: string; userSid?: string } = {},
+  ): Promise<operator_pb_types.RemovePolicyCollectionResponse.AsObject> {
+    const request = new operator_pb.RemovePolicyCollectionRequest();
+
+    const collectionIdNum = Math.floor(Number(collectionId));
+    if (
+      !Number.isFinite(collectionIdNum) ||
+      collectionIdNum <= 0 ||
+      collectionIdNum !== Number(collectionId)
+    ) {
+      throw new Error(
+        `Invalid collection ID: ${collectionId} (must be a positive integer)`,
+      );
+    }
+    request.setCollectionId(collectionIdNum);
+
+    let target: operator_pb.PolicyTarget;
+    switch (targetType) {
+      case "global":
+        target = createGlobalTarget();
+        break;
+      case "agent":
+        if (!targetParams.agentId) {
+          throw new Error("agentId обязателен для типа 'agent'");
+        }
+        target = createAgentTarget(targetParams.agentId);
+        break;
+      case "user":
+        if (!targetParams.agentId || !targetParams.userSid) {
+          throw new Error("agentId и userSid обязательны для типа 'user'");
+        }
+        target = createUserTarget(targetParams.agentId, targetParams.userSid);
+        break;
+      default:
+        throw new Error(`Неизвестный тип цели: ${targetType}`);
+    }
+
+    request.setTarget(target);
+
+    const response = await policyAssignmentServiceClient.removePolicyCollection(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
 };
 
 export const policyStateClient = {
@@ -687,7 +798,7 @@ export const collectionsClient = {
 
   async createCollectionsPolicies(
     collectionId: number,
-    policyNames: string[],
+    policyHashes: string[],
   ): Promise<operator_pb_types.CreateCollectionsPoliciesResponse.AsObject> {
     if (!collectionId || collectionId <= 0) {
       throw new Error(
@@ -695,18 +806,20 @@ export const collectionsClient = {
       );
     }
 
-    if (!Array.isArray(policyNames) || policyNames.length === 0) {
+    if (!Array.isArray(policyHashes) || policyHashes.length === 0) {
       throw new Error(
-        "Invalid policy names: policy names must be a non-empty array",
+        "Invalid policy hashes: policy hashes must be a non-empty array",
       );
     }
 
-    const invalidNames = policyNames.filter(
-      (name) => typeof name !== "string" || !name.trim(),
+    const invalidHashes = policyHashes.filter(
+      (h) => typeof h !== "string" || !h.trim(),
     );
-    if (invalidNames.length > 0) {
+    if (invalidHashes.length > 0) {
       throw new Error(
-        `Invalid policy names: all policy names must be non-empty strings. Invalid names: ${invalidNames.join(", ")}`,
+        `Invalid policy hashes: all hashes must be non-empty strings. Invalid: ${invalidHashes.join(
+          ", ",
+        )}`,
       );
     }
 
@@ -730,28 +843,51 @@ export const collectionsClient = {
       );
     }
 
-    const validPolicyNames = policyNames
-      .map((name) => (typeof name === "string" ? name.trim() : String(name)))
-      .filter((name) => name.length > 0);
+    const validPolicyHashes = policyHashes
+      .map((h) => (typeof h === "string" ? h.trim() : String(h)))
+      .filter((h) => h.length > 0);
 
-    if (validPolicyNames.length === 0) {
-      throw new Error("No valid policy names after filtering");
+    if (validPolicyHashes.length === 0) {
+      throw new Error("No valid policy hashes after filtering");
     }
 
-    request.clearPolicyNamesList();
+    request.clearPolicyHashesList?.();
 
-    for (const policyName of validPolicyNames) {
-      request.addPolicyNames(policyName);
+    type CreateCollectionsPoliciesRequestLike = {
+      addPolicyHashes?: (h: string) => void;
+      addPolicyHash?: (h: string) => void;
+      setPolicyHashesList?: (list: string[]) => void;
+      getPolicyHashesList?: () => string[];
+      getPolicyHashList?: () => string[];
+    };
+
+    const reqLike = request as unknown as CreateCollectionsPoliciesRequestLike;
+
+    for (const hash of validPolicyHashes) {
+      if (typeof reqLike.addPolicyHashes === "function") {
+        reqLike.addPolicyHashes(hash);
+      } else if (typeof reqLike.addPolicyHash === "function") {
+        reqLike.addPolicyHash(hash);
+      } else {
+        reqLike.setPolicyHashesList?.(validPolicyHashes);
+        break;
+      }
     }
 
-    const checkNames = request.getPolicyNamesList();
-    if (!checkNames || checkNames.length === 0) {
-      throw new Error("Failed to set policy names in request");
+    const checkHashes =
+      (typeof reqLike.getPolicyHashesList === "function" &&
+        reqLike.getPolicyHashesList()) ||
+      (typeof reqLike.getPolicyHashList === "function" &&
+        reqLike.getPolicyHashList()) ||
+      reqLike.getPolicyHashesList?.();
+
+    if (!checkHashes || checkHashes.length === 0) {
+      throw new Error("Failed to set policy hashes in request");
     }
 
-    if (checkNames.length !== validPolicyNames.length) {
+    if (checkHashes.length !== validPolicyHashes.length) {
       throw new Error(
-        `Policy names count mismatch: expected ${validPolicyNames.length}, got ${checkNames.length}`,
+        `Policy hashes count mismatch: expected ${validPolicyHashes.length}, got ${checkHashes.length}`,
       );
     }
 
@@ -769,8 +905,8 @@ export const collectionsClient = {
           throw new Error(
             "Server error: Could not add policies to collection. " +
               `Collection ID: ${collectionIdNum}, ` +
-              `Policy names: ${validPolicyNames.join(", ")}. ` +
-              "The collection or policies may not exist, or policy names may be incorrect.",
+              `Policy hashes: ${validPolicyHashes.join(", ")}. ` +
+              "The collection or policies may not exist, or policy hashes may be incorrect.",
           );
         }
       }
@@ -820,4 +956,4 @@ export {
   policyStateServiceClient,
 };
 
-export * as operator_pb from "@/generated/operator_pb";
+export { default as operator_pb } from "@/generated/operator_pb";

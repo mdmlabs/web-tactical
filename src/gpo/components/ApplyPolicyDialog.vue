@@ -679,6 +679,8 @@
             :loading="loadingCollections"
             clearable
             @update:model-value="onCollectionSelected"
+            @popup-show="isSelectOpen = true"
+            @popup-hide="isSelectOpen = false"
           >
             <template v-slot:no-option>
               <q-item>
@@ -688,6 +690,7 @@
               </q-item>
             </template>
           </q-select>
+
           <div
             v-if="selectedCollectionId && collectionPolicies.length > 0"
             class="q-mt-sm q-pa-sm bg-grey-2 rounded-borders"
@@ -707,43 +710,42 @@
               </div>
             </div>
           </div>
-          <q-btn
-            flat
-            icon="add"
-            label="New Collection"
-            color="primary"
-            @click="showCreateCollectionDialog = true"
-            :disable="applying"
-          />
-          <q-btn
-            v-if="selectedCollectionId"
-            flat
-            icon="delete"
-            label="Delete Collection"
-            color="negative"
-            @click="deleteSelectedCollection"
-            :loading="applying"
-            :disable="applying"
-          />
-          <q-btn
-            flat
-            icon="shopping_cart"
-            label="Add to Collection"
-            color="primary"
-            @click="addPoliciesToCollection"
-            :loading="applying"
-            :disable="!hasSelectedPolicies || !selectedCollectionId"
-          />
-          <q-btn
-            flat
-            icon="play_arrow"
-            label="Apply Collection"
-            color="positive"
-            @click="applyCollection"
-            :loading="applying"
-            :disable="!selectedCollectionId || selectedUsers.length === 0"
-          />
-          <q-separator vertical />
+
+          <div class="row items-center">
+            <q-btn
+              flat
+              color="positive"
+              icon="play_arrow"
+              label="Apply Collection"
+              :loading="applying"
+              :disable="!selectedCollectionId || selectedUsers.length === 0"
+              @click="applyCollection('selected')"
+            />
+            <q-btn
+              flat
+              color="positive"
+              icon="arrow_drop_down"
+              :disable="!selectedCollectionId || selectedUsers.length === 0"
+              @click.stop="openApplyMenu"
+            />
+            <q-popup-proxy
+              ref="applyPopupRef"
+              anchor="bottom left"
+              self="top left"
+              transition-show="scale"
+              transition-hide="scale"
+            >
+              <q-list>
+                <q-item clickable @click="applyCollection('selected')">
+                  <q-item-section>Apply to selected users</q-item-section>
+                </q-item>
+                <q-item clickable @click="applyCollection('all')">
+                  <q-item-section>Apply to all users</q-item-section>
+                </q-item>
+              </q-list>
+            </q-popup-proxy>
+          </div>
+
           <q-btn
             flat
             icon="check_circle"
@@ -753,15 +755,56 @@
             :loading="applying"
             :disable="!selectedPolicy || selectedUsers.length === 0"
           />
+
           <q-btn
             flat
-            icon="remove_circle"
-            label="Remove Selected Policy"
-            color="negative"
-            @click="removeSelectedPolicy"
-            :loading="applying"
-            :disable="!selectedPolicy || selectedUsers.length === 0"
+            icon="more_vert"
+            round
+            dense
+            @click.stop="openOverflowMenu"
           />
+          <q-popup-proxy
+            ref="overflowPopupRef"
+            anchor="bottom right"
+            self="top right"
+            transition-show="scale"
+            transition-hide="scale"
+          >
+            <q-list>
+              <q-item clickable @click="showCreateCollectionDialog = true">
+                <q-item-section>New Collection</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                :disable="!hasSelectedPolicies || !selectedCollectionId"
+                @click="addPoliciesToCollection"
+              >
+                <q-item-section>Add to Collection</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                :disable="!selectedCollectionId"
+                @click="deleteSelectedCollection"
+              >
+                <q-item-section>Delete Collection</q-item-section>
+              </q-item>
+              <q-separator />
+              <q-item
+                clickable
+                :disable="!selectedCollectionId || selectedUsers.length === 0"
+                @click="removeCollectionAssignments"
+              >
+                <q-item-section>Remove Collection</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                :disable="!selectedPolicy || selectedUsers.length === 0"
+                @click="removeSelectedPolicy"
+              >
+                <q-item-section>Remove Selected Policy</q-item-section>
+              </q-item>
+            </q-list>
+          </q-popup-proxy>
         </div>
       </q-card-actions>
 
@@ -934,6 +977,22 @@ const showCreateCollectionDialog = ref(false);
 const newCollectionName = ref("");
 const newCollectionDescription = ref("");
 const collectionPolicies = ref<string[]>([]);
+
+const isSelectOpen = ref(false);
+const applyPopupRef = ref<{ show?: () => void } | null>(null);
+const overflowPopupRef = ref<{ show?: () => void } | null>(null);
+
+function openApplyMenu() {
+  if (!isSelectOpen.value) {
+    applyPopupRef.value?.show?.();
+  }
+}
+
+function openOverflowMenu() {
+  if (!isSelectOpen.value) {
+    overflowPopupRef.value?.show?.();
+  }
+}
 
 const hasSelectedPolicies = computed(() => {
   return Object.values(selectedPolicies).includes(true);
@@ -2161,12 +2220,12 @@ async function addPoliciesToCollection() {
 
   applying.value = true;
   try {
-    const policyNames: string[] = [];
+    const policyHashes: string[] = [];
     for (const policyId of selectedPolicyIds) {
-      let policyName: string | undefined;
+      let policyHash: string | undefined;
       let policyDetail = policyDetails.value[policyId];
 
-      if (!policyDetail || !policyDetail.policy?.name) {
+      if (!policyDetail || !policyDetail.hash) {
         const policy = selectedCategoryPolicies.value.find(
           (p) => p.id === policyId,
         );
@@ -2174,7 +2233,7 @@ async function addPoliciesToCollection() {
           await loadPolicyDetails(policy);
           policyDetail = policyDetails.value[policyId];
 
-          if (!policyDetail || !policyDetail.policy?.name) {
+          if (!policyDetail || !policyDetail.hash) {
             const policyIdNum = Number.parseInt(policyId, 10);
             if (!Number.isNaN(policyIdNum)) {
               try {
@@ -2188,31 +2247,28 @@ async function addPoliciesToCollection() {
 
                 const policyData = policyDetailsResponse.getPolicy?.();
                 if (policyData) {
-                  const policyNameFromApi = policyData.getName?.() || "";
-                  if (policyNameFromApi) {
-                    policyName = policyNameFromApi.trim();
-                  }
+                  policyHash = policyData.getHash?.() || "";
                 }
               } catch (error) {
-                // Ignore error, will try to get name from policyDetails later
+                // ignore error, will try to get hash from policyDetails later
               }
             }
           }
         }
       }
 
-      if (!policyName && policyDetail?.policy?.name) {
-        policyName = policyDetail.policy.name.trim();
+      if (!policyHash && policyDetail?.hash) {
+        policyHash = policyDetail.hash;
       }
 
-      if (policyName && policyName.length > 0) {
-        policyNames.push(policyName);
+      if (policyHash && policyHash.length > 0) {
+        policyHashes.push(policyHash);
       }
     }
 
-    if (policyNames.length === 0) {
+    if (policyHashes.length === 0) {
       throw new Error(
-        `Could not get policy names for ${selectedPolicyIds.length} selected policy(ies). ` +
+        `Could not get policy hashes for ${selectedPolicyIds.length} selected policy(ies). ` +
           "Please make sure policies are loaded and try selecting them again.",
       );
     }
@@ -2224,18 +2280,18 @@ async function addPoliciesToCollection() {
       throw new Error("Invalid collection ID");
     }
 
-    if (!policyNames || policyNames.length === 0) {
-      throw new Error("No policy names to add");
+    if (!policyHashes || policyHashes.length === 0) {
+      throw new Error("No policy hashes to add");
     }
 
     await collectionsClient.createCollectionsPolicies(
       selectedCollectionId.value,
-      policyNames,
+      policyHashes,
     );
 
     await onCollectionSelected(selectedCollectionId.value);
 
-    const policiesCount = policyNames.length;
+    const policiesCount = policyHashes.length;
     const policiesText =
       policiesCount === 1
         ? "Policy added to collection"
@@ -2250,12 +2306,15 @@ async function addPoliciesToCollection() {
       if (errorMessage.includes("Exception was thrown by handler")) {
         errorMessage =
           "Server error: The collection or policies may not exist, or there was a problem processing the request. " +
-          "Please check that the collection exists and policy names are correct.";
+          "Please check that the collection exists and policy hashes are correct.";
       } else if (errorMessage.includes("Invalid collection ID")) {
         errorMessage = "Please select a valid collection";
-      } else if (errorMessage.includes("No policy names")) {
+      } else if (
+        errorMessage.includes("No policy names") ||
+        errorMessage.includes("No policy hashes")
+      ) {
         errorMessage =
-          "No valid policy names found. Please select policies again.";
+          "No valid policy hashes found. Please select policies again.";
       }
     }
 
@@ -2265,109 +2324,52 @@ async function addPoliciesToCollection() {
   }
 }
 
-async function applyCollection() {
+async function applyCollection(applyTo: "selected" | "all" = "selected") {
   if (!selectedCollectionId.value || !props.agent) {
+    return;
+  }
+
+  let usersToApply: User[] = [];
+  if (applyTo === "all") {
+    usersToApply = props.users.slice();
+  } else {
+    if (selectedUsers.value.length === 0) {
+      notifyError("Please select users");
+      return;
+    }
+    usersToApply = props.users.filter((u) =>
+      selectedUsers.value.includes(u.sid),
+    );
+  }
+
+  if (usersToApply.length === 0) {
+    notifyError("No users selected for applying collection");
     return;
   }
 
   applying.value = true;
   try {
-    const collectionResponse = await collectionsClient.getCollectionById(
-      selectedCollectionId.value,
-      "en-US",
+    const applyPromises: Promise<unknown>[] = usersToApply.map((user) =>
+      policyAssignmentClient.assignPolicyCollection(
+        selectedCollectionId.value!,
+        "user",
+        { agentId: String(props.agent!.id), userSid: String(user.sid) },
+        {},
+      ),
     );
-
-    const collection = collectionResponse.collection;
-    if (!collection) {
-      throw new Error("Collection not found");
-    }
-
-    const policiesList =
-      (collection as { policiesList?: unknown[]; policies?: unknown[] })
-        .policiesList ||
-      (collection as { policiesList?: unknown[]; policies?: unknown[] })
-        .policies ||
-      [];
-
-    if (policiesList.length === 0) {
-      throw new Error("Collection is empty");
-    }
-
-    const usersToApply: User[] =
-      selectedUsers.value.length > 0
-        ? props.users.filter((u) => selectedUsers.value.includes(u.sid))
-        : [];
-
-    if (usersToApply.length === 0) {
-      throw new Error("No users selected for applying collection");
-    }
-
-    const applyPromises: Promise<unknown>[] = [];
-
-    for (const policySummary of policiesList) {
-      const policy = policySummary as {
-        id?: number;
-        name?: string;
-        displayName?: string;
-        explainText?: string;
-      };
-
-      if (!policy.id || !policy.name) {
-        continue;
-      }
-
-      let policyHash: string | undefined;
-      try {
-        const policyDetailsResponse =
-          await policyCatalogServiceClient.getPolicyDetails(
-            new operator_pb.GetPolicyDetailsRequest()
-              .setPolicyId(policy.id)
-              .setLangCode("en-US"),
-            createGrpcMetadata(),
-          );
-
-        const policyData = policyDetailsResponse.getPolicy?.();
-        if (policyData) {
-          policyHash = policyData.getHash?.() || "";
-        }
-      } catch (error) {
-        continue;
-      }
-
-      if (!policyHash) {
-        continue;
-      }
-
-      const usersToApply: User[] =
-        selectedUsers.value.length > 0
-          ? props.users.filter((u) => selectedUsers.value.includes(u.sid))
-          : [];
-
-      for (const user of usersToApply) {
-        applyPromises.push(
-          policyAssignmentClient.assignPolicy(
-            policyHash,
-            "user",
-            { agentId: String(props.agent.id), userSid: String(user.sid) },
-            {},
-          ),
-        );
-      }
-    }
 
     await Promise.all(applyPromises);
 
-    const collectionName = collection.name || "Collection";
-    const policiesCount = policiesList.length;
-    const policiesText =
-      policiesCount === 1
-        ? "Policy from collection successfully applied"
-        : `${policiesCount} policies from collection successfully applied`;
-
-    const usersCount = selectedUsers.value.length;
-    const targetText = ` to ${usersCount} ${usersCount === 1 ? "user" : "users"} on ${props.agent.hostname}`;
-
-    notifySuccess(`${policiesText} "${collectionName}"${targetText}`);
+    const collectionName =
+      collectionsOptions.value.find(
+        (c) => c.value === selectedCollectionId.value,
+      )?.label || "Collection";
+    const usersCount = usersToApply.length;
+    notifySuccess(
+      `Collection "${collectionName}" successfully applied to ${usersCount} ${
+        usersCount === 1 ? "user" : "users"
+      } on ${props.agent.hostname}`,
+    );
 
     emit("applied");
     dialogVisible.value = false;
@@ -2547,6 +2549,63 @@ async function removeSelectedPolicy() {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error removing policy";
     notifyError(`Error removing policy: ${errorMessage}`);
+  } finally {
+    applying.value = false;
+  }
+}
+
+async function removeCollectionAssignments() {
+  if (!selectedCollectionId.value || !props.agent) {
+    return;
+  }
+
+  if (selectedUsers.value.length === 0) {
+    notifyError("Please select users");
+    return;
+  }
+
+  applying.value = true;
+  try {
+    const usersToRemove: User[] = props.users.filter((u) =>
+      selectedUsers.value.includes(u.sid),
+    );
+
+    if (usersToRemove.length === 0) {
+      throw new Error("No users selected for removing collection assignments");
+    }
+
+    const removePromises: Promise<unknown>[] = [];
+    for (const user of usersToRemove) {
+      removePromises.push(
+        policyAssignmentClient.removePolicyCollection(
+          selectedCollectionId.value!,
+          "user",
+          { agentId: String(props.agent!.id), userSid: String(user.sid) },
+        ),
+      );
+    }
+
+    await Promise.all(removePromises);
+
+    const collectionName =
+      collectionsOptions.value.find(
+        (c) => c.value === selectedCollectionId.value,
+      )?.label || "Collection";
+    const usersCount = usersToRemove.length;
+    notifySuccess(
+      `Collection "${collectionName}" successfully removed from ${usersCount} ${
+        usersCount === 1 ? "user" : "users"
+      } on ${props.agent.hostname}`,
+    );
+
+    emit("applied");
+    dialogVisible.value = false;
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Unknown error removing collection";
+    notifyError(`Error removing collection: ${errorMessage}`);
   } finally {
     applying.value = false;
   }

@@ -78,7 +78,6 @@ service CollectionsControlService {
       returns (GetAllCollectionsResponse);
   rpc GetCollectionById (GetCollectionByIdRequest)
       returns (CollectionDetailsResponse);
-  // добавлять полиси в коллекцию
   rpc CreateCollectionsPolicies (CreateCollectionsPoliciesRequest)
       returns (CreateCollectionsPoliciesResponse);
   rpc CreateCollection (CreateCollectionRequest)
@@ -91,7 +90,7 @@ service CollectionsControlService {
 }
 message CreateCollectionsPoliciesRequest {
   int64 collection_id = 1;
-  repeated string policy_names = 2;
+  repeated string policy_hashes = 2;
 }
 message CreateCollectionsPoliciesResponse {
   bool success = 1;
@@ -471,7 +470,26 @@ service PolicyAssignmentService {
 
   rpc RemovePolicy (RemovePolicyRequest)
       returns (RemovePolicyResponse);
+
+  rpc AssignPolicyCollection(AssignPolicyCollectionRequest)
+    returns (AssignPolicyCollectionResponse);
+
+ rpc RemovePolicyCollection(RemovePolicyCollectionRequest)
+    returns (RemovePolicyCollectionResponse);
+
 }
+message AssignPolicyCollectionRequest {
+  int64 collection_id = 1;
+  PolicyTarget target = 2;
+  PolicySelection selection = 3;
+}
+message AssignPolicyCollectionResponse {}
+
+message RemovePolicyCollectionRequest {
+  int64 collection_id = 1;
+  PolicyTarget target = 2;
+}
+message RemovePolicyCollectionResponse {}
 
 message AssignPolicyRequest {
   string policy_hash = 1;
@@ -554,9 +572,8 @@ message GetEffectivePoliciesResponse {
 
 message EffectivePolicy {
   string policy_hash = 1;
-  PolicyDesiredState desired_state = 2;
-  PolicyValueOverride effective_value = 3;
-  PolicySource source = 4;
+  PolicySource source = 2;
+  string userSid = 3;
 }
 
 message GetAssignmentsRequest {
