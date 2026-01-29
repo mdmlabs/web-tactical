@@ -28,112 +28,122 @@
           narrow-indicator
           no-caps
         >
-          <q-tab name="all" icon="list" label="All Policies" />
-          <q-tab name="users" icon="people" label="By Users" />
+          <q-tab name="assignments" icon="assignment" label="Assignments" />
+          <q-tab name="effective" icon="policy" label="Effective Policies" />
         </q-tabs>
 
         <q-separator />
 
         <q-tab-panels v-model="dialogTab" class="q-mt-md">
-          <q-tab-panel name="all" class="q-pa-none">
+          <q-tab-panel name="assignments" class="q-pa-none">
             <div v-if="loading" class="text-center q-pa-lg">
               <q-spinner color="primary" size="3em" />
-              <div class="q-mt-md">Loading applied policies...</div>
+              <div class="q-mt-md">Loading assignments...</div>
             </div>
 
             <div
-              v-else-if="appliedPolicies.length === 0"
+              v-else-if="assignments.length === 0"
               class="text-center q-pa-lg text-grey-6"
             >
               <q-icon name="info" size="3em" class="q-mb-md" />
-              <div>No applied policies</div>
+              <div>No assignments</div>
               <div class="text-caption q-mt-sm">
-                Apply policies through the "Apply Policy" dialog
+                Assign policies using the "Apply Policy" dialog
               </div>
             </div>
 
             <div v-else>
               <q-table
-                :rows="appliedPolicies"
-                :columns="policyColumns"
+                :rows="assignments"
+                :columns="assignmentColumns"
                 row-key="id"
                 flat
                 bordered
                 :loading="loading"
               >
-                <template v-slot:body-cell-status="props">
+                <template v-slot:body-cell-policy="props">
+                  <q-td :props="props">{{
+                    props.row.displayName ||
+                    props.row.name ||
+                    props.row.policyHash ||
+                    props.row.policy_hash ||
+                    props.row.id
+                  }}</q-td>
+                </template>
+
+                <template v-slot:body-cell-policy_hash="props">
+                  <q-td :props="props">{{
+                    props.row.policyHash || props.row.policy_hash || ""
+                  }}</q-td>
+                </template>
+
+                <template v-slot:body-cell-desired_state="props">
+                  <q-td :props="props">{{ desiredStateLabel(props.row) }}</q-td>
+                </template>
+
+                <template v-slot:body-cell-override="props">
                   <q-td :props="props">
-                    <q-badge
-                      :color="props.value ? 'positive' : 'negative'"
-                      :label="props.value ? 'Enabled' : 'Disabled'"
-                    />
+                    <div v-if="props.row.override || props.row.overridden">
+                      {{
+                        formatOverride(
+                          props.row.override ?? props.row.overridden,
+                        )
+                      }}
+                    </div>
+                    <div v-else>—</div>
                   </q-td>
                 </template>
-                <template v-slot:body-cell-actions="props">
+
+                <template v-slot:body-cell-target="props">
                   <q-td :props="props">
-                    <q-btn
-                      flat
-                      dense
-                      round
-                      icon="delete"
-                      color="negative"
-                      size="sm"
-                      @click="removePolicy(props.row)"
-                    >
-                      <q-tooltip>Remove application</q-tooltip>
-                    </q-btn>
+                    {{ targetLabel(props.row) }}
                   </q-td>
                 </template>
+
               </q-table>
             </div>
           </q-tab-panel>
-
-          <q-tab-panel name="users" class="q-pa-none">
+          <q-tab-panel name="effective" class="q-pa-none">
             <div v-if="loading" class="text-center q-pa-lg">
               <q-spinner color="primary" size="3em" />
-              <div class="q-mt-md">Loading...</div>
+              <div class="q-mt-md">Loading effective policies...</div>
             </div>
 
-            <div v-else>
-              <q-expansion-item
-                v-for="(userPolicies, userId) in policiesByUser"
-                :key="userId"
-                :label="getUserName(userId)"
-                :caption="`${userPolicies.length} policies`"
-                icon="person"
-                class="q-mb-sm"
-              >
-                <q-card flat bordered>
-                  <q-card-section>
-                    <q-list separator>
-                      <q-item v-for="policy in userPolicies" :key="policy.id">
-                        <q-item-section>
-                          <q-item-label>{{
-                            policy.displayName || policy.name
-                          }}</q-item-label>
-                          <q-item-label caption v-if="policy.description">
-                            {{ policy.description }}
-                          </q-item-label>
-                        </q-item-section>
-                        <q-item-section side>
-                          <q-badge
-                            :color="policy.enabled ? 'positive' : 'negative'"
-                            :label="policy.enabled ? 'Enabled' : 'Disabled'"
-                          />
-                        </q-item-section>
-                      </q-item>
-                    </q-list>
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item>
+            <div
+              v-else-if="effectivePolicies.length === 0"
+              class="text-center q-pa-lg text-grey-6"
+            >
+              <q-icon name="info" size="3em" class="q-mb-md" />
+              <div>No effective policies</div>
+            </div>
 
-              <div
-                v-if="Object.keys(policiesByUser).length === 0"
-                class="text-center q-pa-lg text-grey-6"
-              >
-                <q-icon name="info" size="2em" />
-                <div class="q-mt-sm">No policies by users</div>
-              </div>
+            <div v-else class="q-pa-sm">
+              <q-list bordered separator>
+                <q-item
+                  v-for="p in effectivePolicies"
+                  :key="String(p.policyHash || p.policy_hash || p.id)"
+                >
+                  <q-item-section>
+                    <q-item-label>
+                      {{
+                        p.displayName || p.name || p.policyHash || p.policy_hash
+                      }}
+                    </q-item-label>
+                    <q-item-label caption v-if="p.explainText || p.description">
+                      {{ p.explainText || p.description || "" }}
+                    </q-item-label>
+                    <div class="text-caption q-mt-xs">
+                      <strong>Source:</strong> {{ policySourceLabel(p) }}
+                      <span v-if="p.userSid">
+                        • <strong>User:</strong> {{ p.userSid }}</span
+                      >
+                    </div>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-badge color="primary" :label="'Applied'" />
+                  </q-item-section>
+                </q-item>
+              </q-list>
             </div>
           </q-tab-panel>
         </q-tab-panels>
@@ -151,7 +161,7 @@
           label="Refresh"
           color="primary"
           icon="refresh"
-          @click="loadAppliedPolicies"
+          @click="refresh"
           :loading="loading"
         />
       </q-card-actions>
@@ -160,14 +170,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
-import { notifySuccess, notifyError } from "@/utils/notify";
+import { ref, computed } from "vue";
 import { QTableColumn } from "quasar";
-import type { GPOPolicy } from "../types/gpo";
-import {
-  policyAssignmentClient,
-  policyCatalogClient,
-} from "../api/grpc-client";
 
 interface Agent {
   id: string;
@@ -175,173 +179,216 @@ interface Agent {
   status: string;
 }
 
-interface AppliedPolicy extends GPOPolicy {
-  appliedDate?: string;
-  userId?: string;
-  userName?: string;
-  policyHash?: string;
-}
 
 const props = defineProps<{
   modelValue: boolean;
   agent: Agent | null;
+  assignments?: Array<Record<string, unknown>>;
+  effectivePolicies?: Array<Record<string, unknown>>;
+  loading?: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: "update:modelValue", value: boolean): void;
+  (e: "refresh"): void;
 }>();
+
+const refresh = () => emit("refresh");
 
 const dialogVisible = computed({
   get: () => props.modelValue,
   set: (value) => emit("update:modelValue", value),
 });
 
-const dialogTab = ref("all");
-const loading = ref(false);
-const appliedPolicies = ref<AppliedPolicy[]>([]);
+const dialogTab = ref("assignments");
+const loading = computed(() => !!props.loading);
+const assignments = computed(() => props.assignments || []);
+const effectivePolicies = computed(() => props.effectivePolicies || []);
 
-const policyColumns: QTableColumn[] = [
+
+const assignmentColumns: QTableColumn[] = [
   {
-    name: "name",
+    name: "policy",
     required: true,
-    label: "Policy Name",
+    label: "Policy",
     align: "left",
-    field: "displayName",
+    field: (row: Record<string, unknown>) =>
+      String(
+        row["displayName"] ||
+          row["display_name"] ||
+          row["name"] ||
+          row["policyHash"] ||
+          row["policy_hash"] ||
+          row["id"] ||
+          "",
+      ),
     sortable: true,
   },
   {
-    name: "description",
-    label: "Description",
+    name: "policy_hash",
+    label: "Hash",
     align: "left",
-    field: "description",
+    field: (row: Record<string, unknown>) =>
+      String(row["policyHash"] || row["policy_hash"] || ""),
   },
   {
-    name: "status",
-    label: "Status",
-    align: "center",
-    field: "enabled",
-    sortable: true,
-  },
-  {
-    name: "appliedDate",
-    label: "Applied Date",
+    name: "desired_state",
+    label: "Desired state",
     align: "left",
-    field: "appliedDate",
-    format: (val: string) =>
-      val ? new Date(val).toLocaleString("en-US") : "N/A",
+    field: (row: Record<string, unknown>) =>
+      String(row["desiredState"] || row["desired_state"] || ""),
   },
   {
-    name: "actions",
-    label: "Actions",
+    name: "override",
+    label: "Override",
     align: "center",
-    field: "actions",
+    field: (row: Record<string, unknown>) =>
+      row["override"] ?? row["overridden"] ?? false,
+  },
+  {
+    name: "target",
+    label: "Target",
+    align: "left",
+    field: (row: Record<string, unknown>) =>
+      String(row["target"] || row["targetName"] || row["userSid"] || ""),
   },
 ];
 
-const policiesByUser = computed(() => {
-  const grouped: Record<string, AppliedPolicy[]> = {};
-  for (const policy of appliedPolicies.value) {
-    const userId = policy.userId || "all";
-    if (!grouped[userId]) {
-      grouped[userId] = [];
-    }
-    grouped[userId].push(policy);
-  }
-  return grouped;
-});
 
-watch(dialogVisible, (newVal) => {
-  if (newVal && props.agent) {
-    loadAppliedPolicies();
-  }
-});
+function formatOverride(o: unknown): string {
+  if (o === undefined || o === null) return "—";
 
-function getUserName(userId: string): string {
-  if (userId === "all") {
-    return "All Users";
-  }
-  // TODO: Get user name from user list
-  return userId;
-}
+  if (typeof o === "string" || typeof o === "number" || typeof o === "boolean")
+    return String(o);
 
-async function loadAppliedPolicies() {
-  if (!props.agent) return;
-
-  loading.value = true;
-  try {
-    // TODO: implement API call GetEffectivePolicies or GetAssignments
-    // using a stub for now
-    // type of loading
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    // data stub
-    appliedPolicies.value = [];
-
-    console.log(
-      "[AppliedPoliciesDialog] Loading applied policies for agent:",
-      props.agent.id,
-    );
-  } catch (error) {
-    console.error(
-      "[AppliedPoliciesDialog] Error loading applied policies:",
-      error,
-    );
-    notifyError("Error loading applied policies");
-  } finally {
-    loading.value = false;
-  }
-}
-
-async function removePolicy(policy: AppliedPolicy) {
-  if (!props.agent) return;
-
-  try {
-    let policyHash = policy.policyHash;
-
-    if (!policyHash) {
-      const policyId = Number.parseInt(policy.id, 10);
-      if (Number.isNaN(policyId)) {
-        throw new TypeError(`Неверный ID политики: ${policy.id}`);
-      }
-
-      const policyDetails = await policyCatalogClient.getPolicyDetails(
-        policyId,
-        "en-US",
-      );
-      policyHash = (policyDetails.policy?.hash as string) || "";
-
-      if (!policyHash) {
-        throw new Error("Policy hash not found. Failed to get policy details.");
+  if (typeof o === "object") {
+    const obj = o as Record<string, unknown>;
+    const keysPrefer = [
+      "stringValue",
+      "string_value",
+      "value",
+      "dword",
+      "int32",
+      "int64",
+    ];
+    for (const k of keysPrefer) {
+      if (k in obj && obj[k] !== undefined && obj[k] !== null) {
+        const v = obj[k];
+        if (
+          typeof v === "string" ||
+          typeof v === "number" ||
+          typeof v === "boolean"
+        )
+          return String(v);
+        try {
+          return JSON.stringify(v);
+        } catch {
+          return "—";
+        }
       }
     }
 
-    const targetType = policy.userId ? "user" : "agent";
-    const targetParams = policy.userId
-      ? { agentId: props.agent.id, userSid: policy.userId }
-      : { agentId: props.agent.id };
 
-    await policyAssignmentClient.removePolicy(
-      policyHash,
-      targetType,
-      targetParams,
-    );
+    for (const [, v] of Object.entries(obj)) {
+      if (v === null || v === undefined) continue;
+      if (typeof v === "object") continue;
+      return String(v);
+    }
 
-    appliedPolicies.value = appliedPolicies.value.filter(
-      (p) => p.id !== policy.id,
-    );
-
-    notifySuccess("Policy application removed");
-  } catch (error) {
-    console.error(
-      "[AppliedPoliciesDialog] Ошибка удаления применения политики:",
-      error,
-    );
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : "Unknown error removing policy application";
-    notifyError(`Error removing policy application: ${errorMessage}`);
+    try {
+      return JSON.stringify(obj);
+    } catch {
+      return "—";
+    }
   }
+
+  return String(o);
+}
+
+
+function policySourceLabel(p: Record<string, unknown>): string {
+  const src =
+    (p && (p["policySource"] ?? p["policy_source"] ?? p["source"])) ?? null;
+  if (src === null || src === undefined) return "Unspecified";
+
+  const num = Number(src);
+  if (!Number.isNaN(num)) {
+    switch (num) {
+      case 0:
+        return "Unspecified ";
+      case 1:
+        return "Global";
+      case 2:
+        return "Agent";
+      case 3:
+        return "User";
+      default:
+        return String(src);
+    }
+  }
+
+  const s = String(src).toUpperCase();
+  if (s.includes("GLOBAL")) return "Global";
+  if (s.includes("AGENT")) return "Agent";
+  if (s.includes("USER")) return "User";
+  return String(src);
+}
+
+function targetLabel(row: Record<string, unknown>): string {
+  if (!row) return "";
+  const t =
+    row["target"] ??
+    row["targetObject"] ??
+    row["target_obj"] ??
+    row["target"] ??
+    null;
+  if (!t) {
+    if (row["userSid"] || row["user_sid"]) return "User";
+    return "";
+  }
+
+
+  if (typeof t === "string") {
+    return t;
+  }
+
+  if (typeof t === "object") {
+    const obj = t as Record<string, unknown>;
+    if ("agent" in obj) return "Agent";
+    if ("user" in obj) return "User";
+
+    for (const k of ["agentId", "agent_id"]) {
+      if (k in obj) return "Agent";
+    }
+    return JSON.stringify(obj);
+  }
+
+  return String(t);
+}
+
+function desiredStateLabel(row: Record<string, unknown>): string {
+  const raw = row["desiredState"] ?? row["desired_state"] ?? null;
+  if (raw === null || raw === undefined) return "Unspecified";
+
+  const num = Number(raw);
+  if (!Number.isNaN(num)) {
+    switch (num) {
+      case 0:
+        return "Unspecified";
+      case 1:
+        return "Enabled";
+      case 2:
+        return "Disabled";
+      default:
+        return String(raw);
+    }
+  }
+
+  const s = String(raw).toUpperCase();
+  if (s.includes("ENABLED")) return "Enabled";
+  if (s.includes("DISABLED")) return "Disabled";
+  if (s.includes("UNSPECIFIED")) return "Unspecified";
+  return String(raw);
 }
 </script>
 

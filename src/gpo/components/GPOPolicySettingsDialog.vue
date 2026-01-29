@@ -12,6 +12,10 @@
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
 
+      <q-card-section v-if="agent" class="q-pt-none">
+        <div class="text-subtitle2 q-mb-md">Device: {{ agent.hostname }}</div>
+      </q-card-section>
+
       <q-card-section class="q-pt-md">
         <div class="row q-col-gutter-md" style="height: calc(100vh - 200px)">
           <div class="col-3">
@@ -76,6 +80,13 @@
                       @click="selectPolicy(policy)"
                       class="policy-item"
                     >
+                      <q-item-section avatar>
+                        <q-checkbox
+                          :model-value="selectedPolicies[policy.id] || false"
+                          @update:model-value="togglePolicySelection(policy.id)"
+                          @click.stop
+                        />
+                      </q-item-section>
                       <q-item-section>
                         <q-item-label>{{
                           policy.displayName || policy.name
@@ -83,6 +94,24 @@
                       </q-item-section>
                     </q-item>
                   </q-list>
+                  <div
+                    v-if="
+                      Object.keys(selectedPolicies).filter(
+                        (id) => selectedPolicies[id],
+                      ).length > 0
+                    "
+                    class="q-pa-sm q-mt-sm bg-primary text-white rounded-borders"
+                  >
+                    <div class="text-caption">
+                      Selected:
+                      {{
+                        Object.keys(selectedPolicies).filter(
+                          (id) => selectedPolicies[id],
+                        ).length
+                      }}
+                      policy(ies)
+                    </div>
+                  </div>
                 </q-scroll-area>
                 <div
                   v-else-if="selectedCategory"
@@ -529,35 +558,190 @@
       </q-card-section>
 
       <q-card-actions align="right" class="q-pa-md">
-        <q-btn
-          flat
-          label="Disable"
-          color="negative"
-          @click="disablePolicy"
-          :disable="!selectedPolicy || !isPolicyEnabled"
-        />
-        <q-btn
-          flat
-          label="Apply"
-          color="positive"
-          @click="applyPolicy"
-          :disable="!selectedPolicy"
-        />
+        <div class="row items-center q-gutter-sm full-width justify-end">
+          <template v-if="agent">
+            <q-select
+              v-model="selectedCollectionId"
+              :options="collectionsOptions"
+              option-label="label"
+              option-value="value"
+              emit-value
+              map-options
+              outlined
+              dense
+              label="Collection"
+              style="min-width: 200px"
+              :loading="loadingCollections"
+              clearable
+              @update:model-value="onCollectionSelected"
+              @popup-show="isSelectOpen = true"
+              @popup-hide="isSelectOpen = false"
+            >
+              <template v-slot:no-option>
+                <q-item>
+                  <q-item-section class="text-grey">
+                    No collections available
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
+
+            <div
+              v-if="selectedCollectionId && collectionPolicies.length > 0"
+              class="q-pa-sm bg-grey-2 rounded-borders"
+            >
+              <div class="text-caption text-weight-medium q-mb-xs">
+                In collection ({{ collectionPolicies.length }}):
+              </div>
+              <div class="text-caption text-grey-7">
+                <div
+                  v-for="(policy, index) in collectionPolicies.slice(0, 3)"
+                  :key="index"
+                >
+                  • {{ policy }}
+                </div>
+                <div v-if="collectionPolicies.length > 3" class="q-mt-xs">
+                  ... and {{ collectionPolicies.length - 3 }} more
+                </div>
+              </div>
+            </div>
+
+            <q-btn
+              flat
+              color="positive"
+              icon="play_arrow"
+              label="Apply Collection"
+              :loading="applying"
+              :disable="!selectedCollectionId"
+              @click="applyCollection"
+            />
+            <q-btn
+              flat
+              icon="more_vert"
+              round
+              dense
+              @click.stop="openOverflowMenu"
+            />
+            <q-popup-proxy
+              ref="overflowPopupRef"
+              anchor="bottom right"
+              self="top right"
+              transition-show="scale"
+              transition-hide="scale"
+            >
+              <q-list>
+                <q-item clickable @click="showCreateCollectionDialog = true">
+                  <q-item-section>New Collection</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  :disable="!hasSelectedPolicies || !selectedCollectionId"
+                  @click="addPoliciesToCollection"
+                >
+                  <q-item-section>Add to Collection</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  :disable="!selectedCollectionId"
+                  @click="deleteSelectedCollection"
+                >
+                  <q-item-section>Delete Collection</q-item-section>
+                </q-item>
+                <q-separator />
+                <q-item
+                  clickable
+                  :disable="!selectedCollectionId"
+                  @click="removeCollectionAssignments"
+                >
+                  <q-item-section>Disabled Collection</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  :disable="!selectedPolicy"
+                  @click="removeSelectedPolicy"
+                >
+                  <q-item-section>Disabled Selected Policy</q-item-section>
+                </q-item>
+              </q-list>
+            </q-popup-proxy>
+          </template>
+
+          <q-btn
+            flat
+            label="Disable"
+            color="negative"
+            @click="disablePolicy"
+            :disable="!selectedPolicy || !isPolicyEnabled"
+          />
+          <q-btn
+            flat
+            label="Apply"
+            color="positive"
+            @click="applyPolicy"
+            :disable="!selectedPolicy"
+          />
+        </div>
       </q-card-actions>
+
+      <q-dialog v-model="showCreateCollectionDialog">
+        <q-card style="min-width: 400px">
+          <q-card-section>
+            <div class="text-h6">Create New Collection</div>
+          </q-card-section>
+          <q-card-section>
+            <q-input
+              v-model="newCollectionName"
+              label="Collection Name"
+              outlined
+              dense
+              :rules="[(val) => !!val || 'Name is required']"
+            />
+            <q-input
+              v-model="newCollectionDescription"
+              label="Description (optional)"
+              outlined
+              dense
+              type="textarea"
+              rows="3"
+              class="q-mt-md"
+            />
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn
+              flat
+              label="Cancel"
+              color="negative"
+              v-close-popup
+              @click="resetNewCollectionForm"
+            />
+            <q-btn
+              flat
+              label="Create"
+              color="primary"
+              @click="createNewCollection"
+              :disable="!newCollectionName"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
     </q-card>
   </q-dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+import { useQuasar } from "quasar";
 
 import {
   policyCatalogServiceClient,
   createGrpcMetadata,
   operator_pb,
   policyAssignmentClient,
+  collectionsClient,
 } from "../api/grpc-client";
 import { notifySuccess, notifyError } from "@/utils/notify";
+
+const $q = useQuasar();
 import type { GPOPolicy } from "../types/gpo";
 import MultiTextBox from "@/components/ui/MultiTextBox.vue";
 
@@ -638,14 +822,44 @@ const settingsTab = ref("settings");
 const policyEnabled = ref<Record<string, boolean>>({});
 const policyHashes = ref<Record<string, string>>({});
 
+const selectedPolicies = ref<Record<string, boolean>>({});
+const selectedCollectionId = ref<number | null>(null);
+const collectionsOptions = ref<Array<{ label: string; value: number }>>([]);
+const loadingCollections = ref(false);
+const showCreateCollectionDialog = ref(false);
+const newCollectionName = ref("");
+const newCollectionDescription = ref("");
+const collectionPolicies = ref<string[]>([]);
+const applying = ref(false);
+const isSelectOpen = ref(false);
+const overflowPopupRef = ref<{ show?: () => void } | null>(null);
+
 const isPolicyEnabled = computed(() => {
   if (!selectedPolicy.value) return false;
   return policyEnabled.value[selectedPolicy.value.id] ?? false;
 });
 
+const hasSelectedPolicies = computed(() =>
+  Object.values(selectedPolicies.value).some(Boolean),
+);
+
+function togglePolicySelection(policyId: string) {
+  selectedPolicies.value[policyId] = !selectedPolicies.value[policyId];
+  selectedPolicies.value = { ...selectedPolicies.value };
+}
+
+function openOverflowMenu() {
+  if (!isSelectOpen.value) {
+    overflowPopupRef.value?.show?.();
+  }
+}
+
 watch(dialogVisible, (newVal) => {
   if (newVal) {
     loadCategories();
+    if (props.agent) {
+      loadCollections();
+    }
   } else {
     selectedCategoryId.value = null;
     selectedCategory.value = null;
@@ -655,6 +869,12 @@ watch(dialogVisible, (newVal) => {
     policySettingsValues.value = {};
     presentationElements.value = [];
     settingsTab.value = "settings";
+    selectedPolicies.value = {};
+    selectedCollectionId.value = null;
+    newCollectionName.value = "";
+    newCollectionDescription.value = "";
+    showCreateCollectionDialog.value = false;
+    collectionPolicies.value = [];
   }
 });
 
@@ -903,7 +1123,7 @@ async function loadPolicyDetails(policy: GPOPolicy) {
         let policyHash = "";
         try {
           policyHash = policyData.getHash?.() || "";
-        } catch {}
+        } catch (_) {}
 
         if (policyHash && policy.id) {
           policyHashes.value[policy.id] = policyHash;
@@ -948,7 +1168,7 @@ async function loadPolicyDetails(policy: GPOPolicy) {
           })(),
         };
       }
-    } catch {}
+    } catch (_) {}
 
     try {
       const presentation = response.getPresentation?.();
@@ -1084,7 +1304,7 @@ async function loadPolicyDetails(policy: GPOPolicy) {
           elements: elements,
         };
       }
-    } catch {}
+    } catch (_) {}
 
     const policyElementsList = (() => {
       try {
@@ -1677,7 +1897,7 @@ async function loadPolicyDetails(policy: GPOPolicy) {
               presentation_type: presentationType,
               items: processedItems,
             });
-          } catch {}
+          } catch (_) {}
         }
       }
     }
@@ -1952,6 +2172,434 @@ async function disablePolicy() {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown policy disabling error";
     notifyError(`Policy Deactivation error: ${errorMessage}`);
+  }
+}
+
+async function loadCollections() {
+  loadingCollections.value = true;
+  try {
+    const response = await collectionsClient.getAllCollections("en-US");
+    const collectionsList =
+      (response as { collectionsList?: unknown[]; collections?: unknown[] })
+        .collectionsList ||
+      (response as { collectionsList?: unknown[]; collections?: unknown[] })
+        .collections ||
+      [];
+    collectionsOptions.value = collectionsList.map((col: unknown) => {
+      const c = col as { id?: number; name?: string };
+      return {
+        label: c.name || `Collection ${c.id || ""}`,
+        value: c.id || 0,
+      };
+    });
+  } catch (error) {
+    notifyError("Error loading collections");
+  } finally {
+    loadingCollections.value = false;
+  }
+}
+
+async function onCollectionSelected(collectionId: number | null) {
+  selectedCollectionId.value = collectionId;
+  collectionPolicies.value = [];
+
+  if (collectionId) {
+    try {
+      const response = await collectionsClient.getPoliciesInCollection(
+        collectionId,
+        "en-US",
+      );
+
+      const policiesList =
+        (response as { policiesList?: unknown[]; policies?: unknown[] })
+          .policiesList ||
+        (response as { policiesList?: unknown[]; policies?: unknown[] })
+          .policies ||
+        [];
+
+      collectionPolicies.value = policiesList.map((p: unknown) => {
+        const policy = p as {
+          name?: string;
+          displayName?: string;
+          display_name?: string;
+        };
+        return (
+          policy.displayName ||
+          policy.display_name ||
+          policy.name ||
+          "Unknown policy"
+        );
+      });
+    } catch (error) {
+      try {
+        const response = await collectionsClient.getCollectionById(
+          collectionId,
+          "en-US",
+        );
+        const collection = response.collection;
+        if (collection) {
+          const policiesList =
+            (collection as { policiesList?: unknown[]; policies?: unknown[] })
+              .policiesList ||
+            (collection as { policiesList?: unknown[]; policies?: unknown[] })
+              .policies ||
+            [];
+
+          collectionPolicies.value = policiesList.map((p: unknown) => {
+            const policy = p as {
+              name?: string;
+              displayName?: string;
+              display_name?: string;
+            };
+            return (
+              policy.displayName ||
+              policy.display_name ||
+              policy.name ||
+              "Unknown policy"
+            );
+          });
+        }
+      } catch (fallbackError) {
+        // Fallback failed, ignore
+      }
+    }
+  }
+}
+
+function resetNewCollectionForm() {
+  newCollectionName.value = "";
+  newCollectionDescription.value = "";
+}
+
+async function createNewCollection() {
+  if (!newCollectionName.value.trim()) {
+    notifyError("Collection name is required");
+    return;
+  }
+
+  applying.value = true;
+  try {
+    const response = await collectionsClient.createCollection(
+      newCollectionName.value.trim(),
+      newCollectionDescription.value.trim(),
+    );
+
+    const collection = response.collection;
+    if (collection && collection.id) {
+      collectionsOptions.value.push({
+        label: collection.name || newCollectionName.value,
+        value: collection.id,
+      });
+      selectedCollectionId.value = collection.id;
+      showCreateCollectionDialog.value = false;
+      resetNewCollectionForm();
+      await onCollectionSelected(collection.id);
+      notifySuccess("Collection created successfully");
+    }
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Unknown error creating collection";
+    notifyError(`Error creating collection: ${errorMessage}`);
+  } finally {
+    applying.value = false;
+  }
+}
+
+async function deleteSelectedCollection() {
+  if (!selectedCollectionId.value) {
+    return;
+  }
+
+  const collectionName =
+    collectionsOptions.value.find((c) => c.value === selectedCollectionId.value)
+      ?.label || "Collection";
+
+  $q.dialog({
+    title: "Confirm the deletion",
+    message: `Are you sure you want to delete the collection "${collectionName}"? This action cannot be undone..`,
+    cancel: {
+      label: "Cancel",
+      color: "grey",
+      flat: true,
+    },
+    ok: {
+      label: "Delete",
+      color: "negative",
+      flat: true,
+    },
+    persistent: true,
+  })
+    .onOk(async () => {
+      applying.value = true;
+      try {
+        await collectionsClient.deleteCollection(selectedCollectionId.value!);
+        collectionsOptions.value = collectionsOptions.value.filter(
+          (c) => c.value !== selectedCollectionId.value,
+        );
+        selectedCollectionId.value = null;
+        collectionPolicies.value = [];
+
+        notifySuccess(`Collection "${collectionName}" successfully deleted`);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Unknown error deleting collection";
+        notifyError(`Error when deleting a collection: ${errorMessage}`);
+      } finally {
+        applying.value = false;
+      }
+    })
+    .onCancel(() => {});
+}
+
+async function addPoliciesToCollection() {
+  if (!selectedCollectionId.value) {
+    notifyError("Please select a collection first");
+    return;
+  }
+
+  const selectedPolicyIds = Object.keys(selectedPolicies.value).filter(
+    (id) => selectedPolicies.value[id] === true,
+  );
+
+  if (selectedPolicyIds.length === 0) {
+    notifyError("Please select at least one policy");
+    return;
+  }
+
+  applying.value = true;
+  try {
+    const policyHashesToAdd: string[] = [];
+    for (const policyId of selectedPolicyIds) {
+      let policyHash = policyHashes.value[policyId];
+
+      if (!policyHash) {
+        const policy = selectedCategoryPolicies.value.find(
+          (p) => p.id === policyId,
+        );
+        if (policy) {
+          await loadPolicyDetails(policy);
+          policyHash = policyHashes.value[policyId];
+        }
+
+        if (!policyHash) {
+          const policyIdNum = Number.parseInt(policyId, 10);
+          if (!Number.isNaN(policyIdNum)) {
+            try {
+              const policyDetailsResponse =
+                await policyCatalogServiceClient.getPolicyDetails(
+                  new operator_pb.GetPolicyDetailsRequest()
+                    .setPolicyId(policyIdNum)
+                    .setLangCode("en-US"),
+                  createGrpcMetadata(),
+                );
+              const policyData = policyDetailsResponse.getPolicy?.();
+              if (policyData) {
+                policyHash = policyData.getHash?.() || "";
+                if (policyHash) {
+                  policyHashes.value[policyId] = policyHash;
+                }
+              }
+            } catch (_) {
+              // ignore
+            }
+          }
+        }
+      }
+
+      if (policyHash && policyHash.length > 0) {
+        policyHashesToAdd.push(policyHash);
+      }
+    }
+
+    if (policyHashesToAdd.length === 0) {
+      throw new Error(
+        `Could not get policy hashes for ${selectedPolicyIds.length} selected policy(ies). ` +
+          "Please make sure policies are loaded and try selecting them again.",
+      );
+    }
+
+    await collectionsClient.createCollectionsPolicies(
+      selectedCollectionId.value,
+      policyHashesToAdd,
+    );
+
+    await onCollectionSelected(selectedCollectionId.value);
+
+    const policiesCount = policyHashesToAdd.length;
+    const policiesText =
+      policiesCount === 1
+        ? "Policy added to collection"
+        : `${policiesCount} policies added to collection`;
+
+    notifySuccess(policiesText);
+  } catch (error) {
+    let errorMessage = "Unknown error adding policies to collection";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+
+      if (errorMessage.includes("Exception was thrown by handler")) {
+        errorMessage =
+          "Server error: The collection or policies may not exist, or there was a problem processing the request. " +
+          "Please check that the collection exists and policy hashes are correct.";
+      } else if (errorMessage.includes("Invalid collection ID")) {
+        errorMessage = "Please select a valid collection";
+      } else if (
+        errorMessage.includes("No policy names") ||
+        errorMessage.includes("No policy hashes")
+      ) {
+        errorMessage =
+          "No valid policy hashes found. Please select policies again.";
+      }
+    }
+
+    notifyError(`Error adding policies: ${errorMessage}`);
+  } finally {
+    applying.value = false;
+  }
+}
+
+async function applyCollection() {
+  if (!selectedCollectionId.value || !props.agent) {
+    return;
+  }
+
+  const collectionName =
+    collectionsOptions.value.find((c) => c.value === selectedCollectionId.value)
+      ?.label || "Collection";
+
+  $q.dialog({
+    title: "Confirm apply collection",
+    message: `Apply collection "${collectionName}" to device ${props.agent.hostname}?`,
+    cancel: true,
+    persistent: true,
+  }).onOk(async () => {
+    applying.value = true;
+    try {
+      await policyAssignmentClient.assignPolicyCollection(
+        selectedCollectionId.value,
+        "agent",
+        { agentId: String(props.agent!.id) },
+        {},
+      );
+
+      notifySuccess(
+        `Collection "${collectionName}" successfully applied to ${props.agent.hostname}`,
+      );
+
+      emit("applied", "", {});
+      dialogVisible.value = false;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Unknown error applying collection";
+      notifyError(`Error applying collection: ${errorMessage}`);
+    } finally {
+      applying.value = false;
+    }
+  });
+}
+
+async function removeCollectionAssignments() {
+  if (!selectedCollectionId.value || !props.agent) {
+    return;
+  }
+
+  const collectionName =
+    collectionsOptions.value.find((c) => c.value === selectedCollectionId.value)
+      ?.label || "Collection";
+
+  $q.dialog({
+    title: "Confirm remove collection",
+    message: `Remove collection "${collectionName}" from device ${props.agent.hostname}?`,
+    cancel: true,
+    persistent: true,
+  }).onOk(async () => {
+    applying.value = true;
+    try {
+      await policyAssignmentClient.removePolicyCollection(
+        selectedCollectionId.value,
+        "agent",
+        { agentId: String(props.agent!.id) },
+      );
+
+      notifySuccess(
+        `Collection "${collectionName}" successfully removed from ${props.agent.hostname}`,
+      );
+
+      emit("applied", "", {});
+      dialogVisible.value = false;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Unknown error removing collection";
+      notifyError(`Error removing collection: ${errorMessage}`);
+    } finally {
+      applying.value = false;
+    }
+  });
+}
+
+async function removeSelectedPolicy() {
+  if (!selectedPolicy.value || !props.agent) {
+    return;
+  }
+
+  applying.value = true;
+  try {
+    let policyHash = policyHashes.value[selectedPolicy.value.id];
+
+    if (!policyHash) {
+      const policyId = Number.parseInt(selectedPolicy.value.id, 10);
+      if (!Number.isNaN(policyId)) {
+        const policyDetailsResponse =
+          await policyCatalogServiceClient.getPolicyDetails(
+            new operator_pb.GetPolicyDetailsRequest()
+              .setPolicyId(policyId)
+              .setLangCode("en-US"),
+            createGrpcMetadata(),
+          );
+
+        const policyData = policyDetailsResponse.getPolicy?.();
+        if (policyData) {
+          policyHash = policyData.getHash?.() || "";
+          if (policyHash) {
+            policyHashes.value[selectedPolicy.value.id] = policyHash;
+          }
+        }
+      }
+    }
+
+    if (!policyHash) {
+      throw new Error(
+        "Could not get policy hash. Please try selecting the policy again.",
+      );
+    }
+
+    await policyAssignmentClient.removePolicy(policyHash, "agent", {
+      agentId: String(props.agent.id),
+    });
+
+    policyEnabled.value[selectedPolicy.value.id] = false;
+    const policyName =
+      selectedPolicy.value.displayName || selectedPolicy.value.name;
+    notifySuccess(
+      `Policy "${policyName}" successfully removed from ${props.agent.hostname}`,
+    );
+
+    emit("applied", "", {});
+    dialogVisible.value = false;
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error removing policy";
+    notifyError(`Error removing policy: ${errorMessage}`);
+  } finally {
+    applying.value = false;
   }
 }
 </script>
