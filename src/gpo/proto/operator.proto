@@ -1,4 +1,4 @@
-﻿syntax = "proto3";
+syntax = "proto3";
 
 import "google/protobuf/wrappers.proto";
 
@@ -72,6 +72,74 @@ message AgentDetails {
 
   NodeFullInfo node_info = 6;
 }
+//Collections
+service CollectionsControlService {
+  rpc GetAllCollections (GetAllCollectionsRequest)
+      returns (GetAllCollectionsResponse);
+  rpc GetCollectionById (GetCollectionByIdRequest)
+      returns (CollectionDetailsResponse);
+  rpc CreateCollectionsPolicies (CreateCollectionsPoliciesRequest)
+      returns (CreateCollectionsPoliciesResponse);
+  rpc CreateCollection (CreateCollectionRequest)
+      returns (CollectionDetailsResponse);
+  rpc DeleteCollection (DeleteCollectionRequest)
+      returns (DeleteCollectionResponse);
+  rpc GetPoliciesInCollection (GetPoliciesInCollectionRequest)
+      returns (GetPoliciesInCollectionResponse);
+
+}
+message CreateCollectionsPoliciesRequest {
+  int64 collection_id = 1;
+  repeated string policy_hashes = 2;
+}
+message CreateCollectionsPoliciesResponse {
+  bool success = 1;
+  string message = 2;
+}
+message GetAllCollectionsRequest {
+  string lang_code = 1;
+}
+message GetAllCollectionsResponse {
+  repeated CollectionsSummary collections = 1;
+}
+message GetCollectionByIdRequest {
+  int64 collection_id = 1;
+  string lang_code = 2;
+}
+message CollectionDetailsResponse {
+  CollectionsSummary collection = 1;
+}
+message CollectionsSummary {
+  int64 id = 1;
+  string name = 2;
+  string explain_text = 3;
+  repeated PolicySummary policies = 4;
+}
+message CreateCollectionRequest {
+  string name = 1;
+  string explain_text = 2;
+  repeated CollectionTranslation translations = 3;
+}
+message CollectionTranslation {
+  string lang_code = 1;
+  string name = 2;
+  string explain_text = 3;
+}
+message DeleteCollectionRequest {
+  int64 collection_id = 1;
+}
+message DeleteCollectionResponse {
+  bool success = 1;
+  string message = 2;
+}
+message GetPoliciesInCollectionRequest {
+  int64 collection_id = 1;
+  string lang_code = 2;
+}
+message GetPoliciesInCollectionResponse {
+  repeated CollectionsSummary policies = 1;
+}
+
 
 
 
@@ -203,7 +271,7 @@ service PolicyCatalogService {
 
   rpc ListPoliciesGroupedByScope (ListPoliciesGroupedByScopeRequest)
       returns (ListPoliciesGroupedByScopeResponse);
-  
+
   rpc GetCategoryTree(GetCategoryTreeRequest)
       returns (GetCategoryTreeResponse);
 
@@ -402,7 +470,26 @@ service PolicyAssignmentService {
 
   rpc RemovePolicy (RemovePolicyRequest)
       returns (RemovePolicyResponse);
+
+  rpc AssignPolicyCollection(AssignPolicyCollectionRequest)
+    returns (AssignPolicyCollectionResponse);
+
+ rpc RemovePolicyCollection(RemovePolicyCollectionRequest)
+    returns (RemovePolicyCollectionResponse);
+
 }
+message AssignPolicyCollectionRequest {
+  int64 collection_id = 1;
+  PolicyTarget target = 2;
+  PolicySelection selection = 3;
+}
+message AssignPolicyCollectionResponse {}
+
+message RemovePolicyCollectionRequest {
+  int64 collection_id = 1;
+  PolicyTarget target = 2;
+}
+message RemovePolicyCollectionResponse {}
 
 message AssignPolicyRequest {
   string policy_hash = 1;
@@ -485,9 +572,8 @@ message GetEffectivePoliciesResponse {
 
 message EffectivePolicy {
   string policy_hash = 1;
-  PolicyDesiredState desired_state = 2;
-  PolicyValueOverride effective_value = 3;
-  PolicySource source = 4;
+  PolicySource source = 2;
+  string userSid = 3;
 }
 
 message GetAssignmentsRequest {

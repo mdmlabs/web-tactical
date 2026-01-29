@@ -1,6 +1,7 @@
 import * as grpcWeb from "grpc-web";
 import {
   AgentServiceClient,
+  CollectionsControlServiceClient,
   UserServiceClient,
   AdmxServiceClient,
   PolicyCatalogServiceClient,
@@ -70,6 +71,9 @@ function createClient<
 }
 
 const agentServiceClient = createClient(AgentServiceClient);
+const collectionsControlServiceClient = createClient(
+  CollectionsControlServiceClient,
+);
 const userServiceClient = createClient(UserServiceClient);
 const admxServiceClient = createClient(AdmxServiceClient);
 const policyCatalogServiceClient = createClient(PolicyCatalogServiceClient);
@@ -157,23 +161,6 @@ export const policyCatalogClient = {
 
       return response.toObject();
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      if (
-        errorMessage.includes("deserializing") ||
-        errorMessage.includes("protobuf") ||
-        errorMessage.includes("Cannot read properties")
-      ) {
-        console.error(
-          "[policyCatalogClient.getPolicyDetails] Ошибка десериализации для политики ID:",
-          policyId,
-          "Ошибка:",
-          error,
-        );
-        console.error(
-          "[policyCatalogClient.getPolicyDetails] Возможно, проблема с полем client_extension (OneOf->StringValue)",
-        );
-      }
       throw error;
     }
   },
@@ -492,6 +479,117 @@ export const policyAssignmentClient = {
 
     return response.toObject();
   },
+
+  async assignPolicyCollection(
+    collectionId: number,
+    targetType: "global" | "agent" | "user",
+    targetParams: { agentId?: string; userSid?: string } = {},
+    selection?: Record<string, unknown> | operator_pb_types.PolicySelection,
+  ): Promise<operator_pb_types.AssignPolicyCollectionResponse.AsObject> {
+    const request = new operator_pb.AssignPolicyCollectionRequest();
+
+    const collectionIdNum = Math.floor(Number(collectionId));
+    if (
+      !Number.isFinite(collectionIdNum) ||
+      collectionIdNum <= 0 ||
+      collectionIdNum !== Number(collectionId)
+    ) {
+      throw new Error(
+        `Invalid collection ID: ${collectionId} (must be a positive integer)`,
+      );
+    }
+    request.setCollectionId(collectionIdNum);
+
+    let target: operator_pb.PolicyTarget;
+    switch (targetType) {
+      case "global":
+        target = createGlobalTarget();
+        break;
+      case "agent":
+        if (!targetParams.agentId) {
+          throw new Error("agentId обязателен для типа 'agent'");
+        }
+        target = createAgentTarget(targetParams.agentId);
+        break;
+      case "user":
+        if (!targetParams.agentId || !targetParams.userSid) {
+          throw new Error("agentId и userSid обязательны для типа 'user'");
+        }
+        target = createUserTarget(targetParams.agentId, targetParams.userSid);
+        break;
+      default:
+        throw new Error(`Неизвестный тип цели: ${targetType}`);
+    }
+
+    request.setTarget(target);
+
+    if (selection) {
+      let policySelection: operator_pb.PolicySelection;
+      if (selection instanceof operator_pb.PolicySelection) {
+        policySelection = selection;
+      } else {
+        policySelection = createPolicySelection(selection);
+      }
+      request.setSelection(policySelection);
+    }
+
+    const response = await policyAssignmentServiceClient.assignPolicyCollection(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async removePolicyCollection(
+    collectionId: number,
+    targetType: "global" | "agent" | "user",
+    targetParams: { agentId?: string; userSid?: string } = {},
+  ): Promise<operator_pb_types.RemovePolicyCollectionResponse.AsObject> {
+    const request = new operator_pb.RemovePolicyCollectionRequest();
+
+    const collectionIdNum = Math.floor(Number(collectionId));
+    if (
+      !Number.isFinite(collectionIdNum) ||
+      collectionIdNum <= 0 ||
+      collectionIdNum !== Number(collectionId)
+    ) {
+      throw new Error(
+        `Invalid collection ID: ${collectionId} (must be a positive integer)`,
+      );
+    }
+    request.setCollectionId(collectionIdNum);
+
+    let target: operator_pb.PolicyTarget;
+    switch (targetType) {
+      case "global":
+        target = createGlobalTarget();
+        break;
+      case "agent":
+        if (!targetParams.agentId) {
+          throw new Error("agentId обязателен для типа 'agent'");
+        }
+        target = createAgentTarget(targetParams.agentId);
+        break;
+      case "user":
+        if (!targetParams.agentId || !targetParams.userSid) {
+          throw new Error("agentId и userSid обязательны для типа 'user'");
+        }
+        target = createUserTarget(targetParams.agentId, targetParams.userSid);
+        break;
+      default:
+        throw new Error(`Неизвестный тип цели: ${targetType}`);
+    }
+
+    request.setTarget(target);
+
+    const response = await policyAssignmentServiceClient.removePolicyCollection(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
 };
 
 export const policyStateClient = {
@@ -636,8 +734,221 @@ export const admxServiceClientWrapper = {
   },
 };
 
+export const collectionsClient = {
+  async getAllCollections(
+    langCode: string = "en-US",
+  ): Promise<operator_pb_types.GetAllCollectionsResponse.AsObject> {
+    const request = new operator_pb.GetAllCollectionsRequest();
+    request.setLangCode(langCode);
+
+    const response = await collectionsControlServiceClient.getAllCollections(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async getCollectionById(
+    collectionId: number,
+    langCode: string = "en-US",
+  ): Promise<operator_pb_types.CollectionDetailsResponse.AsObject> {
+    const request = new operator_pb.GetCollectionByIdRequest();
+    request.setCollectionId(collectionId);
+    request.setLangCode(langCode);
+
+    const response = await collectionsControlServiceClient.getCollectionById(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async createCollection(
+    name: string,
+    explainText: string = "",
+    translations: Array<{
+      langCode: string;
+      name: string;
+      explainText: string;
+    }> = [],
+  ): Promise<operator_pb_types.CollectionDetailsResponse.AsObject> {
+    const request = new operator_pb.CreateCollectionRequest();
+    request.setName(name);
+    request.setExplainText(explainText);
+
+    const translationsList = translations.map((trans) => {
+      const translation = new operator_pb.CollectionTranslation();
+      translation.setLangCode(trans.langCode);
+      translation.setName(trans.name);
+      translation.setExplainText(trans.explainText);
+      return translation;
+    });
+
+    request.setTranslationsList(translationsList);
+
+    const response = await collectionsControlServiceClient.createCollection(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async createCollectionsPolicies(
+    collectionId: number,
+    policyHashes: string[],
+  ): Promise<operator_pb_types.CreateCollectionsPoliciesResponse.AsObject> {
+    if (!collectionId || collectionId <= 0) {
+      throw new Error(
+        "Invalid collection ID: collection ID must be a positive number",
+      );
+    }
+
+    if (!Array.isArray(policyHashes) || policyHashes.length === 0) {
+      throw new Error(
+        "Invalid policy hashes: policy hashes must be a non-empty array",
+      );
+    }
+
+    const invalidHashes = policyHashes.filter(
+      (h) => typeof h !== "string" || !h.trim(),
+    );
+    if (invalidHashes.length > 0) {
+      throw new Error(
+        `Invalid policy hashes: all hashes must be non-empty strings. Invalid: ${invalidHashes.join(
+          ", ",
+        )}`,
+      );
+    }
+
+    const request = new operator_pb.CreateCollectionsPoliciesRequest();
+    const collectionIdNum = Math.floor(Number(collectionId));
+    if (
+      !Number.isFinite(collectionIdNum) ||
+      collectionIdNum <= 0 ||
+      collectionIdNum !== Number(collectionId)
+    ) {
+      throw new Error(
+        `Invalid collection ID: ${collectionId} (must be a positive integer)`,
+      );
+    }
+    request.setCollectionId(collectionIdNum);
+
+    const setValue = request.getCollectionId();
+    if (setValue !== collectionIdNum) {
+      throw new Error(
+        `Collection ID mismatch: set ${collectionIdNum}, got ${setValue}`,
+      );
+    }
+
+    const validPolicyHashes = policyHashes
+      .map((h) => (typeof h === "string" ? h.trim() : String(h)))
+      .filter((h) => h.length > 0);
+
+    if (validPolicyHashes.length === 0) {
+      throw new Error("No valid policy hashes after filtering");
+    }
+
+    request.clearPolicyHashesList?.();
+
+    type CreateCollectionsPoliciesRequestLike = {
+      addPolicyHashes?: (h: string) => void;
+      addPolicyHash?: (h: string) => void;
+      setPolicyHashesList?: (list: string[]) => void;
+      getPolicyHashesList?: () => string[];
+      getPolicyHashList?: () => string[];
+    };
+
+    const reqLike = request as unknown as CreateCollectionsPoliciesRequestLike;
+
+    for (const hash of validPolicyHashes) {
+      if (typeof reqLike.addPolicyHashes === "function") {
+        reqLike.addPolicyHashes(hash);
+      } else if (typeof reqLike.addPolicyHash === "function") {
+        reqLike.addPolicyHash(hash);
+      } else {
+        reqLike.setPolicyHashesList?.(validPolicyHashes);
+        break;
+      }
+    }
+
+    const checkHashes =
+      (typeof reqLike.getPolicyHashesList === "function" &&
+        reqLike.getPolicyHashesList()) ||
+      (typeof reqLike.getPolicyHashList === "function" &&
+        reqLike.getPolicyHashList()) ||
+      reqLike.getPolicyHashesList?.();
+
+    if (!checkHashes || checkHashes.length === 0) {
+      throw new Error("Failed to set policy hashes in request");
+    }
+
+    if (checkHashes.length !== validPolicyHashes.length) {
+      throw new Error(
+        `Policy hashes count mismatch: expected ${validPolicyHashes.length}, got ${checkHashes.length}`,
+      );
+    }
+
+    try {
+      const response =
+        await collectionsControlServiceClient.createCollectionsPolicies(
+          request,
+          createGrpcMetadata(),
+        );
+
+      return response.toObject();
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes("Exception was thrown by handler")) {
+          throw new Error(
+            "Server error: Could not add policies to collection. " +
+              `Collection ID: ${collectionIdNum}, ` +
+              `Policy hashes: ${validPolicyHashes.join(", ")}. ` +
+              "The collection or policies may not exist, or policy hashes may be incorrect.",
+          );
+        }
+      }
+      throw error;
+    }
+  },
+
+  async deleteCollection(
+    collectionId: number,
+  ): Promise<operator_pb_types.DeleteCollectionResponse.AsObject> {
+    const request = new operator_pb.DeleteCollectionRequest();
+    request.setCollectionId(collectionId);
+
+    const response = await collectionsControlServiceClient.deleteCollection(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async getPoliciesInCollection(
+    collectionId: number,
+    langCode: string = "en-US",
+  ): Promise<operator_pb_types.GetPoliciesInCollectionResponse.AsObject> {
+    const request = new operator_pb.GetPoliciesInCollectionRequest();
+    request.setCollectionId(collectionId);
+    request.setLangCode(langCode);
+
+    const response =
+      await collectionsControlServiceClient.getPoliciesInCollection(
+        request,
+        createGrpcMetadata(),
+      );
+
+    return response.toObject();
+  },
+};
+
 export {
   agentServiceClient,
+  collectionsControlServiceClient,
   userServiceClient,
   admxServiceClient,
   policyCatalogServiceClient,
@@ -645,4 +956,4 @@ export {
   policyStateServiceClient,
 };
 
-export * as operator_pb from "@/generated/operator_pb";
+export { default as operator_pb } from "@/generated/operator_pb";
