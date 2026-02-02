@@ -205,7 +205,7 @@ export default {
         const result = await sendAgentServiceAction(
           props.agent_id,
           service.name,
-          { sv_action: action }
+          { sv_action: action },
         );
         notifySuccess(result);
         await getServices();

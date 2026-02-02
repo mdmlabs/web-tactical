@@ -73,7 +73,7 @@ export default {
       try {
         const result = await sendAgentRecovery(
           props.agent.agent_id,
-          state.value
+          state.value,
         );
         notifySuccess(result);
         onDialogOK();

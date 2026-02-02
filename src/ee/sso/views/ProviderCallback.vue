@@ -1,5 +1,3 @@
-
-
 <template>
   <div class="fixed-center text-center" v-if="error">
     <p class="text-faded">There was an error logging into your provider.</p>

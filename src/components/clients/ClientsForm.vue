@@ -92,7 +92,7 @@ export default {
         site: site.value,
         custom_fields: formatCustomFields(
           customFields.value,
-          custom_fields.value
+          custom_fields.value,
         ),
       };
       try {
@@ -113,7 +113,7 @@ export default {
 
       for (let field of customFields.value) {
         const value = data.custom_fields.find(
-          (value) => value.field === field.id
+          (value) => value.field === field.id,
         );
 
         if (field.type === "multiple") {

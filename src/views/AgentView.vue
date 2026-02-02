@@ -1,10 +1,6 @@
 <template>
   <q-page>
-    <q-breadcrumbs
-      class="q-pa-md q-pb-sm"
-      separator="›"
-      active-color="primary"
-    >
+    <q-breadcrumbs class="q-pa-md q-pb-sm" separator="›" active-color="primary">
       <q-breadcrumbs-el
         label="Dashboard"
         icon="dashboard"
@@ -98,7 +94,7 @@ export default defineComponent({
       () => route.params.agent_id,
       (newAgentId) => {
         initializeAgent(newAgentId);
-      }
+      },
     );
 
     return {

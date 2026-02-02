@@ -293,7 +293,7 @@ export default {
           this.$axios
             .put(
               `/automation/patchpolicy/${this.winupdatepolicy.id}/`,
-              this.winupdatepolicy
+              this.winupdatepolicy,
             )
             .then(() => {
               this.$q.loading.hide();

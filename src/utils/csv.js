@@ -28,11 +28,11 @@ export function exportTableToCSV(rows, columns) {
               typeof col.field === "function"
                 ? col.field(row)
                 : row[col.field === void 0 ? col.name : col.field],
-              col.format
-            )
+              col.format,
+            ),
           )
-          .join(",")
-      )
+          .join(","),
+      ),
     )
     .join("\r\n");
 

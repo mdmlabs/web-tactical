@@ -60,16 +60,25 @@
         <WmiDetail v-if="assets?.comp_sys_prod" :info="assets.comp_sys_prod" />
       </q-tab-panel>
       <q-tab-panel name="network_config">
-        <WmiDetail v-if="assets?.network_config" :info="assets.network_config" />
+        <WmiDetail
+          v-if="assets?.network_config"
+          :info="assets.network_config"
+        />
       </q-tab-panel>
       <q-tab-panel name="desktop_monitor">
-        <WmiDetail v-if="assets?.desktop_monitor" :info="assets.desktop_monitor" />
+        <WmiDetail
+          v-if="assets?.desktop_monitor"
+          :info="assets.desktop_monitor"
+        />
       </q-tab-panel>
       <q-tab-panel name="graphics">
         <WmiDetail v-if="assets?.graphics" :info="assets.graphics" />
       </q-tab-panel>
       <q-tab-panel name="network_adapter">
-        <WmiDetail v-if="assets?.network_adapter" :info="assets.network_adapter" />
+        <WmiDetail
+          v-if="assets?.network_adapter"
+          :info="assets.network_adapter"
+        />
       </q-tab-panel>
     </q-tab-panels>
   </div>

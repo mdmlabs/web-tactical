@@ -106,7 +106,7 @@ export default {
     }
 
     const title = computed(() =>
-      props.APIKey ? "Edit API Key" : "Add API Key"
+      props.APIKey ? "Edit API Key" : "Add API Key",
     );
 
     async function submitForm() {

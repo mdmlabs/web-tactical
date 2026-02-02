@@ -146,7 +146,7 @@ export default {
         const result = await sendAgentServiceAction(
           props.agent_id,
           service.name,
-          { sv_action: action }
+          { sv_action: action },
         );
         notifySuccess(result);
         onDialogOK();
@@ -167,7 +167,7 @@ export default {
         const result = await editAgentServiceStartType(
           props.agent_id,
           props.service.name,
-          data
+          data,
         );
         notifySuccess(result);
         onDialogOK();

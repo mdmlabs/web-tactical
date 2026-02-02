@@ -109,7 +109,7 @@ export default {
             this.$q.loading.hide();
             this.onOk();
             this.notifySuccess(
-              "Policy added. Now you can add Tasks and Checks!"
+              "Policy added. Now you can add Tasks and Checks!",
             );
           })
           .catch(() => {

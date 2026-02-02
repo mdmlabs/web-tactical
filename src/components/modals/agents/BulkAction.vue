@@ -67,7 +67,9 @@
           />
         </q-card-section>
 
-        <q-card-section v-show="state.target !== 'agents' && mode !== 'software'">
+        <q-card-section
+          v-show="state.target !== 'agents' && mode !== 'software'"
+        >
           <p>Agent Type</p>
           <q-option-group
             v-model="state.monType"
@@ -134,7 +136,11 @@
 
         <q-card-section v-if="mode === 'software'" class="q-pt-none">
           <tactical-dropdown
-            :rules="[(val) => val && val.length > 0 || '*Required - Select at least one software package']"
+            :rules="[
+              (val) =>
+                (val && val.length > 0) ||
+                '*Required - Select at least one software package',
+            ]"
             v-model="state.software"
             :options="softwarePackageOptions"
             label="Select Software Packages"

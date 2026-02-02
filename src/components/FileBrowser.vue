@@ -10,7 +10,9 @@
           filter="filter"
           no-selection-unset
           selected-color="primary"
-          :filter-method="(node: QTreeFileNode/*,  filter */) => node.type === 'folder'"
+          :filter-method="
+            (node: QTreeFileNode /*,  filter */) => node.type === 'folder'
+          "
           :nodes="nodes"
           @update:selected="onFolderSelection"
           @lazy-load="loadNodeChildren"
@@ -43,7 +45,12 @@
           <template #top>
             <slot
               name="action-bar"
-              v-bind="{ selectedTreeNode: folderTree?.getNodeByKey(selectedTreeNode) as QTreeFileNode, selectedTableNodes: selectedTableNodes as FileSystemNodeTable[]}"
+              v-bind="{
+                selectedTreeNode: folderTree?.getNodeByKey(
+                  selectedTreeNode,
+                ) as QTreeFileNode,
+                selectedTableNodes: selectedTableNodes as FileSystemNodeTable[],
+              }"
             ></slot>
           </template>
 
@@ -55,7 +62,12 @@
               <!-- Context Menu -->
               <slot
                 name="table-menu"
-                v-bind="{ item: slotProps.row as FileSystemNodeTable, selectedTreeNode: folderTree?.getNodeByKey(selectedTreeNode) as QTreeFileNode }"
+                v-bind="{
+                  item: slotProps.row as FileSystemNodeTable,
+                  selectedTreeNode: folderTree?.getNodeByKey(
+                    selectedTreeNode,
+                  ) as QTreeFileNode,
+                }"
               ></slot>
 
               <!-- rows -->
@@ -116,7 +128,7 @@ const props = withDefaults(
     separator: "unix",
     loading: false,
     height: "200px",
-  }
+  },
 );
 
 // expose public methods
@@ -202,7 +214,7 @@ function loadNodeChildren({ node, key, done, fail }: QTreeLazyLoadParams) {
 
 // parses children of node into table rows
 function parseNodeChildrenIntoTable(
-  node: QTreeFileNode
+  node: QTreeFileNode,
 ): FileSystemNodeTable[] {
   if (isDefined(node.children)) {
     return node.children.map((childNode) => ({

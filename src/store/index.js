@@ -46,6 +46,7 @@ export default function () {
         sso_enabled: false,
         block_local_user_logon: false,
         fileBarDrawerOpen: false,
+        sidebarCollapsed: true,
       };
     },
     getters: {
@@ -173,6 +174,9 @@ export default function () {
       },
       SET_FILEBAR_DRAWER(state, val) {
         state.fileBarDrawerOpen = val;
+      },
+      SET_SIDEBAR_COLLAPSED(state, val) {
+        state.sidebarCollapsed = val;
       },
     },
     actions: {

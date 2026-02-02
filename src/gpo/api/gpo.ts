@@ -1,7 +1,5 @@
 import { ref } from "vue";
-import {
-  policyCatalogClient,
-} from "./grpc-client";
+import { policyCatalogClient } from "./grpc-client";
 import type {
   GPOPolicy,
   GPOPolicyTree,
@@ -25,20 +23,19 @@ export function useGPOPolicies() {
     errorMessage.value = null;
 
     try {
-      const response = await policyCatalogClient.listPoliciesGroupedByScope(
-        langCode,
-      );
+      const response =
+        await policyCatalogClient.listPoliciesGroupedByScope(langCode);
 
-
-      const responseObj = response as { groupsList?: unknown[]; groups?: unknown[] };
-
+      const responseObj = response as {
+        groupsList?: unknown[];
+        groups?: unknown[];
+      };
 
       const groupsList = responseObj.groupsList || responseObj.groups || [];
 
       policies.value = adaptPoliciesFromGroups({
         groups: groupsList,
       });
-
     } catch (error) {
       console.error("[GPO] Ошибка загрузки политик:", error);
       const errorDetails =
@@ -185,7 +182,6 @@ export function useGPOPolicyTree() {
         lang_code: responseObj.langCode || responseObj.lang_code || "en-US",
         categories: responseObj.categoriesList || responseObj.categories || [],
       });
-
     } catch (error) {
       console.error("[GPO] Ошибка загрузки дерева политик:", error);
       const errorDetails =

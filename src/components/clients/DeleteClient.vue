@@ -110,16 +110,16 @@ export default {
         // filter out client that is being deleted
         siteOptions.value = Object.freeze(
           formatSiteOptions(
-            clients.filter((client) => client.id !== props.object.id)
-          )
+            clients.filter((client) => client.id !== props.object.id),
+          ),
         );
       } else {
         // filter out site that is being dleted
         clients.forEach(
           (client) =>
             (client.sites = client.sites.filter(
-              (site) => site.id !== props.object.id
-            ))
+              (site) => site.id !== props.object.id,
+            )),
         );
         siteOptions.value = Object.freeze(formatSiteOptions(clients));
       }
