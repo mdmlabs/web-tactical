@@ -292,7 +292,6 @@ export default {
   pointer-events: none;
 }
 
-
 .body--dark .alerts-button {
   background-color: rgba(50, 55, 60, 0.3) !important;
   box-shadow:

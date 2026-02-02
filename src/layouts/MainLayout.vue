@@ -1,6 +1,6 @@
 <template>
   <q-layout view="hHh lpR fFf">
-    <q-header :class="['modern-header', { 'dark-theme': darkMode }]">
+    <q-header class="modern-header">
       <!-- Banners -->
       <q-banner v-if="needRefresh" inline-actions class="refresh-banner">
         <div class="row items-center justify-center q-gutter-md">
@@ -50,16 +50,27 @@
       </q-banner>
 
       <q-toolbar class="modern-toolbar">
-
         <q-btn
           flat
           dense
           round
-          icon="menu"
+          :icon="
+            $q.screen.width < 1024
+              ? 'menu'
+              : store.state.sidebarCollapsed
+                ? 'menu_open'
+                : 'menu'
+          "
           class="toolbar-icon-btn"
           @click="toggleFileBarDrawer"
         >
-          <q-tooltip>Open Menu</q-tooltip>
+          <q-tooltip>{{
+            $q.screen.width < 1024
+              ? "Open Menu"
+              : store.state.sidebarCollapsed
+                ? "Open menu"
+                : "Close menu"
+          }}</q-tooltip>
         </q-btn>
         <!-- Dashboard/Back Button -->
         <q-btn
@@ -89,9 +100,7 @@
         <q-toolbar-title class="toolbar-title">
           <div class="row items-center q-gutter-sm">
             <span class="logo-text">MDM-labs</span>
-            <q-chip dense square class="version-chip">
-              v1.0.1
-            </q-chip>
+            <q-chip dense square class="version-chip"> v1.0.1 </q-chip>
 
             <!-- Update Available -->
             <q-chip
@@ -120,27 +129,6 @@
 
         <q-space />
 
-        <!-- Dark Mode Toggle -->
-        <label class="theme-switch q-mr-md">
-          <input
-            :checked="!darkMode"
-            type="checkbox"
-            @change="handleThemeChange"
-          />
-          <span class="slider">
-            <div class="star star_1"></div>
-            <div class="star star_2"></div>
-            <div class="star star_3"></div>
-            <svg viewBox="0 0 16 16" class="cloud_1 cloud">
-              <path
-                transform="matrix(.77976 0 0 .78395-299.99-418.63)"
-                fill="#fff"
-                d="m391.84 540.91c-.421-.329-.949-.524-1.523-.524-1.351 0-2.451 1.084-2.485 2.435-1.395.526-2.388 1.88-2.388 3.466 0 1.874 1.385 3.423 3.182 3.667v.034h12.73v-.006c1.775-.104 3.182-1.584 3.182-3.395 0-1.747-1.309-3.186-2.994-3.379.007-.106.011-.214.011-.322 0-2.707-2.271-4.901-5.072-4.901-2.073 0-3.856 1.202-4.643 2.925"
-              ></path>
-            </svg>
-          </span>
-        </label>
-
         <!-- Web Terminal -->
         <!-- <q-btn
           v-if="!hosted"
@@ -155,7 +143,7 @@
         </q-btn> -->
 
         <!-- Devices Counter -->
-        <q-chip clickable class="devices-chip">
+        <!-- <q-chip clickable class="devices-chip">
           <q-avatar size="32px" icon="devices" class="chip-avatar" />
           <span class="text-weight-medium">
             {{ serverCount + workstationCount }}
@@ -217,7 +205,19 @@
               </q-item>
             </q-list>
           </q-menu>
-        </q-chip>
+        </q-chip> -->
+
+        <!-- Documentation -->
+        <q-btn
+          flat
+          dense
+          round
+          icon="menu_book"
+          class="toolbar-icon-btn"
+          @click="openDocumentation"
+        >
+          <q-tooltip>Documentation</q-tooltip>
+        </q-btn>
 
         <!-- Alerts Icon -->
         <AlertsIcon class="q-mx-sm" />
@@ -381,139 +381,6 @@
 .toolbar-icon-btn:hover {
   background: rgba(255, 255, 255, 0.15);
   transform: scale(1.05);
-}
-
-
-.theme-switch {
-  font-size: 17px;
-  position: relative;
-  display: inline-block;
-  width: 3.5em;
-  height: 1.5em;
-  border-radius: 30px;
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.3),
-    0 0 0 2px rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.theme-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.theme-switch .slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #1a1a2e;
-  transition: 0.4s;
-  border-radius: 30px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.theme-switch .slider:before {
-  position: absolute;
-  content: "";
-  height: 0.7em;
-  width: 0.7em;
-  border-radius: 50%;
-  left: 0.5em;
-  bottom: 0.3em;
-  transition: 0.4s;
-  transition-timing-function: cubic-bezier(0.81, -0.04, 0.38, 1.5);
-  background: #fff;
-  mask: radial-gradient(circle at 30% 50%, transparent 35%, white 35%);
-  -webkit-mask: radial-gradient(circle at 30% 50%, transparent 35%, white 35%);
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.3),
-    0 0 8px rgba(255, 255, 255, 0.4);
-}
-
-
-.theme-switch input:checked + .slider {
-  background-color: #0099ff;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.theme-switch input:checked + .slider:before {
-  transform: translateX(1.8em);
-  mask: none;
-  -webkit-mask: none;
-  background: radial-gradient(circle, #ffcf48 0%, #ffcf48 100%);
-  box-shadow:
-    0 0 0 2px rgba(255, 255, 255, 0.3) inset,
-    0 2px 4px rgba(0, 0, 0, 0.2),
-    0 0 12px rgba(255, 207, 72, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-}
-
-.theme-switch input:checked ~ .slider .star {
-  opacity: 0;
-}
-
-.theme-switch input:checked ~ .slider .cloud {
-  opacity: 1;
-}
-
-
-.theme-switch .star {
-  background-color: #fff;
-  border-radius: 50%;
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  transition: all 0.4s;
-  box-shadow:
-    0 0 3px rgba(255, 255, 255, 0.8),
-    0 0 6px rgba(255, 255, 255, 0.4);
-}
-
-.theme-switch .star_1 {
-  left: 1.5em;
-  top: 0.3em;
-}
-
-.theme-switch .star_2 {
-  left: 2.3em;
-  top: 0.5em;
-}
-
-.theme-switch .star_3 {
-  left: 1.9em;
-  top: 0.9em;
-}
-
-.theme-switch .cloud {
-  width: 3.5em;
-  position: absolute;
-  bottom: -1.4em;
-  left: -1.1em;
-  opacity: 0;
-  transition: all 0.4s;
-}
-
-
-.body--dark .theme-switch {
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.5),
-    0 0 0 2px rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-}
-
-
-.body--light .theme-switch,
-.theme-switch {
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.3),
-    0 0 0 2px rgba(255, 255, 255, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
 /* Devices Chip */
@@ -684,7 +551,6 @@
 </style>
 
 <style>
-
 .q-tooltip {
   background: linear-gradient(
     135deg,
@@ -726,7 +592,6 @@ import { useRoute, useRouter } from "vue-router";
 import { useDashboardStore } from "@/stores/dashboard";
 import { useAuthStore } from "@/stores/auth";
 import { storeToRefs } from "pinia";
-import axios from "axios";
 
 // webtermn
 // import { checkWebTermPerms, openWebTerminal } from "@/api/core";
@@ -743,37 +608,14 @@ const route = useRoute();
 const router = useRouter();
 
 const {
-  serverCount,
-  serverOfflineCount,
-  workstationCount,
-  workstationOfflineCount,
+  // serverCount,
+  // serverOfflineCount,
+  // workstationCount,
+  // workstationOfflineCount,
   daysUntilCertExpires,
 } = storeToRefs(useDashboardStore());
 
 const { displayName } = storeToRefs(useAuthStore());
-
-const darkMode = computed({
-  get: () => {
-    return $q.dark.isActive;
-  },
-  set: async (value) => {
-    // изначально устанавливаем тему локально для мгновенного отклика
-    $q.dark.set(value);
-    // затем сохраняем на сервере
-    try {
-      await axios.patch("/accounts/users/ui/", { dark_mode: value });
-    } catch (error) {
-      // в случае ерора откатываем изменение
-      $q.dark.set(!value);
-      console.error("Failed to save dark mode preference:", error);
-    }
-  },
-});
-
-function handleThemeChange(event: Event) {
-  const target = event.target as HTMLInputElement;
-  darkMode.value = !target.checked;
-}
 
 const currentTRMMVersion = computed(() => store.state.currentTRMMVersion);
 const latestTRMMVersion = computed(() => store.state.latestTRMMVersion);
@@ -799,6 +641,10 @@ function resetPassword() {
   $q.dialog({
     component: ResetPass,
   });
+}
+
+function openDocumentation() {
+  window.open("https://docs.example.com", "_blank", "noopener,noreferrer");
 }
 
 // async function openWebTerm() {
@@ -849,6 +695,10 @@ onBeforeUnmount(() => {
 });
 
 function toggleFileBarDrawer() {
-  store.commit("SET_FILEBAR_DRAWER", !store.state.fileBarDrawerOpen);
+  if (window.innerWidth < 1024) {
+    store.commit("SET_FILEBAR_DRAWER", !store.state.fileBarDrawerOpen);
+  } else {
+    store.commit("SET_SIDEBAR_COLLAPSED", !store.state.sidebarCollapsed);
+  }
 }
 </script>

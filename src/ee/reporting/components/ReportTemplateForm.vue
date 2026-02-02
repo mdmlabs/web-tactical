@@ -485,8 +485,8 @@ const tab = ref(
   props.templateType === "markdown"
     ? "markdown"
     : props.templateType === "html"
-    ? "html"
-    : "plaintext",
+      ? "html"
+      : "plaintext",
 );
 
 onBeforeMount(() => {

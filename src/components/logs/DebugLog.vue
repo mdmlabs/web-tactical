@@ -243,7 +243,7 @@ export default {
             agentFilter.value = props.agent;
             getDebugLog();
           }
-        }
+        },
       );
     }
 

@@ -183,10 +183,10 @@ export default {
         // prevent error when in manual mode
         try {
           state.value.svc_display_name = serviceOptions.value.find(
-            (i) => i.value === state.value.svc_name
+            (i) => i.value === state.value.svc_name,
           ).label;
         } catch {}
-      }
+      },
     );
 
     watch(
@@ -194,7 +194,7 @@ export default {
       () => {
         state.value.svc_name = null;
         state.value.svc_display_name = null;
-      }
+      },
     );
 
     const isPolicy = computed(() => {

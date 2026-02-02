@@ -24,6 +24,32 @@
               <q-tab-panel name="ui">
                 <div class="text-subtitle2">User Interface</div>
                 <q-separator />
+                <q-card-section class="row items-center">
+                  <div class="col-6">Theme:</div>
+                  <div class="col-2"></div>
+                  <div class="col-4">
+                    <label class="theme-switch" aria-label="Theme toggle">
+                      <input
+                        :checked="!darkMode"
+                        type="checkbox"
+                        @change="handleThemeChange"
+                        aria-label="Switch between light and dark theme"
+                      />
+                      <span class="slider">
+                        <div class="star star_1"></div>
+                        <div class="star star_2"></div>
+                        <div class="star star_3"></div>
+                        <svg viewBox="0 0 16 16" class="cloud_1 cloud">
+                          <path
+                            transform="matrix(.77976 0 0 .78395-299.99-418.63)"
+                            fill="#fff"
+                            d="m391.84 540.91c-.421-.329-.949-.524-1.523-.524-1.351 0-2.451 1.084-2.485 2.435-1.395.526-2.388 1.88-2.388 3.466 0 1.874 1.385 3.423 3.182 3.667v.034h12.73v-.006c1.775-.104 3.182-1.584 3.182-3.395 0-1.747-1.309-3.186-2.994-3.379.007-.106.011-.214.011-.322 0-2.707-2.271-4.901-5.072-4.901-2.073 0-3.856 1.202-4.643 2.925"
+                          ></path>
+                        </svg>
+                      </span>
+                    </label>
+                  </div>
+                </q-card-section>
                 <q-card-section class="row">
                   <div class="col-6">Agent double-click action:</div>
                   <div class="col-2"></div>
@@ -308,6 +334,18 @@ export default {
     },
   },
   methods: {
+    handleThemeChange(event) {
+      const checked = event.target.checked;
+      const newDarkMode = !checked;
+      this.darkMode = newDarkMode;
+      this.$axios
+        .patch("/accounts/users/ui/", { dark_mode: newDarkMode })
+        .catch((error) => {
+          this.darkMode = !newDarkMode;
+          console.error("Failed to save dark mode preference:", error);
+          this.notifyError("Failed to save theme preference");
+        });
+    },
     openURL(url) {
       openURL(url);
     },
@@ -384,8 +422,147 @@ export default {
       this.hide();
     },
   },
+  computed: {
+    darkMode: {
+      get() {
+        return this.$q.dark.isActive;
+      },
+      set(value) {
+        this.$q.dark.set(value);
+      },
+    },
+  },
   mounted() {
     this.getUserPrefs();
   },
 };
 </script>
+
+<style scoped>
+.theme-switch {
+  font-size: 17px;
+  position: relative;
+  display: inline-block;
+  width: 3.5em;
+  height: 1.5em;
+  border-radius: 30px;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 0 0 2px rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.theme-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.theme-switch .slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #1a1a2e;
+  transition: 0.4s;
+  border-radius: 30px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.theme-switch .slider:before {
+  position: absolute;
+  content: "";
+  height: 0.7em;
+  width: 0.7em;
+  border-radius: 50%;
+  left: 0.5em;
+  bottom: 0.3em;
+  transition: 0.4s;
+  transition-timing-function: cubic-bezier(0.81, -0.04, 0.38, 1.5);
+  background: #fff;
+  mask: radial-gradient(circle at 30% 50%, transparent 35%, white 35%);
+  -webkit-mask: radial-gradient(circle at 30% 50%, transparent 35%, white 35%);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    0 0 8px rgba(255, 255, 255, 0.4);
+}
+
+.theme-switch input:checked + .slider {
+  background-color: #0099ff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.theme-switch input:checked + .slider:before {
+  transform: translateX(1.8em);
+  mask: none;
+  -webkit-mask: none;
+  background: radial-gradient(circle, #ffcf48 0%, #ffcf48 100%);
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.3) inset,
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 0 12px rgba(255, 207, 72, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.theme-switch input:checked ~ .slider .star {
+  opacity: 0;
+}
+
+.theme-switch input:checked ~ .slider .cloud {
+  opacity: 1;
+}
+
+.theme-switch .star {
+  background-color: #fff;
+  border-radius: 50%;
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  transition: all 0.4s;
+  box-shadow:
+    0 0 3px rgba(255, 255, 255, 0.8),
+    0 0 6px rgba(255, 255, 255, 0.4);
+}
+
+.theme-switch .star_1 {
+  left: 1.5em;
+  top: 0.3em;
+}
+
+.theme-switch .star_2 {
+  left: 2.3em;
+  top: 0.5em;
+}
+
+.theme-switch .star_3 {
+  left: 1.9em;
+  top: 0.9em;
+}
+
+.theme-switch .cloud {
+  width: 3.5em;
+  position: absolute;
+  bottom: -1.4em;
+  left: -1.1em;
+  opacity: 0;
+  transition: all 0.4s;
+}
+
+.body--dark .theme-switch {
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.5),
+    0 0 0 2px rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.body--light .theme-switch {
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 0 0 2px rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+</style>

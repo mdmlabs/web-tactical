@@ -187,7 +187,7 @@
                   checkAlert(
                     props.row.id,
                     'Dashboard',
-                    props.row.dashboard_alert
+                    props.row.dashboard_alert,
                   )
                 "
                 v-model="props.row.dashboard_alert"

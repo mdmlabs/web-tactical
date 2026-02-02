@@ -179,20 +179,20 @@ watchDebounced(
   () => {
     getVariables();
   },
-  { debounce: 5000 }
+  { debounce: 5000 },
 );
 
 // checks dependencies and adds warnings
 function checkDependencies(
   dependsOn: string[] | undefined,
-  dependencies: ReportDependencies | undefined
+  dependencies: ReportDependencies | undefined,
 ) {
   dependencyWarnings.value = [];
   // Check if dependencies aren't specified
   dependsOn?.forEach((dep) => {
     !dependencies?.[dep] &&
       dependencyWarnings.value.push(
-        `Missing value for dependency: ${dep} . Open Preview to set values`
+        `Missing value for dependency: ${dep} . Open Preview to set values`,
       );
   });
 }
@@ -202,7 +202,7 @@ watch(
   [() => props.dependencies, () => props.dependsOn],
   ([dependencies, dependsOn]) => {
     checkDependencies(dependsOn, dependencies);
-  }
+  },
 );
 
 // checks available blocks in base template and checks if they are used
@@ -210,7 +210,7 @@ function checkBaseTemplate(template: string, base_id: number | undefined) {
   templateBlocks.value = [];
   if (base_id) {
     const base_template = reportHTMLTemplates.value.find(
-      (template) => template.id === base_id
+      (template) => template.id === base_id,
     );
 
     let regex = /\{% block ([A-Za-z0-9_ ]+) %\}/g,
@@ -233,7 +233,7 @@ watch(
   [() => props.base_template, () => props.template],
   ([newBase, newTemplate]) => {
     checkBaseTemplate(newTemplate, newBase);
-  }
+  },
 );
 
 onMounted(() => {

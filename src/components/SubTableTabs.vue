@@ -241,10 +241,14 @@ export default {
     watch(
       () => route.query.tab,
       (newTab) => {
-        if (newTab && props.activeTabs.includes(newTab) && subtab.value !== newTab) {
+        if (
+          newTab &&
+          props.activeTabs.includes(newTab) &&
+          subtab.value !== newTab
+        ) {
           subtab.value = newTab;
         }
-      }
+      },
     );
 
     return {

@@ -99,7 +99,6 @@
                     {{ targetLabel(props.row) }}
                   </q-td>
                 </template>
-
               </q-table>
             </div>
           </q-tab-panel>
@@ -179,7 +178,6 @@ interface Agent {
   status: string;
 }
 
-
 const props = defineProps<{
   modelValue: boolean;
   agent: Agent | null;
@@ -204,7 +202,6 @@ const dialogTab = ref("assignments");
 const loading = computed(() => !!props.loading);
 const assignments = computed(() => props.assignments || []);
 const effectivePolicies = computed(() => props.effectivePolicies || []);
-
 
 const assignmentColumns: QTableColumn[] = [
   {
@@ -254,7 +251,6 @@ const assignmentColumns: QTableColumn[] = [
   },
 ];
 
-
 function formatOverride(o: unknown): string {
   if (o === undefined || o === null) return "—";
 
@@ -288,7 +284,6 @@ function formatOverride(o: unknown): string {
       }
     }
 
-
     for (const [, v] of Object.entries(obj)) {
       if (v === null || v === undefined) continue;
       if (typeof v === "object") continue;
@@ -304,7 +299,6 @@ function formatOverride(o: unknown): string {
 
   return String(o);
 }
-
 
 function policySourceLabel(p: Record<string, unknown>): string {
   const src =
@@ -346,7 +340,6 @@ function targetLabel(row: Record<string, unknown>): string {
     if (row["userSid"] || row["user_sid"]) return "User";
     return "";
   }
-
 
   if (typeof t === "string") {
     return t;

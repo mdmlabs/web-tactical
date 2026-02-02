@@ -254,7 +254,6 @@
   text-decoration: underline;
 }
 
-
 .body--dark .modern-card {
   background: linear-gradient(0deg, rgb(30, 30, 30) 0%, rgb(40, 45, 55) 100%);
   border: 5px solid rgb(45, 45, 45);
@@ -285,7 +284,6 @@
   color: rgb(18, 177, 209);
 }
 
-
 .body--light .modern-card {
   background: linear-gradient(
     0deg,
@@ -315,14 +313,12 @@
   color: rgba(0, 0, 0, 0.5) !important;
 }
 
-
 .theme-toggle-container {
   position: absolute;
   top: 20px;
   right: 20px;
   z-index: 1000;
 }
-
 
 .theme-switch {
   font-size: 17px;
@@ -339,7 +335,6 @@
   backdrop-filter: blur(10px);
 }
 
-
 .body--light .theme-switch {
   box-shadow:
     0 2px 8px rgba(0, 0, 0, 0.2),
@@ -348,13 +343,11 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
-
 .theme-switch input {
   opacity: 0;
   width: 0;
   height: 0;
 }
-
 
 .theme-switch .slider {
   position: absolute;
@@ -388,7 +381,6 @@
     0 0 8px rgba(255, 255, 255, 0.4);
 }
 
-
 .theme-switch input:checked + .slider {
   background-color: #0099ff;
   border: 1px solid rgba(255, 255, 255, 0.4);
@@ -414,7 +406,6 @@
 .theme-switch input:checked ~ .slider .cloud {
   opacity: 1;
 }
-
 
 .theme-switch .star {
   background-color: #fff;

@@ -65,7 +65,9 @@ export interface GetCategoryTreeResponse {
   categories: CategoryView[] | unknown[];
 }
 
-function policySummaryToGPOPolicy(summary: PolicySummary | Record<string, unknown>): GPOPolicy {
+function policySummaryToGPOPolicy(
+  summary: PolicySummary | Record<string, unknown>,
+): GPOPolicy {
   const id = (summary as { id?: number }).id;
   const name = (summary as { name?: string }).name || "";
   const displayName =
@@ -91,12 +93,11 @@ export function adaptPoliciesFromGroups(
 ): GPOPolicy[] {
   const policies: GPOPolicy[] = [];
 
-
   for (const group of response.groups || []) {
     if (group && typeof group === "object") {
       const policyGroup = group as PolicyGroup;
-      const policiesArray = policyGroup.policiesList || policyGroup.policies || [];
-
+      const policiesArray =
+        policyGroup.policiesList || policyGroup.policies || [];
 
       if (Array.isArray(policiesArray)) {
         for (const policy of policiesArray) {
@@ -112,7 +113,6 @@ export function adaptPoliciesFromGroups(
 export function adaptCategoryTreeToPolicyTree(
   response: GetCategoryTreeResponse,
 ): GPOPolicyTree {
-
   const convertCategory = (
     category: CategoryView | Record<string, unknown>,
     parentPath = "",
@@ -130,9 +130,7 @@ export function adaptCategoryTreeToPolicyTree(
       (category as CategoryView).childs ||
       [];
 
-    const path = parentPath
-      ? `${parentPath}/${categoryName}`
-      : categoryName;
+    const path = parentPath ? `${parentPath}/${categoryName}` : categoryName;
 
     const node: GPOPolicyTree = {
       id: `category-${(category as { id?: number }).id || ""}`,
@@ -156,7 +154,6 @@ export function adaptCategoryTreeToPolicyTree(
       typeof cat === "object" &&
       ("id" in cat || "categoryName" in cat || "category_name" in cat),
   );
-
 
   const root: GPOPolicyTree = {
     id: "root",

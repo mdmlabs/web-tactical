@@ -1,14 +1,17 @@
 <template>
   <q-drawer
     v-model="drawerOpen"
-    :width="280"
+    :width="sidebarWidth"
     :breakpoint="1024"
+    :mini="isMiniMode && !isMobile"
+    :mini-width="64"
     bordered
+    show-if-above
     class="filebar-drawer"
     :overlay="overlayMode"
   >
     <div class="filebar-drawer-content">
-      <div class="filebar-drawer-header">
+      <div class="filebar-drawer-header" v-if="isMobile">
         <div class="filebar-drawer-title">
           <span style="padding: 0 12px">Menu</span>
         </div>
@@ -25,10 +28,97 @@
 
       <q-scroll-area class="filebar-menu-scroll">
         <q-list class="filebar-menu-list">
+          <!-- файл часть-->
+          <template v-if="isMiniMode && !isMobile">
+            <q-item clickable class="filebar-menu-section-mini">
+              <q-item-section avatar>
+                <q-icon name="folder" size="24px">
+                  <q-tooltip
+                    anchor="center right"
+                    self="center left"
+                    :offset="[10, 0]"
+                  >
+                    File
+                  </q-tooltip>
+                </q-icon>
+              </q-item-section>
+              <q-menu
+                anchor="top end"
+                self="top start"
+                :offset="[8, 0]"
+                class="sidebar-popup-menu"
+              >
+                <q-list class="filebar-popup-list">
+                  <q-item-label header class="text-weight-bold"
+                    >File</q-item-label
+                  >
+
+                  <q-expansion-item
+                    icon="add_circle_outline"
+                    label="Add"
+                    dense
+                    class="filebar-popup-expansion"
+                  >
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('addClient')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="business" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Client</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('addSite')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="business_center" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Site</q-item-section>
+                    </q-item>
+                  </q-expansion-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('auditLog')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="history" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Audit Log</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('debugLog')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="bug_report" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Debug Log</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-item>
+          </template>
+
           <q-expansion-item
+            v-else
             icon="folder"
             label="File"
-            default-opened
             class="filebar-menu-section"
           >
             <q-list>
@@ -86,8 +176,239 @@
               </q-item>
             </q-list>
           </q-expansion-item>
+          <!--полиси манаджер часть -->
+          <template v-if="isMiniMode && !isMobile">
+            <q-item clickable class="filebar-menu-section-mini">
+              <q-item-section avatar>
+                <q-icon name="policy" size="24px">
+                  <q-tooltip
+                    anchor="center right"
+                    self="center left"
+                    :offset="[10, 0]"
+                  >
+                    Policy Manager
+                  </q-tooltip>
+                </q-icon>
+              </q-item-section>
+              <q-menu
+                anchor="top end"
+                self="top start"
+                :offset="[8, 0]"
+                class="sidebar-popup-menu"
+              >
+                <q-list class="filebar-popup-list">
+                  <q-item-label header class="text-weight-bold"
+                    >Policy Manager</q-item-label
+                  >
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="navigateToGPO('dashboard')"
+                    :class="[
+                      'filebar-popup-item',
+                      { 'active-menu-item': isActiveGPOTab('dashboard') },
+                    ]"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="dashboard" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Dashboard</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="navigateToGPO('network')"
+                    :class="[
+                      'filebar-popup-item',
+                      { 'active-menu-item': isActiveGPOTab('network') },
+                    ]"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="router" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Network</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="navigateToGPO('library')"
+                    :class="[
+                      'filebar-popup-item',
+                      { 'active-menu-item': isActiveGPOTab('library') },
+                    ]"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="library_books" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Policy Library</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="navigateToGPO('windows')"
+                    :class="[
+                      'filebar-popup-item',
+                      { 'active-menu-item': isActiveGPOTab('windows') },
+                    ]"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="laptop_windows" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Windows Policies</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="navigateToGPO('devices')"
+                    :class="[
+                      'filebar-popup-item',
+                      { 'active-menu-item': isActiveGPOTab('devices') },
+                    ]"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="devices" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Device Policies</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-item>
+          </template>
 
           <q-expansion-item
+            v-else
+            icon="policy"
+            label="Policy Manager"
+            class="filebar-menu-section"
+          >
+            <q-list>
+              <q-item
+                clickable
+                v-ripple
+                @click="navigateToGPO('dashboard')"
+                :class="[
+                  'filebar-menu-item',
+                  { 'active-menu-item': isActiveGPOTab('dashboard') },
+                ]"
+              >
+                <q-item-section avatar>
+                  <q-icon name="dashboard" />
+                </q-item-section>
+                <q-item-section>Dashboard</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                @click="navigateToGPO('network')"
+                :class="[
+                  'filebar-menu-item',
+                  { 'active-menu-item': isActiveGPOTab('network') },
+                ]"
+              >
+                <q-item-section avatar>
+                  <q-icon name="router" />
+                </q-item-section>
+                <q-item-section>Network</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                @click="navigateToGPO('library')"
+                :class="[
+                  'filebar-menu-item',
+                  { 'active-menu-item': isActiveGPOTab('library') },
+                ]"
+              >
+                <q-item-section avatar>
+                  <q-icon name="library_books" />
+                </q-item-section>
+                <q-item-section>Policy Library</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                @click="navigateToGPO('windows')"
+                :class="[
+                  'filebar-menu-item',
+                  { 'active-menu-item': isActiveGPOTab('windows') },
+                ]"
+              >
+                <q-item-section avatar>
+                  <q-icon name="laptop_windows" />
+                </q-item-section>
+                <q-item-section>Windows Policies</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                @click="navigateToGPO('devices')"
+                :class="[
+                  'filebar-menu-item',
+                  { 'active-menu-item': isActiveGPOTab('devices') },
+                ]"
+              >
+                <q-item-section avatar>
+                  <q-icon name="devices" />
+                </q-item-section>
+                <q-item-section>Device Policies</q-item-section>
+              </q-item>
+            </q-list>
+          </q-expansion-item>
+
+          <!-- вью часть -->
+          <template v-if="isMiniMode && !isMobile">
+            <q-item clickable class="filebar-menu-section-mini">
+              <q-item-section avatar>
+                <q-icon name="visibility" size="24px">
+                  <q-tooltip
+                    anchor="center right"
+                    self="center left"
+                    :offset="[10, 0]"
+                  >
+                    View
+                  </q-tooltip>
+                </q-icon>
+              </q-item-section>
+              <q-menu
+                anchor="top end"
+                self="top start"
+                :offset="[8, 0]"
+                class="sidebar-popup-menu"
+              >
+                <q-list class="filebar-popup-list">
+                  <q-item-label header class="text-weight-bold"
+                    >View</q-item-label
+                  >
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('pendingActions')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="pending_actions" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Pending Actions</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-item>
+          </template>
+
+          <q-expansion-item
+            v-else
             icon="visibility"
             label="View"
             class="filebar-menu-section"
@@ -107,7 +428,76 @@
             </q-list>
           </q-expansion-item>
 
+          <!-- агент часть -->
+          <template v-if="isMiniMode && !isMobile">
+            <q-item clickable class="filebar-menu-section-mini">
+              <q-item-section avatar>
+                <q-icon name="dns" size="24px">
+                  <q-tooltip
+                    anchor="center right"
+                    self="center left"
+                    :offset="[10, 0]"
+                  >
+                    Agents
+                  </q-tooltip>
+                </q-icon>
+              </q-item-section>
+              <q-menu
+                anchor="top end"
+                self="top start"
+                :offset="[8, 0]"
+                class="sidebar-popup-menu"
+              >
+                <q-list class="filebar-popup-list">
+                  <q-item-label header class="text-weight-bold"
+                    >Agents</q-item-label
+                  >
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('installAgent')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="download" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Install Agent</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('deployments')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="cloud_download" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Manage Deployments</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('updateAgents')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="system_update" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Update Agents</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-item>
+          </template>
+
           <q-expansion-item
+            v-else
             icon="dns"
             label="Agents"
             class="filebar-menu-section"
@@ -149,7 +539,142 @@
             </q-list>
           </q-expansion-item>
 
+          <!-- сетинг часть-->
+          <template v-if="isMiniMode && !isMobile">
+            <q-item clickable class="filebar-menu-section-mini">
+              <q-item-section avatar>
+                <q-icon name="settings" size="24px">
+                  <q-tooltip
+                    anchor="center right"
+                    self="center left"
+                    :offset="[10, 0]"
+                  >
+                    Settings
+                  </q-tooltip>
+                </q-icon>
+              </q-item-section>
+              <q-menu
+                anchor="top end"
+                self="top start"
+                :offset="[8, 0]"
+                class="sidebar-popup-menu"
+              >
+                <q-list class="filebar-popup-list">
+                  <q-item-label header class="text-weight-bold"
+                    >Settings</q-item-label
+                  >
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('clientsManager')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="people" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Clients Manager</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('scriptManager')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="code" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Script Manager</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('automationManager')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="auto_awesome" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Automation Manager</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('alertsManager')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="notifications" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Alerts Manager</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('permissionsManager')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="admin_panel_settings" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Permissions Manager</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('adminManager')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="manage_accounts" size="sm" />
+                    </q-item-section>
+                    <q-item-section>User Administration</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('globalSettings')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="tune" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Global Settings</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    v-if="!hosted"
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('codeSign')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="verified" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Code Signing</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-item>
+          </template>
+
           <q-expansion-item
+            v-else
             icon="settings"
             label="Settings"
             class="filebar-menu-section"
@@ -244,21 +769,131 @@
                 </q-item-section>
                 <q-item-section>Code Signing</q-item-section>
               </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="navigateToGPO"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="policy" />
-                </q-item-section>
-                <q-item-section>Policy Manager</q-item-section>
-              </q-item>
             </q-list>
           </q-expansion-item>
 
+          <!-- тулз часть -->
+          <template v-if="isMiniMode && !isMobile">
+            <q-item clickable class="filebar-menu-section-mini">
+              <q-item-section avatar>
+                <q-icon name="build" size="24px">
+                  <q-tooltip
+                    anchor="center right"
+                    self="center left"
+                    :offset="[10, 0]"
+                  >
+                    Tools
+                  </q-tooltip>
+                </q-icon>
+              </q-item-section>
+              <q-menu
+                anchor="top end"
+                self="top start"
+                :offset="[8, 0]"
+                class="sidebar-popup-menu"
+              >
+                <q-list class="filebar-popup-list">
+                  <q-item-label header class="text-weight-bold"
+                    >Tools</q-item-label
+                  >
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('bulkCommand')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="terminal" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Bulk Command</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('bulkScript')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="article" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Bulk Script</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('bulkPatch')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="update" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Bulk Patch Management</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('bulkSoftware')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="apps" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Bulk Software</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('serverMaintenance')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="construction" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Server Maintenance</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('clearCache')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="cleaning_services" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Clear Cache</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('recoverAgents')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="restart_alt" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Recover All Agents</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-item>
+          </template>
+
           <q-expansion-item
+            v-else
             icon="build"
             label="Tools"
             class="filebar-menu-section"
@@ -487,23 +1122,54 @@ export default {
     },
     drawerOpen: {
       get() {
-        return this.$store.state.fileBarDrawerOpen;
+        if (this.isMobile) {
+          return this.$store.state.fileBarDrawerOpen;
+        }
+        return true;
       },
       set(val) {
-        this.$store.commit("SET_FILEBAR_DRAWER", val);
+        if (this.isMobile) {
+          this.$store.commit("SET_FILEBAR_DRAWER", val);
+        }
       },
     },
-    overlayMode() {
+    isMiniMode() {
+      return this.$store.state.sidebarCollapsed;
+    },
+    isMobile() {
       return this.$q.screen.width < 1024;
+    },
+    overlayMode() {
+      return this.isMobile;
+    },
+    sidebarWidth() {
+      if (this.isMobile) {
+        return 280;
+      }
+      return this.isMiniMode ? 64 : 280;
+    },
+    currentPath() {
+      return this.$route.path;
     },
   },
   methods: {
+    isActiveRoute(path) {
+      if (!path) return false;
+      return (
+        this.currentPath === path || this.currentPath.startsWith(path + "/")
+      );
+    },
+    isActiveGPOTab(tab) {
+      return this.currentPath === "/gpo" && this.$route.query.tab === tab;
+    },
     closeDrawer() {
-      this.drawerOpen = false;
+      if (this.isMobile) {
+        this.$store.commit("SET_FILEBAR_DRAWER", false);
+      }
     },
     handleMenuAction(action) {
       // клозим дравер на мобилках после выбора действия
-      if (this.overlayMode) {
+      if (this.isMobile) {
         this.closeDrawer();
       }
 
@@ -594,12 +1260,15 @@ export default {
           break;
       }
     },
-    navigateToGPO() {
+    navigateToGPO(tab = "dashboard") {
       // клозим дравер на мобилках после выбора действия
-      if (this.overlayMode) {
+      if (this.isMobile) {
         this.closeDrawer();
       }
-      this.$router.push("/gpo");
+      this.$router.push({
+        path: "/gpo",
+        query: { tab },
+      });
     },
     clearCache() {
       this.$axios
@@ -753,6 +1422,11 @@ export default {
     rgba(244, 247, 251, 0.98) 100%
   );
   backdrop-filter: blur(10px);
+  transition: width 0.3s ease;
+}
+
+.filebar-drawer :deep(.q-drawer__content) {
+  overflow-x: hidden;
 }
 
 .filebar-drawer-content {
@@ -773,6 +1447,13 @@ export default {
   );
   color: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-height: 64px;
+}
+
+@media (min-width: 1024px) {
+  .filebar-drawer-header {
+    display: none;
+  }
 }
 
 .filebar-drawer-title {
@@ -783,17 +1464,27 @@ export default {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.close-btn {
+.close-btn,
+.toggle-btn {
   color: white;
+  transition: all 0.3s ease;
 }
 
-.close-btn:hover {
+.close-btn:hover,
+.toggle-btn:hover {
   background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
 }
 
 .filebar-menu-scroll {
   flex: 1;
-  height: calc(100vh - 80px);
+  height: 100vh;
+}
+
+@media (max-width: 1023px) {
+  .filebar-menu-scroll {
+    height: calc(100vh - 80px);
+  }
 }
 
 .filebar-menu-list {
@@ -820,6 +1511,43 @@ export default {
   background: rgba(255, 255, 255, 0.3);
 }
 
+.filebar-drawer.q-drawer--mini .filebar-menu-section {
+  margin: 4px 2px;
+}
+
+.filebar-drawer.q-drawer--mini .filebar-menu-section :deep(.q-item) {
+  justify-content: center;
+  padding: 8px;
+}
+
+.filebar-drawer.q-drawer--mini
+  .filebar-menu-section
+  :deep(.q-item__section--avatar) {
+  min-width: auto;
+  padding-right: 0;
+}
+
+.filebar-drawer.q-drawer--mini .filebar-menu-item {
+  justify-content: center;
+}
+
+.filebar-drawer.q-drawer--mini .filebar-menu-section :deep(.q-item__label),
+.filebar-drawer.q-drawer--mini
+  .filebar-menu-item
+  :deep(.q-item__section--main) {
+  display: none;
+}
+
+.filebar-drawer.q-drawer--mini
+  .filebar-menu-section
+  :deep(.q-expansion-item__toggle-icon) {
+  display: none;
+}
+
+.filebar-drawer.q-drawer--mini .mini-header {
+  justify-content: center;
+}
+
 .filebar-menu-item {
   border-radius: 6px;
   margin: 2px 0;
@@ -833,6 +1561,20 @@ export default {
     rgba(18, 177, 209, 0.15) 100%
   );
   transform: translateX(4px);
+}
+
+.filebar-menu-item.active-menu-item {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 137, 211, 0.25) 0%,
+    rgba(18, 177, 209, 0.3) 100%
+  );
+  border-left: 3px solid rgb(16, 137, 211);
+  font-weight: 600;
+}
+
+.filebar-menu-item.active-menu-item :deep(.q-icon) {
+  color: rgb(16, 137, 211);
 }
 
 .filebar-menu-item :deep(.q-item-section) {
@@ -850,6 +1592,122 @@ export default {
 
 .filebar-menu-subsection :deep(.q-expansion-item__content) {
   background: rgba(255, 255, 255, 0.2);
+}
+
+.filebar-menu-section-mini {
+  margin: 4px 8px;
+  border-radius: 8px;
+  padding: 12px 0 !important;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.filebar-menu-section-mini:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 137, 211, 0.1) 0%,
+    rgba(18, 177, 209, 0.15) 100%
+  );
+}
+
+.filebar-menu-section-mini .q-item-section {
+  justify-content: center;
+  align-items: center;
+}
+
+.filebar-menu-section-mini.active-section-icon {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 137, 211, 0.25) 0%,
+    rgba(18, 177, 209, 0.3) 100%
+  );
+  border-left: 3px solid rgb(16, 137, 211);
+}
+
+.filebar-menu-section-mini.active-section-icon .q-icon {
+  color: rgb(16, 137, 211);
+  transform: scale(1.1);
+}
+
+.sidebar-popup-menu {
+  min-width: 240px;
+  max-width: 280px;
+}
+
+.filebar-popup-list {
+  padding: 8px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(244, 247, 251, 0.98) 100%
+  );
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(18, 177, 209, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.filebar-popup-list .q-item-label--header {
+  padding: 8px 12px;
+  font-size: 14px;
+  color: rgb(16, 137, 211);
+  border-bottom: 1px solid rgba(18, 177, 209, 0.2);
+  margin-bottom: 4px;
+}
+
+.filebar-popup-item {
+  border-radius: 6px;
+  margin: 2px 0;
+  padding: 8px 12px;
+  transition: all 0.2s ease;
+}
+
+.filebar-popup-item:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 137, 211, 0.1) 0%,
+    rgba(18, 177, 209, 0.15) 100%
+  );
+  transform: translateX(4px);
+}
+
+.filebar-popup-item :deep(.q-item__section--avatar) {
+  min-width: 32px;
+  padding-right: 12px;
+}
+
+.filebar-popup-item :deep(.q-icon) {
+  color: rgb(16, 137, 211);
+}
+
+.filebar-popup-item.active-menu-item {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 137, 211, 0.25) 0%,
+    rgba(18, 177, 209, 0.3) 100%
+  );
+  border-left: 3px solid rgb(16, 137, 211);
+  font-weight: 600;
+}
+
+.filebar-popup-item.active-menu-item :deep(.q-icon) {
+  color: rgb(16, 137, 211);
+  font-weight: bold;
+}
+
+.filebar-popup-expansion {
+  border-radius: 6px;
+  margin: 2px 0;
+}
+
+.filebar-popup-expansion :deep(.q-item) {
+  padding: 8px 12px;
+}
+
+.filebar-popup-expansion :deep(.q-expansion-item__content) {
+  background: rgba(16, 137, 211, 0.05);
+  border-radius: 4px;
+  margin-top: 4px;
 }
 
 .body--dark .filebar-drawer {
@@ -892,5 +1750,90 @@ export default {
 
 .body--dark .filebar-menu-subsection :deep(.q-expansion-item__content) {
   background: rgba(35, 40, 45, 0.2);
+}
+
+.body--dark .filebar-drawer.q-drawer--mini .filebar-drawer-header {
+  justify-content: center;
+}
+
+.body--dark .filebar-popup-list {
+  background: linear-gradient(
+    135deg,
+    rgba(30, 30, 30, 0.98) 0%,
+    rgba(40, 45, 55, 0.98) 100%
+  );
+  border: 1px solid rgba(18, 177, 209, 0.3);
+}
+
+.body--dark .filebar-popup-list .q-item-label--header {
+  color: #12b1d1;
+  border-bottom: 1px solid rgba(18, 177, 209, 0.3);
+}
+
+.body--dark .filebar-popup-item {
+  color: #e0e0e0;
+}
+
+.body--dark .filebar-popup-item:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 137, 211, 0.2) 0%,
+    rgba(18, 177, 209, 0.25) 100%
+  );
+}
+
+.body--dark .filebar-popup-item :deep(.q-icon) {
+  color: #12b1d1;
+}
+
+.body--dark .filebar-menu-section-mini:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 137, 211, 0.2) 0%,
+    rgba(18, 177, 209, 0.25) 100%
+  );
+}
+
+.body--dark .filebar-popup-expansion :deep(.q-expansion-item__content) {
+  background: rgba(16, 137, 211, 0.1);
+}
+
+.body--dark .filebar-menu-item.active-menu-item {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 137, 211, 0.35) 0%,
+    rgba(18, 177, 209, 0.4) 100%
+  );
+  border-left: 3px solid #12b1d1;
+}
+
+.body--dark .filebar-menu-item.active-menu-item :deep(.q-icon) {
+  color: #12b1d1;
+}
+
+.body--dark .filebar-popup-item.active-menu-item {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 137, 211, 0.35) 0%,
+    rgba(18, 177, 209, 0.4) 100%
+  );
+  border-left: 3px solid #12b1d1;
+}
+
+.body--dark .filebar-popup-item.active-menu-item :deep(.q-icon) {
+  color: #12b1d1;
+}
+
+.body--dark .filebar-menu-section-mini.active-section-icon {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 137, 211, 0.35) 0%,
+    rgba(18, 177, 209, 0.4) 100%
+  );
+  border-left: 3px solid #12b1d1;
+}
+
+.body--dark .filebar-menu-section-mini.active-section-icon .q-icon {
+  color: #12b1d1;
 }
 </style>

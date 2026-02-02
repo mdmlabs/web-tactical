@@ -48,7 +48,7 @@ const props = withDefaults(
     columnSelect?: boolean;
     excludeColumns?: string[];
   }>(),
-  { columnSelect: false, excludeColumns: () => ["columnSelect"] }
+  { columnSelect: false, excludeColumns: () => ["columnSelect"] },
 );
 // save a non-reactive copy of columns to modify
 const localColumns: QTableColumn[] = Object.assign([], props.columns);
@@ -62,7 +62,7 @@ const visibleColumns = ref(localColumns.map((column) => column.name));
 const columnOptions = ref(
   localColumns
     .filter((column) => !props.excludeColumns.includes(column.name))
-    .map((column) => ({ label: column.label, value: column.name }))
+    .map((column) => ({ label: column.label, value: column.name })),
 );
 </script>
 

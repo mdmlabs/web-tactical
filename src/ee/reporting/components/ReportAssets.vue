@@ -183,13 +183,13 @@ function uploadFiles(node: QTreeFileNode) {
           name,
           path,
           file.size.toString(),
-          asset_id
+          asset_id,
         );
         node.children?.push(fileNode);
       });
 
       fileBrowser.value?.reloadTable();
-    }
+    },
   );
 }
 
@@ -275,7 +275,7 @@ async function downloadFile(node: FileSystemNodeTable) {
 
 function deleteFiles(
   nodes: FileSystemNodeTable[],
-  selectedTreeNode: QTreeFileNode
+  selectedTreeNode: QTreeFileNode,
 ) {
   $q.dialog({
     title: "Are you sure?",
@@ -290,7 +290,7 @@ function deleteFiles(
       await deleteAssets(paths);
 
       selectedTreeNode.children = selectedTreeNode.children?.filter(
-        (node) => !paths.includes(node.path)
+        (node) => !paths.includes(node.path),
       );
 
       fileBrowser.value?.reloadTable();
@@ -306,7 +306,7 @@ function deleteFiles(
 function updatePathOnChildNodes(
   nodes: QTreeFileNode[],
   oldPath: string,
-  newPath: string
+  newPath: string,
 ) {
   nodes.forEach((node) => {
     node.path = node.path.replace(oldPath, newPath);

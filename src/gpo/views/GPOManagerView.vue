@@ -1,55 +1,10 @@
 <template>
   <q-page class="gpo-manager-page">
     <div class="row gpo-main-row">
-      <div class="gpo-sidebar col-1.5">
-        <div class="gpo-sidebar-header">
-          <div class="text-h6 q-pa-md">Policy Manager</div>
-        </div>
-
-        <q-tabs
-          v-model="mainTab"
-          vertical
-          class="gpo-nav-tabs"
-          active-color="primary"
-          indicator-color="primary"
-        >
-          <q-tab
-            name="dashboard"
-            icon="dashboard"
-            label="Dashboard"
-            class="gpo-nav-tab"
-          />
-          <q-tab
-            name="network"
-            icon="router"
-            label="Network"
-            class="gpo-nav-tab"
-          />
-          <q-tab
-            name="library"
-            icon="library_books"
-            label="Policy Library"
-            class="gpo-nav-tab"
-          />
-          <q-tab
-            name="windows"
-            icon="windows"
-            label="Windows Policies"
-            class="gpo-nav-tab"
-          />
-          <q-tab
-            name="devices"
-            icon="devices"
-            label="Device Policies"
-            class="gpo-nav-tab"
-          />
-        </q-tabs>
-      </div>
-
       <div
         v-if="mainTab !== 'library'"
         :key="`content-${mainTab}`"
-        class="gpo-content col-10"
+        class="gpo-content col-12"
       >
         <div class="row gpo-content-row">
           <div
@@ -2000,7 +1955,7 @@
       <div
         v-if="mainTab === 'library'"
         :key="`library-${libraryTab}`"
-        class="gpo-content col-10 gpo-library-content"
+        class="gpo-content col-12 gpo-library-content"
       >
         <div class="gpo-content-header">
           <div class="text-h6 q-pa-md">Policy Library</div>
@@ -5161,6 +5116,19 @@ watch(mainTab, (newTab) => {
   }
 });
 
+watch(
+  () => route.query.tab,
+  (newTab) => {
+    if (
+      newTab &&
+      typeof newTab === "string" &&
+      ["dashboard", "network", "library", "windows", "devices"].includes(newTab)
+    ) {
+      mainTab.value = newTab;
+    }
+  },
+);
+
 const openApplyPolicyDialog = () => {
   showApplyPolicyDialog.value = true;
 };
@@ -5329,6 +5297,16 @@ onMounted(async () => {
   await loadAgents();
   loadAdmxData();
 
+  const tabFromQuery = route.query.tab as string | undefined;
+  if (
+    tabFromQuery &&
+    ["dashboard", "network", "library", "windows", "devices"].includes(
+      tabFromQuery,
+    )
+  ) {
+    mainTab.value = tabFromQuery;
+  }
+
   if (mainTab.value === "library") {
     policiesStore.fetchPolicies();
     treeStore.fetchPolicyTree();
@@ -5359,49 +5337,6 @@ onMounted(async () => {
   align-items: stretch
   height: 100%
 
-.gpo-sidebar
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(244, 247, 251, 0.98) 100%)
-  border-right: 1px solid rgba(18, 177, 209, 0.2)
-  display: flex
-  flex-direction: column
-  flex: 0 0 auto
-  min-height: 0
-  overflow: hidden
-
-.gpo-sidebar-header
-  background: linear-gradient(135deg, rgb(16, 137, 211) 0%, rgb(18, 177, 209) 100%)
-  color: white
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1)
-  flex-shrink: 0
-
-.gpo-nav-tabs
-  padding: 4px
-  flex-shrink: 0
-
-.gpo-nav-tab
-  margin-bottom: 1px
-  border-radius: 6px
-  transition: all 0.2s ease
-  padding: 4px 6px
-  min-height: 36px
-
-.gpo-nav-tab:hover
-  background: linear-gradient(135deg, rgba(16, 137, 211, 0.1) 0%, rgba(18, 177, 209, 0.15) 100%)
-
-.gpo-submenu
-  padding: 2px 6px
-  background: rgba(255, 255, 255, 0.5)
-  flex-shrink: 0
-
-.gpo-submenu-item
-  border-radius: 6px
-  margin: 1px 0
-  transition: all 0.2s ease
-  padding: 3px 6px
-  min-height: 28px
-
-.gpo-submenu-item:hover
-  background: linear-gradient(135deg, rgba(16, 137, 211, 0.1) 0%, rgba(18, 177, 209, 0.15) 100%)
   transform: translateX(4px)
 
 .gpo-devices-panel
@@ -5481,16 +5416,6 @@ onMounted(async () => {
   display: flex
   flex-direction: column
 
-.body--dark .gpo-sidebar
-  background: linear-gradient(135deg, rgba(30, 30, 30, 0.98) 0%, rgba(40, 45, 55, 0.98) 100%)
-  border-right: 1px solid rgba(18, 177, 209, 0.3)
-
-.body--dark .gpo-sidebar-header
-  background: linear-gradient(135deg, rgb(25, 35, 45) 0%, rgb(30, 40, 50) 100%)
-  box-shadow: rgba(0, 0, 0, 0.5) 0px 2px 8px
-
-.body--dark .gpo-submenu
-  background: rgba(50, 55, 60, 0.5)
 
 .body--dark .gpo-content-header
   background: rgba(30, 30, 30, 0.98)

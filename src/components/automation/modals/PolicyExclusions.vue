@@ -99,7 +99,7 @@ export default {
           r.data.forEach((client) => {
             this.siteOptions.push({ category: client.name });
             client.sites.forEach((site) =>
-              this.siteOptions.push({ label: site.name, value: site.id })
+              this.siteOptions.push({ label: site.name, value: site.id }),
             );
           });
           this.$q.loading.hide();
@@ -110,7 +110,7 @@ export default {
     },
     getOptions() {
       this.getAgentOptions("id").then(
-        (options) => (this.agentOptions = Object.freeze(options))
+        (options) => (this.agentOptions = Object.freeze(options)),
       );
       this.getClientsandSites();
     },

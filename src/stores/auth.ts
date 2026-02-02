@@ -66,6 +66,5 @@ export const useAuthStore = defineStore("auth", {
       this.ssoLoginProvider = null;
       this.provider_id = null;
     },
-
   },
 });
