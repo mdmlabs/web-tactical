@@ -33,7 +33,7 @@
                 <q-icon name="chevron_right" color="blue" />
               </q-item-section>
               <q-item-section>
-                <q-item-label>{{ cmd.cmd }}</q-item-label>
+                <q-item-label>{{ cmd.command }}</q-item-label>
                 <q-item-label caption>
                   Shell: {{ cmd.shell }} | Timeout: {{ cmd.timeout }}s
                 </q-item-label>
@@ -59,8 +59,10 @@
                 <q-item-label>Script ID: {{ script.script }}</q-item-label>
                 <q-item-label caption>
                   Timeout: {{ script.timeout }}s
-                  <span v-if="script.args && script.args.length > 0">
-                    | Args: {{ script.args.join(", ") }}
+                  <span
+                    v-if="script.script_args && script.script_args.length > 0"
+                  >
+                    | Args: {{ script.script_args.join(", ") }}
                   </span>
                 </q-item-label>
               </q-item-section>
@@ -82,7 +84,7 @@
                 <q-icon name="chevron_right" color="orange" />
               </q-item-section>
               <q-item-section>
-                <q-item-label>{{ soft.software.join(", ") }}</q-item-label>
+                <q-item-label>{{ soft.choco_prog_name }}</q-item-label>
               </q-item-section>
             </q-item>
           </q-list>
@@ -194,15 +196,24 @@ export default defineComponent({
     const { clientOptions, getClientOptions } = useClientDropdown();
 
     const enabledCommands = computed(() => {
-      return props.template.actions?.commands?.filter((c) => c.enabled) || [];
+      if (!props.template.actions || !Array.isArray(props.template.actions)) {
+        return [];
+      }
+      return props.template.actions.filter((a) => a.type === "cmd");
     });
 
     const enabledScripts = computed(() => {
-      return props.template.actions?.scripts?.filter((s) => s.enabled) || [];
+      if (!props.template.actions || !Array.isArray(props.template.actions)) {
+        return [];
+      }
+      return props.template.actions.filter((a) => a.type === "script");
     });
 
     const enabledSoftware = computed(() => {
-      return props.template.actions?.software?.filter((s) => s.enabled) || [];
+      if (!props.template.actions || !Array.isArray(props.template.actions)) {
+        return [];
+      }
+      return props.template.actions.filter((a) => a.type === "software");
     });
 
     async function run() {

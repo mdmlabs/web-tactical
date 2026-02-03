@@ -228,8 +228,15 @@ export default defineComponent({
     }
 
     function getActionsCount(template, type) {
-      if (!template.actions || !template.actions[type]) return 0;
-      return template.actions[type].filter((a) => a.enabled).length;
+      if (!template.actions || !Array.isArray(template.actions)) return 0;
+
+      const typeMap = {
+        commands: "cmd",
+        scripts: "script",
+        software: "software",
+      };
+
+      return template.actions.filter((a) => a.type === typeMap[type]).length;
     }
 
     async function toggleEnabled(template) {
@@ -312,4 +319,3 @@ export default defineComponent({
   },
 });
 </script>
-

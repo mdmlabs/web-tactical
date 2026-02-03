@@ -111,7 +111,6 @@
                   filterable
                   class="q-mb-md"
                 />
-
               </q-card-section>
             </q-card>
           </q-expansion-item>
@@ -475,7 +474,7 @@ import { useClientDropdown, useSiteDropdown } from "@/composables/clients";
 import { useCustomFieldDropdown } from "@/composables/core";
 import { createTemplate, updateTemplate } from "@/api/tasks";
 import { fetchChocosSoftware } from "@/api/software";
-import { notifySuccess } from "@/utils/notify";
+import { notifySuccess, notifyError } from "@/utils/notify";
 import TacticalDropdown from "@/components/ui/TacticalDropdown.vue";
 
 const targetOptions = [
@@ -510,6 +509,59 @@ export default defineComponent({
       software: false,
     });
 
+    function parseActionsFromBackend(actions) {
+      const result = {
+        commands: [],
+        scripts: [],
+        software: [],
+      };
+
+      if (!actions || !Array.isArray(actions)) {
+        return result;
+      }
+
+      actions.forEach((action) => {
+        if (action.type === "cmd") {
+          result.commands.push({
+            enabled: true,
+            osType: "windows",
+            shell: action.shell || "cmd",
+            custom_shell: action.custom_shell || null,
+            cmd: action.command || "",
+            timeout: action.timeout || 120,
+            run_as_user: action.run_as_user || false,
+          });
+        } else if (action.type === "script") {
+          result.scripts.push({
+            enabled: true,
+            script: action.script,
+            args: action.script_args || [],
+            env_vars: action.env_vars || [],
+            timeout: action.timeout || 300,
+            run_as_user: action.run_as_user || false,
+            save_to_custom_field: action.save_to_custom_field || false,
+            custom_field: action.custom_field || null,
+            collector_all_output: action.collector_all_output || false,
+            save_to_agent_note: action.save_to_agent_note || false,
+          });
+        } else if (action.type === "software") {
+          const existingSoft = result.software.find((s) => s.enabled);
+          if (existingSoft) {
+            if (action.choco_prog_name) {
+              existingSoft.software.push(action.choco_prog_name);
+            }
+          } else {
+            result.software.push({
+              enabled: true,
+              software: action.choco_prog_name ? [action.choco_prog_name] : [],
+            });
+          }
+        }
+      });
+
+      return result;
+    }
+
     const state = reactive({
       name: props.template?.name || "",
       description: props.template?.description || "",
@@ -521,11 +573,7 @@ export default defineComponent({
       client: props.template?.client || null,
       site: props.template?.site || null,
       agents: props.template?.agents || [],
-      actions: {
-        commands: props.template?.actions?.commands || [],
-        scripts: props.template?.actions?.scripts || [],
-        software: props.template?.actions?.software || [],
-      },
+      actions: parseActionsFromBackend(props.template?.actions),
     });
 
     const loading = ref(false);
@@ -593,7 +641,7 @@ export default defineComponent({
         state.actions.software.some((s) => s.enabled);
 
       if (!hasEnabledAction) {
-        notifySuccess(
+        notifyError(
           "Please enable at least one action (command, script, or software)",
         );
         return;
@@ -601,6 +649,71 @@ export default defineComponent({
 
       loading.value = true;
       try {
+        const actions = [];
+
+        state.actions.commands?.forEach((cmd) => {
+          if (cmd.enabled) {
+            actions.push({
+              type: "cmd",
+              name: `Command: ${cmd.cmd.substring(0, 50)}`,
+              command: cmd.cmd,
+              shell: cmd.shell,
+              custom_shell: cmd.custom_shell,
+              timeout: cmd.timeout,
+              run_as_user: cmd.run_as_user,
+            });
+          }
+        });
+
+        state.actions.scripts?.forEach((script) => {
+          if (script.enabled) {
+            actions.push({
+              type: "script",
+              name: `Script: ${script.script}`,
+              script: script.script,
+              script_args: script.args,
+              env_vars: script.env_vars,
+              timeout: script.timeout,
+              run_as_user: script.run_as_user,
+              save_to_custom_field: script.save_to_custom_field,
+              custom_field: script.custom_field,
+              collector_all_output: script.collector_all_output,
+              save_to_agent_note: script.save_to_agent_note,
+            });
+          }
+        });
+
+        state.actions.software?.forEach((soft) => {
+          if (soft.enabled && soft.software.length > 0) {
+            soft.software.forEach((pkg) => {
+              actions.push({
+                type: "software",
+                name: `Software: ${pkg}`,
+                func: "install",
+                choco_prog_name: pkg,
+              });
+            });
+          }
+        });
+
+        const agentIds =
+          state.target === "agents"
+            ? state.agents
+                .map((id) =>
+                  typeof id === "string" ? Number.parseInt(id) : id,
+                )
+                .filter((id) => !Number.isNaN(id))
+            : [];
+
+        const siteIds =
+          state.target === "site" && state.site
+            ? [
+                typeof state.site === "string"
+                  ? Number.parseInt(state.site)
+                  : state.site,
+              ].filter((id) => !Number.isNaN(id))
+            : [];
+
         const payload = {
           name: state.name,
           description: state.description,
@@ -608,9 +721,9 @@ export default defineComponent({
           continue_on_error: state.continue_on_error,
           collector_all_output: state.collector_all_output,
           task_supported_platforms: state.task_supported_platforms,
-          actions: state.actions,
-          agents: state.target === "agents" ? state.agents : [],
-          sites: state.target === "site" && state.site ? [state.site] : [],
+          actions: actions,
+          agents: agentIds,
+          sites: siteIds,
         };
 
         if (isEdit.value) {

@@ -169,13 +169,49 @@ export interface TemplateActions {
 
 export type TemplateTargetType = "client" | "site" | "agents" | "all";
 
+export interface TemplateCommandActionBackend {
+  type: "cmd";
+  name: string;
+  command: string;
+  shell: "cmd" | "powershell";
+  custom_shell?: string | null;
+  timeout: number;
+  run_as_user: boolean;
+}
+
+export interface TemplateScriptActionBackend {
+  type: "script";
+  name: string;
+  script: number;
+  script_args?: string[];
+  env_vars?: string[];
+  timeout: number;
+  run_as_user: boolean;
+  save_to_custom_field: boolean;
+  custom_field?: number | null;
+  collector_all_output: boolean;
+  save_to_agent_note: boolean;
+}
+
+export interface TemplateSoftwareActionBackend {
+  type: "software";
+  name: string;
+  func: "install";
+  choco_prog_name: string;
+}
+
+export type TemplateActionBackend =
+  | TemplateCommandActionBackend
+  | TemplateScriptActionBackend
+  | TemplateSoftwareActionBackend;
+
 export interface TaskTemplate {
   id?: number;
   created_by?: string;
   modified_by?: string;
   name: string;
   description: string;
-  actions: TemplateActions;
+  actions: TemplateActionBackend[];
   continue_on_error: boolean;
   collector_all_output: boolean;
   enabled: boolean;
