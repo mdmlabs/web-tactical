@@ -265,6 +265,17 @@
         <q-card-actions align="right">
           <q-btn label="Cancel" v-close-popup />
           <q-btn
+            v-if="
+              mode === 'command' || mode === 'script' || mode === 'software'
+            "
+            label="Save as Template"
+            color="secondary"
+            outline
+            @click="saveAsTemplate"
+            :disable="loading"
+            class="q-mr-sm"
+          />
+          <q-btn
             label="Run"
             color="primary"
             type="submit"
@@ -287,15 +298,15 @@ import {
   onMounted,
   defineComponent,
 } from "vue";
-import { useDialogPluginComponent, openURL } from "quasar";
+import { useDialogPluginComponent, openURL, useQuasar } from "quasar";
 import { useScriptDropdown } from "@/composables/scripts";
-import { useAgentDropdown } from "@/composables/agents";
+import { useAgentDropdown, cmdPlaceholder } from "@/composables/agents";
 import { useClientDropdown, useSiteDropdown } from "@/composables/clients";
 import { useCustomFieldDropdown } from "@/composables/core";
 import { runBulkAction } from "@/api/agents";
 import { fetchChocosSoftware, bulkSoftwareInstall } from "@/api/software";
+import { createTemplate } from "@/api/tasks";
 import { notifySuccess } from "@/utils/notify";
-import { cmdPlaceholder } from "@/composables/agents";
 import { envVarsLabel, runAsUserToolTip } from "@/constants/constants";
 
 // ui imports
@@ -335,6 +346,8 @@ export default defineComponent({
     mode: !String,
   },
   setup(props) {
+    const $q = useQuasar();
+
     const shellOptions = computed(() => {
       if (state.osType === "windows") {
         return [
@@ -460,6 +473,103 @@ export default defineComponent({
       return state.osType === "windows" && modes.includes(state.mode);
     };
 
+    async function saveAsTemplate() {
+      const nameDialog = await new Promise((resolve) => {
+        $q.dialog({
+          title: "Save as Template",
+          message: "Enter template name:",
+          prompt: {
+            model: "",
+            type: "text",
+          },
+          cancel: true,
+        })
+          .onOk((name) => {
+            if (!name) {
+              notifySuccess("Template name is required");
+              resolve(null);
+              return;
+            }
+
+            $q.dialog({
+              title: "Template Description",
+              message: "Enter template description (optional):",
+              prompt: {
+                model: "",
+                type: "text",
+              },
+              cancel: true,
+            })
+              .onOk((description) => {
+                resolve({ name, description });
+              })
+              .onCancel(() => {
+                resolve(null);
+              });
+          })
+          .onCancel(() => {
+            resolve(null);
+          });
+      });
+
+      if (!nameDialog) return;
+
+      try {
+        const templatePayload = {
+          name: nameDialog.name,
+          description: nameDialog.description,
+          enabled: true,
+          continue_on_error: state.offlineAgents,
+          collector_all_output: state.collector_all_output,
+          task_supported_platforms: "windows",
+          actions: {},
+          agents: state.target === "agents" ? state.agents : [],
+          sites: state.target === "site" && state.site ? [state.site] : [],
+        };
+
+        if (state.mode === "command") {
+          templatePayload.actions.commands = [
+            {
+              enabled: true,
+              osType: state.osType,
+              shell: state.shell,
+              custom_shell: state.custom_shell,
+              cmd: state.cmd,
+              timeout: state.timeout,
+              run_as_user: state.run_as_user,
+            },
+          ];
+        } else if (state.mode === "script") {
+          templatePayload.actions.scripts = [
+            {
+              enabled: true,
+              script: state.script,
+              args: state.args || [],
+              env_vars: state.env_vars || [],
+              timeout: state.timeout,
+              run_as_user: state.run_as_user,
+              save_to_custom_field: !!state.custom_field,
+              custom_field: state.custom_field,
+              collector_all_output: state.collector_all_output,
+              save_to_agent_note: state.save_to_agent_note,
+            },
+          ];
+        } else if (state.mode === "software") {
+          templatePayload.actions.software = [
+            {
+              enabled: true,
+              software: state.software,
+            },
+          ];
+        }
+
+        await createTemplate(templatePayload);
+        notifySuccess(`Template "${nameDialog.name}" created successfully`);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
     // set modal title and caption
     const modalTitle = computed(() => {
       return props.mode === "command"
@@ -519,6 +629,7 @@ export default defineComponent({
       cmdPlaceholder,
       supportsRunAsUser,
       openScriptURL,
+      saveAsTemplate,
 
       // quasar dialog plugin
       dialogRef,

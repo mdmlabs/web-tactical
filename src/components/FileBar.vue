@@ -852,6 +852,19 @@
                   <q-item
                     clickable
                     v-ripple
+                    @click="handleMenuAction('templatesManager')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="folder_special" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Templates Manager</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
                     @click="handleMenuAction('serverMaintenance')"
                     class="filebar-popup-item"
                     v-close-popup
@@ -942,6 +955,17 @@
                   <q-icon name="apps" />
                 </q-item-section>
                 <q-item-section>Bulk Software</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                @click="handleMenuAction('templatesManager')"
+                class="filebar-menu-item"
+              >
+                <q-item-section avatar>
+                  <q-icon name="folder_special" />
+                </q-item-section>
+                <q-item-section>Templates Manager</q-item-section>
               </q-item>
               <q-item
                 clickable
@@ -1094,6 +1118,7 @@ import DeploymentTable from "@/components/clients/DeploymentTable.vue";
 import ServerMaintenance from "@/components/modals/core/ServerMaintenance.vue";
 import CodeSign from "@/components/modals/coresettings/CodeSign.vue";
 import PermissionsManager from "@/components/accounts/PermissionsManager.vue";
+import TemplateManager from "@/components/tasks/TemplateManager.vue";
 
 export default {
   name: "FileBar",
@@ -1233,6 +1258,9 @@ export default {
           break;
         case "bulkSoftware":
           this.showBulkAction("software");
+          break;
+        case "templatesManager":
+          this.showTemplatesManager();
           break;
         case "serverMaintenance":
           this.showServerMaintenance = true;
@@ -1376,6 +1404,11 @@ export default {
         componentProps: {
           mode: mode,
         },
+      });
+    },
+    showTemplatesManager() {
+      this.$q.dialog({
+        component: TemplateManager,
       });
     },
     showDebugLog() {
