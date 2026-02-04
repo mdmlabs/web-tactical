@@ -163,7 +163,7 @@ export function formatAgentOptions(
     const options: Option[] = [];
     const agents = data.map((agent) => ({
       label: agent.hostname,
-      value: agent[value_field] as string,
+      value: agent[value_field],
       cat: `${agent.client} > ${agent.site}`,
     }));
 

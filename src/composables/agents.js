@@ -10,10 +10,12 @@ export function useAgentDropdown(opts = {}) {
   const agentOptions = ref([]);
 
   // specifing flat returns an array of hostnames versus {value:id, label: hostname}
-  async function getAgentOptions(flat = false) {
+  // value_field can be "id" (number) or "agent_id" (string), defaults to "agent_id"
+  async function getAgentOptions(flat = false, value_field = "agent_id") {
     agentOptions.value = formatAgentOptions(
       await fetchAgents({ detail: false }),
       flat,
+      value_field,
     );
   }
 
