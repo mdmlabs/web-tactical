@@ -299,6 +299,7 @@ import {
   defineComponent,
 } from "vue";
 import { useDialogPluginComponent, openURL, useQuasar } from "quasar";
+import axios from "axios";
 import { useScriptDropdown } from "@/composables/scripts";
 import { useAgentDropdown, cmdPlaceholder } from "@/composables/agents";
 import { useClientDropdown, useSiteDropdown } from "@/composables/clients";
@@ -515,6 +516,31 @@ export default defineComponent({
       if (!nameDialog) return;
 
       try {
+        let agentIds = [];
+        if (
+          state.target === "agents" &&
+          state.agents &&
+          state.agents.length > 0
+        ) {
+          const { data: allAgents } = await axios.get("/agents/?detail=false");
+          const agentIdMap = new Map(
+            allAgents.map((agent) => [agent.agent_id, agent.id]),
+          );
+
+          agentIds = state.agents
+            .map((agent_id) => agentIdMap.get(agent_id))
+            .filter((id) => id !== undefined);
+        }
+
+        const siteIds =
+          state.target === "site" && state.site
+            ? [
+                typeof state.site === "string"
+                  ? Number.parseInt(state.site)
+                  : state.site,
+              ].filter((id) => !Number.isNaN(id))
+            : [];
+
         const templatePayload = {
           name: nameDialog.name,
           description: nameDialog.description,
@@ -523,8 +549,8 @@ export default defineComponent({
           collector_all_output: state.collector_all_output,
           task_supported_platforms: "windows",
           actions: {},
-          agents: state.target === "agents" ? state.agents : [],
-          sites: state.target === "site" && state.site ? [state.site] : [],
+          agents: agentIds,
+          sites: siteIds,
         };
 
         if (state.mode === "command") {

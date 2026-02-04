@@ -73,7 +73,7 @@ export async function deleteTemplate(id) {
   return data;
 }
 
-export async function runTemplate(id, payload) {
-  const { data } = await axios.post(`${baseUrl}/templates/${id}/run/`, payload);
+export async function runTemplate(id) {
+  const { data } = await axios.post(`${baseUrl}/templates/${id}/apply/`);
   return data;
 }

@@ -89,55 +89,6 @@
             </q-item>
           </q-list>
         </div>
-
-        <q-separator class="q-my-md" />
-
-        <div class="text-subtitle2 q-mb-sm">Target Override (Optional):</div>
-
-        <q-option-group
-          v-model="runTarget"
-          :options="targetOptions"
-          color="primary"
-          dense
-          inline
-          class="q-pl-sm q-mb-md"
-        />
-
-        <tactical-dropdown
-          v-if="runTarget === 'client'"
-          v-model="selectedClient"
-          :options="clientOptions"
-          label="Select Client"
-          outlined
-          mapOptions
-          filterable
-          class="q-mb-md"
-        />
-        <tactical-dropdown
-          v-else-if="runTarget === 'site'"
-          v-model="selectedSite"
-          :options="siteOptions"
-          label="Select Site"
-          outlined
-          mapOptions
-          filterable
-          class="q-mb-md"
-        />
-        <tactical-dropdown
-          v-else-if="runTarget === 'agents'"
-          v-model="selectedAgents"
-          :options="agentOptions"
-          label="Select Agents"
-          filled
-          multiple
-          mapOptions
-          filterable
-          class="q-mb-md"
-        />
-
-        <div class="text-caption text-grey-7">
-          Leave default to use template's original target settings
-        </div>
       </q-card-section>
 
       <q-card-actions align="right">
@@ -156,25 +107,13 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, defineComponent } from "vue";
+import { ref, computed, defineComponent } from "vue";
 import { useDialogPluginComponent } from "quasar";
-import { useAgentDropdown } from "@/composables/agents";
-import { useClientDropdown, useSiteDropdown } from "@/composables/clients";
 import { runTemplate } from "@/api/tasks";
-import { notifySuccess } from "@/utils/notify";
-import TacticalDropdown from "@/components/ui/TacticalDropdown.vue";
-
-const targetOptions = [
-  { label: "Use Template Default", value: "default" },
-  { label: "Client", value: "client" },
-  { label: "Site", value: "site" },
-  { label: "Selected Agents", value: "agents" },
-  { label: "All", value: "all" },
-];
+import { notifySuccess, notifyError } from "@/utils/notify";
 
 export default defineComponent({
   name: "TemplateRunner",
-  components: { TacticalDropdown },
   props: {
     template: {
       type: Object,
@@ -186,14 +125,6 @@ export default defineComponent({
     const { dialogRef, onDialogHide, onDialogOK } = useDialogPluginComponent();
 
     const loading = ref(false);
-    const runTarget = ref("default");
-    const selectedClient = ref(null);
-    const selectedSite = ref(null);
-    const selectedAgents = ref([]);
-
-    const { agentOptions, getAgentOptions } = useAgentDropdown();
-    const { siteOptions, getSiteOptions } = useSiteDropdown();
-    const { clientOptions, getClientOptions } = useClientDropdown();
 
     const enabledCommands = computed(() => {
       if (!props.template.actions || !Array.isArray(props.template.actions)) {
@@ -219,51 +150,21 @@ export default defineComponent({
     async function run() {
       loading.value = true;
       try {
-        const payload = {};
-
-        if (runTarget.value !== "default") {
-          payload.target = runTarget.value;
-
-          if (runTarget.value === "client" && selectedClient.value) {
-            payload.client = selectedClient.value;
-          } else if (runTarget.value === "site" && selectedSite.value) {
-            payload.site = selectedSite.value;
-          } else if (
-            runTarget.value === "agents" &&
-            selectedAgents.value.length > 0
-          ) {
-            payload.agents = selectedAgents.value;
-          }
-        }
-
-        await runTemplate(props.template.id, payload);
+        await runTemplate(props.template.id);
         notifySuccess(`Template "${props.template.name}" is running`);
         onDialogOK();
       } catch (e) {
         console.error(e);
+        notifyError(e?.response?.data?.detail || "Failed to run template");
       } finally {
         loading.value = false;
       }
     }
 
-    onMounted(() => {
-      getAgentOptions();
-      getSiteOptions();
-      getClientOptions();
-    });
-
     return {
       dialogRef,
       onDialogHide,
       loading,
-      runTarget,
-      selectedClient,
-      selectedSite,
-      selectedAgents,
-      targetOptions,
-      agentOptions,
-      siteOptions,
-      clientOptions,
       enabledCommands,
       enabledScripts,
       enabledSoftware,

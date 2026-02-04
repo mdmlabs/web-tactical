@@ -562,6 +562,21 @@ export default defineComponent({
       return result;
     }
 
+    function determineTarget(template) {
+      if (!template) return "client";
+
+      if (template.agents && template.agents.length > 0) {
+        return "agents";
+      }
+      if (template.client) {
+        return "client";
+      }
+      if (template.site || (template.sites && template.sites.length > 0)) {
+        return "site";
+      }
+      return "all";
+    }
+
     const state = reactive({
       name: props.template?.name || "",
       description: props.template?.description || "",
@@ -569,9 +584,9 @@ export default defineComponent({
       continue_on_error: props.template?.continue_on_error ?? false,
       collector_all_output: props.template?.collector_all_output ?? false,
       task_supported_platforms: "windows",
-      target: props.template?.target || "client",
+      target: determineTarget(props.template),
       client: props.template?.client || null,
-      site: props.template?.site || null,
+      site: props.template?.site || props.template?.sites?.[0] || null,
       agents: props.template?.agents || [],
       actions: parseActionsFromBackend(props.template?.actions),
     });
@@ -726,6 +741,19 @@ export default defineComponent({
           sites: siteIds,
         };
 
+        if (state.target === "client" && state.client) {
+          payload.client =
+            typeof state.client === "string"
+              ? Number.parseInt(state.client)
+              : state.client;
+        }
+        if (state.target === "site" && state.site) {
+          payload.site =
+            typeof state.site === "string"
+              ? Number.parseInt(state.site)
+              : state.site;
+        }
+
         if (isEdit.value) {
           await updateTemplate(props.template.id, payload);
           notifySuccess("Template updated successfully");
@@ -744,7 +772,7 @@ export default defineComponent({
 
     onMounted(async () => {
       getScriptOptions();
-      getAgentOptions();
+      getAgentOptions(false, "id");
       getSiteOptions();
       getClientOptions();
 
