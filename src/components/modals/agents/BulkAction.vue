@@ -541,6 +541,15 @@ export default defineComponent({
               ].filter((id) => !Number.isNaN(id))
             : [];
 
+        const clientIds =
+          state.target === "client" && state.client != null
+            ? [
+                typeof state.client === "string"
+                  ? Number.parseInt(state.client)
+                  : state.client,
+              ].filter((id) => !Number.isNaN(id))
+            : [];
+
         const templatePayload = {
           name: nameDialog.name,
           description: nameDialog.description,
@@ -551,6 +560,7 @@ export default defineComponent({
           actions: {},
           agents: agentIds,
           sites: siteIds,
+          clients: clientIds,
         };
 
         if (state.mode === "command") {

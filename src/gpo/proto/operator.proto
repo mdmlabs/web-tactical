@@ -460,6 +460,7 @@ message PolicySummary {
   string name = 2;
   string display_name = 3;
   string explain_text = 4;
+  PolicyScope scope = 5;
 }
 
 // POLICY ASSIGNMENT
@@ -564,6 +565,7 @@ service PolicyStateService {
 
 message GetEffectivePoliciesRequest {
   PolicyTarget target = 1;
+  string lang_code = 2;
 }
 
 message GetEffectivePoliciesResponse {
@@ -574,10 +576,12 @@ message EffectivePolicy {
   string policy_hash = 1;
   PolicySource source = 2;
   string userSid = 3;
+  PolicySummary summary = 4;
 }
 
 message GetAssignmentsRequest {
   PolicyTarget target = 1;
+  string lang_code = 2;
 }
 
 message GetAssignmentsResponse {
@@ -589,6 +593,7 @@ message PolicyAssignment {
   PolicyDesiredState desired_state = 2;
   PolicyValueOverride override = 3;
   PolicyTarget target = 4;
+  PolicySummary summary = 5;
 }
 
 // SYSTEM INFO (минимум, у меня шире, но это потом)

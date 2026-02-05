@@ -568,7 +568,10 @@ export default defineComponent({
       if (template.agents && template.agents.length > 0) {
         return "agents";
       }
-      if (template.client) {
+      if (
+        template.client != null ||
+        (template.clients && template.clients.length > 0)
+      ) {
         return "client";
       }
       if (template.site || (template.sites && template.sites.length > 0)) {
@@ -585,7 +588,10 @@ export default defineComponent({
       collector_all_output: props.template?.collector_all_output ?? false,
       task_supported_platforms: "windows",
       target: determineTarget(props.template),
-      client: props.template?.client || null,
+      client:
+        props.template?.clients?.[0] ??
+        props.template?.client ??
+        null,
       site: props.template?.site || props.template?.sites?.[0] || null,
       agents: props.template?.agents || [],
       actions: parseActionsFromBackend(props.template?.actions),
@@ -729,6 +735,15 @@ export default defineComponent({
               ].filter((id) => !Number.isNaN(id))
             : [];
 
+        const clientIds =
+          state.target === "client" && state.client != null
+            ? [
+                typeof state.client === "string"
+                  ? Number.parseInt(state.client)
+                  : state.client,
+              ].filter((id) => !Number.isNaN(id))
+            : [];
+
         const payload = {
           name: state.name,
           description: state.description,
@@ -739,14 +754,9 @@ export default defineComponent({
           actions: actions,
           agents: agentIds,
           sites: siteIds,
+          clients: clientIds,
         };
 
-        if (state.target === "client" && state.client) {
-          payload.client =
-            typeof state.client === "string"
-              ? Number.parseInt(state.client)
-              : state.client;
-        }
         if (state.target === "site" && state.site) {
           payload.site =
             typeof state.site === "string"

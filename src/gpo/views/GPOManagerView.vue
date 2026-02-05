@@ -256,8 +256,11 @@
                             </q-item>
                             <q-item
                               v-if="
-                                (agentDetails.nodeInfo.systemInfo?.disks || [])
-                                  ?.length
+                                (
+                                  agentDetails.nodeInfo.systemInfo?.disksList ||
+                                  agentDetails.nodeInfo.systemInfo?.disks ||
+                                  []
+                                )?.length
                               "
                             >
                               <q-item-section>
@@ -265,7 +268,9 @@
                                 <q-item-label caption>
                                   <div
                                     v-for="(disk, index) in agentDetails
-                                      .nodeInfo?.systemInfo?.disks || []"
+                                      .nodeInfo?.systemInfo?.disksList ||
+                                    agentDetails.nodeInfo?.systemInfo?.disks ||
+                                    []"
                                     :key="index"
                                   >
                                     {{ disk }}
@@ -275,8 +280,11 @@
                             </q-item>
                             <q-item
                               v-if="
-                                (agentDetails.nodeInfo.systemInfo?.gpu || [])
-                                  ?.length
+                                (
+                                  agentDetails.nodeInfo.systemInfo?.gpuList ||
+                                  agentDetails.nodeInfo.systemInfo?.gpu ||
+                                  []
+                                )?.length
                               "
                             >
                               <q-item-section>
@@ -284,7 +292,9 @@
                                 <q-item-label caption>
                                   <div
                                     v-for="(gpu, index) in agentDetails.nodeInfo
-                                      ?.systemInfo?.gpu || []"
+                                      ?.systemInfo?.gpuList ||
+                                    agentDetails.nodeInfo?.systemInfo?.gpu ||
+                                    []"
                                     :key="index"
                                   >
                                     {{ gpu }}
@@ -296,6 +306,8 @@
                               v-if="
                                 (
                                   agentDetails.nodeInfo.systemInfo
+                                    ?.ipAddressesList ||
+                                  agentDetails.nodeInfo.systemInfo
                                     ?.ipAddresses ||
                                   agentDetails.nodeInfo.systemInfo?.ip_addresses
                                 )?.length
@@ -306,7 +318,9 @@
                                 <q-item-label caption>
                                   <div
                                     v-for="(ip, index) in agentDetails.nodeInfo
-                                      .systemInfo.ipAddresses ||
+                                      .systemInfo.ipAddressesList ||
+                                    agentDetails.nodeInfo.systemInfo
+                                      .ipAddresses ||
                                     agentDetails.nodeInfo.systemInfo
                                       .ip_addresses ||
                                     []"
@@ -322,6 +336,8 @@
                               v-if="
                                 (
                                   agentDetails.nodeInfo.systemInfo
+                                    ?.macAddressesList ||
+                                  agentDetails.nodeInfo.systemInfo
                                     ?.macAddresses ||
                                   agentDetails.nodeInfo.systemInfo
                                     ?.mac_addresses
@@ -333,14 +349,16 @@
                                 <q-item-label caption>
                                   <div
                                     v-for="(mac, index) in agentDetails.nodeInfo
-                                      .systemInfo.macAddresses ||
+                                      .systemInfo.macAddressesList ||
+                                    agentDetails.nodeInfo.systemInfo
+                                      .macAddresses ||
                                     agentDetails.nodeInfo.systemInfo
                                       .mac_addresses ||
                                     []"
                                     :key="index"
                                     class="q-mb-xs"
                                   >
-                                    {{ mac || "(empty)" }}
+                                    {{ mac || "" }}
                                   </div>
                                 </q-item-label>
                               </q-item-section>
@@ -939,7 +957,7 @@
                             <q-item-section>
                               <q-item-label>LAN IP</q-item-label>
                               <q-item-label caption>
-                                {{ networkInfo.local_ips || "Загрузка..." }}
+                                {{ networkInfo.local_ips || "Loading..." }}
                               </q-item-label>
                             </q-item-section>
                           </q-item>
@@ -950,7 +968,7 @@
                             <q-item-section>
                               <q-item-label>Public IP</q-item-label>
                               <q-item-label caption>
-                                {{ networkInfo.public_ip || "Загрузка..." }}
+                                {{ networkInfo.public_ip || "Loading..." }}
                               </q-item-label>
                             </q-item-section>
                           </q-item>
@@ -1006,6 +1024,14 @@
                   </div>
                 </q-tab-panel>
               </q-tab-panels>
+            </div>
+
+            <div
+              v-else-if="mainTab === 'collections'"
+              key="collections"
+              class="gpo-content-panels"
+            >
+              <GPOCollectionsTable />
             </div>
 
             <div
@@ -2503,6 +2529,7 @@ import GPOPolicyForm from "../components/GPOPolicyForm.vue";
 import GPOPolicySettingsDialog from "../components/GPOPolicySettingsDialog.vue";
 import AppliedPoliciesDialog from "../components/AppliedPoliciesDialog.vue";
 import ApplyPolicyDialog from "../components/ApplyPolicyDialog.vue";
+import GPOCollectionsTable from "../components/GPOCollectionsTable.vue";
 import MultiTextBox from "@/components/ui/MultiTextBox.vue";
 import type {
   GPOPolicy,
@@ -3678,10 +3705,14 @@ interface AgentDetails {
       firmwareVersion?: string;
       firmware_version?: string;
       disks?: string[];
+      disksList?: string[];
       gpu?: string[];
+      gpuList?: string[];
       ipAddresses?: string[];
+      ipAddressesList?: string[];
       ip_addresses?: string[];
       macAddresses?: string[];
+      macAddressesList?: string[];
       mac_addresses?: string[];
     };
     lastBootTimeUnix?: number | string;
@@ -4651,7 +4682,10 @@ async function loadNetworkInfo(agentId: string) {
       const nodeInfo = agentData.nodeInfo;
       const systemInfo = nodeInfo?.systemInfo;
       const ipAddresses =
-        systemInfo?.ipAddresses || systemInfo?.ip_addresses || [];
+        systemInfo?.ipAddressesList ||
+        systemInfo?.ipAddresses ||
+        systemInfo?.ip_addresses ||
+        [];
 
       const localIps =
         ipAddresses
@@ -5122,7 +5156,14 @@ watch(
     if (
       newTab &&
       typeof newTab === "string" &&
-      ["dashboard", "network", "library", "windows", "devices"].includes(newTab)
+      [
+        "dashboard",
+        "collections",
+        "network",
+        "library",
+        "windows",
+        "devices",
+      ].includes(newTab)
     ) {
       mainTab.value = newTab;
     }
@@ -5300,9 +5341,14 @@ onMounted(async () => {
   const tabFromQuery = route.query.tab as string | undefined;
   if (
     tabFromQuery &&
-    ["dashboard", "network", "library", "windows", "devices"].includes(
-      tabFromQuery,
-    )
+    [
+      "dashboard",
+      "collections",
+      "network",
+      "library",
+      "windows",
+      "devices",
+    ].includes(tabFromQuery)
   ) {
     mainTab.value = tabFromQuery;
   }
