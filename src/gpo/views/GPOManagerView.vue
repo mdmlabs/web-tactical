@@ -2529,7 +2529,7 @@ import GPOPolicyForm from "../components/GPOPolicyForm.vue";
 import GPOPolicySettingsDialog from "../components/GPOPolicySettingsDialog.vue";
 import AppliedPoliciesDialog from "../components/AppliedPoliciesDialog.vue";
 import ApplyPolicyDialog from "../components/ApplyPolicyDialog.vue";
-import GPOCollectionsTable from "../components/GPOCollectionsTable.vue";
+import GPOCollectionsTable from "../components/CollectionsPolicies/GPOCollectionsTable.vue";
 import MultiTextBox from "@/components/ui/MultiTextBox.vue";
 import type {
   GPOPolicy,
