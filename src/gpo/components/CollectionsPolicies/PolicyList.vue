@@ -92,7 +92,8 @@
 
 <script setup lang="ts">
 import EmptyState from "@/components/ui/EmptyState.vue";
-import type { PolicyItem } from "../types/policy-catalog";
+import { PolicyItem } from "@/gpo/types/policy-catalog";
+
 
 defineProps<{
   filteredGroupedPolicies: { scopeKey: string; scopeLabel: string; policies: PolicyItem[] }[];

@@ -1,7 +1,6 @@
 <template>
   <q-dialog
     v-model="dialogVisible"
-    maximized
     transition-show="slide-up"
     transition-hide="slide-down"
   >
@@ -12,7 +11,7 @@
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
 
-      <q-card-section>
+      <q-card-section class="applied-policies-dialog__body">
         <div v-if="agent" class="text-subtitle2 q-mb-md">
           Device: {{ agent.hostname }}
         </div>
@@ -62,13 +61,27 @@
                 :loading="loading"
               >
                 <template v-slot:body-cell-policy="props">
-                  <q-td :props="props">{{
-                    props.row.displayName ||
-                    props.row.name ||
-                    props.row.policyHash ||
-                    props.row.policy_hash ||
-                    props.row.id
-                  }}</q-td>
+                  <q-td :props="props">
+                    <div>
+                      {{
+                        props.row.displayName ||
+                        props.row.name ||
+                        props.row.policyHash ||
+                        props.row.policy_hash ||
+                        props.row.id
+                      }}
+                    </div>
+                    <div
+                      v-if="props.row.explainText || props.row.description"
+                      class="text-caption text-grey-7 q-mt-xs assignment-description"
+                    >
+                      {{
+                        truncateDescription(
+                          props.row.explainText || props.row.description || "",
+                        )
+                      }}
+                    </div>
+                  </q-td>
                 </template>
 
                 <template v-slot:body-cell-policy_hash="props">
@@ -97,6 +110,12 @@
                 <template v-slot:body-cell-target="props">
                   <q-td :props="props">
                     {{ targetLabel(props.row) }}
+                  </q-td>
+                </template>
+
+                <template v-slot:body-cell-scope="props">
+                  <q-td :props="props">
+                    {{ scopeLabel(props.row) }}
                   </q-td>
                 </template>
               </q-table>
@@ -249,6 +268,17 @@ const assignmentColumns: QTableColumn[] = [
     field: (row: Record<string, unknown>) =>
       String(row["target"] || row["targetName"] || row["userSid"] || ""),
   },
+  // {
+  //   name: "scope",
+  //   label: "Scope",
+  //   align: "left",
+  //   field: (row: Record<string, unknown>) =>
+  //     String(
+  //       row["scope"] ??
+  //         (row["summary"] as Record<string, unknown> | undefined)?.["scope"] ??
+  //         "",
+  //     ),
+  // },
 ];
 
 function formatOverride(o: unknown): string {
@@ -359,6 +389,30 @@ function targetLabel(row: Record<string, unknown>): string {
   return String(t);
 }
 
+const ASSIGNMENT_DESCRIPTION_MAX_LEN = 120;
+
+function truncateDescription(
+  text: string,
+  maxLen = ASSIGNMENT_DESCRIPTION_MAX_LEN,
+): string {
+  const s = String(text).trim();
+  if (s.length <= maxLen) return s;
+  return s.slice(0, maxLen).trim() + "…";
+}
+
+function scopeLabel(row: Record<string, unknown>): string {
+  const scope =
+    row["scope"] ??
+    (row["summary"] as Record<string, unknown> | undefined)?.["scope"];
+  if (scope === null || scope === undefined) return "—";
+  const s = String(scope).toUpperCase();
+  if (s.includes("USER") && s.includes("MACHINE")) return "Both";
+  if (s.includes("USER")) return "User";
+  if (s.includes("MACHINE")) return "Machine";
+  if (s.includes("BOTH")) return "Both";
+  return String(scope);
+}
+
 function desiredStateLabel(row: Record<string, unknown>): string {
   const raw = row["desiredState"] ?? row["desired_state"] ?? null;
   if (raw === null || raw === undefined) return "Unspecified";
@@ -389,4 +443,12 @@ function desiredStateLabel(row: Record<string, unknown>): string {
 .applied-policies-dialog
   min-width: 800px
   max-width: 1200px
+  max-height: 85vh
+  display: flex
+  flex-direction: column
+
+.applied-policies-dialog__body
+  overflow: auto
+  flex: 1
+  min-height: 0
 </style>

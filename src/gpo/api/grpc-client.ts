@@ -595,9 +595,11 @@ export const policyAssignmentClient = {
 export const policyStateClient = {
   async getEffectivePolicies(
     target: operator_pb_types.PolicyTarget,
+    langCode: string = "en-US",
   ): Promise<operator_pb_types.GetEffectivePoliciesResponse.AsObject> {
     const request = new operator_pb.GetEffectivePoliciesRequest();
     request.setTarget(target);
+    request.setLangCode(langCode);
 
     const response = await policyStateServiceClient.getEffectivePolicies(
       request,
@@ -609,10 +611,11 @@ export const policyStateClient = {
 
   async getAssignments(
     target: operator_pb_types.PolicyTarget,
+    langCode: string = "en-US",
   ): Promise<operator_pb_types.GetAssignmentsResponse.AsObject> {
     const request = new operator_pb.GetAssignmentsRequest();
     request.setTarget(target);
-
+    request.setLangCode(langCode);
     const response = await policyStateServiceClient.getAssignments(
       request,
       createGrpcMetadata(),
@@ -623,7 +626,7 @@ export const policyStateClient = {
 
   async getEffectivePoliciesFor(
     targetType: "global" | "agent" | "user",
-    targetParams: { agentId?: string; userSid?: string } = {},
+    targetParams: { agentId?: string; userSid?: string; langCode?: string } = {},
   ): Promise<operator_pb_types.GetEffectivePoliciesResponse.AsObject> {
     let target: operator_pb.PolicyTarget;
     switch (targetType) {
@@ -645,13 +648,12 @@ export const policyStateClient = {
       default:
         throw new Error(`Неизвестный тип цели: ${targetType}`);
     }
-
-    return await this.getEffectivePolicies(target);
+    return await this.getEffectivePolicies(target, targetParams.langCode);
   },
 
   async getAssignmentsFor(
     targetType: "global" | "agent" | "user",
-    targetParams: { agentId?: string; userSid?: string } = {},
+    targetParams: { agentId?: string; userSid?: string; langCode?: string } = {},
   ): Promise<operator_pb_types.GetAssignmentsResponse.AsObject> {
     let target: operator_pb.PolicyTarget;
     switch (targetType) {
@@ -674,7 +676,7 @@ export const policyStateClient = {
         throw new Error(`Неизвестный тип цели: ${targetType}`);
     }
 
-    return await this.getAssignments(target);
+    return await this.getAssignments(target, targetParams.langCode);
   },
 };
 

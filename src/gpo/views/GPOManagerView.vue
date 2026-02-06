@@ -2489,13 +2489,7 @@
         :assignments="appliedDialogAssignments"
         :effective-policies="appliedDialogEffective"
         :loading="showAppliedPoliciesLoading"
-        @refresh="
-          () => {
-            if (selectedAgent.value) {
-              loadAssignedPolicies(selectedAgent.value.id);
-            }
-          }
-        "
+        @refresh="refreshAppliedPoliciesDialog"
       />
 
       <ApplyPolicyDialog
@@ -5186,6 +5180,105 @@ watch(showApplyPolicyDialogForUser, (newVal) => {
   }
 });
 
+async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
+  const [assignmentsResp, effectiveResp] = await Promise.all([
+    policyStateClient.getAssignmentsFor("agent", { agentId }),
+    policyStateClient.getEffectivePoliciesFor("agent", { agentId }),
+  ]);
+
+  const assignmentsObj = assignmentsResp as unknown as Record<
+    string,
+    unknown
+  >;
+  const assignments = ((assignmentsObj["assignmentsList"] as unknown) ||
+    (assignmentsObj["assignments"] as unknown) ||
+    []) as Array<Record<string, unknown>>;
+
+  const effectiveObj = effectiveResp as unknown as Record<string, unknown>;
+  const effectivePolicies = ((effectiveObj["policiesList"] as unknown) ||
+    (effectiveObj["policies"] as unknown) ||
+    []) as Array<Record<string, unknown>>;
+
+  appliedDialogAssignments.value = await Promise.all(
+    assignments.map(async (a, index) => {
+      const policyHash = String(a["policyHash"] || a["policy_hash"] || "");
+      const summary = a["summary"] as Record<string, unknown> | undefined;
+      let displayName =
+        summary &&
+        String(
+          summary["displayName"] ||
+            summary["display_name"] ||
+            summary["name"] ||
+            "",
+        ).trim();
+      if (!displayName) {
+        try {
+          const pdRes = (await policyCatalogClient.getPolicy(
+            policyHash,
+          )) as unknown as Record<string, unknown>;
+          displayName =
+            String(
+              pdRes["displayName"] ||
+                pdRes["display_name"] ||
+                pdRes["name"] ||
+                policyHash,
+            ) || policyHash;
+        } catch {
+          // ignore
+        }
+      }
+      if (!displayName) displayName = policyHash;
+      const explainText =
+        summary &&
+        String(
+          summary["explainText"] || summary["explain_text"] || "",
+        ).trim();
+      const scopeRaw = summary?.["scope"];
+      const scope =
+        scopeRaw !== undefined && scopeRaw !== null
+          ? String(scopeRaw)
+          : undefined;
+      return {
+        ...a,
+        policyHash,
+        id: `${policyHash}-${index}`,
+        displayName,
+        summary,
+        explainText: explainText || undefined,
+        description: explainText || undefined,
+        scope: scope || undefined,
+      };
+    }),
+  );
+
+  appliedDialogEffective.value = effectivePolicies.map((p) => {
+    const policyHash = String(p["policyHash"] || p["policy_hash"] || "");
+    const summary = p["summary"] as Record<string, unknown> | undefined;
+    const displayName = String(
+      summary
+        ? summary["displayName"] ||
+            summary["display_name"] ||
+            summary["name"] ||
+            policyHash
+        : p["displayName"] || p["display_name"] || p["name"] || policyHash,
+    );
+    const explainText = summary
+      ? String(
+          summary["explainText"] || summary["explain_text"] || "",
+        ).trim()
+      : String(p["explainText"] || p["explain_text"] || "").trim();
+    return {
+      ...p,
+      policyHash,
+      id: policyHash,
+      displayName,
+      summary,
+      explainText: explainText || undefined,
+      description: explainText || undefined,
+    };
+  });
+}
+
 const openAppliedPoliciesDialog = () => {
   if (!selectedAgent.value) return;
   showAppliedPoliciesLoading.value = true;
@@ -5194,71 +5287,27 @@ const openAppliedPoliciesDialog = () => {
 
   (async () => {
     try {
-      const agentId = selectedAgent.value!.id;
-      const [assignmentsResp, effectiveResp] = await Promise.all([
-        policyStateClient.getAssignmentsFor("agent", { agentId }),
-        policyStateClient.getEffectivePoliciesFor("agent", { agentId }),
-      ]);
-
-      const assignmentsObj = assignmentsResp as unknown as Record<
-        string,
-        unknown
-      >;
-      const assignments = ((assignmentsObj["assignmentsList"] as unknown) ||
-        (assignmentsObj["assignments"] as unknown) ||
-        []) as Array<Record<string, unknown>>;
-
-      const effectiveObj = effectiveResp as unknown as Record<string, unknown>;
-      const effectivePolicies = ((effectiveObj["policiesList"] as unknown) ||
-        (effectiveObj["policies"] as unknown) ||
-        []) as Array<Record<string, unknown>>;
-
-      appliedDialogAssignments.value = await Promise.all(
-        assignments.map(async (a) => {
-          const policyHash = String(a["policyHash"] || a["policy_hash"] || "");
-          let displayName = policyHash;
-          try {
-            const pdRes = (await policyCatalogClient.getPolicy(
-              policyHash,
-            )) as unknown as Record<string, unknown>;
-            displayName =
-              String(
-                pdRes["displayName"] ||
-                  pdRes["display_name"] ||
-                  pdRes["name"] ||
-                  policyHash,
-              ) || policyHash;
-          } catch (e) {
-            // ignore
-          }
-          return {
-            ...a,
-            policyHash,
-            id: policyHash,
-            displayName,
-          };
-        }),
-      );
-
-      appliedDialogEffective.value = effectivePolicies.map((p) => {
-        const policyHash = String(p["policyHash"] || p["policy_hash"] || "");
-        return {
-          ...p,
-          policyHash,
-          id: policyHash,
-          displayName: String(
-            p["displayName"] || p["display_name"] || p["name"] || policyHash,
-          ),
-        };
-      });
+      await loadAppliedPoliciesDialogData(selectedAgent.value!.id);
+      showAppliedPoliciesDialog.value = true;
     } catch (error) {
       notifyError("Error loading applied policies");
     } finally {
       showAppliedPoliciesLoading.value = false;
-      showAppliedPoliciesDialog.value = true;
     }
   })();
 };
+
+async function refreshAppliedPoliciesDialog() {
+  if (!selectedAgent.value) return;
+  showAppliedPoliciesLoading.value = true;
+  try {
+    await loadAppliedPoliciesDialogData(selectedAgent.value.id);
+  } catch (error) {
+    notifyError("Error loading applied policies");
+  } finally {
+    showAppliedPoliciesLoading.value = false;
+  }
+}
 
 function onPolicySettingsApplied(
   policyId: string,

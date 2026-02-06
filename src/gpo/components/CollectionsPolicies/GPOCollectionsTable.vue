@@ -73,7 +73,7 @@
           </div>
           <div class="text-body2 q-mb-md">
             <strong>Description:</strong>
-            {{ collectionDetails.explain_text || "—" }}
+            {{ collectionDetails.explainText ?? collectionDetails.explain_text ?? "—" }}
           </div>
           <div class="text-subtitle2 q-mb-sm">
             Policies ({{
@@ -91,13 +91,7 @@
             <q-item v-for="(p, idx) in policiesForDisplay" :key="idx">
               <q-item-section>
                 <q-item-label>
-                  {{ p.displayName ?? p.display_name ?? p.name ?? "—" }}
-                </q-item-label>
-                <q-item-label
-                  caption
-                  v-if="p.name && (p.displayName ?? p.display_name)"
-                >
-                  {{ p.name }}
+                  {{ p.displayName ?? p.display_name ?? "—" }}
                 </q-item-label>
                 <q-item-label
                   caption
@@ -182,6 +176,7 @@ interface PolicyItem {
 interface CollectionDetailsData {
   id?: number | string;
   name?: string;
+  explainText?: string;
   explain_text?: string;
   policies?: PolicyItem[];
   policiesList?: PolicyItem[];
