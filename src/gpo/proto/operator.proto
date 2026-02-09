@@ -82,11 +82,12 @@ service CollectionsControlService {
       returns (CreateCollectionsPoliciesResponse);
   rpc CreateCollection (CreateCollectionRequest)
       returns (CollectionDetailsResponse);
+  rpc UpdateCollection (UpdateCollectionRequest)
+      returns (CollectionDetailsResponse);
   rpc DeleteCollection (DeleteCollectionRequest)
       returns (DeleteCollectionResponse);
   rpc GetPoliciesInCollection (GetPoliciesInCollectionRequest)
       returns (GetPoliciesInCollectionResponse);
-
 }
 message CreateCollectionsPoliciesRequest {
   int64 collection_id = 1;
@@ -111,15 +112,25 @@ message CollectionDetailsResponse {
 }
 message CollectionsSummary {
   int64 id = 1;
-  string name = 2;
-  string explain_text = 3;
-  repeated PolicySummary policies = 4;
+  PolicyScope scope = 2;
+  string name = 3;
+  string explain_text = 4;
+  repeated PolicySummary policies = 5;
 }
 message CreateCollectionRequest {
   string name = 1;
-  string explain_text = 2;
-  repeated CollectionTranslation translations = 3;
+  PolicyScope scope = 2;
+  string explain_text = 3;
+  repeated CollectionTranslation translations = 4;
 }
+
+message UpdateCollectionRequest {
+  int64 id = 1;
+  string name = 2;
+  string explain_text = 3;
+  repeated CollectionTranslation translations = 4;
+}
+
 message CollectionTranslation {
   string lang_code = 1;
   string name = 2;
@@ -137,7 +148,7 @@ message GetPoliciesInCollectionRequest {
   string lang_code = 2;
 }
 message GetPoliciesInCollectionResponse {
-  repeated CollectionsSummary policies = 1;
+  repeated PolicySummary policies = 1;
 }
 
 
@@ -531,9 +542,43 @@ message PolicyTarget {
     GlobalTarget global = 1;
     AgentTarget agent = 2;
     UserTarget user = 3;
+    TacticalClientTarget client = 4;
+    TacticalClientsTarget clients = 5;
+    TacticalSiteTarget site = 6;
+    TacticalSitesTarget sites = 7;
+    AggentsTarget agents = 8;
+    CombinedTarget combined = 9;
   }
 }
 
+// Tactical targets
+message TacticalClientTarget {
+  string client_id = 1;
+}
+
+message TacticalClientsTarget {
+  repeated TacticalClientTarget clients = 1;
+}
+
+message TacticalSiteTarget {
+  string site_id = 1;
+}
+
+message TacticalSitesTarget {
+  repeated TacticalSiteTarget sites = 1;
+}
+
+message AggentsTarget {
+  repeated AgentTarget agents = 1;
+}
+
+message CombinedTarget {
+  optional TacticalClientsTarget clients = 1;
+  optional TacticalSitesTarget sites = 2;
+  optional AggentsTarget agents = 3;
+}
+
+// System targets
 message GlobalTarget {}
 
 message AgentTarget {

@@ -644,7 +644,7 @@ function resetPassword() {
 }
 
 function openDocumentation() {
-  window.open("https://docs.example.com", "_blank", "noopener,noreferrer");
+  window.open("https://app-stage.rmadm.org/docs/", "_blank", "noopener,noreferrer");
 }
 
 // async function openWebTerm() {

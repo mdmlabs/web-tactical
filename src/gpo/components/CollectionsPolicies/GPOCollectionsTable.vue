@@ -25,23 +25,62 @@
         class="cursor-pointer"
         @row-click="onRowClick"
       >
+        <template v-slot:body-cell-scope="props">
+          <q-td :props="props">
+            <div
+              class="scope-cell"
+              :class="scopeCellClass(props.row.scope)"
+            >
+              <q-icon
+                v-for="icon in scopeIcons(props.row.scope)"
+                :key="icon"
+                :name="icon"
+                size="sm"
+                class="q-mr-xs"
+              />
+              <span>{{ scopeLabel(props.row.scope) }}</span>
+            </div>
+          </q-td>
+        </template>
         <template v-slot:body-cell-actions="props">
           <q-td :props="props">
             <div class="no-wrap justify-center q-gutter-xs">
               <q-btn
-                icon="edit"
-                size="sm"
+                icon="play_arrow"
+                size="s"
                 flat
                 dense
                 round
                 color="primary"
-                @click.stop="onEdit(props.row)"
+                @click.stop="onApplyCollection(props.row)"
+              >
+                <q-tooltip>Apply collection</q-tooltip>
+              </q-btn>
+              <q-btn
+                icon="remove_circle_outline"
+                size="s"
+                flat
+                dense
+                round
+                color="negative"
+                @click.stop="onRemoveCollection(props.row)"
+              >
+                <q-tooltip>Remove collection from target</q-tooltip>
+              </q-btn>
+              <q-btn
+                icon="edit"
+                size="s"
+                flat
+                dense
+                round
+                color="primary"
+                @click.stop="openEditCollection(props.row)"
               >
                 <q-tooltip>Edit</q-tooltip>
               </q-btn>
               <q-btn
                 icon="delete"
-                size="sm"
+                size="s"
                 flat
                 dense
                 round
@@ -73,7 +112,20 @@
           </div>
           <div class="text-body2 q-mb-md">
             <strong>Description:</strong>
-            {{ collectionDetails.explainText ?? collectionDetails.explain_text ?? "—" }}
+            {{
+              collectionDetails.explainText ??
+              collectionDetails.explain_text ??
+              "—"
+            }}
+            <div class="text-subtitle2 q-mb-sm">
+              <strong>Scope:</strong>
+              {{
+                scopeLabel(
+                  collectionDetails.scope ??
+                    operator_pb.PolicyScope.POLICY_SCOPE_NONE,
+                )
+              }}
+            </div>
           </div>
           <div class="text-subtitle2 q-mb-sm">
             Policies ({{
@@ -133,6 +185,18 @@
             type="textarea"
             autogrow
           />
+          <q-select
+            v-model="createScope"
+            :options="scopeOptions"
+            option-value="value"
+            option-label="label"
+            emit-value
+            map-options
+            label="Scope"
+            outlined
+            dense
+            class="q-mb-sm"
+          />
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancel" color="grey" v-close-popup />
@@ -148,11 +212,56 @@
       </q-card>
     </q-dialog>
 
+    <q-dialog v-model="editFormVisible" position="standard">
+      <q-card style="min-width: 400px">
+        <q-card-section>
+          <div class="text-h6">Edit collection</div>
+        </q-card-section>
+        <q-separator />
+        <q-card-section class="q-gutter-md">
+          <q-input
+            v-model="editName"
+            label="Name"
+            outlined
+            dense
+            :rules="[(v) => !!v?.trim() || 'Required']"
+            hide-bottom-space
+          />
+          <q-input
+            v-model="editDescription"
+            label="Description"
+            outlined
+            dense
+            type="textarea"
+            autogrow
+          />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" color="grey" v-close-popup />
+          <q-btn
+            unelevated
+            color="primary"
+            label="Save"
+            :loading="editSubmitting"
+            :disable="!editName?.trim()"
+            @click="submitEditCollection"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <CollectionPolicyPickerDialog
       v-model="policyPickerVisible"
       :collection-id="createdCollectionId"
       :collection-name="createdCollectionName"
       @done="onPolicyPickerDone"
+    />
+
+    <ApplyCollectionTargetDialog
+      v-model="applyTargetDialogVisible"
+      :collection-id="applyTargetCollectionId"
+      :collection-name="applyTargetCollectionName"
+      :mode="applyTargetMode"
     />
   </div>
 </template>
@@ -160,9 +269,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { QTableColumn, useQuasar } from "quasar";
-import { collectionsClient } from "../../api/grpc-client";
+import { collectionsClient, operator_pb } from "../../api/grpc-client";
 import { notifyError, notifySuccess } from "@/utils/notify";
 import CollectionPolicyPickerDialog from "../CollectionsPolicies/CollectionPolicyPickerDialog.vue";
+import ApplyCollectionTargetDialog from "../CollectionsPolicies/ApplyCollectionTargetDialog.vue";
 
 interface PolicyItem {
   id?: number | string;
@@ -178,6 +288,7 @@ interface CollectionDetailsData {
   name?: string;
   explainText?: string;
   explain_text?: string;
+  scope?: number;
   policies?: PolicyItem[];
   policiesList?: PolicyItem[];
 }
@@ -186,7 +297,47 @@ interface CollectionRow {
   id: number;
   name: string;
   explain_text: string;
+  scope: number;
   policiesCount: number;
+}
+
+function scopeLabel(scope: number): string {
+  switch (scope) {
+    case operator_pb.PolicyScope.POLICY_SCOPE_USER:
+      return "User";
+    case operator_pb.PolicyScope.POLICY_SCOPE_MACHINE:
+      return "Machine";
+    case operator_pb.PolicyScope.POLICY_SCOPE_BOTH:
+      return "User & Machine";
+    default:
+      return "User";
+  }
+}
+
+function scopeIcons(scope: number): string[] {
+  switch (scope) {
+    case operator_pb.PolicyScope.POLICY_SCOPE_USER:
+      return ["person"];
+    case operator_pb.PolicyScope.POLICY_SCOPE_MACHINE:
+      return ["laptop"];
+    case operator_pb.PolicyScope.POLICY_SCOPE_BOTH:
+      return ["person", "laptop"];
+    default:
+      return ["person"];
+  }
+}
+
+function scopeCellClass(scope: number): string {
+  switch (scope) {
+    case operator_pb.PolicyScope.POLICY_SCOPE_USER:
+      return "scope-cell--user";
+    case operator_pb.PolicyScope.POLICY_SCOPE_MACHINE:
+      return "scope-cell--machine";
+    case operator_pb.PolicyScope.POLICY_SCOPE_BOTH:
+      return "scope-cell--both";
+    default:
+      return "scope-cell--user";
+  }
 }
 
 const $q = useQuasar();
@@ -199,10 +350,27 @@ const collectionDetails = ref<CollectionDetailsData | null>(null);
 const createFormVisible = ref(false);
 const createName = ref("");
 const createDescription = ref("");
+const createScope = ref<number>(operator_pb.PolicyScope.POLICY_SCOPE_BOTH);
 const createSubmitting = ref(false);
+
+const editFormVisible = ref(false);
+const editId = ref<number | null>(null);
+const editName = ref("");
+const editDescription = ref("");
+const editSubmitting = ref(false);
+
+const scopeOptions = [
+  { value: operator_pb.PolicyScope.POLICY_SCOPE_USER, label: "User" },
+  { value: operator_pb.PolicyScope.POLICY_SCOPE_MACHINE, label: "Machine" },
+  { value: operator_pb.PolicyScope.POLICY_SCOPE_BOTH, label: "User & Machine" },
+];
 const createdCollectionId = ref<number | null>(null);
 const createdCollectionName = ref("");
 const policyPickerVisible = ref(false);
+const applyTargetDialogVisible = ref(false);
+const applyTargetCollectionId = ref<number>(0);
+const applyTargetCollectionName = ref("");
+const applyTargetMode = ref<"apply" | "remove">("apply");
 
 const policiesForDisplay = computed(() => {
   const c = collectionDetails.value;
@@ -215,6 +383,14 @@ const policiesForDisplay = computed(() => {
 
 const collectionsTableColumns: QTableColumn[] = [
   { name: "name", label: "Name", field: "name", align: "left", sortable: true },
+  {
+    name: "scope",
+    label: "Scope",
+    field: "scope",
+    align: "left",
+    sortable: true,
+    format: (val: number) => scopeLabel(val),
+  },
   {
     name: "explain_text",
     label: "Description",
@@ -237,13 +413,70 @@ const collectionsTableColumns: QTableColumn[] = [
   },
 ];
 
-const onEdit = (row: CollectionRow) => {
-  console.log("Edit collection:", row);
-};
+function openEditCollection(row: CollectionRow) {
+  editId.value = row.id;
+  editName.value = row.name ?? "";
+  editDescription.value = row.explain_text ?? "";
+  editFormVisible.value = true;
+}
+
+async function submitEditCollection() {
+  const id = editId.value;
+  const name = editName.value?.trim();
+  if (id == null || id <= 0 || !name) return;
+  editSubmitting.value = true;
+  try {
+    await collectionsClient.updateCollection(
+      id,
+      name,
+      editDescription.value?.trim() ?? "",
+      [],
+    );
+    editFormVisible.value = false;
+    notifySuccess("Collection updated");
+    loadCollections();
+    if (collectionDetails.value?.id === id) {
+      const response = await collectionsClient.getCollectionById(id, "en-US");
+      const coll =
+        (
+          response as {
+            collection?: CollectionDetailsData;
+            collectionList?: CollectionDetailsData[];
+          }
+        ).collection ??
+        (
+          response as {
+            collection?: CollectionDetailsData;
+            collectionList?: CollectionDetailsData[];
+          }
+        ).collectionList?.[0];
+      collectionDetails.value = coll ?? null;
+    }
+  } catch {
+    notifyError("Error updating collection");
+  } finally {
+    editSubmitting.value = false;
+  }
+}
+
+function onApplyCollection(row: CollectionRow) {
+  applyTargetMode.value = "apply";
+  applyTargetCollectionId.value = row.id;
+  applyTargetCollectionName.value = row.name;
+  applyTargetDialogVisible.value = true;
+}
+
+function onRemoveCollection(row: CollectionRow) {
+  applyTargetMode.value = "remove";
+  applyTargetCollectionId.value = row.id;
+  applyTargetCollectionName.value = row.name;
+  applyTargetDialogVisible.value = true;
+}
 
 function openCreateCollection() {
   createName.value = "";
   createDescription.value = "";
+  createScope.value = operator_pb.PolicyScope.POLICY_SCOPE_BOTH;
   createFormVisible.value = true;
 }
 
@@ -255,6 +488,8 @@ async function submitCreateCollection() {
     const response = await collectionsClient.createCollection(
       name,
       createDescription.value?.trim() ?? "",
+      [],
+      createScope.value,
     );
     const coll =
       (
@@ -341,10 +576,14 @@ async function loadCollections() {
         (c.policies as unknown[] | undefined) ??
         (c.policiesList as unknown[] | undefined);
       const policiesCount = Array.isArray(policiesArr) ? policiesArr.length : 0;
+      const scope =
+        (c.scope as number | undefined) ??
+        operator_pb.PolicyScope.POLICY_SCOPE_NONE;
       return {
         id,
         name: c.name ?? "",
         explain_text: c.explainText ?? c.explain_text ?? "",
+        scope,
         policiesCount,
       };
     });
@@ -420,4 +659,24 @@ onMounted(() => {
   -webkit-line-clamp: 2
   -webkit-box-orient: vertical
   overflow: hidden
+
+.scope-cell
+  display: inline-flex
+  align-items: center
+  padding: 4px 10px
+  border-radius: 6px
+  font-size: 0.8rem
+  white-space: nowrap
+
+.scope-cell--user
+  background: #bbdefb
+  color: #0d47a1
+
+.scope-cell--machine
+  background: #c8e6c9
+  color: #1b5e20
+
+.scope-cell--both
+  background: #e1bee7
+  color: #4a148c
 </style>

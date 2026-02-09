@@ -25,7 +25,12 @@
               :loading="loadingCategories"
               :error="errorCategories"
               :selected-category-id="selectedCategoryId"
+              :search-query="categorySearchQuery"
+              :scope-filter="scopeFilter"
+              :scope-filter-options="scopeFilterOptions"
               @update:selected-category-id="onSelectedCategoryIdUpdate"
+              @update:search-query="categorySearchQuery = $event ?? ''"
+              @update:scope-filter="scopeFilter = $event"
               @retry="loadCategories()"
             />
           </div>
@@ -38,10 +43,7 @@
               :selected-policy="selectedPolicy"
               :selected-policies="selectedPolicies"
               :selected-count="selectedCount"
-              :scope-filter="scopeFilter"
-              :scope-filter-options="scopeFilterOptions"
               :has-category="!!selectedCategory"
-              @update:scope-filter="scopeFilter = $event"
               @select-policy="selectPolicy"
               @toggle-policy-selection="togglePolicySelection"
               @retry="retryLoadPolicies"
@@ -204,7 +206,7 @@ const scopeFilterOptions = [
   { label: "All", value: "all" },
   { label: "User", value: "user" },
   { label: "Machine", value: "machine" },
-  { label: "Both", value: "both" },
+  { label: "Both", value: "both"}
 ];
 
 const props = defineProps<{
@@ -229,6 +231,7 @@ const {
 } = usePolicySelection();
 
 const selectedCategoryId = ref<string | null>(null);
+const categorySearchQuery = ref<string | null>("");
 const selectedCategory = ref<{ id: string; categoryName: string } | null>(null);
 const loadingPolicies = ref(false);
 const errorPolicies = ref<string | null>(null);
@@ -354,10 +357,10 @@ watch(
       policyHashes.value = {};
       selectedPolicy.value = null;
       selectedCategoryId.value = null;
+      categorySearchQuery.value = "";
       selectedCategory.value = null;
-      allPolicies.value = [];
       errorPolicies.value = null;
-      scopeFilter.value = "all";
+      // scopeFilter.value = "all";
       settingsTab.value = "settings";
       policyDetailsElements.value = [];
       policySettingsValues.value = {};

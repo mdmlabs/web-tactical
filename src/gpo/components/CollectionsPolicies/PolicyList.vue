@@ -1,22 +1,7 @@
 <template>
   <q-card flat bordered class="column" style="height: calc(100vh - 220px)">
     <q-card-section class="policy-list-section">
-      <div class="row items-center q-mb-md">
-        <div class="text-subtitle2">Policies</div>
-        <q-space />
-        <q-select
-          :model-value="scopeFilter"
-          :options="scopeFilterOptions"
-          option-value="value"
-          option-label="label"
-          emit-value
-          map-options
-          dense
-          outlined
-          style="min-width: 140px"
-          @update:model-value="$emit('update:scopeFilter', $event)"
-        />
-      </div>
+      <div class="text-subtitle2 q-mb-md">Policies</div>
       <div v-if="loading" class="text-center q-pa-lg">
         <q-spinner color="primary" size="2em" />
         <div class="q-mt-sm">Loading...</div>
@@ -102,13 +87,10 @@ defineProps<{
   selectedPolicy: PolicyItem | null;
   selectedPolicies: Record<string, boolean>;
   selectedCount: number;
-  scopeFilter: string;
-  scopeFilterOptions: { label: string; value: string }[];
   hasCategory: boolean;
 }>();
 
 defineEmits<{
-  (e: "update:scopeFilter", value: string): void;
   (e: "selectPolicy", policy: PolicyItem): void;
   (e: "togglePolicySelection", policyId: string): void;
   (e: "retry"): void;
