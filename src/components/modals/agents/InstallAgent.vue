@@ -151,12 +151,12 @@
         <q-card-section>
           Installation Method
           <div class="q-gutter-sm">
-            <!-- <q-radio
+            <q-radio
               v-model="installMethod"
               val="exe"
               v-show="agentOS === 'windows'"
               label="Dynamically generated exe"
-            /> -->
+            />
             <q-radio
               v-model="installMethod"
               val="powershell"
