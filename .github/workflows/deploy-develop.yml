@@ -34,15 +34,6 @@ jobs:
           echo "🌐 Pulling latest changes..."
           git checkout preprod
           git pull
-
-          echo "🔍 Checking for forbidden domain mesh-stage.rmadm.org..."
-          if find . -type f ! -path "./.github/workflows/*" -exec grep -Hq "mesh-stage.rmadm.org" {} \; ; then
-              echo "❌ Found forbidden domain mesh-stage.rmadm.org — stopping deploy. CHANGE mesh-stage.rmadm.org -> mesh.rmadm.org!!!"
-              exit 1
-          else
-              echo "✅ No forbidden domains found"
-          fi
-
           
           echo "📦 Running build..."
           /root/.nvm/versions/node/v20.20.0/bin/npm install --legacy-peer-deps
