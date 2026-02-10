@@ -665,64 +665,6 @@
 
       <q-card-actions align="right" class="q-pa-md">
         <div class="row items-center q-gutter-sm">
-          <q-select
-            v-model="selectedCollectionId"
-            :options="collectionsOptions"
-            option-label="label"
-            option-value="value"
-            emit-value
-            map-options
-            outlined
-            dense
-            label="Collection"
-            style="min-width: 200px"
-            :loading="loadingCollections"
-            clearable
-            @update:model-value="onCollectionSelected"
-            @popup-show="isSelectOpen = true"
-            @popup-hide="isSelectOpen = false"
-          >
-            <template v-slot:no-option>
-              <q-item>
-                <q-item-section class="text-grey">
-                  No collections available
-                </q-item-section>
-              </q-item>
-            </template>
-          </q-select>
-
-          <div
-            v-if="selectedCollectionId && collectionPolicies.length > 0"
-            class="q-mt-sm q-pa-sm bg-grey-2 rounded-borders"
-          >
-            <div class="text-caption text-weight-medium q-mb-xs">
-              Policies in collection ({{ collectionPolicies.length }}):
-            </div>
-            <div class="text-caption text-grey-7">
-              <div
-                v-for="(policy, index) in collectionPolicies.slice(0, 3)"
-                :key="index"
-              >
-                • {{ policy }}
-              </div>
-              <div v-if="collectionPolicies.length > 3" class="q-mt-xs">
-                ... and {{ collectionPolicies.length - 3 }} more
-              </div>
-            </div>
-          </div>
-
-          <div class="row items-center">
-            <q-btn
-              flat
-              color="positive"
-              icon="play_arrow"
-              label="Apply Collection"
-              :loading="applying"
-              :disable="!selectedCollectionId || selectedUsers.length === 0"
-              @click="applyCollection('selected')"
-            />
-          </div>
-
           <q-btn
             flat
             icon="check_circle"
@@ -732,121 +674,32 @@
             :loading="applying"
             :disable="!selectedPolicy || selectedUsers.length === 0"
           />
-
           <q-btn
             flat
-            icon="more_vert"
-            round
-            dense
-            @click.stop="openOverflowMenu"
+            icon="remove_circle_outline"
+            label="Remove Policy"
+            color="negative"
+            @click="removePolicy"
+            :loading="applying"
+            :disable="!selectedPolicy || selectedUsers.length === 0"
           />
-          <q-popup-proxy
-            ref="overflowPopupRef"
-            anchor="bottom right"
-            self="top right"
-            transition-show="scale"
-            transition-hide="scale"
-          >
-            <q-list>
-              <q-item clickable @click="showCreateCollectionDialog = true">
-                <q-item-section>New Collection</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                :disable="!hasSelectedPolicies || !selectedCollectionId"
-                @click="addPoliciesToCollection"
-              >
-                <q-item-section>Add to Collection</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                :disable="!selectedCollectionId"
-                @click="deleteSelectedCollection"
-              >
-                <q-item-section>Delete Collection</q-item-section>
-              </q-item>
-              <q-separator />
-              <q-item
-                clickable
-                :disable="!selectedCollectionId || selectedUsers.length === 0"
-                @click="removeCollectionAssignments"
-              >
-                <q-item-section>Disabled Collection</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                :disable="!selectedPolicy || selectedUsers.length === 0"
-                @click="removeSelectedPolicy"
-              >
-                <q-item-section>Disabled Selected Policy</q-item-section>
-              </q-item>
-            </q-list>
-          </q-popup-proxy>
         </div>
       </q-card-actions>
-
-      <q-dialog v-model="showCreateCollectionDialog">
-        <q-card style="min-width: 400px">
-          <q-card-section>
-            <div class="text-h6">Create New Collection</div>
-          </q-card-section>
-
-          <q-card-section>
-            <q-input
-              v-model="newCollectionName"
-              label="Collection Name"
-              outlined
-              dense
-              :rules="[(val) => !!val || 'Name is required']"
-            />
-            <q-input
-              v-model="newCollectionDescription"
-              label="Description (optional)"
-              outlined
-              dense
-              type="textarea"
-              rows="3"
-              class="q-mt-md"
-            />
-          </q-card-section>
-
-          <q-card-actions align="right">
-            <q-btn
-              flat
-              label="Cancel"
-              color="negative"
-              v-close-popup
-              @click="resetNewCollectionForm"
-            />
-            <q-btn
-              flat
-              label="Create"
-              color="primary"
-              @click="createNewCollection"
-              :disable="!newCollectionName"
-            />
-          </q-card-actions>
-        </q-card>
-      </q-dialog>
     </q-card>
   </q-dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { useQuasar } from "quasar";
 import {
   policyCatalogServiceClient,
   createGrpcMetadata,
   operator_pb,
   policyAssignmentClient,
-  collectionsClient,
 } from "../api/grpc-client";
 import { notifySuccess, notifyError } from "@/utils/notify";
 import type { GPOPolicy } from "../types/gpo";
 import MultiTextBox from "@/components/ui/MultiTextBox.vue";
-
-const $q = useQuasar();
 
 interface Agent {
   id: string;
@@ -947,31 +800,9 @@ const selectedUsers = ref<string[]>([]);
 const applying = ref(false);
 const settingsTab = ref("settings");
 const presentationElements = ref<PolicyPresentationElement[]>([]);
-const selectedCollectionId = ref<number | null>(null);
-const collectionsOptions = ref<Array<{ label: string; value: number }>>([]);
-const loadingCollections = ref(false);
-const showCreateCollectionDialog = ref(false);
-const newCollectionName = ref("");
-const newCollectionDescription = ref("");
-const collectionPolicies = ref<string[]>([]);
-
-const isSelectOpen = ref(false);
-const overflowPopupRef = ref<{ show?: () => void } | null>(null);
-
-function openOverflowMenu() {
-  if (!isSelectOpen.value) {
-    overflowPopupRef.value?.show?.();
-  }
-}
-
-const hasSelectedPolicies = computed(() => {
-  return Object.values(selectedPolicies).includes(true);
-});
-
 watch(dialogVisible, (newVal) => {
   if (newVal && props.agent) {
     loadCategories();
-    loadCollections();
     if (props.initialUserSid) {
       selectedUsers.value = [props.initialUserSid];
       dialogTab.value = "settings";
@@ -992,10 +823,6 @@ watch(dialogVisible, (newVal) => {
     presentationElements.value = [];
     settingsTab.value = "settings";
     dialogTab.value = "settings";
-    selectedCollectionId.value = null;
-    newCollectionName.value = "";
-    newCollectionDescription.value = "";
-    showCreateCollectionDialog.value = false;
   }
 });
 
@@ -1993,389 +1820,6 @@ function deselectAllUsers() {
   selectedUsers.value = [];
 }
 
-async function loadCollections() {
-  loadingCollections.value = true;
-  try {
-    const response = await collectionsClient.getAllCollections("en-US");
-    const collectionsList =
-      (response as { collectionsList?: unknown[]; collections?: unknown[] })
-        .collectionsList ||
-      (response as { collectionsList?: unknown[]; collections?: unknown[] })
-        .collections ||
-      [];
-    collectionsOptions.value = collectionsList.map((col: unknown) => {
-      const c = col as { id?: number; name?: string };
-      return {
-        label: c.name || `Collection ${c.id || ""}`,
-        value: c.id || 0,
-      };
-    });
-  } catch (error) {
-    notifyError("Error loading collections");
-  } finally {
-    loadingCollections.value = false;
-  }
-}
-
-async function onCollectionSelected(collectionId: number | null) {
-  selectedCollectionId.value = collectionId;
-  collectionPolicies.value = [];
-
-  if (collectionId) {
-    try {
-      const response = await collectionsClient.getPoliciesInCollection(
-        collectionId,
-        "en-US",
-      );
-
-      const policiesList =
-        (response as { policiesList?: unknown[]; policies?: unknown[] })
-          .policiesList ||
-        (response as { policiesList?: unknown[]; policies?: unknown[] })
-          .policies ||
-        [];
-
-      collectionPolicies.value = policiesList.map((p: unknown) => {
-        const policy = p as {
-          name?: string;
-          displayName?: string;
-          display_name?: string;
-        };
-        return (
-          policy.displayName ||
-          policy.display_name ||
-          policy.name ||
-          "Unknown policy"
-        );
-      });
-    } catch (error) {
-      try {
-        const response = await collectionsClient.getCollectionById(
-          collectionId,
-          "en-US",
-        );
-        const collection = response.collection;
-        if (collection) {
-          const policiesList =
-            (collection as { policiesList?: unknown[]; policies?: unknown[] })
-              .policiesList ||
-            (collection as { policiesList?: unknown[]; policies?: unknown[] })
-              .policies ||
-            [];
-
-          collectionPolicies.value = policiesList.map((p: unknown) => {
-            const policy = p as {
-              name?: string;
-              displayName?: string;
-              display_name?: string;
-            };
-            return (
-              policy.displayName ||
-              policy.display_name ||
-              policy.name ||
-              "Unknown policy"
-            );
-          });
-        }
-      } catch (fallbackError) {
-        // Fallback failed, ignore
-      }
-    }
-  }
-}
-
-async function deleteSelectedCollection() {
-  if (!selectedCollectionId.value) {
-    return;
-  }
-
-  const collectionName =
-    collectionsOptions.value.find((c) => c.value === selectedCollectionId.value)
-      ?.label || "Collection";
-
-  $q.dialog({
-    title: "Confirm the deletion",
-    message: `Are you sure you want to delete the collection "${collectionName}"? This action cannot be undone..`,
-    cancel: {
-      label: "Cancel",
-      color: "grey",
-      flat: true,
-    },
-    ok: {
-      label: "Delete",
-      color: "negative",
-      flat: true,
-    },
-    persistent: true,
-  })
-    .onOk(async () => {
-      applying.value = true;
-      try {
-        await collectionsClient.deleteCollection(selectedCollectionId.value!);
-        collectionsOptions.value = collectionsOptions.value.filter(
-          (c) => c.value !== selectedCollectionId.value,
-        );
-        selectedCollectionId.value = null;
-        collectionPolicies.value = [];
-
-        notifySuccess(`Collection "${collectionName}" successfully deleted`);
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : "Unknown error deleting collection";
-        notifyError(`Error when deleting a collection: ${errorMessage}`);
-      } finally {
-        applying.value = false;
-      }
-    })
-    .onCancel(() => {});
-}
-
-function resetNewCollectionForm() {
-  newCollectionName.value = "";
-  newCollectionDescription.value = "";
-}
-
-async function createNewCollection() {
-  if (!newCollectionName.value.trim()) {
-    notifyError("Collection name is required");
-    return;
-  }
-
-  applying.value = true;
-  try {
-    const response = await collectionsClient.createCollection(
-      newCollectionName.value.trim(),
-      newCollectionDescription.value.trim(),
-    );
-
-    const collection = response.collection;
-    if (collection && collection.id) {
-      collectionsOptions.value.push({
-        label: collection.name || newCollectionName.value,
-        value: collection.id,
-      });
-      selectedCollectionId.value = collection.id;
-      showCreateCollectionDialog.value = false;
-      resetNewCollectionForm();
-      await onCollectionSelected(collection.id);
-      notifySuccess("Collection created successfully");
-    }
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : "Unknown error creating collection";
-    notifyError(`Error creating collection: ${errorMessage}`);
-  } finally {
-    applying.value = false;
-  }
-}
-
-async function addPoliciesToCollection() {
-  if (!selectedCollectionId.value) {
-    notifyError("Please select a collection first");
-    return;
-  }
-
-  const selectedPolicyIds = Object.keys(selectedPolicies.value).filter(
-    (id) => selectedPolicies.value[id] === true,
-  );
-
-  if (selectedPolicyIds.length === 0) {
-    notifyError("Please select at least one policy");
-    return;
-  }
-
-  applying.value = true;
-  try {
-    const policyHashes: string[] = [];
-    for (const policyId of selectedPolicyIds) {
-      let policyHash: string | undefined;
-      let policyDetail = policyDetails.value[policyId];
-
-      if (!policyDetail || !policyDetail.hash) {
-        const policy = selectedCategoryPolicies.value.find(
-          (p) => p.id === policyId,
-        );
-        if (policy) {
-          await loadPolicyDetails(policy);
-          policyDetail = policyDetails.value[policyId];
-
-          if (!policyDetail || !policyDetail.hash) {
-            const policyIdNum = Number.parseInt(policyId, 10);
-            if (!Number.isNaN(policyIdNum)) {
-              try {
-                const policyDetailsResponse =
-                  await policyCatalogServiceClient.getPolicyDetails(
-                    new operator_pb.GetPolicyDetailsRequest()
-                      .setPolicyId(policyIdNum)
-                      .setLangCode("en-US"),
-                    createGrpcMetadata(),
-                  );
-
-                const policyData = policyDetailsResponse.getPolicy?.();
-                if (policyData) {
-                  policyHash = policyData.getHash?.() || "";
-                }
-              } catch (error) {
-                // ignore error, will try to get hash from policyDetails later
-              }
-            }
-          }
-        }
-      }
-
-      if (!policyHash && policyDetail?.hash) {
-        policyHash = policyDetail.hash;
-      }
-
-      if (policyHash && policyHash.length > 0) {
-        policyHashes.push(policyHash);
-      }
-    }
-
-    if (policyHashes.length === 0) {
-      throw new Error(
-        `Could not get policy hashes for ${selectedPolicyIds.length} selected policy(ies). ` +
-          "Please make sure policies are loaded and try selecting them again.",
-      );
-    }
-
-    if (
-      !selectedCollectionId.value ||
-      typeof selectedCollectionId.value !== "number"
-    ) {
-      throw new Error("Invalid collection ID");
-    }
-
-    if (!policyHashes || policyHashes.length === 0) {
-      throw new Error("No policy hashes to add");
-    }
-
-    await collectionsClient.createCollectionsPolicies(
-      selectedCollectionId.value,
-      policyHashes,
-    );
-
-    await onCollectionSelected(selectedCollectionId.value);
-
-    const policiesCount = policyHashes.length;
-    const policiesText =
-      policiesCount === 1
-        ? "Policy added to collection"
-        : `${policiesCount} policies added to collection`;
-
-    notifySuccess(policiesText);
-  } catch (error) {
-    let errorMessage = "Unknown error adding policies to collection";
-    if (error instanceof Error) {
-      errorMessage = error.message;
-
-      if (errorMessage.includes("Exception was thrown by handler")) {
-        errorMessage =
-          "Server error: The collection or policies may not exist, or there was a problem processing the request. " +
-          "Please check that the collection exists and policy hashes are correct.";
-      } else if (errorMessage.includes("Invalid collection ID")) {
-        errorMessage = "Please select a valid collection";
-      } else if (
-        errorMessage.includes("No policy names") ||
-        errorMessage.includes("No policy hashes")
-      ) {
-        errorMessage =
-          "No valid policy hashes found. Please select policies again.";
-      }
-    }
-
-    notifyError(`Error adding policies: ${errorMessage}`);
-  } finally {
-    applying.value = false;
-  }
-}
-
-async function applyCollection(applyTo: "selected" | "all" = "selected") {
-  if (!selectedCollectionId.value || !props.agent) {
-    return;
-  }
-
-  let usersToApply: User[] = [];
-  if (applyTo === "all") {
-    usersToApply = props.users.slice();
-  } else {
-    if (selectedUsers.value.length === 0) {
-      notifyError("Please select users");
-      return;
-    }
-    usersToApply = props.users.filter((u) =>
-      selectedUsers.value.includes(u.sid),
-    );
-  }
-
-  if (usersToApply.length === 0) {
-    notifyError("No users selected for applying collection");
-    return;
-  }
-
-  const usersListHtml = usersToApply
-    .map((u) => `<div>${u.name || u.sid} (${u.sid})</div>`)
-    .join("");
-
-  $q.dialog({
-    title: "Confirm apply collection",
-    html: true,
-    message: `
-        <div>You're about to apply the selected collection to the following users on <strong>${props.agent!.hostname}</strong>:</div>
-        <div style="margin-top:8px">${usersListHtml}</div>
-        <div style="margin-top:12px; font-weight:600">Proceed?</div>
-      `,
-    cancel: true,
-    persistent: true,
-  }).onOk(async () => {
-    applying.value = true;
-    try {
-      const applyPromises: Promise<unknown>[] = usersToApply.map((user) => {
-        const target = {
-          agentId: String(props.agent!.id),
-          userSid: String(user.sid),
-        };
-
-        return policyAssignmentClient.assignPolicyCollection(
-          selectedCollectionId.value!,
-          "user",
-          target,
-          {},
-        );
-      });
-
-      await Promise.all(applyPromises);
-
-      const collectionName =
-        collectionsOptions.value.find(
-          (c) => c.value === selectedCollectionId.value,
-        )?.label || "Collection";
-      const usersCount = usersToApply.length;
-
-      notifySuccess(
-        `Collection "${collectionName}" successfully applied to ${usersCount} ${
-          usersCount === 1 ? "user" : "users"
-        } on ${props.agent!.hostname}`,
-      );
-
-      emit("applied");
-      dialogVisible.value = false;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Unknown error applying collection";
-      notifyError(`Error applying collection: ${errorMessage}`);
-    } finally {
-      applying.value = false;
-    }
-  });
-}
-
 async function applySelectedPolicy() {
   if (!selectedPolicy.value || !props.agent) {
     return;
@@ -2467,7 +1911,7 @@ async function applySelectedPolicy() {
   }
 }
 
-async function removeSelectedPolicy() {
+async function removePolicy() {
   if (!selectedPolicy.value || !props.agent) {
     return;
   }
@@ -2541,63 +1985,6 @@ async function removeSelectedPolicy() {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error removing policy";
     notifyError(`Error removing policy: ${errorMessage}`);
-  } finally {
-    applying.value = false;
-  }
-}
-
-async function removeCollectionAssignments() {
-  if (!selectedCollectionId.value || !props.agent) {
-    return;
-  }
-
-  if (selectedUsers.value.length === 0) {
-    notifyError("Please select users");
-    return;
-  }
-
-  applying.value = true;
-  try {
-    const usersToRemove: User[] = props.users.filter((u) =>
-      selectedUsers.value.includes(u.sid),
-    );
-
-    if (usersToRemove.length === 0) {
-      throw new Error("No users selected for removing collection assignments");
-    }
-
-    const removePromises: Promise<unknown>[] = [];
-    for (const user of usersToRemove) {
-      removePromises.push(
-        policyAssignmentClient.removePolicyCollection(
-          selectedCollectionId.value!,
-          "user",
-          { agentId: String(props.agent!.id), userSid: String(user.sid) },
-        ),
-      );
-    }
-
-    await Promise.all(removePromises);
-
-    const collectionName =
-      collectionsOptions.value.find(
-        (c) => c.value === selectedCollectionId.value,
-      )?.label || "Collection";
-    const usersCount = usersToRemove.length;
-    notifySuccess(
-      `Collection "${collectionName}" successfully removed from ${usersCount} ${
-        usersCount === 1 ? "user" : "users"
-      } on ${props.agent.hostname}`,
-    );
-
-    emit("applied");
-    dialogVisible.value = false;
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : "Unknown error removing collection";
-    notifyError(`Error removing collection: ${errorMessage}`);
   } finally {
     applying.value = false;
   }

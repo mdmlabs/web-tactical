@@ -114,7 +114,7 @@ const { filteredCategories } = useCategoryFilter(
 const scrollAreaHeight = computed(() =>
   (props.searchQuery ?? "").trim()
     ? "calc(100vh - 380px)"
-    : "calc(100vh - 340px)",
+    : "calc(100vh - 390px)",
 );
 </script>
 

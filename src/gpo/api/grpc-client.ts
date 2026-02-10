@@ -926,7 +926,7 @@ export const collectionsClient = {
 
   async createCollectionsPolicies(
     collectionId: number,
-    policyHashes: string[],
+    policies: Array<{ hash: string; state: boolean }>,
   ): Promise<operator_pb_types.CreateCollectionsPoliciesResponse.AsObject> {
     if (!collectionId || collectionId <= 0) {
       throw new Error(
@@ -934,24 +934,23 @@ export const collectionsClient = {
       );
     }
 
-    if (!Array.isArray(policyHashes) || policyHashes.length === 0) {
+    if (!Array.isArray(policies) || policies.length === 0) {
       throw new Error(
-        "Invalid policy hashes: policy hashes must be a non-empty array",
+        "Invalid policies: policies must be a non-empty array of { hash, state }",
       );
     }
 
-    const invalidHashes = policyHashes.filter(
-      (h) => typeof h !== "string" || !h.trim(),
-    );
-    if (invalidHashes.length > 0) {
-      throw new Error(
-        `Invalid policy hashes: all hashes must be non-empty strings. Invalid: ${invalidHashes.join(
-          ", ",
-        )}`,
-      );
+    const validPolicies = policies
+      .map((p) => ({
+        hash: typeof p.hash === "string" ? p.hash.trim() : String(p.hash),
+        state: Boolean(p.state),
+      }))
+      .filter((p) => p.hash.length > 0);
+
+    if (validPolicies.length === 0) {
+      throw new Error("No valid policies after filtering (hash required)");
     }
 
-    const request = new operator_pb.CreateCollectionsPoliciesRequest();
     const collectionIdNum = Math.floor(Number(collectionId));
     if (
       !Number.isFinite(collectionIdNum) ||
@@ -962,61 +961,16 @@ export const collectionsClient = {
         `Invalid collection ID: ${collectionId} (must be a positive integer)`,
       );
     }
+
+    const request = new operator_pb.CreateCollectionsPoliciesRequest();
     request.setCollectionId(collectionIdNum);
+    request.clearPoliciesList();
 
-    const setValue = request.getCollectionId();
-    if (setValue !== collectionIdNum) {
-      throw new Error(
-        `Collection ID mismatch: set ${collectionIdNum}, got ${setValue}`,
-      );
-    }
-
-    const validPolicyHashes = policyHashes
-      .map((h) => (typeof h === "string" ? h.trim() : String(h)))
-      .filter((h) => h.length > 0);
-
-    if (validPolicyHashes.length === 0) {
-      throw new Error("No valid policy hashes after filtering");
-    }
-
-    request.clearPolicyHashesList?.();
-
-    type CreateCollectionsPoliciesRequestLike = {
-      addPolicyHashes?: (h: string) => void;
-      addPolicyHash?: (h: string) => void;
-      setPolicyHashesList?: (list: string[]) => void;
-      getPolicyHashesList?: () => string[];
-      getPolicyHashList?: () => string[];
-    };
-
-    const reqLike = request as unknown as CreateCollectionsPoliciesRequestLike;
-
-    for (const hash of validPolicyHashes) {
-      if (typeof reqLike.addPolicyHashes === "function") {
-        reqLike.addPolicyHashes(hash);
-      } else if (typeof reqLike.addPolicyHash === "function") {
-        reqLike.addPolicyHash(hash);
-      } else {
-        reqLike.setPolicyHashesList?.(validPolicyHashes);
-        break;
-      }
-    }
-
-    const checkHashes =
-      (typeof reqLike.getPolicyHashesList === "function" &&
-        reqLike.getPolicyHashesList()) ||
-      (typeof reqLike.getPolicyHashList === "function" &&
-        reqLike.getPolicyHashList()) ||
-      reqLike.getPolicyHashesList?.();
-
-    if (!checkHashes || checkHashes.length === 0) {
-      throw new Error("Failed to set policy hashes in request");
-    }
-
-    if (checkHashes.length !== validPolicyHashes.length) {
-      throw new Error(
-        `Policy hashes count mismatch: expected ${validPolicyHashes.length}, got ${checkHashes.length}`,
-      );
+    for (const p of validPolicies) {
+      const model = new operator_pb.PolicyConfigureModel();
+      model.setHash(p.hash);
+      model.setState(p.state);
+      request.addPolicies(model);
     }
 
     try {
@@ -1032,8 +986,7 @@ export const collectionsClient = {
         if (error.message.includes("Exception was thrown by handler")) {
           throw new Error(
             "Server error: Could not add policies to collection. " +
-              `Collection ID: ${collectionIdNum}, ` +
-              `Policy hashes: ${validPolicyHashes.join(", ")}. ` +
+              `Collection ID: ${collectionIdNum}. ` +
               "The collection or policies may not exist, or policy hashes may be incorrect.",
           );
         }

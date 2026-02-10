@@ -36,4 +36,6 @@ export interface PolicyItem {
   displayName: string;
   description?: string;
   scope: number;
+  hash?: string;
+  state?: boolean;
 }

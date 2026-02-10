@@ -70,6 +70,8 @@ export function normalizePoliciesList(response: unknown): PolicyItem[] {
       explain_text?: string;
       explainText?: string;
       scope?: number;
+      hash?: string;
+      state?: boolean;
     };
     const name = str(item.name);
     const displayName = item.display_name ?? item.displayName ?? name;
@@ -88,6 +90,12 @@ export function normalizePoliciesList(response: unknown): PolicyItem[] {
       item.scope !== undefined && item.scope !== null
         ? num(item.scope, POLICY_SCOPE_NONE)
         : POLICY_SCOPE_NONE;
+    const hash =
+      typeof item.hash === "string" && item.hash.trim()
+        ? item.hash.trim()
+        : undefined;
+    const state =
+      typeof item.state === "boolean" ? item.state : undefined;
 
     policies.push({
       id: String(item.id ?? ""),
@@ -95,6 +103,8 @@ export function normalizePoliciesList(response: unknown): PolicyItem[] {
       displayName,
       description,
       scope,
+      hash,
+      state,
     });
   }
   return policies;

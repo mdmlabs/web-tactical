@@ -147,6 +147,37 @@
         </div>
       </q-card-section>
 
+      <q-card-section
+        v-if="selectedCount > 0"
+        class="q-pt-none"
+      >
+        <div class="text-subtitle2 q-mb-sm">Selected ({{ selectedCount }})</div>
+        <q-list
+          bordered
+          separator
+          dense
+          class="rounded-borders"
+        >
+          <q-item
+            v-for="p in selectedPoliciesList"
+            :key="p.id"
+            dense
+          >
+            <q-item-section>
+              <q-item-label>{{ p.displayName ?? p.name ?? p.id }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-toggle
+                :model-value="policyState[p.id] !== false"
+                color="primary"
+                :label="policyState[p.id] !== false ? 'Enabled' : 'Disabled'"
+                @update:model-value="(v) => setPolicyState(p.id, !!v)"
+              />
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-card-section>
+
       <q-card-actions align="right" class="q-pa-md">
         <q-btn flat label="Cancel" color="grey" v-close-popup />
         <q-btn
@@ -238,8 +269,23 @@ const errorPolicies = ref<string | null>(null);
 const allPolicies = ref<PolicyItem[]>([]);
 const selectedPolicy = ref<PolicyItem | null>(null);
 const policyHashes = ref<Record<string, string>>({});
+const policyState = ref<Record<string, boolean>>({});
 const scopeFilter = ref<string>("all");
 const applying = ref(false);
+
+const selectedPoliciesList = computed(() => {
+  const list: PolicyItem[] = [];
+  for (const group of filteredGroupedPolicies.value) {
+    for (const p of group.policies) {
+      if (selectedPolicies.value[p.id]) list.push(p);
+    }
+  }
+  return list;
+});
+
+function setPolicyState(policyId: string, enabled: boolean) {
+  policyState.value = { ...policyState.value, [policyId]: enabled };
+}
 const settingsTab = ref<"settings" | "description">("settings");
 const loadingPolicyDetails = ref(false);
 const policyDetailsElements = ref<PolicyDetailsElement[]>([]);
@@ -558,20 +604,12 @@ async function loadPolicyDetails(policy: PolicyItem) {
       policyId,
       "en-US",
     );
-    const resp = response as {
-      policy?: { id?: number; name?: string; hash?: string; scope?: string };
-      presentation?: {
-        elementsList?: unknown[];
-        elements?: unknown[];
-      };
-      policyElementsList?: unknown[];
-      policy_elements?: unknown[];
-    };
-    const policyObj = resp.policy;
-    if (policyObj?.hash) {
-      policyHashes.value[policy.id] = policyObj.hash;
+    const hash = extractHashFromPolicyDetails(response);
+    if (hash) {
+      policyHashes.value[policy.id] = hash;
     }
-    const presentation = resp.presentation;
+    const resp = response as Record<string, unknown>;
+    const presentation = resp.presentation as Record<string, unknown> | undefined;
     const presentationList = (presentation?.elementsList ??
       presentation?.elements ??
       []) as unknown[];
@@ -598,16 +636,29 @@ async function loadPolicyDetails(policy: PolicyItem) {
   }
 }
 
+function extractHashFromPolicyDetails(response: unknown): string | null {
+  if (!response || typeof response !== "object") return null;
+  const r = response as Record<string, unknown>;
+  const policy =
+    (r.policy as Record<string, unknown> | undefined) ??
+    (Array.isArray(r.policyList) ? r.policyList[0] : undefined) as
+      | Record<string, unknown>
+      | undefined;
+  if (!policy || typeof policy !== "object") return null;
+  const hash = policy.hash ?? policy.policy_hash;
+  if (typeof hash === "string" && hash.trim()) return hash.trim();
+  return null;
+}
+
 async function getHashForPolicy(policyId: string): Promise<string | null> {
   if (policyHashes.value[policyId]) return policyHashes.value[policyId];
   const idNum = Number.parseInt(policyId, 10);
   if (Number.isNaN(idNum)) return null;
   try {
     const response = await policyCatalogClient.getPolicyDetails(idNum, "en-US");
-    const policy = (response as { policy?: { hash?: string } }).policy;
-    const hash = policy?.hash ?? "";
+    const hash = extractHashFromPolicyDetails(response);
     if (hash) policyHashes.value[policyId] = hash;
-    return hash || null;
+    return hash;
   } catch {
     return null;
   }
@@ -619,30 +670,43 @@ async function submitAddPolicies() {
     notifyError("Collection not selected");
     return;
   }
-  const selectedIds = Object.keys(selectedPolicies.value).filter(
-    (id) => selectedPolicies.value[id],
-  );
-  if (selectedIds.length === 0) {
+  const list = selectedPoliciesList.value;
+  if (list.length === 0) {
     notifyError("Select at least one policy");
     return;
   }
 
   applying.value = true;
   try {
-    const hashes: string[] = [];
-    for (const id of selectedIds) {
-      const hash = await getHashForPolicy(id);
-      if (hash) hashes.push(hash);
+    const policiesWithState: Array<{ hash: string; state: boolean }> = [];
+    for (const policy of list) {
+      const id = policy.id;
+      const hash =
+        (typeof policy.hash === "string" && policy.hash.trim()
+          ? policy.hash.trim()
+          : null) ?? (await getHashForPolicy(id));
+      if (hash) {
+        policiesWithState.push({
+          hash,
+          state: policyState.value[id] !== false,
+        });
+      }
     }
-    if (hashes.length === 0) {
-      notifyError("Could not get policy hashes for selected policies");
+    if (policiesWithState.length === 0) {
+      notifyError(
+        "Could not get policy hashes for selected policies. " +
+          "Ensure the server returns policy hash in the list (GetPoliciesByCategory) or fix GetPolicyDetails.",
+      );
       return;
     }
-    await collectionsClient.createCollectionsPolicies(collectionId, hashes);
+    await collectionsClient.createCollectionsPolicies(
+      collectionId,
+      policiesWithState,
+    );
     notifySuccess(
-      hashes.length === 1
+      policiesWithState.length === 1
         ? "Policy added to collection"
-        : `${hashes.length} policies added to collection`,
+        : `${policiesWithState.length} policies added to collection`,
     );
     emit("done");
     emit("update:modelValue", false);

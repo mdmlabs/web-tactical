@@ -140,7 +140,7 @@
             separator
             class="rounded-borders"
           >
-            <q-item v-for="(p, idx) in policiesForDisplay" :key="idx">
+            <q-item v-for="(p, idx) in policiesForDisplay" :key="policyKey(p, idx)">
               <q-item-section>
                 <q-item-label>
                   {{ p.displayName ?? p.display_name ?? "—" }}
@@ -153,8 +153,26 @@
                   {{ p.explainText ?? p.explain_text }}
                 </q-item-label>
               </q-item-section>
+              <q-item-section side>
+                <q-toggle
+                  :model-value="getPolicyState(p, idx) !== false"
+                  color="primary"
+                  :label="getPolicyState(p, idx) !== false ? 'Enabled' : 'Disabled'"
+                  @update:model-value="(v) => setPolicyStateInCollection(p, idx, !!v)"
+                />
+              </q-item-section>
             </q-item>
           </q-list>
+          <!-- <q-btn
+            v-if="policiesForDisplay.length"
+            flat
+            dense
+            color="primary"
+            label="Save policy states"
+            :loading="savingPolicyStates"
+            class="q-mt-sm"
+            @click="savePolicyStates"
+          /> -->
           <div v-else class="text-grey-7 text-body2">
             No policies in this collection.
           </div>
@@ -269,7 +287,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { QTableColumn, useQuasar } from "quasar";
-import { collectionsClient, operator_pb } from "../../api/grpc-client";
+import {
+  collectionsClient,
+  // policyCatalogClient,
+  operator_pb,
+} from "../../api/grpc-client";
 import { notifyError, notifySuccess } from "@/utils/notify";
 import CollectionPolicyPickerDialog from "../CollectionsPolicies/CollectionPolicyPickerDialog.vue";
 import ApplyCollectionTargetDialog from "../CollectionsPolicies/ApplyCollectionTargetDialog.vue";
@@ -309,8 +331,10 @@ function scopeLabel(scope: number): string {
       return "Machine";
     case operator_pb.PolicyScope.POLICY_SCOPE_BOTH:
       return "User & Machine";
+    case operator_pb.PolicyScope.POLICY_SCOPE_NONE:
+      return "—";
     default:
-      return "User";
+      return "—";
   }
 }
 
@@ -322,8 +346,9 @@ function scopeIcons(scope: number): string[] {
       return ["laptop"];
     case operator_pb.PolicyScope.POLICY_SCOPE_BOTH:
       return ["person", "laptop"];
+    case operator_pb.PolicyScope.POLICY_SCOPE_NONE:
     default:
-      return ["person"];
+      return [];
   }
 }
 
@@ -335,8 +360,9 @@ function scopeCellClass(scope: number): string {
       return "scope-cell--machine";
     case operator_pb.PolicyScope.POLICY_SCOPE_BOTH:
       return "scope-cell--both";
+    case operator_pb.PolicyScope.POLICY_SCOPE_NONE:
     default:
-      return "scope-cell--user";
+      return "";
   }
 }
 
@@ -345,7 +371,10 @@ const collectionsList = ref<CollectionRow[]>([]);
 const loading = ref(false);
 const detailsDialog = ref(false);
 const detailsLoading = ref(false);
+const detailsCollectionId = ref<number>(0);
 const collectionDetails = ref<CollectionDetailsData | null>(null);
+const policyStateInCollection = ref<Record<string, boolean>>({});
+// const savingPolicyStates = ref(false);
 
 const createFormVisible = ref(false);
 const createName = ref("");
@@ -364,6 +393,35 @@ const scopeOptions = [
   { value: operator_pb.PolicyScope.POLICY_SCOPE_MACHINE, label: "Machine" },
   { value: operator_pb.PolicyScope.POLICY_SCOPE_BOTH, label: "User & Machine" },
 ];
+//временное решение через локалсторадж
+function normalizeScope(raw: number | string | undefined | null): number {
+  if (raw === undefined || raw === null) {
+    return operator_pb.PolicyScope.POLICY_SCOPE_NONE;
+  }
+  if (typeof raw === "number") {
+    const n = Math.floor(raw);
+    if (n >= 0 && n <= 3) return n;
+    return operator_pb.PolicyScope.POLICY_SCOPE_NONE;
+  }
+  const s = String(raw).toUpperCase();
+  switch (s) {
+    case "USER":
+    case "1":
+      return operator_pb.PolicyScope.POLICY_SCOPE_USER;
+    case "MACHINE":
+    case "2":
+      return operator_pb.PolicyScope.POLICY_SCOPE_MACHINE;
+    case "BOTH":
+    case "3":
+      return operator_pb.PolicyScope.POLICY_SCOPE_BOTH;
+    case "NONE":
+    case "0":
+    default:
+      return operator_pb.PolicyScope.POLICY_SCOPE_NONE;
+  }
+}
+
+const collectionScopeCache = ref<Record<number, number>>({});
 const createdCollectionId = ref<number | null>(null);
 const createdCollectionName = ref("");
 const policyPickerVisible = ref(false);
@@ -494,15 +552,32 @@ async function submitCreateCollection() {
     const coll =
       (
         response as {
-          collection?: { id?: number; name?: string };
+          collection?: { id?: number; name?: string; scope?: number };
           collectionList?: unknown[];
         }
       ).collection ??
-      (response as { collection?: { id?: number; name?: string } }).collection;
+      (response as { collection?: { id?: number; name?: string; scope?: number } })
+        .collection;
     const rawId = coll?.id;
     const id = rawId !== undefined && rawId !== null ? Number(rawId) : null;
     const displayName = coll?.name ?? name;
+    const scopeFromResponse = coll?.scope;
     if (id !== null && id > 0) {
+      if (
+        scopeFromResponse !== undefined &&
+        scopeFromResponse !== null &&
+        scopeFromResponse !== operator_pb.PolicyScope.POLICY_SCOPE_NONE
+      ) {
+        collectionScopeCache.value = {
+          ...collectionScopeCache.value,
+          [id]: normalizeScope(scopeFromResponse),
+        };
+      } else {
+        collectionScopeCache.value = {
+          ...collectionScopeCache.value,
+          [id]: createScope.value,
+        };
+      }
       createdCollectionId.value = id;
       createdCollectionName.value = displayName;
       createFormVisible.value = false;
@@ -551,7 +626,7 @@ const onDelete = (row: CollectionRow) => {
 async function loadCollections() {
   loading.value = true;
   try {
-    const response = await collectionsClient.getAllCollections("en-US");
+    const response = await collectionsClient.getAllCollections("");
     const list =
       (response as { collectionsList?: unknown[]; collections?: unknown[] })
         .collectionsList ||
@@ -564,6 +639,7 @@ async function loadCollections() {
         name?: string;
         explainText?: string;
         explain_text?: string;
+        scope?: number | string;
       };
       let id = 0;
       if (c.id !== undefined && c.id !== null) {
@@ -576,9 +652,8 @@ async function loadCollections() {
         (c.policies as unknown[] | undefined) ??
         (c.policiesList as unknown[] | undefined);
       const policiesCount = Array.isArray(policiesArr) ? policiesArr.length : 0;
-      const scope =
-        (c.scope as number | undefined) ??
-        operator_pb.PolicyScope.POLICY_SCOPE_NONE;
+      const apiScope = normalizeScope(c.scope as number | string | undefined);
+      const scope = collectionScopeCache.value[id] ?? apiScope;
       return {
         id,
         name: c.name ?? "",
@@ -597,7 +672,9 @@ async function loadCollections() {
 
 async function onRowClick(_evt: Event, row: CollectionRow) {
   detailsDialog.value = true;
+  detailsCollectionId.value = row.id;
   collectionDetails.value = null;
+  policyStateInCollection.value = {};
   detailsLoading.value = true;
   try {
     const response = await collectionsClient.getCollectionById(row.id, "en-US");
@@ -615,6 +692,31 @@ async function onRowClick(_evt: Event, row: CollectionRow) {
         }
       ).collectionList?.[0];
     collectionDetails.value = coll ?? null;
+    const raw = (coll ?? {}) as Record<string, unknown>;
+    const list = (raw.policiesList ?? raw.policies ?? []) as PolicyItem[];
+    const next: Record<string, boolean> = {};
+    list.forEach((p, idx) => {
+      next[policyKey(p, idx)] = true;
+    });
+    policyStateInCollection.value = next;
+    const detailScope = raw.scope;
+    if (
+      row.id &&
+      detailScope !== undefined &&
+      detailScope !== null &&
+      detailScope !== operator_pb.PolicyScope.POLICY_SCOPE_NONE
+    ) {
+      collectionScopeCache.value = {
+        ...collectionScopeCache.value,
+        [row.id]: normalizeScope(detailScope as number | string),
+      };
+      const idx = collectionsList.value.findIndex((r) => r.id === row.id);
+      if (idx >= 0) {
+        const nextList = [...collectionsList.value];
+        nextList[idx] = { ...nextList[idx], scope: normalizeScope(detailScope as number | string) };
+        collectionsList.value = nextList;
+      }
+    }
   } catch {
     notifyError("Error loading collection details");
     collectionDetails.value = null;
@@ -622,6 +724,67 @@ async function onRowClick(_evt: Event, row: CollectionRow) {
     detailsLoading.value = false;
   }
 }
+
+function policyKey(p: PolicyItem, idx: number): string {
+  if (p.id !== undefined && p.id !== null) return String(p.id);
+  return `idx-${idx}`;
+}
+
+function getPolicyState(p: PolicyItem, idx: number): boolean {
+  const id = policyKey(p, idx);
+  return policyStateInCollection.value[id] !== false;
+}
+
+function setPolicyStateInCollection(p: PolicyItem, idx: number, enabled: boolean) {
+  const id = policyKey(p, idx);
+  policyStateInCollection.value = {
+    ...policyStateInCollection.value,
+    [id]: enabled,
+  };
+}
+
+// async function savePolicyStates() {
+//   const cid = detailsCollectionId.value;
+//   if (!cid || cid <= 0) return;
+//   const list = policiesForDisplay.value;
+//   if (list.length === 0) return;
+//   savingPolicyStates.value = true;
+//   try {
+//     const policiesWithState: Array<{ hash: string; state: boolean }> = [];
+//     for (let idx = 0; idx < list.length; idx++) {
+//       const p = list[idx];
+//       const id =
+//         typeof p.id === "number" ? p.id : Number.parseInt(String(p.id ?? ""), 10);
+//       if (Number.isNaN(id)) continue;
+//       let hash: string | null = null;
+//       try {
+//         const resp = await policyCatalogClient.getPolicyDetails(id, "en-US");
+//         const policy = (resp as { policy?: { hash?: string } }).policy;
+//         hash = policy?.hash ?? null;
+//       } catch {
+//         continue;
+//       }
+//       if (hash) {
+//         const key = policyKey(p, idx);
+//         policiesWithState.push({
+//           hash,
+//           state: policyStateInCollection.value[key] !== false,
+//         });
+//       }
+//     }
+//     if (policiesWithState.length === 0) {
+//       notifyError("Could not get policy hashes");
+//       return;
+//     }
+//     await collectionsClient.createCollectionsPolicies(cid, policiesWithState);
+//     notifySuccess("Policy states saved");
+//   } catch (e) {
+//     const msg = e instanceof Error ? e.message : "Error saving policy states";
+//     notifyError(msg);
+//   } finally {
+//     savingPolicyStates.value = false;
+//   }
+// }
 
 onMounted(() => {
   loadCollections();
