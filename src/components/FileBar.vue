@@ -218,6 +218,22 @@
                   </q-item>
 
                   <q-item
+                  clickable
+                  v-ripple
+                  @click="navigateToGPO('collections')"
+                  :class="[
+                      'filebar-popup-item',
+                      { 'active-menu-item': isActiveGPOTab('collections') },
+                    ]"
+                    v-close-popup
+                  >
+                  <q-item-section avatar>
+                    <q-icon name="collections" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Collections</q-item-section>
+                    </q-item>
+
+                  <q-item
                     clickable
                     v-ripple
                     @click="navigateToGPO('network')"
@@ -305,6 +321,20 @@
                   <q-icon name="dashboard" />
                 </q-item-section>
                 <q-item-section>Dashboard</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                @click="navigateToGPO('collections')"
+                :class="[
+                  'filebar-menu-item',
+                  { 'active-menu-item': isActiveGPOTab('collections') },
+                ]"
+              >
+                <q-item-section avatar>
+                  <q-icon name="collections" />
+                </q-item-section>
+                <q-item-section>Collections</q-item-section>
               </q-item>
               <q-item
                 clickable

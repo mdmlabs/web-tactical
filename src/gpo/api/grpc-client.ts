@@ -230,6 +230,34 @@ export const agentServiceClientWrapper = {
   },
 };
 
+export const userClient = {
+  async listUsersForAgent(
+    agentId: string,
+  ): Promise<Array<{ name?: string; sid?: string }>> {
+    const request = new operator_pb.ListUsersForAgentRequest();
+    request.setAgentId(agentId);
+    const response = await userServiceClient.listUsersForAgent(
+      request,
+      createGrpcMetadata(),
+    );
+    const list =
+      (response as { getUsersList?: () => unknown[] }).getUsersList?.() ?? [];
+    return list.map((u: unknown) => {
+      const o = u as {
+        toObject?: (opts?: unknown) => { name?: string; userName?: string; sid?: string };
+      } & { name?: string; userName?: string; sid?: string };
+      if (typeof o.toObject === "function") {
+        const obj = o.toObject({ defaults: true });
+        return {
+          name: obj.name ?? obj.userName,
+          sid: obj.sid,
+        };
+      }
+      return { name: o.name ?? o.userName, sid: o.sid };
+    });
+  },
+};
+
 export function createGlobalTarget(): operator_pb.PolicyTarget {
   const target = new operator_pb.PolicyTarget();
   const globalTarget = new operator_pb.GlobalTarget();
@@ -255,6 +283,130 @@ export function createUserTarget(
   userTarget.setUserSid(userSid);
   target.setUser(userTarget);
   return target;
+}
+
+export function createTacticalClientTarget(
+  clientId: string,
+): operator_pb.PolicyTarget {
+  const target = new operator_pb.PolicyTarget();
+  const clientTarget = new operator_pb.TacticalClientTarget();
+  clientTarget.setClientId(clientId);
+  target.setClient(clientTarget);
+  return target;
+}
+
+export function createTacticalSiteTarget(
+  siteId: string,
+): operator_pb.PolicyTarget {
+  const target = new operator_pb.PolicyTarget();
+  const siteTarget = new operator_pb.TacticalSiteTarget();
+  siteTarget.setSiteId(siteId);
+  target.setSite(siteTarget);
+  return target;
+}
+
+export function createCombinedTarget(params: {
+  clientIds?: string[];
+  siteIds?: string[];
+  agentIds?: string[];
+}): operator_pb.PolicyTarget {
+  const { clientIds = [], siteIds = [], agentIds = [] } = params;
+  const combined = new operator_pb.CombinedTarget();
+  if (clientIds.length > 0) {
+    const clientsTarget = new operator_pb.TacticalClientsTarget();
+    clientsTarget.setClientsList(
+      clientIds.map((id) => {
+        const c = new operator_pb.TacticalClientTarget();
+        c.setClientId(id);
+        return c;
+      }),
+    );
+    combined.setClients(clientsTarget);
+  }
+  if (siteIds.length > 0) {
+    const sitesTarget = new operator_pb.TacticalSitesTarget();
+    sitesTarget.setSitesList(
+      siteIds.map((id) => {
+        const s = new operator_pb.TacticalSiteTarget();
+        s.setSiteId(id);
+        return s;
+      }),
+    );
+    combined.setSites(sitesTarget);
+  }
+  if (agentIds.length > 0) {
+    const agentsTarget = new operator_pb.AggentsTarget();
+    agentsTarget.setAgentsList(
+      agentIds.map((id) => {
+        const a = new operator_pb.AgentTarget();
+        a.setAgentId(id);
+        return a;
+      }),
+    );
+    combined.setAgents(agentsTarget);
+  }
+  const target = new operator_pb.PolicyTarget();
+  target.setCombined(combined);
+  return target;
+}
+
+export type PolicyTargetType =
+  | "global"
+  | "agent"
+  | "user"
+  | "client"
+  | "site"
+  | "combined";
+
+export type PolicyTargetParams = {
+  agentId?: string;
+  userSid?: string;
+  clientId?: string;
+  siteId?: string;
+  clientIds?: string[];
+  siteIds?: string[];
+  agentIds?: string[];
+};
+
+export function createPolicyTargetFromParams(
+  targetType: PolicyTargetType,
+  targetParams: PolicyTargetParams = {},
+): operator_pb.PolicyTarget {
+  switch (targetType) {
+    case "global":
+      return createGlobalTarget();
+    case "agent":
+      if (!targetParams.agentId) {
+        throw new Error("agentId обязателен для типа 'agent'");
+      }
+      return createAgentTarget(targetParams.agentId);
+    case "user":
+      if (!targetParams.agentId || !targetParams.userSid) {
+        throw new Error("agentId и userSid обязательны для типа 'user'");
+      }
+      return createUserTarget(
+        targetParams.agentId,
+        targetParams.userSid,
+      );
+    case "client":
+      if (!targetParams.clientId) {
+        throw new Error("clientId обязателен для типа 'client'");
+      }
+      return createTacticalClientTarget(targetParams.clientId);
+    case "site":
+      if (!targetParams.siteId) {
+        throw new Error("siteId обязателен для типа 'site'");
+      }
+      return createTacticalSiteTarget(targetParams.siteId);
+    case "combined":
+      return createCombinedTarget({
+        clientIds: targetParams.clientIds,
+        siteIds: targetParams.siteIds,
+        agentIds: targetParams.agentIds,
+      });
+    default:
+      throw new Error(`Неизвестный тип цели: ${targetType}`);
+  }
 }
 
 function createPolicyElementItemSelection(
@@ -393,34 +545,14 @@ export function createPolicySelection(
 export const policyAssignmentClient = {
   async assignPolicy(
     policyHash: string,
-    targetType: "global" | "agent" | "user",
-    targetParams: { agentId?: string; userSid?: string } = {},
+    targetType: PolicyTargetType,
+    targetParams: PolicyTargetParams = {},
     selection?: Record<string, unknown> | operator_pb_types.PolicySelection,
   ): Promise<operator_pb_types.AssignPolicyResponse.AsObject> {
     const request = new operator_pb.AssignPolicyRequest();
     request.setPolicyHash(policyHash);
 
-    let target: operator_pb.PolicyTarget;
-    switch (targetType) {
-      case "global":
-        target = createGlobalTarget();
-        break;
-      case "agent":
-        if (!targetParams.agentId) {
-          throw new Error("agentId обязателен для типа 'agent'");
-        }
-        target = createAgentTarget(targetParams.agentId);
-        break;
-      case "user":
-        if (!targetParams.agentId || !targetParams.userSid) {
-          throw new Error("agentId и userSid обязательны для типа 'user'");
-        }
-        target = createUserTarget(targetParams.agentId, targetParams.userSid);
-        break;
-      default:
-        throw new Error(`Неизвестный тип цели: ${targetType}`);
-    }
-
+    const target = createPolicyTargetFromParams(targetType, targetParams);
     request.setTarget(target);
 
     if (selection) {
@@ -443,33 +575,13 @@ export const policyAssignmentClient = {
 
   async removePolicy(
     policyHash: string,
-    targetType: "global" | "agent" | "user",
-    targetParams: { agentId?: string; userSid?: string } = {},
+    targetType: PolicyTargetType,
+    targetParams: PolicyTargetParams = {},
   ): Promise<operator_pb_types.RemovePolicyResponse.AsObject> {
     const request = new operator_pb.RemovePolicyRequest();
     request.setPolicyHash(policyHash);
 
-    let target: operator_pb.PolicyTarget;
-    switch (targetType) {
-      case "global":
-        target = createGlobalTarget();
-        break;
-      case "agent":
-        if (!targetParams.agentId) {
-          throw new Error("agentId обязателен для типа 'agent'");
-        }
-        target = createAgentTarget(targetParams.agentId);
-        break;
-      case "user":
-        if (!targetParams.agentId || !targetParams.userSid) {
-          throw new Error("agentId и userSid обязательны для типа 'user'");
-        }
-        target = createUserTarget(targetParams.agentId, targetParams.userSid);
-        break;
-      default:
-        throw new Error(`Неизвестный тип цели: ${targetType}`);
-    }
-
+    const target = createPolicyTargetFromParams(targetType, targetParams);
     request.setTarget(target);
 
     const response = await policyAssignmentServiceClient.removePolicy(
@@ -482,8 +594,8 @@ export const policyAssignmentClient = {
 
   async assignPolicyCollection(
     collectionId: number,
-    targetType: "global" | "agent" | "user",
-    targetParams: { agentId?: string; userSid?: string } = {},
+    targetType: PolicyTargetType,
+    targetParams: PolicyTargetParams = {},
     selection?: Record<string, unknown> | operator_pb_types.PolicySelection,
   ): Promise<operator_pb_types.AssignPolicyCollectionResponse.AsObject> {
     const request = new operator_pb.AssignPolicyCollectionRequest();
@@ -500,27 +612,7 @@ export const policyAssignmentClient = {
     }
     request.setCollectionId(collectionIdNum);
 
-    let target: operator_pb.PolicyTarget;
-    switch (targetType) {
-      case "global":
-        target = createGlobalTarget();
-        break;
-      case "agent":
-        if (!targetParams.agentId) {
-          throw new Error("agentId обязателен для типа 'agent'");
-        }
-        target = createAgentTarget(targetParams.agentId);
-        break;
-      case "user":
-        if (!targetParams.agentId || !targetParams.userSid) {
-          throw new Error("agentId и userSid обязательны для типа 'user'");
-        }
-        target = createUserTarget(targetParams.agentId, targetParams.userSid);
-        break;
-      default:
-        throw new Error(`Неизвестный тип цели: ${targetType}`);
-    }
-
+    const target = createPolicyTargetFromParams(targetType, targetParams);
     request.setTarget(target);
 
     if (selection) {
@@ -543,8 +635,8 @@ export const policyAssignmentClient = {
 
   async removePolicyCollection(
     collectionId: number,
-    targetType: "global" | "agent" | "user",
-    targetParams: { agentId?: string; userSid?: string } = {},
+    targetType: PolicyTargetType,
+    targetParams: PolicyTargetParams = {},
   ): Promise<operator_pb_types.RemovePolicyCollectionResponse.AsObject> {
     const request = new operator_pb.RemovePolicyCollectionRequest();
 
@@ -560,27 +652,7 @@ export const policyAssignmentClient = {
     }
     request.setCollectionId(collectionIdNum);
 
-    let target: operator_pb.PolicyTarget;
-    switch (targetType) {
-      case "global":
-        target = createGlobalTarget();
-        break;
-      case "agent":
-        if (!targetParams.agentId) {
-          throw new Error("agentId обязателен для типа 'agent'");
-        }
-        target = createAgentTarget(targetParams.agentId);
-        break;
-      case "user":
-        if (!targetParams.agentId || !targetParams.userSid) {
-          throw new Error("agentId и userSid обязательны для типа 'user'");
-        }
-        target = createUserTarget(targetParams.agentId, targetParams.userSid);
-        break;
-      default:
-        throw new Error(`Неизвестный тип цели: ${targetType}`);
-    }
-
+    const target = createPolicyTargetFromParams(targetType, targetParams);
     request.setTarget(target);
 
     const response = await policyAssignmentServiceClient.removePolicyCollection(
@@ -595,9 +667,11 @@ export const policyAssignmentClient = {
 export const policyStateClient = {
   async getEffectivePolicies(
     target: operator_pb_types.PolicyTarget,
+    langCode: string = "en-US",
   ): Promise<operator_pb_types.GetEffectivePoliciesResponse.AsObject> {
     const request = new operator_pb.GetEffectivePoliciesRequest();
     request.setTarget(target);
+    request.setLangCode(langCode);
 
     const response = await policyStateServiceClient.getEffectivePolicies(
       request,
@@ -609,10 +683,11 @@ export const policyStateClient = {
 
   async getAssignments(
     target: operator_pb_types.PolicyTarget,
+    langCode: string = "en-US",
   ): Promise<operator_pb_types.GetAssignmentsResponse.AsObject> {
     const request = new operator_pb.GetAssignmentsRequest();
     request.setTarget(target);
-
+    request.setLangCode(langCode);
     const response = await policyStateServiceClient.getAssignments(
       request,
       createGrpcMetadata(),
@@ -622,59 +697,21 @@ export const policyStateClient = {
   },
 
   async getEffectivePoliciesFor(
-    targetType: "global" | "agent" | "user",
-    targetParams: { agentId?: string; userSid?: string } = {},
+    targetType: PolicyTargetType,
+    targetParams: PolicyTargetParams & { langCode?: string } = {},
   ): Promise<operator_pb_types.GetEffectivePoliciesResponse.AsObject> {
-    let target: operator_pb.PolicyTarget;
-    switch (targetType) {
-      case "global":
-        target = createGlobalTarget();
-        break;
-      case "agent":
-        if (!targetParams.agentId) {
-          throw new Error("agentId обязателен для типа 'agent'");
-        }
-        target = createAgentTarget(targetParams.agentId);
-        break;
-      case "user":
-        if (!targetParams.agentId || !targetParams.userSid) {
-          throw new Error("agentId и userSid обязательны для типа 'user'");
-        }
-        target = createUserTarget(targetParams.agentId, targetParams.userSid);
-        break;
-      default:
-        throw new Error(`Неизвестный тип цели: ${targetType}`);
-    }
-
-    return await this.getEffectivePolicies(target);
+    const { langCode, ...params } = targetParams;
+    const target = createPolicyTargetFromParams(targetType, params);
+    return await this.getEffectivePolicies(target, langCode);
   },
 
   async getAssignmentsFor(
-    targetType: "global" | "agent" | "user",
-    targetParams: { agentId?: string; userSid?: string } = {},
+    targetType: PolicyTargetType,
+    targetParams: PolicyTargetParams & { langCode?: string } = {},
   ): Promise<operator_pb_types.GetAssignmentsResponse.AsObject> {
-    let target: operator_pb.PolicyTarget;
-    switch (targetType) {
-      case "global":
-        target = createGlobalTarget();
-        break;
-      case "agent":
-        if (!targetParams.agentId) {
-          throw new Error("agentId обязателен для типа 'agent'");
-        }
-        target = createAgentTarget(targetParams.agentId);
-        break;
-      case "user":
-        if (!targetParams.agentId || !targetParams.userSid) {
-          throw new Error("agentId и userSid обязательны для типа 'user'");
-        }
-        target = createUserTarget(targetParams.agentId, targetParams.userSid);
-        break;
-      default:
-        throw new Error(`Неизвестный тип цели: ${targetType}`);
-    }
-
-    return await this.getAssignments(target);
+    const { langCode, ...params } = targetParams;
+    const target = createPolicyTargetFromParams(targetType, params);
+    return await this.getAssignments(target, langCode);
   },
 };
 
@@ -829,9 +866,11 @@ export const collectionsClient = {
       name: string;
       explainText: string;
     }> = [],
+    scope: operator_pb.PolicyScope = operator_pb.PolicyScope.POLICY_SCOPE_BOTH,
   ): Promise<operator_pb_types.CollectionDetailsResponse.AsObject> {
     const request = new operator_pb.CreateCollectionRequest();
     request.setName(name);
+    request.setScope(scope);
     request.setExplainText(explainText);
 
     const translationsList = translations.map((trans) => {
@@ -852,9 +891,42 @@ export const collectionsClient = {
     return response.toObject();
   },
 
+  async updateCollection(
+    id: number,
+    name: string,
+    explainText: string = "",
+    translations: Array<{
+      langCode: string;
+      name: string;
+      explainText: string;
+    }> = [],
+  ): Promise<operator_pb_types.CollectionDetailsResponse.AsObject> {
+    const request = new operator_pb.UpdateCollectionRequest();
+    request.setId(id);
+    request.setName(name);
+    request.setExplainText(explainText);
+
+    const translationsList = translations.map((trans) => {
+      const translation = new operator_pb.CollectionTranslation();
+      translation.setLangCode(trans.langCode);
+      translation.setName(trans.name);
+      translation.setExplainText(trans.explainText);
+      return translation;
+    });
+
+    request.setTranslationsList(translationsList);
+
+    const response = await collectionsControlServiceClient.updateCollection(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
   async createCollectionsPolicies(
     collectionId: number,
-    policyHashes: string[],
+    policies: Array<{ hash: string; state: boolean }>,
   ): Promise<operator_pb_types.CreateCollectionsPoliciesResponse.AsObject> {
     if (!collectionId || collectionId <= 0) {
       throw new Error(
@@ -862,24 +934,23 @@ export const collectionsClient = {
       );
     }
 
-    if (!Array.isArray(policyHashes) || policyHashes.length === 0) {
+    if (!Array.isArray(policies) || policies.length === 0) {
       throw new Error(
-        "Invalid policy hashes: policy hashes must be a non-empty array",
+        "Invalid policies: policies must be a non-empty array of { hash, state }",
       );
     }
 
-    const invalidHashes = policyHashes.filter(
-      (h) => typeof h !== "string" || !h.trim(),
-    );
-    if (invalidHashes.length > 0) {
-      throw new Error(
-        `Invalid policy hashes: all hashes must be non-empty strings. Invalid: ${invalidHashes.join(
-          ", ",
-        )}`,
-      );
+    const validPolicies = policies
+      .map((p) => ({
+        hash: typeof p.hash === "string" ? p.hash.trim() : String(p.hash),
+        state: Boolean(p.state),
+      }))
+      .filter((p) => p.hash.length > 0);
+
+    if (validPolicies.length === 0) {
+      throw new Error("No valid policies after filtering (hash required)");
     }
 
-    const request = new operator_pb.CreateCollectionsPoliciesRequest();
     const collectionIdNum = Math.floor(Number(collectionId));
     if (
       !Number.isFinite(collectionIdNum) ||
@@ -890,61 +961,16 @@ export const collectionsClient = {
         `Invalid collection ID: ${collectionId} (must be a positive integer)`,
       );
     }
+
+    const request = new operator_pb.CreateCollectionsPoliciesRequest();
     request.setCollectionId(collectionIdNum);
+    request.clearPoliciesList();
 
-    const setValue = request.getCollectionId();
-    if (setValue !== collectionIdNum) {
-      throw new Error(
-        `Collection ID mismatch: set ${collectionIdNum}, got ${setValue}`,
-      );
-    }
-
-    const validPolicyHashes = policyHashes
-      .map((h) => (typeof h === "string" ? h.trim() : String(h)))
-      .filter((h) => h.length > 0);
-
-    if (validPolicyHashes.length === 0) {
-      throw new Error("No valid policy hashes after filtering");
-    }
-
-    request.clearPolicyHashesList?.();
-
-    type CreateCollectionsPoliciesRequestLike = {
-      addPolicyHashes?: (h: string) => void;
-      addPolicyHash?: (h: string) => void;
-      setPolicyHashesList?: (list: string[]) => void;
-      getPolicyHashesList?: () => string[];
-      getPolicyHashList?: () => string[];
-    };
-
-    const reqLike = request as unknown as CreateCollectionsPoliciesRequestLike;
-
-    for (const hash of validPolicyHashes) {
-      if (typeof reqLike.addPolicyHashes === "function") {
-        reqLike.addPolicyHashes(hash);
-      } else if (typeof reqLike.addPolicyHash === "function") {
-        reqLike.addPolicyHash(hash);
-      } else {
-        reqLike.setPolicyHashesList?.(validPolicyHashes);
-        break;
-      }
-    }
-
-    const checkHashes =
-      (typeof reqLike.getPolicyHashesList === "function" &&
-        reqLike.getPolicyHashesList()) ||
-      (typeof reqLike.getPolicyHashList === "function" &&
-        reqLike.getPolicyHashList()) ||
-      reqLike.getPolicyHashesList?.();
-
-    if (!checkHashes || checkHashes.length === 0) {
-      throw new Error("Failed to set policy hashes in request");
-    }
-
-    if (checkHashes.length !== validPolicyHashes.length) {
-      throw new Error(
-        `Policy hashes count mismatch: expected ${validPolicyHashes.length}, got ${checkHashes.length}`,
-      );
+    for (const p of validPolicies) {
+      const model = new operator_pb.PolicyConfigureModel();
+      model.setHash(p.hash);
+      model.setState(p.state);
+      request.addPolicies(model);
     }
 
     try {
@@ -960,8 +986,7 @@ export const collectionsClient = {
         if (error.message.includes("Exception was thrown by handler")) {
           throw new Error(
             "Server error: Could not add policies to collection. " +
-              `Collection ID: ${collectionIdNum}, ` +
-              `Policy hashes: ${validPolicyHashes.join(", ")}. ` +
+              `Collection ID: ${collectionIdNum}. ` +
               "The collection or policies may not exist, or policy hashes may be incorrect.",
           );
         }

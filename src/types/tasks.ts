@@ -218,6 +218,7 @@ export interface TaskTemplate {
   task_supported_platforms: string;
   agents: number[];
   sites: number[];
+  clients?: number[];
   target?: TemplateTargetType;
   client?: number | null;
   site?: number | null;

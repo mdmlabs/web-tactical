@@ -256,8 +256,11 @@
                             </q-item>
                             <q-item
                               v-if="
-                                (agentDetails.nodeInfo.systemInfo?.disks || [])
-                                  ?.length
+                                (
+                                  agentDetails.nodeInfo.systemInfo?.disksList ||
+                                  agentDetails.nodeInfo.systemInfo?.disks ||
+                                  []
+                                )?.length
                               "
                             >
                               <q-item-section>
@@ -265,7 +268,9 @@
                                 <q-item-label caption>
                                   <div
                                     v-for="(disk, index) in agentDetails
-                                      .nodeInfo?.systemInfo?.disks || []"
+                                      .nodeInfo?.systemInfo?.disksList ||
+                                    agentDetails.nodeInfo?.systemInfo?.disks ||
+                                    []"
                                     :key="index"
                                   >
                                     {{ disk }}
@@ -275,8 +280,11 @@
                             </q-item>
                             <q-item
                               v-if="
-                                (agentDetails.nodeInfo.systemInfo?.gpu || [])
-                                  ?.length
+                                (
+                                  agentDetails.nodeInfo.systemInfo?.gpuList ||
+                                  agentDetails.nodeInfo.systemInfo?.gpu ||
+                                  []
+                                )?.length
                               "
                             >
                               <q-item-section>
@@ -284,7 +292,9 @@
                                 <q-item-label caption>
                                   <div
                                     v-for="(gpu, index) in agentDetails.nodeInfo
-                                      ?.systemInfo?.gpu || []"
+                                      ?.systemInfo?.gpuList ||
+                                    agentDetails.nodeInfo?.systemInfo?.gpu ||
+                                    []"
                                     :key="index"
                                   >
                                     {{ gpu }}
@@ -296,6 +306,8 @@
                               v-if="
                                 (
                                   agentDetails.nodeInfo.systemInfo
+                                    ?.ipAddressesList ||
+                                  agentDetails.nodeInfo.systemInfo
                                     ?.ipAddresses ||
                                   agentDetails.nodeInfo.systemInfo?.ip_addresses
                                 )?.length
@@ -306,7 +318,9 @@
                                 <q-item-label caption>
                                   <div
                                     v-for="(ip, index) in agentDetails.nodeInfo
-                                      .systemInfo.ipAddresses ||
+                                      .systemInfo.ipAddressesList ||
+                                    agentDetails.nodeInfo.systemInfo
+                                      .ipAddresses ||
                                     agentDetails.nodeInfo.systemInfo
                                       .ip_addresses ||
                                     []"
@@ -322,6 +336,8 @@
                               v-if="
                                 (
                                   agentDetails.nodeInfo.systemInfo
+                                    ?.macAddressesList ||
+                                  agentDetails.nodeInfo.systemInfo
                                     ?.macAddresses ||
                                   agentDetails.nodeInfo.systemInfo
                                     ?.mac_addresses
@@ -333,14 +349,16 @@
                                 <q-item-label caption>
                                   <div
                                     v-for="(mac, index) in agentDetails.nodeInfo
-                                      .systemInfo.macAddresses ||
+                                      .systemInfo.macAddressesList ||
+                                    agentDetails.nodeInfo.systemInfo
+                                      .macAddresses ||
                                     agentDetails.nodeInfo.systemInfo
                                       .mac_addresses ||
                                     []"
                                     :key="index"
                                     class="q-mb-xs"
                                   >
-                                    {{ mac || "(empty)" }}
+                                    {{ mac || "" }}
                                   </div>
                                 </q-item-label>
                               </q-item-section>
@@ -939,7 +957,7 @@
                             <q-item-section>
                               <q-item-label>LAN IP</q-item-label>
                               <q-item-label caption>
-                                {{ networkInfo.local_ips || "Загрузка..." }}
+                                {{ networkInfo.local_ips || "Loading..." }}
                               </q-item-label>
                             </q-item-section>
                           </q-item>
@@ -950,7 +968,7 @@
                             <q-item-section>
                               <q-item-label>Public IP</q-item-label>
                               <q-item-label caption>
-                                {{ networkInfo.public_ip || "Загрузка..." }}
+                                {{ networkInfo.public_ip || "Loading..." }}
                               </q-item-label>
                             </q-item-section>
                           </q-item>
@@ -1006,6 +1024,14 @@
                   </div>
                 </q-tab-panel>
               </q-tab-panels>
+            </div>
+
+            <div
+              v-else-if="mainTab === 'collections'"
+              key="collections"
+              class="gpo-content-panels"
+            >
+              <GPOCollectionsTable />
             </div>
 
             <div
@@ -2463,13 +2489,7 @@
         :assignments="appliedDialogAssignments"
         :effective-policies="appliedDialogEffective"
         :loading="showAppliedPoliciesLoading"
-        @refresh="
-          () => {
-            if (selectedAgent.value) {
-              loadAssignedPolicies(selectedAgent.value.id);
-            }
-          }
-        "
+        @refresh="refreshAppliedPoliciesDialog"
       />
 
       <ApplyPolicyDialog
@@ -2503,6 +2523,7 @@ import GPOPolicyForm from "../components/GPOPolicyForm.vue";
 import GPOPolicySettingsDialog from "../components/GPOPolicySettingsDialog.vue";
 import AppliedPoliciesDialog from "../components/AppliedPoliciesDialog.vue";
 import ApplyPolicyDialog from "../components/ApplyPolicyDialog.vue";
+import GPOCollectionsTable from "../components/CollectionsPolicies/GPOCollectionsTable.vue";
 import MultiTextBox from "@/components/ui/MultiTextBox.vue";
 import type {
   GPOPolicy,
@@ -3678,10 +3699,14 @@ interface AgentDetails {
       firmwareVersion?: string;
       firmware_version?: string;
       disks?: string[];
+      disksList?: string[];
       gpu?: string[];
+      gpuList?: string[];
       ipAddresses?: string[];
+      ipAddressesList?: string[];
       ip_addresses?: string[];
       macAddresses?: string[];
+      macAddressesList?: string[];
       mac_addresses?: string[];
     };
     lastBootTimeUnix?: number | string;
@@ -4651,7 +4676,10 @@ async function loadNetworkInfo(agentId: string) {
       const nodeInfo = agentData.nodeInfo;
       const systemInfo = nodeInfo?.systemInfo;
       const ipAddresses =
-        systemInfo?.ipAddresses || systemInfo?.ip_addresses || [];
+        systemInfo?.ipAddressesList ||
+        systemInfo?.ipAddresses ||
+        systemInfo?.ip_addresses ||
+        [];
 
       const localIps =
         ipAddresses
@@ -5122,7 +5150,14 @@ watch(
     if (
       newTab &&
       typeof newTab === "string" &&
-      ["dashboard", "network", "library", "windows", "devices"].includes(newTab)
+      [
+        "dashboard",
+        "collections",
+        "network",
+        "library",
+        "windows",
+        "devices",
+      ].includes(newTab)
     ) {
       mainTab.value = newTab;
     }
@@ -5145,6 +5180,105 @@ watch(showApplyPolicyDialogForUser, (newVal) => {
   }
 });
 
+async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
+  const [assignmentsResp, effectiveResp] = await Promise.all([
+    policyStateClient.getAssignmentsFor("agent", { agentId }),
+    policyStateClient.getEffectivePoliciesFor("agent", { agentId }),
+  ]);
+
+  const assignmentsObj = assignmentsResp as unknown as Record<
+    string,
+    unknown
+  >;
+  const assignments = ((assignmentsObj["assignmentsList"] as unknown) ||
+    (assignmentsObj["assignments"] as unknown) ||
+    []) as Array<Record<string, unknown>>;
+
+  const effectiveObj = effectiveResp as unknown as Record<string, unknown>;
+  const effectivePolicies = ((effectiveObj["policiesList"] as unknown) ||
+    (effectiveObj["policies"] as unknown) ||
+    []) as Array<Record<string, unknown>>;
+
+  appliedDialogAssignments.value = await Promise.all(
+    assignments.map(async (a, index) => {
+      const policyHash = String(a["policyHash"] || a["policy_hash"] || "");
+      const summary = a["summary"] as Record<string, unknown> | undefined;
+      let displayName =
+        summary &&
+        String(
+          summary["displayName"] ||
+            summary["display_name"] ||
+            summary["name"] ||
+            "",
+        ).trim();
+      if (!displayName) {
+        try {
+          const pdRes = (await policyCatalogClient.getPolicy(
+            policyHash,
+          )) as unknown as Record<string, unknown>;
+          displayName =
+            String(
+              pdRes["displayName"] ||
+                pdRes["display_name"] ||
+                pdRes["name"] ||
+                policyHash,
+            ) || policyHash;
+        } catch {
+          // ignore
+        }
+      }
+      if (!displayName) displayName = policyHash;
+      const explainText =
+        summary &&
+        String(
+          summary["explainText"] || summary["explain_text"] || "",
+        ).trim();
+      const scopeRaw = summary?.["scope"];
+      const scope =
+        scopeRaw !== undefined && scopeRaw !== null
+          ? String(scopeRaw)
+          : undefined;
+      return {
+        ...a,
+        policyHash,
+        id: `${policyHash}-${index}`,
+        displayName,
+        summary,
+        explainText: explainText || undefined,
+        description: explainText || undefined,
+        scope: scope || undefined,
+      };
+    }),
+  );
+
+  appliedDialogEffective.value = effectivePolicies.map((p) => {
+    const policyHash = String(p["policyHash"] || p["policy_hash"] || "");
+    const summary = p["summary"] as Record<string, unknown> | undefined;
+    const displayName = String(
+      summary
+        ? summary["displayName"] ||
+            summary["display_name"] ||
+            summary["name"] ||
+            policyHash
+        : p["displayName"] || p["display_name"] || p["name"] || policyHash,
+    );
+    const explainText = summary
+      ? String(
+          summary["explainText"] || summary["explain_text"] || "",
+        ).trim()
+      : String(p["explainText"] || p["explain_text"] || "").trim();
+    return {
+      ...p,
+      policyHash,
+      id: policyHash,
+      displayName,
+      summary,
+      explainText: explainText || undefined,
+      description: explainText || undefined,
+    };
+  });
+}
+
 const openAppliedPoliciesDialog = () => {
   if (!selectedAgent.value) return;
   showAppliedPoliciesLoading.value = true;
@@ -5153,71 +5287,27 @@ const openAppliedPoliciesDialog = () => {
 
   (async () => {
     try {
-      const agentId = selectedAgent.value!.id;
-      const [assignmentsResp, effectiveResp] = await Promise.all([
-        policyStateClient.getAssignmentsFor("agent", { agentId }),
-        policyStateClient.getEffectivePoliciesFor("agent", { agentId }),
-      ]);
-
-      const assignmentsObj = assignmentsResp as unknown as Record<
-        string,
-        unknown
-      >;
-      const assignments = ((assignmentsObj["assignmentsList"] as unknown) ||
-        (assignmentsObj["assignments"] as unknown) ||
-        []) as Array<Record<string, unknown>>;
-
-      const effectiveObj = effectiveResp as unknown as Record<string, unknown>;
-      const effectivePolicies = ((effectiveObj["policiesList"] as unknown) ||
-        (effectiveObj["policies"] as unknown) ||
-        []) as Array<Record<string, unknown>>;
-
-      appliedDialogAssignments.value = await Promise.all(
-        assignments.map(async (a) => {
-          const policyHash = String(a["policyHash"] || a["policy_hash"] || "");
-          let displayName = policyHash;
-          try {
-            const pdRes = (await policyCatalogClient.getPolicy(
-              policyHash,
-            )) as unknown as Record<string, unknown>;
-            displayName =
-              String(
-                pdRes["displayName"] ||
-                  pdRes["display_name"] ||
-                  pdRes["name"] ||
-                  policyHash,
-              ) || policyHash;
-          } catch (e) {
-            // ignore
-          }
-          return {
-            ...a,
-            policyHash,
-            id: policyHash,
-            displayName,
-          };
-        }),
-      );
-
-      appliedDialogEffective.value = effectivePolicies.map((p) => {
-        const policyHash = String(p["policyHash"] || p["policy_hash"] || "");
-        return {
-          ...p,
-          policyHash,
-          id: policyHash,
-          displayName: String(
-            p["displayName"] || p["display_name"] || p["name"] || policyHash,
-          ),
-        };
-      });
+      await loadAppliedPoliciesDialogData(selectedAgent.value!.id);
+      showAppliedPoliciesDialog.value = true;
     } catch (error) {
       notifyError("Error loading applied policies");
     } finally {
       showAppliedPoliciesLoading.value = false;
-      showAppliedPoliciesDialog.value = true;
     }
   })();
 };
+
+async function refreshAppliedPoliciesDialog() {
+  if (!selectedAgent.value) return;
+  showAppliedPoliciesLoading.value = true;
+  try {
+    await loadAppliedPoliciesDialogData(selectedAgent.value.id);
+  } catch (error) {
+    notifyError("Error loading applied policies");
+  } finally {
+    showAppliedPoliciesLoading.value = false;
+  }
+}
 
 function onPolicySettingsApplied(
   policyId: string,
@@ -5300,9 +5390,14 @@ onMounted(async () => {
   const tabFromQuery = route.query.tab as string | undefined;
   if (
     tabFromQuery &&
-    ["dashboard", "network", "library", "windows", "devices"].includes(
-      tabFromQuery,
-    )
+    [
+      "dashboard",
+      "collections",
+      "network",
+      "library",
+      "windows",
+      "devices",
+    ].includes(tabFromQuery)
   ) {
     mainTab.value = tabFromQuery;
   }

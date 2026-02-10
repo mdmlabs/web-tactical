@@ -1,0 +1,734 @@
+<template>
+  <q-dialog
+    :model-value="modelValue"
+    maximized
+    transition-show="slide-up"
+    transition-hide="slide-down"
+    @update:model-value="emit('update:modelValue', $event)"
+  >
+    <q-card class="collection-policy-picker-card">
+      <q-card-section class="row items-center q-pb-none">
+        <div class="text-h6">
+          Add policies to collection{{
+            collectionName ? `: ${collectionName}` : ""
+          }}
+        </div>
+        <q-space />
+        <q-btn icon="close" flat round dense v-close-popup />
+      </q-card-section>
+
+      <q-card-section class="q-pt-none">
+        <div class="row q-col-gutter-md">
+          <div class="col-3">
+            <CategoryTree
+              :categories="categories"
+              :loading="loadingCategories"
+              :error="errorCategories"
+              :selected-category-id="selectedCategoryId"
+              :search-query="categorySearchQuery"
+              :scope-filter="scopeFilter"
+              :scope-filter-options="scopeFilterOptions"
+              @update:selected-category-id="onSelectedCategoryIdUpdate"
+              @update:search-query="categorySearchQuery = $event ?? ''"
+              @update:scope-filter="scopeFilter = $event"
+              @retry="loadCategories()"
+            />
+          </div>
+
+          <div class="col-4">
+            <PolicyList
+              :filtered-grouped-policies="filteredGroupedPolicies"
+              :loading="loadingPolicies"
+              :error="errorPolicies"
+              :selected-policy="selectedPolicy"
+              :selected-policies="selectedPolicies"
+              :selected-count="selectedCount"
+              :has-category="!!selectedCategory"
+              @select-policy="selectPolicy"
+              @toggle-policy-selection="togglePolicySelection"
+              @retry="retryLoadPolicies"
+            />
+          </div>
+
+          <div class="col-5">
+            <q-card
+              v-if="selectedPolicy"
+              flat
+              bordered
+              class="column policy-details-card"
+              style="height: calc(100vh - 220px)"
+            >
+              <q-card-section class="q-pb-none">
+                <q-tabs
+                  v-model="settingsTab"
+                  dense
+                  inline-label
+                  class="text-grey"
+                  active-color="primary"
+                  indicator-color="primary"
+                  align="left"
+                  narrow-indicator
+                  no-caps
+                >
+                  <q-tab
+                    name="settings"
+                    icon="settings"
+                    label="Policy Settings"
+                  />
+                  <q-tab
+                    name="description"
+                    icon="description"
+                    label="Description"
+                  />
+                </q-tabs>
+                <q-separator class="q-mt-sm" />
+              </q-card-section>
+              <q-card-section class="col q-pt-none overflow-hidden">
+                <q-scroll-area :style="{ height: 'calc(100vh - 320px)' }">
+                  <q-tab-panels v-model="settingsTab" class="q-mt-md">
+                    <q-tab-panel name="settings" class="q-pa-none">
+                      <PolicyDetailsForm
+                        :elements="policyDetailsElements"
+                        :settings-values="policySettingsValues"
+                        :loading="loadingPolicyDetails"
+                        @update:field="updateSettingsField"
+                      />
+                    </q-tab-panel>
+                    <q-tab-panel name="description" class="q-pa-none">
+                      <div
+                        v-if="loadingPolicyDetails"
+                        class="text-center q-pa-lg"
+                      >
+                        <q-spinner color="primary" size="2em" />
+                        <div class="q-mt-sm">Loading...</div>
+                      </div>
+                      <div v-else-if="selectedPolicy" class="q-pa-md">
+                        <div class="text-h6 q-mb-md">
+                          {{
+                            selectedPolicy.displayName || selectedPolicy.name
+                          }}
+                        </div>
+                        <div
+                          v-if="
+                            selectedPolicy.description &&
+                            selectedPolicy.description.trim()
+                          "
+                          class="text-body2 text-grey-8 q-mb-md"
+                          style="white-space: normal; line-height: 1.6"
+                        >
+                          {{ selectedPolicy.description }}
+                        </div>
+                        <div v-else class="text-grey-6 text-body2 q-mb-md">
+                          No description
+                        </div>
+                        <div class="text-caption text-grey-6">
+                          Scope: {{ scopeLabel(selectedPolicy.scope) }}
+                        </div>
+                      </div>
+                    </q-tab-panel>
+                  </q-tab-panels>
+                </q-scroll-area>
+              </q-card-section>
+            </q-card>
+            <q-card
+              v-else
+              flat
+              bordered
+              class="column"
+              style="height: calc(100vh - 220px)"
+            >
+              <q-card-section>
+                <div class="text-grey-6 text-body2">
+                  Select a policy to view description and settings
+                </div>
+              </q-card-section>
+            </q-card>
+          </div>
+        </div>
+      </q-card-section>
+
+      <q-card-section
+        v-if="selectedCount > 0"
+        class="q-pt-none"
+      >
+        <div class="text-subtitle2 q-mb-sm">Selected ({{ selectedCount }})</div>
+        <q-list
+          bordered
+          separator
+          dense
+          class="rounded-borders"
+        >
+          <q-item
+            v-for="p in selectedPoliciesList"
+            :key="p.id"
+            dense
+          >
+            <q-item-section>
+              <q-item-label>{{ p.displayName ?? p.name ?? p.id }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-toggle
+                :model-value="policyState[p.id] !== false"
+                color="primary"
+                :label="policyState[p.id] !== false ? 'Enabled' : 'Disabled'"
+                @update:model-value="(v) => setPolicyState(p.id, !!v)"
+              />
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-card-section>
+
+      <q-card-actions align="right" class="q-pa-md">
+        <q-btn flat label="Cancel" color="grey" v-close-popup />
+        <q-btn
+          unelevated
+          color="primary"
+          label="Add selected policies and close"
+          :loading="applying"
+          :disable="selectedCount === 0"
+          @click="submitAddPolicies"
+        />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, watch } from "vue";
+import { policyCatalogClient, collectionsClient } from "../../api/grpc-client";
+import { notifyError, notifySuccess } from "@/utils/notify";
+import CategoryTree from "./CategoryTree.vue";
+import PolicyList from "./PolicyList.vue";
+import PolicyDetailsForm from "./PolicyDetailsForm.vue";
+import { usePolicyCategories } from "../../composables/usePolicyCategories";
+import { usePolicySelection } from "../../composables/usePolicySelection";
+import { normalizePoliciesList } from "../../api/policy-catalog-adapters";
+import { getDefaultValueForElement } from "../../utils/policy-field-types";
+import type { CategoryNode, PolicyItem } from "../../types/policy-catalog";
+
+const POLICY_SCOPE_NONE = 0;
+const POLICY_SCOPE_USER = 1;
+const POLICY_SCOPE_MACHINE = 2;
+const POLICY_SCOPE_BOTH = 3;
+
+interface PolicyDetailsElement {
+  id: number;
+  element_id: string;
+  type: string;
+  value_name?: string;
+  value_type?: string;
+  registry_key?: string;
+  required?: boolean;
+  max_length?: number;
+  min_value?: number;
+  max_value?: number;
+  display_name?: string;
+  description?: string;
+  presentation_type?: string;
+  items?: Array<{
+    id: number;
+    name: string;
+    display_name?: string;
+    value_type?: string;
+  }>;
+}
+
+const scopeFilterOptions = [
+  { label: "All", value: "all" },
+  { label: "User", value: "user" },
+  { label: "Machine", value: "machine" },
+  { label: "Both", value: "both"}
+];
+
+const props = defineProps<{
+  modelValue: boolean;
+  collectionId: number | null;
+  collectionName?: string;
+}>();
+
+const emit = defineEmits<{
+  (e: "update:modelValue", value: boolean): void;
+  (e: "done"): void;
+}>();
+
+const { loadingCategories, categories, errorCategories, loadCategories } =
+  usePolicyCategories();
+
+const {
+  selectedPolicies,
+  selectedCount,
+  togglePolicySelection,
+  clearSelection,
+} = usePolicySelection();
+
+const selectedCategoryId = ref<string | null>(null);
+const categorySearchQuery = ref<string | null>("");
+const selectedCategory = ref<{ id: string; categoryName: string } | null>(null);
+const loadingPolicies = ref(false);
+const errorPolicies = ref<string | null>(null);
+const allPolicies = ref<PolicyItem[]>([]);
+const selectedPolicy = ref<PolicyItem | null>(null);
+const policyHashes = ref<Record<string, string>>({});
+const policyState = ref<Record<string, boolean>>({});
+const scopeFilter = ref<string>("all");
+const applying = ref(false);
+
+const selectedPoliciesList = computed(() => {
+  const list: PolicyItem[] = [];
+  for (const group of filteredGroupedPolicies.value) {
+    for (const p of group.policies) {
+      if (selectedPolicies.value[p.id]) list.push(p);
+    }
+  }
+  return list;
+});
+
+function setPolicyState(policyId: string, enabled: boolean) {
+  policyState.value = { ...policyState.value, [policyId]: enabled };
+}
+const settingsTab = ref<"settings" | "description">("settings");
+const loadingPolicyDetails = ref(false);
+const policyDetailsElements = ref<PolicyDetailsElement[]>([]);
+const policySettingsValues = ref<Record<string, unknown>>({});
+
+function onSelectedCategoryIdUpdate(categoryId: string | null) {
+  selectedCategoryId.value = categoryId;
+  if (!categoryId) {
+    selectedCategory.value = null;
+    allPolicies.value = [];
+    selectedPolicy.value = null;
+    return;
+  }
+  const category = findCategory(categories.value, categoryId);
+  if (!category) return;
+  selectedCategory.value = {
+    id: category.id,
+    categoryName: category.categoryName,
+  };
+  loadPoliciesByCategory(category.categoryName);
+}
+
+function findCategory(nodes: CategoryNode[], id: string): CategoryNode | null {
+  for (const node of nodes) {
+    if (node.id === id) return node;
+    if (node.children?.length) {
+      const found = findCategory(node.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function retryLoadPolicies() {
+  errorPolicies.value = null;
+  if (selectedCategory.value) {
+    loadPoliciesByCategory(selectedCategory.value.categoryName);
+  }
+}
+
+function updateSettingsField(key: string, value: unknown) {
+  policySettingsValues.value[key] = value;
+}
+
+function scopeLabel(scope: number): string {
+  switch (scope) {
+    case POLICY_SCOPE_USER:
+      return "User";
+    case POLICY_SCOPE_MACHINE:
+      return "Machine";
+    case POLICY_SCOPE_BOTH:
+      return "User & Machine";
+    case POLICY_SCOPE_NONE:
+    default:
+      return "None";
+  }
+}
+
+const filteredGroupedPolicies = computed(() => {
+  const filter = scopeFilter.value;
+  let list = allPolicies.value;
+
+  if (filter !== "all") {
+    list = list.filter((p) => {
+      if (filter === "user")
+        return p.scope === POLICY_SCOPE_USER || p.scope === POLICY_SCOPE_BOTH;
+      if (filter === "machine")
+        return (
+          p.scope === POLICY_SCOPE_MACHINE || p.scope === POLICY_SCOPE_BOTH
+        );
+      if (filter === "both") return p.scope === POLICY_SCOPE_BOTH;
+      return true;
+    });
+  }
+
+  const groups: {
+    scopeKey: string;
+    scopeLabel: string;
+    policies: PolicyItem[];
+  }[] = [];
+  const byScope: Record<number, PolicyItem[]> = {
+    [POLICY_SCOPE_USER]: [],
+    [POLICY_SCOPE_MACHINE]: [],
+    [POLICY_SCOPE_BOTH]: [],
+    [POLICY_SCOPE_NONE]: [],
+  };
+  for (const p of list) {
+    const scope = p.scope in byScope ? p.scope : POLICY_SCOPE_NONE;
+    if (!byScope[scope]) byScope[scope] = [];
+    byScope[scope].push(p);
+  }
+  const order = [
+    POLICY_SCOPE_USER,
+    POLICY_SCOPE_MACHINE,
+    POLICY_SCOPE_BOTH,
+    POLICY_SCOPE_NONE,
+  ];
+  for (const scope of order) {
+    const policies = byScope[scope] || [];
+    if (policies.length === 0) continue;
+    groups.push({
+      scopeKey: String(scope),
+      scopeLabel: scopeLabel(scope),
+      policies,
+    });
+  }
+  return groups;
+});
+
+watch(
+  () => props.modelValue,
+  (visible) => {
+    if (visible) {
+      clearSelection();
+      policyHashes.value = {};
+      selectedPolicy.value = null;
+      selectedCategoryId.value = null;
+      categorySearchQuery.value = "";
+      selectedCategory.value = null;
+      errorPolicies.value = null;
+      // scopeFilter.value = "all";
+      settingsTab.value = "settings";
+      policyDetailsElements.value = [];
+      policySettingsValues.value = {};
+      loadingPolicyDetails.value = false;
+      loadCategories();
+    }
+  },
+);
+
+async function loadPoliciesByCategory(categoryName: string) {
+  loadingPolicies.value = true;
+  errorPolicies.value = null;
+  allPolicies.value = [];
+  selectedPolicy.value = null;
+  try {
+    const response = await policyCatalogClient.getPoliciesByCategory(
+      categoryName,
+      "en-US",
+    );
+    allPolicies.value = normalizePoliciesList(response);
+  } catch {
+    errorPolicies.value = "Error loading policies";
+    notifyError("Error loading policies");
+  } finally {
+    loadingPolicies.value = false;
+  }
+}
+
+function getDefaultValue(element: PolicyDetailsElement): unknown {
+  return getDefaultValueForElement(element);
+}
+
+function selectPolicy(policy: PolicyItem) {
+  selectedPolicy.value = policy;
+  loadPolicyDetails(policy);
+}
+
+function ensureString(val: unknown): string {
+  if (val == null) return "";
+  if (typeof val === "string") return val;
+  if (typeof val === "object" && "value" in val) {
+    const v = (val as { value: unknown }).value;
+    return typeof v === "string" ? v : "";
+  }
+  return String(val);
+}
+
+function buildPresentationMap(
+  presentationList: unknown[],
+): Map<string, { type: string; text?: string; default_value?: string }> {
+  const map = new Map<
+    string,
+    { type: string; text?: string; default_value?: string }
+  >();
+  for (const presEl of presentationList) {
+    if (!presEl || typeof presEl !== "object") continue;
+    const p = presEl as {
+      refId?: string;
+      ref_id?: string;
+      type?: string;
+      text?: string | { value?: string };
+      defaultValue?: string;
+      default_value?: string;
+    };
+    const refId = p.refId ?? p.ref_id ?? "";
+    if (refId.length === 0) continue;
+    const text =
+      typeof p.text === "string"
+        ? p.text
+        : (p.text as { value?: string })?.value;
+    const defaultVal = p.defaultValue ?? p.default_value;
+    map.set(refId, {
+      type: p.type ?? "",
+      text,
+      default_value: typeof defaultVal === "string" ? defaultVal : undefined,
+    });
+  }
+  return map;
+}
+
+function mapPresentationTypeToFinal(pt: string, currentType: string): string {
+  if (pt === "dropdownlist" || pt === "dropdown_list" || pt === "dropdown") {
+    return "enum";
+  }
+  if (pt === "textbox" || pt === "text_box" || pt === "text") return "TEXT";
+  if (pt === "checkbox" || pt === "check_box") return "CHECKBOX";
+  if (pt === "decimaltextbox" || pt === "decimal_textbox") return "NUMERIC";
+  if (pt === "listbox" || pt === "list_box" || pt === "list") return "LIST";
+  if (pt === "multitextbox" || pt === "multi_textbox" || pt === "multitext") {
+    return "multiTextBox";
+  }
+  return currentType ?? "";
+}
+
+function buildPolicyElements(
+  policyElements: unknown[],
+  presentationMap: Map<
+    string,
+    { type: string; text?: string; default_value?: string }
+  >,
+): PolicyDetailsElement[] {
+  const elements: PolicyDetailsElement[] = [];
+  for (const el of policyElements) {
+    if (!el || typeof el !== "object") continue;
+    const elem = el as {
+      id?: number;
+      elementId?: string;
+      element_id?: string;
+      type?: string;
+      valueName?: string;
+      value_name?: string;
+      valueType?: string;
+      value_type?: string;
+      registryKey?: string;
+      registry_key?: string;
+      required?: boolean;
+      maxLength?: number;
+      max_length?: number;
+      minValue?: number;
+      min_value?: number;
+      maxValue?: number;
+      max_value?: number;
+      itemsList?: unknown[];
+      items?: unknown[];
+    };
+    const elementId = elem.elementId ?? elem.element_id ?? "";
+    const presentationEl = presentationMap.get(elementId);
+    if (!presentationEl) continue;
+    const displayName = presentationEl.text ?? elementId;
+    const presentationType = presentationEl.type ?? "";
+    const finalType = mapPresentationTypeToFinal(
+      presentationType.toLowerCase(),
+      elem.type ?? "",
+    );
+    const rawItems = elem.itemsList ?? elem.items ?? [];
+    const items = Array.isArray(rawItems)
+      ? rawItems
+          .filter(
+            (item): item is Record<string, unknown> =>
+              item != null && typeof item === "object",
+          )
+          .map((item) => {
+            const itemId = (item.id as number) ?? 0;
+            const itemName = ensureString(item.name ?? item.value);
+            const itemDisplayName =
+              ensureString(
+                item.displayName ??
+                  item.display_name ??
+                  item.text ??
+                  item.value,
+              ) || itemName;
+            const itemValueType = (item.valueType ??
+              item.value_type ??
+              "") as string;
+            return {
+              id: itemId,
+              name: itemName,
+              display_name: itemDisplayName || `Value ${itemId}`,
+              value_type: itemValueType,
+            };
+          })
+      : [];
+    elements.push({
+      id: elem.id ?? 0,
+      element_id: elementId,
+      type: finalType,
+      value_name: (elem.valueName ?? elem.value_name) as string | undefined,
+      value_type: (elem.valueType ?? elem.value_type) as string | undefined,
+      registry_key: (elem.registryKey ?? elem.registry_key) as
+        | string
+        | undefined,
+      required: elem.required as boolean | undefined,
+      max_length: (elem.maxLength ?? elem.max_length) as number | undefined,
+      min_value: (elem.minValue ?? elem.min_value) as number | undefined,
+      max_value: (elem.maxValue ?? elem.max_value) as number | undefined,
+      display_name: displayName,
+      presentation_type: presentationType,
+      items,
+    });
+  }
+  return elements;
+}
+
+async function loadPolicyDetails(policy: PolicyItem) {
+  loadingPolicyDetails.value = true;
+  policyDetailsElements.value = [];
+  policySettingsValues.value = {};
+  try {
+    const policyId = Number.parseInt(policy.id, 10);
+    if (Number.isNaN(policyId)) {
+      loadingPolicyDetails.value = false;
+      return;
+    }
+    const response = await policyCatalogClient.getPolicyDetails(
+      policyId,
+      "en-US",
+    );
+    const hash = extractHashFromPolicyDetails(response);
+    if (hash) {
+      policyHashes.value[policy.id] = hash;
+    }
+    const resp = response as Record<string, unknown>;
+    const presentation = resp.presentation as Record<string, unknown> | undefined;
+    const presentationList = (presentation?.elementsList ??
+      presentation?.elements ??
+      []) as unknown[];
+    const policyElements = (resp.policyElementsList ??
+      resp.policy_elements ??
+      []) as unknown[];
+
+    const presentationMap = buildPresentationMap(presentationList);
+    const elements = buildPolicyElements(policyElements, presentationMap);
+    policyDetailsElements.value = elements;
+
+    const values: Record<string, unknown> = {};
+    for (const element of elements) {
+      const presentationEl = presentationMap.get(element.element_id);
+      values[element.element_id] =
+        presentationEl?.default_value ?? getDefaultValue(element);
+    }
+    policySettingsValues.value = values;
+  } catch {
+    policyDetailsElements.value = [];
+    policySettingsValues.value = {};
+  } finally {
+    loadingPolicyDetails.value = false;
+  }
+}
+
+function extractHashFromPolicyDetails(response: unknown): string | null {
+  if (!response || typeof response !== "object") return null;
+  const r = response as Record<string, unknown>;
+  const policy =
+    (r.policy as Record<string, unknown> | undefined) ??
+    (Array.isArray(r.policyList) ? r.policyList[0] : undefined) as
+      | Record<string, unknown>
+      | undefined;
+  if (!policy || typeof policy !== "object") return null;
+  const hash = policy.hash ?? policy.policy_hash;
+  if (typeof hash === "string" && hash.trim()) return hash.trim();
+  return null;
+}
+
+async function getHashForPolicy(policyId: string): Promise<string | null> {
+  if (policyHashes.value[policyId]) return policyHashes.value[policyId];
+  const idNum = Number.parseInt(policyId, 10);
+  if (Number.isNaN(idNum)) return null;
+  try {
+    const response = await policyCatalogClient.getPolicyDetails(idNum, "en-US");
+    const hash = extractHashFromPolicyDetails(response);
+    if (hash) policyHashes.value[policyId] = hash;
+    return hash;
+  } catch {
+    return null;
+  }
+}
+
+async function submitAddPolicies() {
+  const collectionId = props.collectionId;
+  if (collectionId == null || collectionId <= 0) {
+    notifyError("Collection not selected");
+    return;
+  }
+  const list = selectedPoliciesList.value;
+  if (list.length === 0) {
+    notifyError("Select at least one policy");
+    return;
+  }
+
+  applying.value = true;
+  try {
+    const policiesWithState: Array<{ hash: string; state: boolean }> = [];
+    for (const policy of list) {
+      const id = policy.id;
+      const hash =
+        (typeof policy.hash === "string" && policy.hash.trim()
+          ? policy.hash.trim()
+          : null) ?? (await getHashForPolicy(id));
+      if (hash) {
+        policiesWithState.push({
+          hash,
+          state: policyState.value[id] !== false,
+        });
+      }
+    }
+    if (policiesWithState.length === 0) {
+      notifyError(
+        "Could not get policy hashes for selected policies. " +
+          "Ensure the server returns policy hash in the list (GetPoliciesByCategory) or fix GetPolicyDetails.",
+      );
+      return;
+    }
+    await collectionsClient.createCollectionsPolicies(
+      collectionId,
+      policiesWithState,
+    );
+    notifySuccess(
+      policiesWithState.length === 1
+        ? "Policy added to collection"
+        : `${policiesWithState.length} policies added to collection`,
+    );
+    emit("done");
+    emit("update:modelValue", false);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Error adding policies";
+    notifyError(msg);
+  } finally {
+    applying.value = false;
+  }
+}
+</script>
+
+<style scoped lang="sass">
+.collection-policy-picker-card
+  display: flex
+  flex-direction: column
+  min-height: 80vh
+
+.category-tree
+  .q-tree__node-header
+    padding: 4px 0
+
+.policy-list-scroll
+  min-height: 200px
+</style>
