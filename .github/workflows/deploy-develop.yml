@@ -32,6 +32,7 @@ jobs:
           cd ~/mdmlabsrmm/web-tactical/
 
           echo "🌐 Pulling latest changes..."
+          git checkout preprod
           git pull
 
           echo "🔍 Checking for forbidden domain mesh-stage.rmadm.org..."
