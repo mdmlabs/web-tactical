@@ -35,11 +35,11 @@ jobs:
           git pull
 
           echo "🔍 Checking for forbidden domain mesh-stage.rmadm.org..."
-          if grep -R "mesh-stage.rmadm.org" . ; then
-            echo "❌ Found forbidden domain mesh-stage.rmadm.org — stopping deploy. CHANGE mesh-stage.rmadm.org -> mesh.rmadm.org!!!"
-            exit 1
+          if find . -type f ! -path "./.github/workflows/*" -exec grep -Hq "mesh-stage.rmadm.org" {} \; ; then
+              echo "❌ Found forbidden domain mesh-stage.rmadm.org — stopping deploy. CHANGE mesh-stage.rmadm.org -> mesh.rmadm.org!!!"
+              exit 1
           else
-            echo "✅ No forbidden domains found"
+              echo "✅ No forbidden domains found"
           fi
 
           
