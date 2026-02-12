@@ -2509,6 +2509,7 @@ import { formatDate } from "@/utils/format";
 import { useGPOPolicies, useGPOPolicyTree } from "../api/gpo";
 import {
   agentServiceClient,
+  agentServiceClientWrapper,
   userServiceClient,
   createGrpcMetadata,
   operator_pb,
@@ -2519,6 +2520,7 @@ import {
   admxServiceClientWrapper,
   AdmxUploadError,
 } from "../api/grpc-client";
+import { fetchAgents as fetchTacticalAgents } from "@/api/agents";
 import GPOPolicyForm from "../components/GPOPolicyForm.vue";
 import GPOPolicySettingsDialog from "../components/GPOPolicySettingsDialog.vue";
 import AppliedPoliciesDialog from "../components/AppliedPoliciesDialog.vue";
@@ -3144,49 +3146,15 @@ async function loadAgents() {
   agentsError.value = false;
 
   try {
-    const metadata = createGrpcMetadata();
+    const tacticalAgents = await fetchTacticalAgents({ detail: false });
 
-    if (!operator_pb.ListAgentsRequest) {
-      throw new Error("ListAgentsRequest class not found in operator_pb");
-    }
+    const allowedAgentIds = Array.isArray(tacticalAgents)
+      ? tacticalAgents.map((agent: { agent_id?: string }) => String(agent.agent_id))
+      : [];
 
-    const request = new operator_pb.ListAgentsRequest();
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(
-        () => reject(new Error("gRPC request timeout after 10 seconds")),
-        10000,
-      );
-    });
-
-    const response = (await Promise.race([
-      agentServiceClient.listAgents(request, metadata),
-      timeoutPromise,
-    ])) as {
-      getAgentsList?: () => Array<{
-        getAgentId?: () => string;
-        getHostName?: () => string;
-        getIpAddress?: () => string;
-        getIsOnline?: () => boolean;
-        getLastHeartbeatUnix?: () => number | string;
-      }>;
-      toObject?: (options?: {
-        longs?: typeof String;
-        enums?: typeof String;
-        bytes?: typeof String;
-        defaults?: boolean;
-        arrays?: boolean;
-        objects?: boolean;
-        oneofs?: boolean;
-      }) => {
-        agents?: Array<{
-          agent_id?: string;
-          host_name?: string;
-          ip_address?: string;
-          is_online?: boolean;
-          last_heartbeat_unix?: number | string;
-        }>;
-      };
-    };
+    const response = await agentServiceClientWrapper.listAgents(
+      allowedAgentIds.length > 0 ? allowedAgentIds : undefined
+    );
 
     let agents: Array<{
       agent_id?: string;
@@ -3202,99 +3170,7 @@ async function loadAgents() {
     }> = [];
 
     if (response && typeof response === "object") {
-      if (
-        typeof (response as { getAgentsList?: () => unknown[] })
-          .getAgentsList === "function"
-      ) {
-        const agentsList = (
-          response as {
-            getAgentsList: () => Array<{
-              getAgentId?: () => string;
-              getHostName?: () => string;
-              getIpAddress?: () => string;
-              getIsOnline?: () => boolean;
-              getLastHeartbeatUnix?: () => number | string;
-              toObject?: (options?: {
-                longs?: typeof String;
-                enums?: typeof String;
-                bytes?: typeof String;
-                defaults?: boolean;
-                arrays?: boolean;
-                objects?: boolean;
-                oneofs?: boolean;
-              }) => {
-                agentId?: string;
-                hostName?: string;
-                ipAddress?: string;
-                isOnline?: boolean;
-                lastHeartbeatUnix?: number | string;
-              };
-            }>;
-          }
-        ).getAgentsList();
-
-        agents = agentsList.map((agent) => {
-          if (agent.toObject) {
-            return agent.toObject({
-              longs: String,
-              enums: String,
-              bytes: String,
-              defaults: true,
-            });
-          }
-          return {
-            agentId: agent.getAgentId?.(),
-            hostName: agent.getHostName?.(),
-            ipAddress: agent.getIpAddress?.(),
-            isOnline: agent.getIsOnline?.(),
-            lastHeartbeatUnix: agent.getLastHeartbeatUnix?.(),
-          };
-        });
-      } else if (
-        typeof (response as { toObject?: () => unknown }).toObject ===
-        "function"
-      ) {
-        const obj = (
-          response as {
-            toObject: (options?: {
-              longs?: typeof String;
-              enums?: typeof String;
-              bytes?: typeof String;
-              defaults?: boolean;
-              arrays?: boolean;
-              objects?: boolean;
-              oneofs?: boolean;
-            }) => { agents?: unknown[] };
-          }
-        ).toObject({
-          longs: String,
-          enums: String,
-          bytes: String,
-          defaults: true,
-          arrays: true,
-          objects: true,
-          oneofs: true,
-        });
-        agents = (obj.agents || []) as Array<{
-          agentId?: string;
-          hostName?: string;
-          ipAddress?: string;
-          isOnline?: boolean;
-          lastHeartbeatUnix?: number | string;
-        }>;
-      } else if ((response as { agents?: unknown[] }).agents) {
-        agents = (
-          response as {
-            agents: Array<{
-              agentId?: string;
-              hostName?: string;
-              ipAddress?: string;
-              isOnline?: boolean;
-              lastHeartbeatUnix?: number | string;
-            }>;
-          }
-        ).agents;
-      }
+      agents = response.agentsList || [];
     }
 
     if (agents && agents.length > 0) {

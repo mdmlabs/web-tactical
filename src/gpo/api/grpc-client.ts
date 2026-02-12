@@ -199,7 +199,9 @@ export const policyCatalogClient = {
 };
 
 export const agentServiceClientWrapper = {
-  async listAgents(): Promise<operator_pb_types.ListAgentsResponse.AsObject> {
+  async listAgents(
+    allowedAgentIds?: string[]
+  ): Promise<operator_pb_types.ListAgentsResponse.AsObject> {
     if (!operator_pb.ListAgentsRequest) {
       throw new Error(
         "ListAgentsRequest class is not available in operator_pb",
@@ -212,7 +214,18 @@ export const agentServiceClientWrapper = {
       createGrpcMetadata(),
     );
 
-    return response.toObject();
+    const result = response.toObject();
+
+    if (allowedAgentIds && allowedAgentIds.length > 0) {
+      const allowedSet = new Set(allowedAgentIds);
+      const agentsList = result.agentsList || [];
+      result.agentsList = agentsList.filter((agent) => {
+        const agentId = agent.agentId || "";
+        return allowedSet.has(agentId);
+      });
+    }
+
+    return result;
   },
 
   async getAgent(
