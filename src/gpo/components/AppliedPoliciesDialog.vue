@@ -84,12 +84,6 @@
                   </q-td>
                 </template>
 
-                <template v-slot:body-cell-policy_hash="props">
-                  <q-td :props="props">{{
-                    props.row.policyHash || props.row.policy_hash || ""
-                  }}</q-td>
-                </template>
-
                 <template v-slot:body-cell-desired_state="props">
                   <q-td :props="props">{{ desiredStateLabel(props.row) }}</q-td>
                 </template>
@@ -239,13 +233,6 @@ const assignmentColumns: QTableColumn[] = [
           "",
       ),
     sortable: true,
-  },
-  {
-    name: "policy_hash",
-    label: "Hash",
-    align: "left",
-    field: (row: Record<string, unknown>) =>
-      String(row["policyHash"] || row["policy_hash"] || ""),
   },
   {
     name: "desired_state",

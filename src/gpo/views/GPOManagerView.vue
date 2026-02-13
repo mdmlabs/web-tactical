@@ -130,6 +130,8 @@
                                 agentDetails?.nodeInfo?.systemInfo?.osVersion ||
                                 agentDetails?.nodeInfo?.systemInfo
                                   ?.os_version ||
+                                (agentDetails?.nodeInfo?.systemInfo as Record<string, string> | undefined)
+                                  ?.osversion ||
                                 selectedAgent.operating_system ||
                                 "N/A"
                               }}
@@ -209,6 +211,7 @@
                                 <q-item-label caption>{{
                                   agentDetails.nodeInfo.systemInfo?.hostName ||
                                   agentDetails.nodeInfo.systemInfo?.host_name ||
+                                  (agentDetails.nodeInfo.systemInfo as Record<string, string> | undefined)?.hostname ||
                                   agentDetails.hostName ||
                                   selectedAgent.hostname
                                 }}</q-item-label>
@@ -219,8 +222,8 @@
                                 <q-item-label>Operating system</q-item-label>
                                 <q-item-label caption>{{
                                   agentDetails.nodeInfo.systemInfo?.osVersion ||
-                                  agentDetails.nodeInfo.systemInfo
-                                    ?.os_version ||
+                                  agentDetails.nodeInfo.systemInfo?.os_version ||
+                                  (agentDetails.nodeInfo.systemInfo as Record<string, string> | undefined)?.osversion ||
                                   selectedAgent.operating_system ||
                                   "N/A"
                                 }}</q-item-label>
@@ -309,7 +312,9 @@
                                     ?.ipAddressesList ||
                                   agentDetails.nodeInfo.systemInfo
                                     ?.ipAddresses ||
-                                  agentDetails.nodeInfo.systemInfo?.ip_addresses
+                                  agentDetails.nodeInfo.systemInfo?.ip_addresses ||
+                                  (agentDetails.nodeInfo?.systemInfo as Record<string, unknown>)
+                                    ?.ipaddressesList as string[] | undefined
                                 )?.length
                               "
                             >
@@ -317,13 +322,16 @@
                                 <q-item-label>IP address</q-item-label>
                                 <q-item-label caption>
                                   <div
-                                    v-for="(ip, index) in agentDetails.nodeInfo
-                                      .systemInfo.ipAddressesList ||
-                                    agentDetails.nodeInfo.systemInfo
-                                      .ipAddresses ||
-                                    agentDetails.nodeInfo.systemInfo
-                                      .ip_addresses ||
-                                    []"
+                                    v-for="(ip, index) in (
+                                      agentDetails.nodeInfo?.systemInfo
+                                        ?.ipAddressesList ||
+                                      agentDetails.nodeInfo?.systemInfo
+                                        ?.ipAddresses ||
+                                      agentDetails.nodeInfo?.systemInfo
+                                        ?.ip_addresses ||
+                                      (agentDetails.nodeInfo?.systemInfo as Record<string, unknown>)?.ipaddressesList ||
+                                      []
+                                    )"
                                     :key="index"
                                     class="q-mb-xs"
                                   >
@@ -340,7 +348,9 @@
                                   agentDetails.nodeInfo.systemInfo
                                     ?.macAddresses ||
                                   agentDetails.nodeInfo.systemInfo
-                                    ?.mac_addresses
+                                    ?.mac_addresses ||
+                                  (agentDetails.nodeInfo?.systemInfo as Record<string, unknown>)
+                                    ?.macaddressesList as string[] | undefined
                                 )?.length
                               "
                             >
@@ -348,13 +358,16 @@
                                 <q-item-label>MAC address</q-item-label>
                                 <q-item-label caption>
                                   <div
-                                    v-for="(mac, index) in agentDetails.nodeInfo
-                                      .systemInfo.macAddressesList ||
-                                    agentDetails.nodeInfo.systemInfo
-                                      .macAddresses ||
-                                    agentDetails.nodeInfo.systemInfo
-                                      .mac_addresses ||
-                                    []"
+                                    v-for="(mac, index) in (
+                                      agentDetails.nodeInfo?.systemInfo
+                                        ?.macAddressesList ||
+                                      agentDetails.nodeInfo?.systemInfo
+                                        ?.macAddresses ||
+                                      agentDetails.nodeInfo?.systemInfo
+                                        ?.mac_addresses ||
+                                      (agentDetails.nodeInfo?.systemInfo as Record<string, unknown>)?.macaddressesList ||
+                                      []
+                                    )"
                                     :key="index"
                                     class="q-mb-xs"
                                   >
@@ -2509,7 +2522,9 @@ import { formatDate } from "@/utils/format";
 import { useGPOPolicies, useGPOPolicyTree } from "../api/gpo";
 import {
   agentServiceClient,
-  userServiceClient,
+  agentServiceClientWrapper,
+  // userServiceClient,
+  userClient,
   createGrpcMetadata,
   operator_pb,
   policyAssignmentClient,
@@ -3438,13 +3453,7 @@ const usersColumns: QTableColumn[] = [
     align: "left",
     field: "lastLogon",
     sortable: true,
-  },
-  {
-    name: "groups",
-    label: "Groups",
-    align: "left",
-    field: "groups",
-  },
+  }
 ];
 
 const agentTableColumns: QTableColumn[] = [
@@ -3735,266 +3744,13 @@ async function loadUsersForAgent(agentId: string) {
   usersList.value = [];
 
   try {
-    const metadata = createGrpcMetadata();
-
-    if (!operator_pb.ListUsersForAgentRequest) {
-      throw new Error(
-        "ListUsersForAgentRequest class not found in operator_pb",
-      );
-    }
-
-    const request = new operator_pb.ListUsersForAgentRequest();
-    request.setAgentId(agentId);
-
-    const response = await userServiceClient.listUsersForAgent(
-      request,
-      metadata,
-    );
-
-    type GroupInfo = {
-      name?: string;
-      displayName?: string;
-      displayname?: string;
-      distinguishedName?: string;
-      distinguishedname?: string;
-      samAccountName?: string;
-      samaccountname?: string;
-      UserPrincipalName?: string;
-      userprincipalname?: string;
-      description?: string;
-      structuralObjectClass?: string;
-      structuralobjectclass?: string;
-      sid?: string;
-    };
-
-    let users: Array<{
-      name?: string;
-      userName?: string;
-      sid?: string;
-      account_type?: number;
-      accountType?: number;
-      is_enabled?: boolean;
-      isEnabled?: boolean;
-      last_logon_unix?: number | string;
-      lastLogonUnix?: number | string;
-      groups?: GroupInfo[] | string[];
-      groupsList?: GroupInfo[] | string[];
-    }> = [];
-
-    if (response && typeof response === "object") {
-      if (
-        typeof (response as { getUsersList?: () => unknown[] }).getUsersList ===
-        "function"
-      ) {
-        const usersList = (
-          response as {
-            getUsersList: () => Array<{
-              getName?: () => string;
-              getUserName?: () => string;
-              getSid?: () => string;
-              getAccountType?: () => number;
-              getIsEnabled?: () => boolean;
-              getLastLogonUnix?: () => number | string;
-              getGroupsList?: () => GroupInfo[] | string[];
-              toObject?: (options?: {
-                longs?: typeof String;
-                enums?: typeof String;
-                bytes?: typeof String;
-                defaults?: boolean;
-                arrays?: boolean;
-                objects?: boolean;
-                oneofs?: boolean;
-              }) => {
-                name?: string;
-                userName?: string;
-                sid?: string;
-                accountType?: number;
-                isEnabled?: boolean;
-                lastLogonUnix?: number | string;
-                groups?: GroupInfo[] | string[];
-                groupsList?: GroupInfo[] | string[];
-              };
-            }>;
-          }
-        ).getUsersList();
-
-        users = usersList.map((user) => {
-          if (user.toObject) {
-            const userObj = user.toObject({
-              longs: String,
-              enums: String,
-              bytes: String,
-              defaults: true,
-              arrays: true,
-              objects: true,
-              oneofs: true,
-            });
-            if (
-              userObj.groups &&
-              Array.isArray(userObj.groups) &&
-              userObj.groups.length > 0
-            )
-              if (
-                (userObj as { groupsList?: unknown[] }).groupsList &&
-                Array.isArray(
-                  (userObj as { groupsList: unknown[] }).groupsList,
-                ) &&
-                (userObj as { groupsList: unknown[] }).groupsList.length > 0
-              ) {
-              }
-            return userObj;
-          }
-
-          let groups: GroupInfo[] | undefined;
-          const groupsList = user.getGroupsList?.();
-          if (groupsList && groupsList.length > 0) {
-            groups = groupsList.map(
-              (group: {
-                toObject?: (options?: {
-                  longs?: typeof String;
-                  enums?: typeof String;
-                  bytes?: typeof String;
-                  defaults?: boolean;
-                  arrays?: boolean;
-                  objects?: boolean;
-                  oneofs?: boolean;
-                }) => GroupInfo;
-                getName?: () => string;
-                getDisplayName?: () => string;
-                getSamAccountName?: () => string;
-              }) => {
-                if (group.toObject) {
-                  return group.toObject({
-                    longs: String,
-                    enums: String,
-                    bytes: String,
-                    defaults: true,
-                    arrays: true,
-                    objects: true,
-                    oneofs: true,
-                  }) as GroupInfo;
-                }
-
-                return {
-                  name: group.getName?.(),
-                  displayName: group.getDisplayName?.(),
-                  samAccountName: group.getSamAccountName?.(),
-                } as GroupInfo;
-              },
-            );
-          }
-
-          const userData = {
-            name: user.getName?.() || user.getUserName?.(),
-            userName: user.getName?.() || user.getUserName?.(),
-            sid: user.getSid?.(),
-            accountType: user.getAccountType?.(),
-            isEnabled: user.getIsEnabled?.(),
-            lastLogonUnix: user.getLastLogonUnix?.(),
-            groups,
-          };
-
-          return userData;
-        });
-      } else if (
-        typeof (response as { toObject?: () => unknown }).toObject ===
-        "function"
-      ) {
-        const obj = (
-          response as {
-            toObject: (options?: {
-              longs?: typeof String;
-              enums?: typeof String;
-              bytes?: typeof String;
-              defaults?: boolean;
-              arrays?: boolean;
-              objects?: boolean;
-              oneofs?: boolean;
-            }) => { users?: unknown[] };
-          }
-        ).toObject({
-          longs: String,
-          enums: String,
-          bytes: String,
-          defaults: true,
-          arrays: true,
-          objects: true,
-          oneofs: true,
-        });
-
-        users = (obj.users || []) as Array<{
-          name?: string;
-          userName?: string;
-          sid?: string;
-          accountType?: number;
-          account_type?: number;
-          isEnabled?: boolean;
-          is_enabled?: boolean;
-          lastLogonUnix?: number | string;
-          last_logon_unix?: number | string;
-          groups?: GroupInfo[] | string[];
-          groupsList?: GroupInfo[] | string[];
-        }>;
-      } else if ((response as { users?: unknown[] }).users) {
-        const responseUsers = (
-          response as {
-            users?: Array<{
-              name?: string;
-              sid?: string;
-              account_type?: number;
-              is_enabled?: boolean;
-              last_logon_unix?: number | string;
-              groups?: GroupInfo[] | string[];
-              groupsList?: GroupInfo[] | string[];
-            }>;
-          }
-        ).users;
-        if (responseUsers) {
-          users = responseUsers.map((user) => {
-            const mapped = {
-              userName: user.name,
-              sid: user.sid,
-              accountType: user.account_type,
-              isEnabled: user.is_enabled,
-              lastLogonUnix: user.last_logon_unix,
-              groups: user.groups,
-            };
-
-            return mapped;
-          });
-        }
-      } else if (Array.isArray(response)) {
-        users = response as Array<{
-          name?: string;
-          userName?: string;
-          sid?: string;
-          account_type?: number;
-          accountType?: number;
-          is_enabled?: boolean;
-          isEnabled?: boolean;
-          last_logon_unix?: number | string;
-          lastLogonUnix?: number | string;
-          groups?: GroupInfo[] | string[];
-          groupsList?: GroupInfo[] | string[];
-        }>;
-      }
-    }
+    const users = await userClient.listUsersForAgent(agentId);
 
     if (users && users.length > 0) {
       usersList.value = users.map((user) => {
-        const userName = user.name || user.userName || "Unknown";
-        let accountTypeNum = 0;
-        if (user.account_type !== undefined) {
-          accountTypeNum = user.account_type;
-        } else if (user.accountType !== undefined) {
-          accountTypeNum = user.accountType;
-        }
-        let lastLogonUnix: number | string | undefined;
-        if (user.last_logon_unix !== undefined) {
-          lastLogonUnix = user.last_logon_unix;
-        } else if (user.lastLogonUnix !== undefined) {
-          lastLogonUnix = user.lastLogonUnix;
-        }
+        const userName =
+          user.displayname || user.name || user.samaccountname || "Unknown";
+        const accountTypeNum = user.accounttype || 0;
 
         let accountType = "Unknown";
         if (accountTypeNum === 1) {
@@ -4003,96 +3759,22 @@ async function loadUsersForAgent(agentId: string) {
           accountType = "System";
         }
 
-        let groupsData: GroupInfo[] | string[] | undefined;
-
-        if ((user as { groupsList?: unknown[] }).groupsList) {
-          const groupsList = (user as { groupsList: unknown[] }).groupsList;
-
-          if (Array.isArray(groupsList) && groupsList.length > 0) {
-            groupsData = groupsList.map((group: unknown) => {
-              const groupObj = group as {
-                toObject?: (options?: {
-                  longs?: typeof String;
-                  enums?: typeof String;
-                  bytes?: typeof String;
-                  defaults?: boolean;
-                  arrays?: boolean;
-                  objects?: boolean;
-                  oneofs?: boolean;
-                }) => GroupInfo;
-                name?: string;
-                displayname?: string;
-                samaccountname?: string;
-              };
-              if (groupObj && typeof groupObj === "object") {
-                if (
-                  groupObj.toObject &&
-                  typeof groupObj.toObject === "function"
-                ) {
-                  return groupObj.toObject({
-                    longs: String,
-                    enums: String,
-                    bytes: String,
-                    defaults: true,
-                    arrays: true,
-                    objects: true,
-                    oneofs: true,
-                  }) as GroupInfo;
-                }
-
-                return groupObj as GroupInfo;
-              }
-              return groupObj as GroupInfo;
-            });
-          }
-        } else if (user.groups && user.groups.length > 0) {
-          groupsData = user.groups;
-        }
-
         let groupsString: string | undefined;
-        if (groupsData && groupsData.length > 0) {
-          if (typeof groupsData[0] === "string") {
-            groupsString = (groupsData as string[]).join(", ");
-          } else {
-            const groupNames = (groupsData as GroupInfo[])
-              .map((group) => {
-                const name =
-                  group.name ||
-                  (
-                    group as {
-                      name?: string;
-                      displayname?: string;
-                      samaccountname?: string;
-                    }
-                  ).displayname ||
-                  group.displayName ||
-                  (
-                    group as {
-                      name?: string;
-                      displayname?: string;
-                      samaccountname?: string;
-                    }
-                  ).samaccountname ||
-                  group.samAccountName ||
-                  "";
-
-                return name;
-              })
-              .filter((name) => name !== "");
-            groupsString = groupNames.join(", ");
-          }
-        } else {
+        if (user.groupsList && user.groupsList.length > 0) {
+          const groupNames = user.groupsList
+            .map((group) => {
+              return (
+                group.displayname || group.name || group.samaccountname || ""
+              );
+            })
+            .filter((name) => name !== "");
+          groupsString = groupNames.join(", ");
         }
 
         let lastLogon: string | undefined;
-        if (lastLogonUnix !== undefined && lastLogonUnix !== null) {
-          let timestamp: number;
-          if (typeof lastLogonUnix === "string") {
-            timestamp = Number.parseInt(lastLogonUnix, 10);
-          } else {
-            timestamp = lastLogonUnix;
-          }
-          if (timestamp === 0 || Number.isNaN(timestamp)) {
+        if (user.lastlogon && user.lastlogon.seconds) {
+          const timestamp = user.lastlogon.seconds;
+          if (timestamp === 0) {
             lastLogon = "Never";
           } else {
             lastLogon = formatDate(new Date(timestamp * 1000).toISOString());
@@ -4107,7 +3789,6 @@ async function loadUsersForAgent(agentId: string) {
           groups: groupsString,
         };
       });
-    } else {
     }
   } catch (error) {
     const errorMessage = (error as { message?: string })?.message || "";
@@ -4119,7 +3800,9 @@ async function loadUsersForAgent(agentId: string) {
       errorMessage.includes("deserializing");
 
     if (is404) {
+      console.warn("User list endpoint not found (404)");
     } else if (isRpcError) {
+      console.error("RPC error loading users:", errorMessage);
     }
     usersList.value = [];
   } finally {
@@ -4132,153 +3815,17 @@ async function loadGroupsForAgent(agentId: string) {
   groupsList.value = [];
 
   try {
-    const metadata = createGrpcMetadata();
-
-    if (!operator_pb.ListUserGroupsForAgentRequest) {
-      throw new Error(
-        "ListUserGroupsForAgentRequest class not found in operator_pb",
-      );
-    }
-
-    const request = new operator_pb.ListUserGroupsForAgentRequest();
-    request.setAgentId(agentId);
-
-    const response = await userServiceClient.listUserGroupsForAgent(
-      request,
-      metadata,
-    );
-
-    type GroupInfo = {
-      name?: string;
-      displayName?: string;
-      displayname?: string;
-      distinguishedName?: string;
-      distinguishedname?: string;
-      samAccountName?: string;
-      samaccountname?: string;
-      UserPrincipalName?: string;
-      userprincipalname?: string;
-      description?: string;
-      structuralObjectClass?: string;
-      structuralobjectclass?: string;
-      sid?: string;
-    };
-
-    let groups: GroupInfo[] = [];
-
-    if (response && typeof response === "object") {
-      if (
-        typeof (response as { getGroupsList?: () => unknown[] })
-          .getGroupsList === "function"
-      ) {
-        const groupsList = (
-          response as {
-            getGroupsList: () => Array<{
-              getName?: () => string;
-              getDisplayName?: () => string;
-              getDistinguishedName?: () => string;
-              getSamAccountName?: () => string;
-              getUserPrincipalName?: () => string;
-              getDescription?: () => string;
-              getStructuralObjectClass?: () => string;
-              getSid?: () => string;
-              toObject?: (options?: {
-                longs?: typeof String;
-                enums?: typeof String;
-                bytes?: typeof String;
-                defaults?: boolean;
-                arrays?: boolean;
-                objects?: boolean;
-                oneofs?: boolean;
-              }) => GroupInfo;
-            }>;
-          }
-        ).getGroupsList();
-
-        groups = groupsList.map((group) => {
-          if (group.toObject) {
-            const groupObj = group.toObject({
-              longs: String,
-              enums: String,
-              bytes: String,
-              defaults: true,
-              arrays: true,
-              objects: true,
-              oneofs: true,
-            }) as GroupInfo;
-            return {
-              name: groupObj.name || groupObj.displayname,
-              displayName: groupObj.displayName || groupObj.displayname,
-              distinguishedName:
-                groupObj.distinguishedName || groupObj.distinguishedname,
-              samAccountName:
-                groupObj.samAccountName || groupObj.samaccountname,
-              UserPrincipalName:
-                groupObj.UserPrincipalName || groupObj.userprincipalname,
-              description: groupObj.description,
-              structuralObjectClass:
-                groupObj.structuralObjectClass ||
-                groupObj.structuralobjectclass,
-              sid: groupObj.sid,
-            };
-          }
-
-          return {
-            name: group.getName?.(),
-            displayName: group.getDisplayName?.(),
-            distinguishedName: group.getDistinguishedName?.(),
-            samAccountName: group.getSamAccountName?.(),
-            UserPrincipalName: group.getUserPrincipalName?.(),
-            description: group.getDescription?.(),
-            structuralObjectClass: group.getStructuralObjectClass?.(),
-            sid: group.getSid?.(),
-          } as GroupInfo;
-        });
-      } else if (
-        typeof (response as { toObject?: () => unknown }).toObject ===
-        "function"
-      ) {
-        const responseObj = (
-          response as {
-            toObject: (options?: {
-              longs?: typeof String;
-              enums?: typeof String;
-              bytes?: typeof String;
-              defaults?: boolean;
-              arrays?: boolean;
-              objects?: boolean;
-              oneofs?: boolean;
-            }) => { groups?: GroupInfo[] };
-          }
-        ).toObject({
-          longs: String,
-          enums: String,
-          bytes: String,
-          defaults: true,
-          arrays: true,
-          objects: true,
-          oneofs: true,
-        });
-
-        if (responseObj.groups && Array.isArray(responseObj.groups)) {
-          groups = responseObj.groups.map((group) => ({
-            name: group.name || group.displayname,
-            displayName: group.displayName || group.displayname,
-            distinguishedName:
-              group.distinguishedName || group.distinguishedname,
-            samAccountName: group.samAccountName || group.samaccountname,
-            UserPrincipalName:
-              group.UserPrincipalName || group.userprincipalname,
-            description: group.description,
-            structuralObjectClass:
-              group.structuralObjectClass || group.structuralobjectclass,
-            sid: group.sid,
-          }));
-        }
-      }
-    }
-
-    groupsList.value = groups;
+    const groups = await userClient.listUserGroupsForAgent(agentId);
+    groupsList.value = groups.map((group) => ({
+      name: group.name || "",
+      displayName: group.displayname || "",
+      distinguishedName: group.distinguishedname || "",
+      samAccountName: group.samaccountname || "",
+      UserPrincipalName: group.userprincipalname || "",
+      description: group.description || "",
+      structuralObjectClass: group.structuralobjectclass || "",
+      sid: group.sid || "",
+    }));
   } catch (error) {
     const errorMessage = (error as { message?: string })?.message || "";
     const is404 =
@@ -4289,7 +3836,9 @@ async function loadGroupsForAgent(agentId: string) {
       errorMessage.includes("deserializing");
 
     if (is404) {
+      console.warn("Groups list endpoint not found (404)");
     } else if (isRpcError) {
+      console.error("RPC error loading groups:", errorMessage);
     }
     groupsList.value = [];
   } finally {
@@ -4616,106 +4165,77 @@ async function openPolicyDetails(policyHash: string) {
   }
 }
 
+const LOCAL_IP_SKIP = /^(127\.0\.0\.1|::1|fe80::|169\.254\.)/;
+const isDisplayableIp = (ip: string) =>
+  !LOCAL_IP_SKIP.test(ip) && /^\d+\.\d+\.\d+\.\d+$/.test(ip);
+
 async function loadNetworkInfo(agentId: string) {
-  try {
-    if (selectedAgent.value && selectedAgent.value.id === agentId) {
-      if (selectedAgent.value.ip_address) {
-        networkInfo.value = {
-          local_ips: selectedAgent.value.ip_address,
-          public_ip: "N/A",
-        };
-        return;
-      }
-    }
-
-    try {
-      const metadata = createGrpcMetadata();
-
-      if (!operator_pb.GetAgentRequest) {
-        throw new Error("GetAgentRequest class not found in operator_pb");
-      }
-
-      const request = new operator_pb.GetAgentRequest();
-      request.setAgentId(agentId);
-
-      const response = await agentServiceClient.getAgent(request, metadata);
-
-      let agentData: AgentDetails = {};
-
-      if (response && typeof response === "object") {
-        if (
-          typeof (response as { toObject?: () => unknown }).toObject ===
-          "function"
-        ) {
-          agentData = (
-            response as {
-              toObject: (options?: {
-                longs?: typeof String;
-                enums?: typeof String;
-                bytes?: typeof String;
-                defaults?: boolean;
-                arrays?: boolean;
-                objects?: boolean;
-                oneofs?: boolean;
-              }) => AgentDetails;
-            }
-          ).toObject({
-            longs: String,
-            enums: String,
-            bytes: String,
-            defaults: true,
-            arrays: true,
-            objects: true,
-            oneofs: true,
-          }) as AgentDetails;
-        }
-      }
-
-      agentDetails.value = agentData;
-
-      const nodeInfo = agentData.nodeInfo;
-      const systemInfo = nodeInfo?.systemInfo;
-      const ipAddresses =
-        systemInfo?.ipAddressesList ||
-        systemInfo?.ipAddresses ||
-        systemInfo?.ip_addresses ||
-        [];
-
-      const localIps =
-        ipAddresses
-          .filter((ip) => {
-            if (
-              ip === "127.0.0.1" ||
-              ip === "::1" ||
-              ip.startsWith("fe80::") ||
-              ip.startsWith("169.254.")
-            ) {
-              return false;
-            }
-
-            return /^\d+\.\d+\.\d+\.\d+$/.test(ip);
-          })
-          .join(", ") ||
-        agentData.ipAddress ||
-        "N/A";
-
-      networkInfo.value = {
-        local_ips: localIps,
-        public_ip: "N/A",
-      };
-    } catch {
-      agentDetails.value = null;
-      networkInfo.value = {
-        local_ips: "N/A",
-        public_ip: "N/A",
-      };
-    }
-  } catch {
-    agentDetails.value = null;
+  if (
+    selectedAgent.value?.id === agentId &&
+    selectedAgent.value.ip_address
+  ) {
     networkInfo.value = {
-      local_ips: "N/A",
+      local_ips: selectedAgent.value.ip_address,
       public_ip: "N/A",
     };
+    return;
+  }
+
+  try {
+    const agentData = await agentServiceClientWrapper.getAgent(agentId);
+    const nodeInfo = agentData.nodeInfo;
+    const si = nodeInfo?.systeminfo;
+
+    agentDetails.value = {
+      ...agentData,
+      nodeInfo: nodeInfo
+        ? {
+            ...nodeInfo,
+            systemInfo: si
+              ? {
+                  hostName: si.hostname,
+                  osVersion: si.osversion,
+                  ramGb: si.ramgb,
+                  cpu: si.cpu,
+                  motherboard: si.motherboard,
+                  ipAddressesList: si.ipaddressesList ?? [],
+                  macAddressesList: si.macaddressesList ?? [],
+                  disksList: si.disksList ?? [],
+                  gpuList: si.gpuList ?? [],
+                }
+              : {
+                  hostName: agentData.hostName,
+                  osVersion: "",
+                  ramGb: undefined,
+                  cpu: "",
+                  motherboard: "",
+                  ipAddressesList: agentData.ipAddress ? [agentData.ipAddress] : [],
+                  macAddressesList: [],
+                  disksList: [],
+                  gpuList: [],
+                },
+            isDomainJoined: nodeInfo.isdomainjoined,
+            firmwareVersion: nodeInfo.firmwareversion,
+            timeZone: nodeInfo.timezone,
+            model: nodeInfo.model,
+            manufacturer: nodeInfo.manufacturer,
+          }
+        : undefined,
+    };
+
+    const ipAddresses = si?.ipaddressesList ?? [];
+    const localIps =
+      ipAddresses.filter(isDisplayableIp).join(", ") ||
+      agentData.ipAddress ||
+      "N/A";
+
+    networkInfo.value = {
+      local_ips: localIps,
+      public_ip: "N/A",
+    };
+  } catch {
+    agentDetails.value = null;
+    networkInfo.value = { local_ips: "N/A", public_ip: "N/A" };
   }
 }
 
@@ -5186,10 +4706,7 @@ async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
     policyStateClient.getEffectivePoliciesFor("agent", { agentId }),
   ]);
 
-  const assignmentsObj = assignmentsResp as unknown as Record<
-    string,
-    unknown
-  >;
+  const assignmentsObj = assignmentsResp as unknown as Record<string, unknown>;
   const assignments = ((assignmentsObj["assignmentsList"] as unknown) ||
     (assignmentsObj["assignments"] as unknown) ||
     []) as Array<Record<string, unknown>>;
@@ -5201,7 +4718,7 @@ async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
 
   appliedDialogAssignments.value = await Promise.all(
     assignments.map(async (a, index) => {
-      const policyHash = String(a["policyHash"] || a["policy_hash"] || "");
+      const policyHash = String(a["policyHash"] || "");
       const summary = a["summary"] as Record<string, unknown> | undefined;
       let displayName =
         summary &&
@@ -5230,9 +4747,7 @@ async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
       if (!displayName) displayName = policyHash;
       const explainText =
         summary &&
-        String(
-          summary["explainText"] || summary["explain_text"] || "",
-        ).trim();
+        String(summary["explainText"] || summary["explain_text"] || summary["policy_hash"] || "").trim();
       const scopeRaw = summary?.["scope"];
       const scope =
         scopeRaw !== undefined && scopeRaw !== null
@@ -5263,9 +4778,7 @@ async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
         : p["displayName"] || p["display_name"] || p["name"] || policyHash,
     );
     const explainText = summary
-      ? String(
-          summary["explainText"] || summary["explain_text"] || "",
-        ).trim()
+      ? String(summary["explainText"] || summary["explain_text"] || "").trim()
       : String(p["explainText"] || p["explain_text"] || "").trim();
     return {
       ...p,

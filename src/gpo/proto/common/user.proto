@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+package laborato.common.user;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+enum UserAccountType {
+  USER_ACCOUNT_TYPE_UNSPECIFIED = 0;
+  USER_ACCOUNT_TYPE_LOCAL = 1;
+  USER_ACCOUNT_TYPE_SYSTEM = 2;
+}
+
+message UserInfo {
+    // Идентификация
+    string name = 1;
+    string samAccountName = 2;
+    string sid = 3;
+    UserAccountType accountType = 4;
+
+    // Состояние аккаунта
+    bool isEnabled = 5;
+    bool isLocked = 6;
+    bool passwordExpired = 7;
+    google.protobuf.Timestamp accountExpirationDate = 8;
+
+    // Аудит
+    google.protobuf.Timestamp lastLogon = 9;
+    google.protobuf.Timestamp passwordLastSet = 10;
+
+    // Отображение
+    optional string displayName = 11;
+    optional string description = 12;
+
+    // Персональные данные
+    optional string givenName = 13;
+    optional string middleName = 14;
+    optional string surname = 15;
+
+    // Контакты
+    optional string email = 16;
+    optional string telephoneNumber = 17;
+
+    // Пути
+    optional string homeDirectory = 18;
+    optional string scriptPath = 19;
+
+    // Организационные
+    optional string employeeId = 20;
+
+    // Группы
+    repeated GroupInfo groups = 21;
+}
+
+message GroupInfo {
+    optional string name = 1;
+    optional string displayName = 2;
+    optional string distinguishedName = 3;
+    optional string samAccountName = 4;
+    optional string UserPrincipalName = 5;
+    optional string description = 6;
+    optional string structuralObjectClass = 7;
+    optional string sid = 8;
+}
+
+message UserRequest {
+    string sam_account_name = 1;
+    string password = 2;
+    google.protobuf.StringValue display_name = 3;
+    google.protobuf.StringValue description = 4;
+    // Account options
+    google.protobuf.BoolValue enabled = 5;
+    google.protobuf.BoolValue password_not_required = 6;
+    google.protobuf.BoolValue user_cannot_change_password = 7;
+    google.protobuf.BoolValue smartcard_logon_required = 8;
+    google.protobuf.StringValue account_expiration_date = 9; // ISO 8601
+    // Supported local attributes
+    google.protobuf.StringValue name = 10;
+    google.protobuf.StringValue middle_name = 11;
+    google.protobuf.StringValue surname = 12;
+    google.protobuf.StringValue email = 13;
+    google.protobuf.StringValue home_directory = 14;
+    google.protobuf.StringValue script_path = 15;
+    google.protobuf.StringValue telephone_number = 16;
+    google.protobuf.StringValue employee_id = 17;
+}
+
+message UserResponse {
+    UserInfo user_info = 1;
+    string error_message = 2; // empty if success
+}

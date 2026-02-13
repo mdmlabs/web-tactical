@@ -44,8 +44,10 @@
               :selected-policies="selectedPolicies"
               :selected-count="selectedCount"
               :has-category="!!selectedCategory"
+              :policy-state="policyState"
               @select-policy="selectPolicy"
               @toggle-policy-selection="togglePolicySelection"
+              @update-policy-state="setPolicyState"
               @retry="retryLoadPolicies"
             />
           </div>
@@ -147,43 +149,12 @@
         </div>
       </q-card-section>
 
-      <q-card-section
-        v-if="selectedCount > 0"
-        class="q-pt-none"
-      >
-        <div class="text-subtitle2 q-mb-sm">Selected ({{ selectedCount }})</div>
-        <q-list
-          bordered
-          separator
-          dense
-          class="rounded-borders"
-        >
-          <q-item
-            v-for="p in selectedPoliciesList"
-            :key="p.id"
-            dense
-          >
-            <q-item-section>
-              <q-item-label>{{ p.displayName ?? p.name ?? p.id }}</q-item-label>
-            </q-item-section>
-            <q-item-section side>
-              <q-toggle
-                :model-value="policyState[p.id] !== false"
-                color="primary"
-                :label="policyState[p.id] !== false ? 'Enabled' : 'Disabled'"
-                @update:model-value="(v) => setPolicyState(p.id, !!v)"
-              />
-            </q-item-section>
-          </q-item>
-        </q-list>
-      </q-card-section>
-
       <q-card-actions align="right" class="q-pa-md">
         <q-btn flat label="Cancel" color="grey" v-close-popup />
         <q-btn
           unelevated
           color="primary"
-          label="Add selected policies and close"
+          label="Save and close"
           :loading="applying"
           :disable="selectedCount === 0"
           @click="submitAddPolicies"
@@ -209,7 +180,7 @@ import type { CategoryNode, PolicyItem } from "../../types/policy-catalog";
 const POLICY_SCOPE_NONE = 0;
 const POLICY_SCOPE_USER = 1;
 const POLICY_SCOPE_MACHINE = 2;
-const POLICY_SCOPE_BOTH = 3;
+// const POLICY_SCOPE_BOTH = 3;
 
 interface PolicyDetailsElement {
   id: number;
@@ -236,8 +207,8 @@ interface PolicyDetailsElement {
 const scopeFilterOptions = [
   { label: "All", value: "all" },
   { label: "User", value: "user" },
-  { label: "Machine", value: "machine" },
-  { label: "Both", value: "both"}
+  { label: "Computer", value: "computer" },
+  // { label: "Both", value: "both"}
 ];
 
 const props = defineProps<{
@@ -335,9 +306,9 @@ function scopeLabel(scope: number): string {
     case POLICY_SCOPE_USER:
       return "User";
     case POLICY_SCOPE_MACHINE:
-      return "Machine";
-    case POLICY_SCOPE_BOTH:
-      return "User & Machine";
+      return "Computer";
+    // case POLICY_SCOPE_BOTH:
+    //   return "User & Machine";
     case POLICY_SCOPE_NONE:
     default:
       return "None";
@@ -350,13 +321,8 @@ const filteredGroupedPolicies = computed(() => {
 
   if (filter !== "all") {
     list = list.filter((p) => {
-      if (filter === "user")
-        return p.scope === POLICY_SCOPE_USER || p.scope === POLICY_SCOPE_BOTH;
-      if (filter === "machine")
-        return (
-          p.scope === POLICY_SCOPE_MACHINE || p.scope === POLICY_SCOPE_BOTH
-        );
-      if (filter === "both") return p.scope === POLICY_SCOPE_BOTH;
+      if (filter === "user") return p.scope === POLICY_SCOPE_USER;
+      if (filter === "computer") return p.scope === POLICY_SCOPE_MACHINE;
       return true;
     });
   }
@@ -369,7 +335,6 @@ const filteredGroupedPolicies = computed(() => {
   const byScope: Record<number, PolicyItem[]> = {
     [POLICY_SCOPE_USER]: [],
     [POLICY_SCOPE_MACHINE]: [],
-    [POLICY_SCOPE_BOTH]: [],
     [POLICY_SCOPE_NONE]: [],
   };
   for (const p of list) {
@@ -377,12 +342,7 @@ const filteredGroupedPolicies = computed(() => {
     if (!byScope[scope]) byScope[scope] = [];
     byScope[scope].push(p);
   }
-  const order = [
-    POLICY_SCOPE_USER,
-    POLICY_SCOPE_MACHINE,
-    POLICY_SCOPE_BOTH,
-    POLICY_SCOPE_NONE,
-  ];
+  const order = [POLICY_SCOPE_USER, POLICY_SCOPE_MACHINE, POLICY_SCOPE_NONE];
   for (const scope of order) {
     const policies = byScope[scope] || [];
     if (policies.length === 0) continue;
@@ -609,7 +569,9 @@ async function loadPolicyDetails(policy: PolicyItem) {
       policyHashes.value[policy.id] = hash;
     }
     const resp = response as Record<string, unknown>;
-    const presentation = resp.presentation as Record<string, unknown> | undefined;
+    const presentation = resp.presentation as
+      | Record<string, unknown>
+      | undefined;
     const presentationList = (presentation?.elementsList ??
       presentation?.elements ??
       []) as unknown[];
@@ -641,9 +603,9 @@ function extractHashFromPolicyDetails(response: unknown): string | null {
   const r = response as Record<string, unknown>;
   const policy =
     (r.policy as Record<string, unknown> | undefined) ??
-    (Array.isArray(r.policyList) ? r.policyList[0] : undefined) as
+    ((Array.isArray(r.policyList) ? r.policyList[0] : undefined) as
       | Record<string, unknown>
-      | undefined;
+      | undefined);
   if (!policy || typeof policy !== "object") return null;
   const hash = policy.hash ?? policy.policy_hash;
   if (typeof hash === "string" && hash.trim()) return hash.trim();

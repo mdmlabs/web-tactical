@@ -49,6 +49,20 @@
               <q-item-section>
                 <q-item-label>{{ policy.displayName || policy.name }}</q-item-label>
               </q-item-section>
+              <q-item-section
+                v-if="selectedPolicies[policy.id]"
+                side
+                class="q-pl-sm"
+              >
+                <q-toggle
+                  :model-value="policyState[policy.id] !== false"
+                  color="primary"
+                  dense
+                  :label="policyState[policy.id] !== false ? 'On' : 'Off'"
+                  @update:model-value="$emit('updatePolicyState', policy.id, $event)"
+                  @click.stop
+                />
+              </q-item-section>
             </q-item>
           </q-list>
         </div>
@@ -88,11 +102,13 @@ defineProps<{
   selectedPolicies: Record<string, boolean>;
   selectedCount: number;
   hasCategory: boolean;
+  policyState: Record<string, boolean>;
 }>();
 
 defineEmits<{
   (e: "selectPolicy", policy: PolicyItem): void;
   (e: "togglePolicySelection", policyId: string): void;
+  (e: "updatePolicyState", policyId: string, enabled: boolean): void;
   (e: "retry"): void;
 }>();
 </script>

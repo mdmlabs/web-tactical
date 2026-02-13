@@ -97,7 +97,7 @@ module.exports = configure(function (/* ctx */) {
 
         // настройка прокси для обхода CORS в режиме разработки
         if (!isServer && viteConf.server) {
-          const apiUrl = process.env.DEV_URL || "https://api.rmadm.org";
+          const apiUrl = process.env.DEV_URL || "https://api-stage.rmadm.org";
           // Если используется самоподписанный сертификат, установите USE_PROXY_INSECURE=true
           // Проверяем переменную из .env (dotenv уже загружен в начале )
           const insecure =
