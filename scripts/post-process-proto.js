@@ -63,6 +63,9 @@ function getImportsForFile(filePath) {
     imports.wrappers = true;
     imports.user = true;
     imports.node = true;
+  } else if (fileName === "user_service_pb.js") {
+    imports.wrappers = true;
+    imports.user = true;
   } else if (fileName === "user_pb.js") {
     imports.wrappers = true;
     imports.timestamp = true;
@@ -157,6 +160,31 @@ function generateES6Imports(imports, packageName) {
       lines.push("");
       lines.push("proto.laborato.common = proto.laborato.common || {};");
       lines.push("proto.laborato.common.node = common_node_pb;");
+    }
+  } else if (packageName.startsWith("laborato.operator.service")) {
+    lines.push("proto.laborato = proto.laborato || {};");
+    lines.push("proto.laborato.operator = proto.laborato.operator || {};");
+    lines.push(
+      "proto.laborato.operator.service = proto.laborato.operator.service || {};",
+    );
+
+    if (imports.wrappers) {
+      lines.push("");
+      lines.push("proto.google = proto.google || {};");
+      lines.push("proto.google.protobuf = proto.google.protobuf || {};");
+      lines.push("goog.object.extend(proto, google_protobuf_wrappers_pb);");
+      lines.push("");
+      lines.push("if (google_protobuf_wrappers_pb.StringValue) {");
+      lines.push(
+        "  proto.google.protobuf.StringValue = google_protobuf_wrappers_pb.StringValue;",
+      );
+      lines.push("}");
+    }
+
+    if (imports.user) {
+      lines.push("");
+      lines.push("proto.laborato.common = proto.laborato.common || {};");
+      lines.push("proto.laborato.common.user = common_user_pb;");
     }
   } else if (packageName.startsWith("laborato.common.user")) {
     lines.push("proto.laborato = proto.laborato || {};");
@@ -338,6 +366,10 @@ function main() {
     {
       path: path.join(GENERATED_DIR, "operator_pb.js"),
       package: "laborato.mesh.operator.v1",
+    },
+    {
+      path: path.join(GENERATED_DIR, "user_service_pb.js"),
+      package: "laborato.operator.service",
     },
   ];
 
