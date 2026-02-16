@@ -235,19 +235,15 @@ export default function () {
           );
 
           try {
-            const { agentServiceClient, createGrpcMetadata, operator_pb } =
+            const { agentServiceClientWrapper } =
               await import("@/gpo/api/grpc-client");
 
             const policyAgentsMapById = new Map();
             const policyAgentsMapByHostname = new Map();
 
             try {
-              const metadata = createGrpcMetadata();
-              const request = new operator_pb.ListAgentsRequest();
-              const response = await agentServiceClient.listAgents(
-                request,
-                metadata,
-              );
+              const allowedAgentIds = data.map((agent) => String(agent.agent_id));
+              const response = await agentServiceClientWrapper.listAgents(allowedAgentIds);
 
               let agents = [];
               if (response && typeof response === "object") {
