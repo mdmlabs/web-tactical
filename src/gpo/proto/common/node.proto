@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package laborato.common.node;
+
+import "common/user.proto";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+// NODE INFORMATION
+message NodeSystemInfo {
+    string nodeId = 1;
+    string hostName = 2;
+    string osVersion = 3;
+    string cpu = 4;
+    int32 ramGb = 5;
+    repeated string disks = 6;
+    repeated string gpu = 7;
+    repeated string ipAddresses = 8;
+    repeated string macAddresses = 9;
+    string motherboard = 10;
+}
+
+message NodeFullInfo {
+    NodeSystemInfo systemInfo = 1;
+    repeated laborato.common.user.UserInfo users = 2;
+    repeated laborato.common.user.GroupInfo groups = 3;
+    google.protobuf.Timestamp lastBootTime = 4;
+    string manufacturer = 5;
+    string model = 6;
+    string firmwareVersion = 7;
+    string timeZone = 8;
+    bool isDomainJoined = 9;
+    string node_id = 10;
+}

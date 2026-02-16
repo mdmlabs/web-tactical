@@ -218,20 +218,20 @@
                   </q-item>
 
                   <q-item
-                  clickable
-                  v-ripple
-                  @click="navigateToGPO('collections')"
-                  :class="[
+                    clickable
+                    v-ripple
+                    @click="navigateToGPO('collections')"
+                    :class="[
                       'filebar-popup-item',
                       { 'active-menu-item': isActiveGPOTab('collections') },
                     ]"
                     v-close-popup
                   >
-                  <q-item-section avatar>
-                    <q-icon name="collections" size="sm" />
+                    <q-item-section avatar>
+                      <q-icon name="collections" size="sm" />
                     </q-item-section>
                     <q-item-section>Collections</q-item-section>
-                    </q-item>
+                  </q-item>
 
                   <q-item
                     clickable

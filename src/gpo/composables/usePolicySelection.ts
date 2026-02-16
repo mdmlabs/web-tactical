@@ -3,8 +3,8 @@ import { ref, computed } from "vue";
 export function usePolicySelection() {
   const selectedPolicies = ref<Record<string, boolean>>({});
 
-  const selectedCount = computed(() =>
-    Object.values(selectedPolicies.value).filter(Boolean).length,
+  const selectedCount = computed(
+    () => Object.values(selectedPolicies.value).filter(Boolean).length,
   );
 
   function togglePolicySelection(policyId: string) {

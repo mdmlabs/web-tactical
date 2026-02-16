@@ -3,6 +3,19 @@
     <div class="gpo-content-header row items-center no-wrap">
       <div class="text-h6 q-pa-md">Collections</div>
       <q-space />
+      <q-select
+        v-model="scopeFilter"
+        :options="scopeFilterOptions"
+        option-value="value"
+        option-label="label"
+        emit-value
+        map-options
+        label="Scope"
+        dense
+        outlined
+        class="scope-filter-select q-mr-md"
+        style="min-width: 140px"
+      />
       <q-btn
         unelevated
         color="primary"
@@ -15,7 +28,7 @@
     </div>
     <div class="q-pa-md">
       <q-table
-        :rows="collectionsList"
+        :rows="filteredCollectionsList"
         :columns="collectionsTableColumns"
         row-key="id"
         :loading="loading"
@@ -27,10 +40,7 @@
       >
         <template v-slot:body-cell-scope="props">
           <q-td :props="props">
-            <div
-              class="scope-cell"
-              :class="scopeCellClass(props.row.scope)"
-            >
+            <div class="scope-cell" :class="scopeCellClass(props.row.scope)">
               <q-icon
                 v-for="icon in scopeIcons(props.row.scope)"
                 :key="icon"
@@ -45,7 +55,7 @@
         <template v-slot:body-cell-actions="props">
           <q-td :props="props">
             <div class="no-wrap justify-center q-gutter-xs">
-              <q-btn
+              <!-- <q-btn
                 icon="play_arrow"
                 size="s"
                 flat
@@ -66,7 +76,7 @@
                 @click.stop="onRemoveCollection(props.row)"
               >
                 <q-tooltip>Remove collection from target</q-tooltip>
-              </q-btn>
+              </q-btn> -->
               <q-btn
                 icon="edit"
                 size="s"
@@ -140,7 +150,10 @@
             separator
             class="rounded-borders"
           >
-            <q-item v-for="(p, idx) in policiesForDisplay" :key="policyKey(p, idx)">
+            <q-item
+              v-for="(p, idx) in policiesForDisplay"
+              :key="policyKey(p, idx)"
+            >
               <q-item-section>
                 <q-item-label>
                   {{ p.displayName ?? p.display_name ?? "—" }}
@@ -153,14 +166,14 @@
                   {{ p.explainText ?? p.explain_text }}
                 </q-item-label>
               </q-item-section>
-              <q-item-section side>
+              <!-- <q-item-section side>
                 <q-toggle
                   :model-value="getPolicyState(p, idx) !== false"
                   color="primary"
                   :label="getPolicyState(p, idx) !== false ? 'Enabled' : 'Disabled'"
                   @update:model-value="(v) => setPolicyStateInCollection(p, idx, !!v)"
                 />
-              </q-item-section>
+              </q-item-section> -->
             </q-item>
           </q-list>
           <!-- <q-btn
@@ -275,12 +288,12 @@
       @done="onPolicyPickerDone"
     />
 
-    <ApplyCollectionTargetDialog
+    <!-- <ApplyCollectionTargetDialog
       v-model="applyTargetDialogVisible"
       :collection-id="applyTargetCollectionId"
       :collection-name="applyTargetCollectionName"
       :mode="applyTargetMode"
-    />
+    /> -->
   </div>
 </template>
 
@@ -294,7 +307,7 @@ import {
 } from "../../api/grpc-client";
 import { notifyError, notifySuccess } from "@/utils/notify";
 import CollectionPolicyPickerDialog from "../CollectionsPolicies/CollectionPolicyPickerDialog.vue";
-import ApplyCollectionTargetDialog from "../CollectionsPolicies/ApplyCollectionTargetDialog.vue";
+// import ApplyCollectionTargetDialog from "../CollectionsPolicies/ApplyCollectionTargetDialog.vue";
 
 interface PolicyItem {
   id?: number | string;
@@ -328,9 +341,7 @@ function scopeLabel(scope: number): string {
     case operator_pb.PolicyScope.POLICY_SCOPE_USER:
       return "User";
     case operator_pb.PolicyScope.POLICY_SCOPE_MACHINE:
-      return "Machine";
-    case operator_pb.PolicyScope.POLICY_SCOPE_BOTH:
-      return "User & Machine";
+      return "Computer";
     case operator_pb.PolicyScope.POLICY_SCOPE_NONE:
       return "—";
     default:
@@ -344,8 +355,6 @@ function scopeIcons(scope: number): string[] {
       return ["person"];
     case operator_pb.PolicyScope.POLICY_SCOPE_MACHINE:
       return ["laptop"];
-    case operator_pb.PolicyScope.POLICY_SCOPE_BOTH:
-      return ["person", "laptop"];
     case operator_pb.PolicyScope.POLICY_SCOPE_NONE:
     default:
       return [];
@@ -358,8 +367,6 @@ function scopeCellClass(scope: number): string {
       return "scope-cell--user";
     case operator_pb.PolicyScope.POLICY_SCOPE_MACHINE:
       return "scope-cell--machine";
-    case operator_pb.PolicyScope.POLICY_SCOPE_BOTH:
-      return "scope-cell--both";
     case operator_pb.PolicyScope.POLICY_SCOPE_NONE:
     default:
       return "";
@@ -390,10 +397,24 @@ const editSubmitting = ref(false);
 
 const scopeOptions = [
   { value: operator_pb.PolicyScope.POLICY_SCOPE_USER, label: "User" },
-  { value: operator_pb.PolicyScope.POLICY_SCOPE_MACHINE, label: "Machine" },
-  { value: operator_pb.PolicyScope.POLICY_SCOPE_BOTH, label: "User & Machine" },
+  { value: operator_pb.PolicyScope.POLICY_SCOPE_MACHINE, label: "Computer" },
 ];
-//временное решение через локалсторадж
+
+const SCOPE_FILTER_ALL = null as number | null;
+const scopeFilter = ref<number | null>(SCOPE_FILTER_ALL);
+const scopeFilterOptions = [
+  { value: SCOPE_FILTER_ALL, label: "All" },
+  { value: operator_pb.PolicyScope.POLICY_SCOPE_USER, label: "User" },
+  { value: operator_pb.PolicyScope.POLICY_SCOPE_MACHINE, label: "Computer" },
+];
+
+const filteredCollectionsList = computed(() => {
+  const list = collectionsList.value;
+  const scope = scopeFilter.value;
+  if (scope === SCOPE_FILTER_ALL || scope === undefined) return list;
+  return list.filter((row) => row.scope === scope);
+});
+
 function normalizeScope(raw: number | string | undefined | null): number {
   if (raw === undefined || raw === null) {
     return operator_pb.PolicyScope.POLICY_SCOPE_NONE;
@@ -408,12 +429,9 @@ function normalizeScope(raw: number | string | undefined | null): number {
     case "USER":
     case "1":
       return operator_pb.PolicyScope.POLICY_SCOPE_USER;
-    case "MACHINE":
+    case "COMPUTER":
     case "2":
       return operator_pb.PolicyScope.POLICY_SCOPE_MACHINE;
-    case "BOTH":
-    case "3":
-      return operator_pb.PolicyScope.POLICY_SCOPE_BOTH;
     case "NONE":
     case "0":
     default:
@@ -425,10 +443,10 @@ const collectionScopeCache = ref<Record<number, number>>({});
 const createdCollectionId = ref<number | null>(null);
 const createdCollectionName = ref("");
 const policyPickerVisible = ref(false);
-const applyTargetDialogVisible = ref(false);
-const applyTargetCollectionId = ref<number>(0);
-const applyTargetCollectionName = ref("");
-const applyTargetMode = ref<"apply" | "remove">("apply");
+// const applyTargetDialogVisible = ref(false);
+// const applyTargetCollectionId = ref<number>(0);
+// const applyTargetCollectionName = ref("");
+// const applyTargetMode = ref<"apply" | "remove">("apply");
 
 const policiesForDisplay = computed(() => {
   const c = collectionDetails.value;
@@ -517,24 +535,24 @@ async function submitEditCollection() {
   }
 }
 
-function onApplyCollection(row: CollectionRow) {
-  applyTargetMode.value = "apply";
-  applyTargetCollectionId.value = row.id;
-  applyTargetCollectionName.value = row.name;
-  applyTargetDialogVisible.value = true;
-}
+// function onApplyCollection(row: CollectionRow) {
+//   applyTargetMode.value = "apply";
+//   applyTargetCollectionId.value = row.id;
+//   applyTargetCollectionName.value = row.name;
+//   applyTargetDialogVisible.value = true;
+// }
 
-function onRemoveCollection(row: CollectionRow) {
-  applyTargetMode.value = "remove";
-  applyTargetCollectionId.value = row.id;
-  applyTargetCollectionName.value = row.name;
-  applyTargetDialogVisible.value = true;
-}
+// function onRemoveCollection(row: CollectionRow) {
+//   applyTargetMode.value = "remove";
+//   applyTargetCollectionId.value = row.id;
+//   applyTargetCollectionName.value = row.name;
+//   applyTargetDialogVisible.value = true;
+// }
 
 function openCreateCollection() {
   createName.value = "";
   createDescription.value = "";
-  createScope.value = operator_pb.PolicyScope.POLICY_SCOPE_BOTH;
+  createScope.value = operator_pb.PolicyScope.POLICY_SCOPE_USER;
   createFormVisible.value = true;
 }
 
@@ -556,8 +574,11 @@ async function submitCreateCollection() {
           collectionList?: unknown[];
         }
       ).collection ??
-      (response as { collection?: { id?: number; name?: string; scope?: number } })
-        .collection;
+      (
+        response as {
+          collection?: { id?: number; name?: string; scope?: number };
+        }
+      ).collection;
     const rawId = coll?.id;
     const id = rawId !== undefined && rawId !== null ? Number(rawId) : null;
     const displayName = coll?.name ?? name;
@@ -713,7 +734,10 @@ async function onRowClick(_evt: Event, row: CollectionRow) {
       const idx = collectionsList.value.findIndex((r) => r.id === row.id);
       if (idx >= 0) {
         const nextList = [...collectionsList.value];
-        nextList[idx] = { ...nextList[idx], scope: normalizeScope(detailScope as number | string) };
+        nextList[idx] = {
+          ...nextList[idx],
+          scope: normalizeScope(detailScope as number | string),
+        };
         collectionsList.value = nextList;
       }
     }
@@ -730,18 +754,18 @@ function policyKey(p: PolicyItem, idx: number): string {
   return `idx-${idx}`;
 }
 
-function getPolicyState(p: PolicyItem, idx: number): boolean {
-  const id = policyKey(p, idx);
-  return policyStateInCollection.value[id] !== false;
-}
+// function getPolicyState(p: PolicyItem, idx: number): boolean {
+//   const id = policyKey(p, idx);
+//   return policyStateInCollection.value[id] !== false;
+// }
 
-function setPolicyStateInCollection(p: PolicyItem, idx: number, enabled: boolean) {
-  const id = policyKey(p, idx);
-  policyStateInCollection.value = {
-    ...policyStateInCollection.value,
-    [id]: enabled,
-  };
-}
+// function setPolicyStateInCollection(p: PolicyItem, idx: number, enabled: boolean) {
+//   const id = policyKey(p, idx);
+//   policyStateInCollection.value = {
+//     ...policyStateInCollection.value,
+//     [id]: enabled,
+//   };
+// }
 
 // async function savePolicyStates() {
 //   const cid = detailsCollectionId.value;

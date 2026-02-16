@@ -1,5 +1,8 @@
 syntax = "proto3";
 
+import "common/user.proto";
+import "common/node.proto";
+
 import "google/protobuf/wrappers.proto";
 
 package laborato.mesh.operator.v1;
@@ -26,12 +29,6 @@ enum PolicySource {
   POLICY_SOURCE_GLOBAL = 1;
   POLICY_SOURCE_AGENT = 2;
   POLICY_SOURCE_USER = 3;
-}
-
-enum UserAccountType {
-  USER_ACCOUNT_TYPE_UNSPECIFIED = 0;
-  USER_ACCOUNT_TYPE_LOCAL = 1;
-  USER_ACCOUNT_TYPE_SYSTEM = 2;
 }
 
 // AGENTS
@@ -70,8 +67,9 @@ message AgentDetails {
   bool is_online = 4;
   int64 last_heartbeat_unix = 5;
 
-  NodeFullInfo node_info = 6;
+  laborato.common.node.NodeFullInfo node_info = 6;
 }
+
 //Collections
 service CollectionsControlService {
   rpc GetAllCollections (GetAllCollectionsRequest)
@@ -82,38 +80,49 @@ service CollectionsControlService {
       returns (CreateCollectionsPoliciesResponse);
   rpc CreateCollection (CreateCollectionRequest)
       returns (CollectionDetailsResponse);
-  rpc UpdateCollection (UpdateCollectionRequest)
+  rpc UpdateCollection(UpdateCollectionRequest)
       returns (CollectionDetailsResponse);
   rpc DeleteCollection (DeleteCollectionRequest)
       returns (DeleteCollectionResponse);
   rpc GetPoliciesInCollection (GetPoliciesInCollectionRequest)
       returns (GetPoliciesInCollectionResponse);
+  rpc RemovePoliciesFromCollection(RemovePoliciesFromCollectionRequest)
+      returns (DeleteCollectionResponse);
 }
+
 message CreateCollectionsPoliciesRequest {
   int64 collection_id = 1;
   repeated PolicyConfigureModel policies = 2;
 }
+
 message PolicyConfigureModel {
   string hash = 1;
   bool state = 2;
 }
+
 message CreateCollectionsPoliciesResponse {
   bool success = 1;
   string message = 2;
 }
+
 message GetAllCollectionsRequest {
   string lang_code = 1;
+  optional PolicyScope scope = 2;
 }
+
 message GetAllCollectionsResponse {
   repeated CollectionsSummary collections = 1;
 }
+
 message GetCollectionByIdRequest {
   int64 collection_id = 1;
   string lang_code = 2;
 }
+
 message CollectionDetailsResponse {
   CollectionsSummary collection = 1;
 }
+
 message CollectionsSummary {
   int64 id = 1;
   PolicyScope scope = 2;
@@ -121,6 +130,7 @@ message CollectionsSummary {
   string explain_text = 4;
   repeated PolicySummary policies = 5;
 }
+
 message CreateCollectionRequest {
   string name = 1;
   PolicyScope scope = 2;
@@ -129,10 +139,10 @@ message CreateCollectionRequest {
 }
 
 message UpdateCollectionRequest {
-  int64 id = 1;
-  string name = 2;
-  string explain_text = 3;
-  repeated CollectionTranslation translations = 4;
+    int64 id = 1;
+    string name = 2;
+    string explain_text = 3;
+    repeated CollectionTranslation translations = 4;
 }
 
 message CollectionTranslation {
@@ -140,23 +150,29 @@ message CollectionTranslation {
   string name = 2;
   string explain_text = 3;
 }
+
 message DeleteCollectionRequest {
   int64 collection_id = 1;
 }
+
 message DeleteCollectionResponse {
   bool success = 1;
   string message = 2;
 }
+
 message GetPoliciesInCollectionRequest {
   int64 collection_id = 1;
   string lang_code = 2;
 }
+
 message GetPoliciesInCollectionResponse {
   repeated PolicySummary policies = 1;
 }
 
-
-
+message RemovePoliciesFromCollectionRequest {
+  int64 collectionId = 1;
+  repeated string policies = 2;
+}
 
 // USERS
 
@@ -173,7 +189,7 @@ message ListUsersForAgentRequest {
 }
 
 message ListUsersForAgentResponse {
-  repeated UserInfo users = 1;
+  repeated laborato.common.user.UserInfo users = 1;
 }
 
 message ListUserGroupsForAgentRequest {
@@ -181,31 +197,7 @@ message ListUserGroupsForAgentRequest {
 }
 
 message ListUserGroupsForAgentResponse {
-    repeated GroupInfo groups = 1;
-}
-
-message UserInfo {
-  string name = 1;
-  string sid = 2;
-
-  UserAccountType account_type = 3;
-  bool is_enabled = 4;
-  int64 last_logon_unix = 5;
-
-  repeated GroupInfo groups = 6;
-}
-
-message GroupInfo {
-  string name = 1;
-  string displayName = 2;
-  string distinguishedName = 3;
-
-  string samAccountName = 4;
-  string UserPrincipalName = 5;
-  string description = 6;
-
-  string structuralObjectClass = 7;
-  string sid = 8;
+    repeated laborato.common.user.GroupInfo groups = 1;
 }
 
 
@@ -278,9 +270,6 @@ message AdmxSnapshot {
 // POLICY CATALOG
 
 service PolicyCatalogService {
-  rpc ListPolicies (ListPoliciesRequest)
-      returns (ListPoliciesResponse);
-
   rpc GetPolicy (GetPolicyRequest)
       returns (PolicyDescriptor);
 
@@ -557,29 +546,29 @@ message PolicyTarget {
 
 // Tactical targets
 message TacticalClientTarget {
-  string client_id = 1;
+    int64 client_id = 1;
 }
 
 message TacticalClientsTarget {
-  repeated TacticalClientTarget clients = 1;
+    repeated TacticalClientTarget clients = 1;
 }
 
 message TacticalSiteTarget {
-  string site_id = 1;
+    int64 site_id = 1;
 }
 
 message TacticalSitesTarget {
-  repeated TacticalSiteTarget sites = 1;
+    repeated TacticalSiteTarget sites = 1;
 }
 
 message AggentsTarget {
-  repeated AgentTarget agents = 1;
+    repeated AgentTarget agents = 1;
 }
 
 message CombinedTarget {
-  optional TacticalClientsTarget clients = 1;
-  optional TacticalSitesTarget sites = 2;
-  optional AggentsTarget agents = 3;
+    optional TacticalClientsTarget clients = 1;
+    optional TacticalSitesTarget sites = 2;
+    optional AggentsTarget agents = 3;
 }
 
 // System targets
@@ -643,37 +632,4 @@ message PolicyAssignment {
   PolicyValueOverride override = 3;
   PolicyTarget target = 4;
   PolicySummary summary = 5;
-}
-
-// SYSTEM INFO (минимум, у меня шире, но это потом)
-
-message NodeFullInfo {
-  NodeSystemInfo system_info = 1;
-
-  int64 last_boot_time_unix = 2;
-  string os_build = 3;
-  bool is_domain_joined = 4;
-  string antivirus_status = 5;
-  string time_zone = 6;
-  string manufacturer = 7;
-  string model = 8;
-  string firmware_version = 9;
-
-  bool is_online = 10;
-}
-
-message NodeSystemInfo {
-  string host_name = 1;
-  string os_version = 2;
-
-  string cpu = 3;
-  int32 ram_gb = 4;
-
-  repeated string disks = 5;
-  repeated string gpu = 6;
-
-  repeated string ip_addresses = 7;
-  repeated string mac_addresses = 8;
-
-  string motherboard = 9;
 }

@@ -35,7 +35,14 @@ export function isTextType(el: PolicyElementLike): boolean {
   const type = el.type ?? "";
   return (
     ["text", "textbox", "text_box", "string"].includes(n) ||
-    ["TEXT", "STRING", "string", "text", "multiTextbox", "multiTextBox"].includes(type)
+    [
+      "TEXT",
+      "STRING",
+      "string",
+      "text",
+      "multiTextbox",
+      "multiTextBox",
+    ].includes(type)
   );
 }
 
@@ -53,8 +60,17 @@ export function isNumericType(el: PolicyElementLike): boolean {
   const type = el.type ?? "";
   const vt = (el.valueType ?? el.value_type ?? "").toString().toLowerCase();
   return (
-    ["numeric", "int", "number", "decimaltextbox", "decimal_textbox"].includes(n) ||
-    ["NUMERIC", "INT", "int", "number", "decimalTextbox", "decimalTextBox"].includes(type) ||
+    ["numeric", "int", "number", "decimaltextbox", "decimal_textbox"].includes(
+      n,
+    ) ||
+    [
+      "NUMERIC",
+      "INT",
+      "int",
+      "number",
+      "decimalTextbox",
+      "decimalTextBox",
+    ].includes(type) ||
     ["decimal", "int", "integer"].includes(vt)
   );
 }
@@ -75,7 +91,9 @@ export function isDropdownListType(el: PolicyElementLike): boolean {
   const hasItems = Array.isArray(el.items) && el.items.length > 0;
   return (
     hasItems &&
-    (["list", "enum", "dropdownlist", "dropdown_list", "dropdown"].includes(n) ||
+    (["list", "enum", "dropdownlist", "dropdown_list", "dropdown"].includes(
+      n,
+    ) ||
       ["LIST", "List", "list", "enum", "dropdownList"].includes(type))
   );
 }
@@ -86,7 +104,8 @@ export function isListboxEmptyType(el: PolicyElementLike): boolean {
   const noItems = !Array.isArray(el.items) || el.items.length === 0;
   return (
     noItems &&
-    (["list", "listbox", "list_box"].includes(n) || el.presentation_type === "List") &&
+    (["list", "listbox", "list_box"].includes(n) ||
+      el.presentation_type === "List") &&
     ["list", "LIST", "List"].includes(type)
   );
 }
@@ -97,7 +116,9 @@ export function isMultiSelectType(el: PolicyElementLike): boolean {
   return (
     ["multibox", "multi_box", "listbox", "list_box", "list"].includes(n) ||
     type === "List" ||
-    (type === "LIST" && Array.isArray(el.items) && el.items.length > 0 &&
+    (type === "LIST" &&
+      Array.isArray(el.items) &&
+      el.items.length > 0 &&
       ["listbox", "list_box", "list"].includes(normalizedType(el)))
   );
 }
@@ -106,7 +127,11 @@ export function getDefaultValueForElement(el: PolicyElementLike): unknown {
   if (isCheckboxType(el)) return false;
   if (isTextType(el) || isMultitextType(el)) return "";
   if (isNumericType(el)) return safeNum(el.minValue ?? el.min_value, 0);
-  if (["LIST", "list", "List"].includes(el.type ?? "") || normalizedType(el) === "list") return [];
+  if (
+    ["LIST", "list", "List"].includes(el.type ?? "") ||
+    normalizedType(el) === "list"
+  )
+    return [];
   return null;
 }
 

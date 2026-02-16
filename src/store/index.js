@@ -235,15 +235,19 @@ export default function () {
           );
 
           try {
-            const { agentServiceClientWrapper } =
-              await import("@/gpo/api/grpc-client");
+            const { agentServiceClientWrapper } = await import(
+              "@/gpo/api/grpc-client"
+            );
 
             const policyAgentsMapById = new Map();
             const policyAgentsMapByHostname = new Map();
 
             try {
-              const allowedAgentIds = data.map((agent) => String(agent.agent_id));
-              const response = await agentServiceClientWrapper.listAgents(allowedAgentIds);
+              const allowedAgentIds = data.map((agent) =>
+                String(agent.agent_id),
+              );
+              const response =
+                await agentServiceClientWrapper.listAgents(allowedAgentIds);
 
               let agents = [];
               if (response && typeof response === "object") {

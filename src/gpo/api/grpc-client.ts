@@ -13,6 +13,7 @@ import operator_pb from "@/generated/operator_pb";
 
 import type * as operator_pb_types from "@/generated/operator_pb";
 import { useAuthStore } from "@/stores/auth";
+import { GroupInfo, UserInfo } from "@/generated/common/user_pb";
 
 if (!operator_pb) {
   throw new Error("operator_pb module failed to load");
@@ -200,7 +201,7 @@ export const policyCatalogClient = {
 
 export const agentServiceClientWrapper = {
   async listAgents(
-    allowedAgentIds?: string[]
+    allowedAgentIds?: string[],
   ): Promise<operator_pb_types.ListAgentsResponse.AsObject> {
     if (!operator_pb.ListAgentsRequest) {
       throw new Error(
@@ -234,40 +235,57 @@ export const agentServiceClientWrapper = {
     const request = new operator_pb.GetAgentRequest();
     request.setAgentId(agentId);
 
-    const response = await agentServiceClient.getAgent(
-      request,
-      createGrpcMetadata(),
-    );
-
-    return response.toObject();
+    try {
+      const response = await agentServiceClient.getAgent(
+        request,
+        createGrpcMetadata(),
+      );
+      return response.toObject();
+    } catch (err) {
+      console.error("getAgent error:", err);
+      throw err;
+    }
   },
 };
 
 export const userClient = {
-  async listUsersForAgent(
-    agentId: string,
-  ): Promise<Array<{ name?: string; sid?: string }>> {
+  async listUsersForAgent(agentId: string): Promise<UserInfo.AsObject[]> {
     const request = new operator_pb.ListUsersForAgentRequest();
     request.setAgentId(agentId);
     const response = await userServiceClient.listUsersForAgent(
       request,
       createGrpcMetadata(),
     );
-    const list =
-      (response as { getUsersList?: () => unknown[] }).getUsersList?.() ?? [];
-    return list.map((u: unknown) => {
-      const o = u as {
-        toObject?: (opts?: unknown) => { name?: string; userName?: string; sid?: string };
-      } & { name?: string; userName?: string; sid?: string };
-      if (typeof o.toObject === "function") {
-        const obj = o.toObject({ defaults: true });
-        return {
-          name: obj.name ?? obj.userName,
-          sid: obj.sid,
-        };
-      }
-      return { name: o.name ?? o.userName, sid: o.sid };
-    });
+
+    try {
+      const responseObj = response.toObject();
+      return responseObj.usersList || [];
+    } catch (error) {
+      console.warn(
+        "Error deserializing users response, using manual extraction:",
+        error,
+      );
+      const usersList = response.getUsersList?.() || [];
+      return usersList.map((user) => {
+        try {
+          return user.toObject();
+        } catch {
+          return user as unknown as UserInfo.AsObject;
+        }
+      });
+    }
+  },
+
+  async listUserGroupsForAgent(agentId: string): Promise<GroupInfo.AsObject[]> {
+    const request = new operator_pb.ListUserGroupsForAgentRequest();
+    request.setAgentId(agentId);
+    const response = await userServiceClient.listUserGroupsForAgent(
+      request,
+      createGrpcMetadata(),
+    );
+
+    const responseObj = response.toObject();
+    return responseObj.groupsList || [];
   },
 };
 
@@ -397,10 +415,7 @@ export function createPolicyTargetFromParams(
       if (!targetParams.agentId || !targetParams.userSid) {
         throw new Error("agentId и userSid обязательны для типа 'user'");
       }
-      return createUserTarget(
-        targetParams.agentId,
-        targetParams.userSid,
-      );
+      return createUserTarget(targetParams.agentId, targetParams.userSid);
     case "client":
       if (!targetParams.clientId) {
         throw new Error("clientId обязателен для типа 'client'");
@@ -576,6 +591,21 @@ export const policyAssignmentClient = {
         policySelection = createPolicySelection(selection);
       }
       request.setSelection(policySelection);
+
+      //для дэбага
+      console.log("асайн полиси дебаг:", {
+        policyHash,
+        targetType,
+        targetParams,
+        selectionInput: selection,
+        selectionProto: policySelection.toObject?.() || "no toObject",
+      });
+    } else {
+      console.log("асайн полиси дебаг: selection is undefined/null", {
+        policyHash,
+        targetType,
+        targetParams,
+      });
     }
 
     const response = await policyAssignmentServiceClient.assignPolicy(

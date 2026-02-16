@@ -2,182 +2,396 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const GENERATED_DIR = path.join(__dirname, "../src/generated");
-const TARGET_FILE = path.join(GENERATED_DIR, "operator_pb.js");
 
-console.log(" Постобработка protobuf файлов...");
+// функция для обработки одного proto файла
+function processProtoFile(filePath, packageName) {
+  console.log(`\n Обработка: ${path.relative(GENERATED_DIR, filePath)}`);
 
-if (!fs.existsSync(TARGET_FILE)) {
-  console.error(` Файл не найден: ${TARGET_FILE}`);
-  process.exit(1);
-}
-
-let content = fs.readFileSync(TARGET_FILE, "utf8");
-
-// первое: замена комон джиес  импортов на ES6
-console.log("Конвертация в ES6 модули...");
-
-// проверяем, есть ли уже ES6 импорты
-if (!content.includes("import * as jspb")) {
-  const es6Imports = `import * as jspb from "google-protobuf";
-import * as google_protobuf_wrappers_pb from "google-protobuf/google/protobuf/wrappers_pb.js";
-
-var goog = jspb;
-var global = globalThis;
-
-var proto = {};
-
-proto.google = proto.google || {};
-proto.google.protobuf = proto.google.protobuf || {};
-goog.object.extend(proto, google_protobuf_wrappers_pb);
-
-if (google_protobuf_wrappers_pb.StringValue) {
-  proto.google.protobuf.StringValue = google_protobuf_wrappers_pb.StringValue;
-}
-if (google_protobuf_wrappers_pb.BoolValue) {
-  proto.google.protobuf.BoolValue = google_protobuf_wrappers_pb.BoolValue;
-}
-if (google_protobuf_wrappers_pb.Int32Value) {
-  proto.google.protobuf.Int32Value = google_protobuf_wrappers_pb.Int32Value;
-}
-if (google_protobuf_wrappers_pb.Int64Value) {
-  proto.google.protobuf.Int64Value = google_protobuf_wrappers_pb.Int64Value;
-}
-
-proto.laborato = proto.laborato || {};
-proto.laborato.mesh = proto.laborato.mesh || {};
-proto.laborato.mesh.operator = proto.laborato.mesh.operator || {};
-proto.laborato.mesh.operator.v1 = proto.laborato.mesh.operator.v1 || {};
-
-`;
-
-  // вставляем импорты после комментариев заголовка
-  content = content.replace(
-    /(\/\/ GENERATED CODE -- DO NOT EDIT!\n\/\* eslint-disable \*\/\n\/\/ @ts-nocheck\n\n)/,
-    `$1${es6Imports}`,
-  );
-}
-
-// второе: извлечение всех экспортируемых символов из goog.exportSymbol
-console.log("извлечение экспортируемых классов...");
-
-const exportedClasses = new Set();
-const exportedEnums = new Set();
-
-// ищем все goog.exportSymbol вызовы (поддерживаем и одинарные и двойные кавычки)
-const exportSymbolRegex =
-  /goog\.exportSymbol\(['"]proto\.laborato\.mesh\.operator\.v1\.(\w+)['"]/g;
-let match;
-
-while ((match = exportSymbolRegex.exec(content)) !== null) {
-  const className = match[1];
-  exportedClasses.add(className);
-}
-
-// также извлекаем enum'ы - они объявлены в конце файла
-const enumRegex = /proto\.laborato\.mesh\.operator\.v1\.(\w+) = \{[\s\S]*?\};/g;
-const potentialEnums = [];
-while ((match = enumRegex.exec(content)) !== null) {
-  potentialEnums.push({
-    name: match[1],
-    content: match[0],
-    position: match.index,
-  });
-}
-
-// фильтруем только настоящие enum'ы (они содержат константы в uppercase)
-potentialEnums.forEach(({ name, content: enumContent }) => {
-  // Enum должен содержать uppercase ключи и не быть прототипом
-  const hasEnumPattern = /[A-Z_]+:\s*\d+/.test(enumContent);
-  const isNotPrototype = !/prototype/.test(enumContent);
-
-  if (hasEnumPattern && isNotPrototype && exportedClasses.has(name)) {
-    exportedEnums.add(name);
+  if (!fs.existsSync(filePath)) {
+    console.error(`Файл не найден: ${filePath}`);
+    return false;
   }
-});
 
-console.log(`Найдено классов: ${exportedClasses.size}`);
-console.log(`Найдено enum'ов: ${exportedEnums.size}`);
+  let content = fs.readFileSync(filePath, "utf8");
 
-//третье: генерация экспортов
-console.log("Генерация экспортов...");
+  const imports = getImportsForFile(filePath);
+  if (!content.includes("import * as jspb")) {
+    console.log("Конвертация в ES6 модули...");
 
-// удаляем старые экспорты если есть
-content = content.replace(/\n\/\/ Экспорт для ES модулей[\s\S]*$/, "");
-content = content.replace(/\nconst namespace = [\s\S]*$/, "");
-content = content.replace(/\nconst isDevMode[\s\S]*$/, "");
-content = content.replace(/\nconst operator_pb_exports[\s\S]*$/, "");
-content = content.replace(/\nexport default[\s\S]*$/, "");
-content = content.replace(/\nexport const [\s\S]*$/, "");
+    const es6Imports = generateES6Imports(imports, packageName);
+    content = content.replace(
+      /(\/\/ GENERATED CODE -- DO NOT EDIT!\n\/\* eslint-disable \*\/\n\/\/ @ts-nocheck\n\n)/,
+      `$1${es6Imports}`,
+    );
+  }
 
-// убедимся что контент заканчивается переносом строки
-content = content.trimEnd() + "\n";
+  content = fixImportPaths(content, filePath);
+  const { classes, enums } = extractExportedSymbols(content, packageName);
 
-// генерируем новый блок экспортов
-const exportLines = [];
+  // debug: если ничего не найдено, покажем примеры строк
+  if (classes.size === 0) {
+    console.log("DEBUG: Поиск goog.exportSymbol в файле...");
+    const exportMatches = content.match(/goog\.exportSymbol\([^)]+\)/g);
+    if (exportMatches) {
+      console.log(`Найдено ${exportMatches.length} экспортов, примеры:`);
+      exportMatches.slice(0, 3).forEach((m) => console.log(`    ${m}`));
+    } else {
+      console.log("goog.exportSymbol не найден!");
+    }
+  }
 
-// namespace экспорт
-exportLines.push("const namespace = proto.laborato.mesh.operator.v1;");
-exportLines.push("");
+  content = cleanOldExports(content);
+  content = content.trimEnd() + "\n";
 
-// debug режим для проверки классов
-exportLines.push("const isDevMode =");
-exportLines.push('  typeof process !== "undefined" &&');
-exportLines.push("  process.env &&");
-exportLines.push('  process.env.NODE_ENV === "development";');
-exportLines.push("const isDebugMode =");
-exportLines.push("  isDevMode ||");
-exportLines.push('  (typeof globalThis.window !== "undefined" &&');
-exportLines.push("    globalThis.window &&");
-exportLines.push("    globalThis.window.__DEBUG__);");
-exportLines.push("if (isDebugMode) {");
+  const exportsBlock = generateExportsBlock(classes, enums, packageName);
+  fs.writeFileSync(filePath, content + exportsBlock, "utf8");
+  return true;
+}
 
-// cписок основных request классов для проверки
-const requiredClasses = Array.from(exportedClasses).filter(
-  (cls) => cls.endsWith("Request") && !cls.includes("Response"),
-);
+function getImportsForFile(filePath) {
+  const fileName = path.basename(filePath);
+  const imports = {
+    jspb: true,
+    wrappers: false,
+    timestamp: false,
+    empty: false,
+    user: false,
+    node: false,
+  };
 
-exportLines.push("  const requiredClasses = [");
-requiredClasses.forEach((cls, idx) => {
-  const comma = idx < requiredClasses.length - 1 ? "," : "";
-  exportLines.push(`    "${cls}"${comma}`);
-});
-exportLines.push("  ];");
-exportLines.push("");
-exportLines.push(
-  "  const missingClasses = requiredClasses.filter((cls) => !namespace[cls]);",
-);
-exportLines.push("  if (missingClasses.length > 0) {");
-exportLines.push(
-  '    console.warn("[operator_pb] Missing classes in namespace:", missingClasses);',
-);
-exportLines.push("  } else {");
-exportLines.push("    // console.log(");
-exportLines.push(
-  '    //   "[operator_pb] All required classes are available in namespace",',
-);
-exportLines.push("    // );");
-exportLines.push("  }");
-exportLines.push("}");
-exportLines.push("");
+  if (fileName === "operator_pb.js") {
+    imports.wrappers = true;
+    imports.user = true;
+    imports.node = true;
+  } else if (fileName === "user_service_pb.js") {
+    imports.wrappers = true;
+    imports.user = true;
+  } else if (fileName === "user_pb.js") {
+    imports.wrappers = true;
+    imports.timestamp = true;
+  } else if (fileName === "node_pb.js") {
+    imports.timestamp = true;
+    imports.user = true;
+  }
 
-// default экспорт
-exportLines.push("const operator_pb_exports = namespace;");
-exportLines.push("");
-exportLines.push("export default operator_pb_exports;");
-exportLines.push("");
+  return imports;
+}
 
-// именованные экспорты для всех классов
-const sortedClasses = Array.from(exportedClasses).sort();
-sortedClasses.forEach((className) => {
-  exportLines.push(
-    `export const ${className} = operator_pb_exports.${className};`,
+function generateES6Imports(imports, packageName) {
+  const lines = [];
+
+  lines.push('import * as jspb from "google-protobuf";');
+
+  if (imports.wrappers) {
+    lines.push(
+      'import * as google_protobuf_wrappers_pb from "google-protobuf/google/protobuf/wrappers_pb.js";',
+    );
+  }
+  if (imports.timestamp) {
+    lines.push(
+      'import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb.js";',
+    );
+  }
+  if (imports.empty) {
+    lines.push(
+      'import * as google_protobuf_empty_pb from "google-protobuf/google/protobuf/empty_pb.js";',
+    );
+  }
+
+  if (imports.user) {
+    lines.push('import * as common_user_pb from "./common/user_pb.js";');
+  }
+  if (imports.node) {
+    lines.push('import * as common_node_pb from "./common/node_pb.js";');
+  }
+
+  lines.push("");
+  lines.push("var goog = jspb;");
+  lines.push("var global = globalThis;");
+  lines.push("");
+  lines.push("var proto = {};");
+  lines.push("");
+
+  if (packageName.startsWith("laborato.mesh.operator")) {
+    lines.push("proto.laborato = proto.laborato || {};");
+    lines.push("proto.laborato.mesh = proto.laborato.mesh || {};");
+    lines.push(
+      "proto.laborato.mesh.operator = proto.laborato.mesh.operator || {};",
+    );
+    lines.push(
+      "proto.laborato.mesh.operator.v1 = proto.laborato.mesh.operator.v1 || {};",
+    );
+
+    if (imports.wrappers) {
+      lines.push("");
+      lines.push("proto.google = proto.google || {};");
+      lines.push("proto.google.protobuf = proto.google.protobuf || {};");
+      lines.push("goog.object.extend(proto, google_protobuf_wrappers_pb);");
+      lines.push("");
+      lines.push("if (google_protobuf_wrappers_pb.StringValue) {");
+      lines.push(
+        "  proto.google.protobuf.StringValue = google_protobuf_wrappers_pb.StringValue;",
+      );
+      lines.push("}");
+      lines.push("if (google_protobuf_wrappers_pb.BoolValue) {");
+      lines.push(
+        "  proto.google.protobuf.BoolValue = google_protobuf_wrappers_pb.BoolValue;",
+      );
+      lines.push("}");
+      lines.push("if (google_protobuf_wrappers_pb.Int32Value) {");
+      lines.push(
+        "  proto.google.protobuf.Int32Value = google_protobuf_wrappers_pb.Int32Value;",
+      );
+      lines.push("}");
+      lines.push("if (google_protobuf_wrappers_pb.Int64Value) {");
+      lines.push(
+        "  proto.google.protobuf.Int64Value = google_protobuf_wrappers_pb.Int64Value;",
+      );
+      lines.push("}");
+    }
+
+    if (imports.user) {
+      lines.push("");
+      lines.push("proto.laborato.common = proto.laborato.common || {};");
+      lines.push("proto.laborato.common.user = common_user_pb;");
+    }
+
+    if (imports.node) {
+      lines.push("");
+      lines.push("proto.laborato.common = proto.laborato.common || {};");
+      lines.push("proto.laborato.common.node = common_node_pb;");
+    }
+  } else if (packageName.startsWith("laborato.operator.service")) {
+    lines.push("proto.laborato = proto.laborato || {};");
+    lines.push("proto.laborato.operator = proto.laborato.operator || {};");
+    lines.push(
+      "proto.laborato.operator.service = proto.laborato.operator.service || {};",
+    );
+
+    if (imports.wrappers) {
+      lines.push("");
+      lines.push("proto.google = proto.google || {};");
+      lines.push("proto.google.protobuf = proto.google.protobuf || {};");
+      lines.push("goog.object.extend(proto, google_protobuf_wrappers_pb);");
+      lines.push("");
+      lines.push("if (google_protobuf_wrappers_pb.StringValue) {");
+      lines.push(
+        "  proto.google.protobuf.StringValue = google_protobuf_wrappers_pb.StringValue;",
+      );
+      lines.push("}");
+    }
+
+    if (imports.user) {
+      lines.push("");
+      lines.push("proto.laborato.common = proto.laborato.common || {};");
+      lines.push("proto.laborato.common.user = common_user_pb;");
+    }
+  } else if (packageName.startsWith("laborato.common.user")) {
+    lines.push("proto.laborato = proto.laborato || {};");
+    lines.push("proto.laborato.common = proto.laborato.common || {};");
+    lines.push(
+      "proto.laborato.common.user = proto.laborato.common.user || {};",
+    );
+
+    if (imports.wrappers || imports.timestamp) {
+      lines.push("");
+      lines.push("proto.google = proto.google || {};");
+      lines.push("proto.google.protobuf = proto.google.protobuf || {};");
+    }
+
+    if (imports.wrappers) {
+      lines.push("goog.object.extend(proto, google_protobuf_wrappers_pb);");
+    }
+    if (imports.timestamp) {
+      lines.push("goog.object.extend(proto, google_protobuf_timestamp_pb);");
+      lines.push(
+        "if (google_protobuf_timestamp_pb.Timestamp) { proto.google.protobuf.Timestamp = google_protobuf_timestamp_pb.Timestamp; }",
+      );
+    }
+  } else if (packageName.startsWith("laborato.common.node")) {
+    lines.push("proto.laborato = proto.laborato || {};");
+    lines.push("proto.laborato.common = proto.laborato.common || {};");
+    lines.push(
+      "proto.laborato.common.node = proto.laborato.common.node || {};",
+    );
+
+    if (imports.user) {
+      lines.push("proto.laborato.common.user = common_user_pb;");
+    }
+
+    if (imports.timestamp || imports.empty) {
+      lines.push("");
+      lines.push("proto.google = proto.google || {};");
+      lines.push("proto.google.protobuf = proto.google.protobuf || {};");
+    }
+
+    if (imports.timestamp) {
+      lines.push("goog.object.extend(proto, google_protobuf_timestamp_pb);");
+      lines.push(
+        "if (google_protobuf_timestamp_pb.Timestamp) { proto.google.protobuf.Timestamp = google_protobuf_timestamp_pb.Timestamp; }",
+      );
+    }
+    if (imports.empty) {
+      lines.push("goog.object.extend(proto, google_protobuf_empty_pb);");
+    }
+  }
+
+  lines.push("");
+  lines.push("");
+
+  return lines.join("\n");
+}
+
+function fixImportPaths(content, filePath) {
+  const fileName = path.basename(filePath);
+  const fileDir = path.dirname(filePath);
+
+  if (fileDir.endsWith("common")) {
+    if (fileName === "node_pb.js") {
+      content = content.replace(
+        /import \* as common_user_pb from ["']\.\.\/\.\.\/generated\/common\/user_pb\.js["'];/g,
+        'import * as common_user_pb from "./user_pb.js";',
+      );
+      content = content.replace(
+        /import \* as common_user_pb from ["']\.\/common\/user_pb\.js["'];/g,
+        'import * as common_user_pb from "./user_pb.js";',
+      );
+    }
+  }
+
+  return content;
+}
+
+function extractExportedSymbols(content, packageName) {
+  const classes = new Set();
+  const enums = new Set();
+  const packagePath = packageName.replace(/\./g, "\\.");
+  const regex1 = new RegExp(
+    `goog\\.exportSymbol\\(['"]${packagePath}\\.(\\w+)['"]`,
+    "g",
   );
-});
+  const regex2 = new RegExp(
+    `goog\\.exportSymbol\\(['"]${packageName}\\.(\\w+)['"]`,
+    "g",
+  );
+  const regex3 = /goog\.exportSymbol\(['"][\w.]+\.(\w+)['"]/g;
 
-// добавляем экспорты в файл
-const exportsBlock = "\n" + exportLines.join("\n") + "\n";
-fs.writeFileSync(TARGET_FILE, content + exportsBlock, "utf8");
+  let match;
+  while ((match = regex1.exec(content)) !== null) {
+    classes.add(match[1]);
+  }
+  if (classes.size === 0) {
+    while ((match = regex2.exec(content)) !== null) {
+      classes.add(match[1]);
+    }
+  }
+  if (classes.size === 0) {
+    while ((match = regex3.exec(content)) !== null) {
+      classes.add(match[1]);
+    }
+  }
+  if (classes.size > 0) {
+    const enumRegex = /proto\.[\w.]+\.(\w+) = \{[\s\S]*?\};/g;
+    const potentialEnums = [];
 
-console.log("Постобработка завершена успешно!");
-console.log(`Обработан файл: ${TARGET_FILE}`);
-console.log(`Экспортировано классов: ${exportedClasses.size}`);
+    while ((match = enumRegex.exec(content)) !== null) {
+      potentialEnums.push({
+        name: match[1],
+        enumContent: match[0],
+      });
+    }
+
+    potentialEnums.forEach((item) => {
+      const hasEnumPattern = /[A-Z_]+:\s*\d+/.test(item.enumContent);
+      const isNotPrototype = !/prototype/.test(item.enumContent);
+
+      if (hasEnumPattern && isNotPrototype && classes.has(item.name)) {
+        enums.add(item.name);
+      }
+    });
+  }
+
+  return { classes, enums };
+}
+
+function cleanOldExports(content) {
+  content = content.replace(/\n\/\/ Экспорт для ES модулей[\s\S]*$/, "");
+  content = content.replace(/\nconst namespace = [\s\S]*$/, "");
+  content = content.replace(/\nconst isDevMode[\s\S]*$/, "");
+  content = content.replace(/\nconst \w+_pb_exports[\s\S]*$/, "");
+  content = content.replace(/\nexport default[\s\S]*$/, "");
+  content = content.replace(/\nexport const [\s\S]*$/, "");
+  return content;
+}
+
+function generateExportsBlock(classes, enums, packageName) {
+  const exportLines = [];
+  const namespacePath = packageName.split(".").join(".");
+  const exportName = packageName.split(".").pop() + "_pb_exports";
+
+  exportLines.push(`const namespace = proto.${namespacePath};`);
+  exportLines.push("");
+  exportLines.push("const isDevMode =");
+  exportLines.push('  typeof process !== "undefined" &&');
+  exportLines.push("  process.env &&");
+  exportLines.push('  process.env.NODE_ENV === "development";');
+  exportLines.push("");
+  exportLines.push("if (isDevMode && Object.keys(namespace).length === 0) {");
+  exportLines.push(`  console.warn("[${packageName}] Namespace is empty!");`);
+  exportLines.push("}");
+  exportLines.push("");
+  exportLines.push(`const ${exportName} = namespace;`);
+  exportLines.push("");
+  exportLines.push(`export default ${exportName};`);
+  exportLines.push("");
+
+  const sortedClasses = Array.from(classes).sort();
+  sortedClasses.forEach((className) => {
+    exportLines.push(`export const ${className} = ${exportName}.${className};`);
+  });
+
+  return "\n" + exportLines.join("\n") + "\n";
+}
+
+function main() {
+  const files = [
+    {
+      path: path.join(GENERATED_DIR, "common/user_pb.js"),
+      package: "laborato.common.user",
+    },
+    {
+      path: path.join(GENERATED_DIR, "common/node_pb.js"),
+      package: "laborato.common.node",
+    },
+    {
+      path: path.join(GENERATED_DIR, "operator_pb.js"),
+      package: "laborato.mesh.operator.v1",
+    },
+    {
+      path: path.join(GENERATED_DIR, "user_service_pb.js"),
+      package: "laborato.operator.service",
+    },
+  ];
+
+  let success = true;
+
+  files.forEach((fileInfo) => {
+    if (fs.existsSync(fileInfo.path)) {
+      if (!processProtoFile(fileInfo.path, fileInfo.package)) {
+        success = false;
+      }
+    } else {
+      console.log(
+        `пункт ${path.relative(GENERATED_DIR, fileInfo.path)} (не найден)`,
+      );
+    }
+  });
+
+  if (success) {
+    console.log("постобработка успешно!");
+  } else {
+    console.error("постобработка ошибками");
+    process.exit(1);
+  }
+}
+main();

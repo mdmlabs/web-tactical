@@ -1783,88 +1783,6 @@ function getDefaultValue(element: PolicyDetailsElement): unknown {
   }
 }
 
-function processPolicySettings(
-  settings: Record<string, unknown>,
-  elements: PolicyDetailsElement[],
-): Record<string, unknown> {
-  const processed: Record<string, unknown> = { ...settings };
-
-  for (const element of elements) {
-    const elementId = element.element_id;
-    const value = settings[elementId];
-
-    // Обработка для MultiTextBox (list с пустым items) - массив строк
-    if (
-      (!element.items || element.items.length === 0) &&
-      (element.type === "list" ||
-        element.type === "LIST" ||
-        element.type === "List") &&
-      Array.isArray(value) &&
-      value.every((v) => typeof v === "string")
-    ) {
-      // Для list с пустым items просто передаем массив строк как есть
-      processed[elementId] = value;
-      continue;
-    }
-
-    if (element.items && element.items.length > 0 && value !== undefined) {
-      if (typeof value === "number" || typeof value === "string") {
-        const itemId =
-          typeof value === "string" ? Number.parseInt(value, 10) : value;
-        type ItemType = { id: number; name?: string; value_type?: string };
-        const itemsArray = element.items as ItemType[];
-        const foundItem = itemsArray.find((it) => it.id === itemId);
-        if (foundItem) {
-          const itemKey = foundItem.name || String(foundItem.id);
-
-          let itemValue: string;
-          if (
-            foundItem.value_type === "decimal" ||
-            foundItem.value_type === "int"
-          ) {
-            itemValue = String(itemId);
-          } else {
-            itemValue = "1";
-          }
-
-          if (itemKey) {
-            processed[elementId] = { [itemKey]: itemValue };
-          }
-        }
-      } else if (Array.isArray(value)) {
-        const itemsObject: Record<string, string> = {};
-        type ItemType = { id: number; name?: string; value_type?: string };
-        const itemsArray = element.items as ItemType[];
-        for (const itemId of value) {
-          const foundItem = itemsArray.find((it) => it.id === itemId);
-          if (foundItem) {
-            const itemKey = foundItem.name || String(foundItem.id);
-
-            let itemValue: string;
-            if (
-              foundItem.value_type === "decimal" ||
-              foundItem.value_type === "int"
-            ) {
-              itemValue = String(itemId);
-            } else {
-              itemValue = "1";
-            }
-
-            if (itemKey) {
-              itemsObject[itemKey] = itemValue;
-            }
-          }
-        }
-        if (Object.keys(itemsObject).length > 0) {
-          processed[elementId] = itemsObject;
-        }
-      }
-    }
-  }
-
-  return processed;
-}
-
 async function applyPolicy() {
   if (!selectedPolicy.value) return;
 
@@ -1910,10 +1828,24 @@ async function applyPolicy() {
       }
     }
 
-    const processedSettings = processPolicySettings(
-      policySettingsValues.value,
-      policyDetailsElements.value,
-    );
+    let processedSettings: Record<string, unknown> = {};
+    if (
+      policySettingsValues.value &&
+      Object.keys(policySettingsValues.value).length > 0
+    ) {
+      processedSettings = policySettingsValues.value;
+    }
+
+    console.log("GPOPolicySettingsDialog - отправка для машины:", {
+      policyHash,
+      agent: props.agent,
+      agentId: props.agent.id,
+      targetType: "agent",
+      targetParams: { agentId: String(props.agent.id) },
+      policySettingsValues: policySettingsValues.value,
+      processedSettings,
+      hasSettings: Object.keys(processedSettings).length > 0,
+    });
 
     await policyAssignmentClient.assignPolicy(
       policyHash,

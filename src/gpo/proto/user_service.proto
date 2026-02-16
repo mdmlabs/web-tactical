@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+import "common/user.proto";
+
+import "google/protobuf/wrappers.proto";
+
+package laborato.operator.service;
+
+service OperatorUserControlService {
+    rpc CreateUser(CreateUserRequest) returns (UserControlResponse);
+    rpc UpdateUser(UpdateUserRequest) returns (UserControlResponse);
+    rpc DeleteUser(UserIdentifier) returns (UserControlResponse);
+    rpc EnableUser(EnableUserRequest) returns (UserControlResponse);
+    rpc SetUserPassword(SetUserPasswordRequest) returns (UserControlResponse);
+    rpc UnlockUser(UserIdentifier) returns (UserControlResponse);
+    rpc ExpireUserPassword(UserIdentifier) returns (UserControlResponse);
+    rpc SetUserAccountExpiration(SetUserAccountExpirationRequest) returns (UserControlResponse);
+    rpc CreateGroup(CreateUserGroupRequest) returns (UserControlResponse);
+    rpc DeleteGroup(GroupRequest) returns (UserControlResponse);
+    rpc AddUserToGroup(UserGroupRequest) returns (UserControlResponse);
+    rpc RemoveUserFromGroup(UserGroupRequest) returns (UserControlResponse);
+}
+
+message CreateUserRequest {
+    string agent_id = 1;
+    laborato.common.user.UserRequest user = 2;
+}
+
+message UpdateUserRequest {
+    UserIdentifier user = 1;
+    laborato.common.user.UserRequest data = 3;
+}
+
+message EnableUserRequest {
+    UserIdentifier user = 1;
+    bool enable = 2;
+}
+
+message SetUserPasswordRequest {
+    UserIdentifier user = 1;
+    string new_password = 2;
+}
+
+message SetUserAccountExpirationRequest {
+    UserIdentifier user = 1;
+    google.protobuf.StringValue account_expiration_date = 2; // ISO 8601
+}
+
+message UserIdentifier {
+    string agent_id = 1;
+    string sam_id = 2;
+}
+
+message UserControlResponse {
+    ResponseStatus status = 1;
+    optional string error_message = 2;
+}
+
+enum ResponseStatus {
+    RESPONSE_STATUS_OK = 0;
+    RESPONSE_STATUS_ERROR = 1;
+}
+
+message CreateUserGroupRequest {
+    string agent_id = 1;
+    string sam_group_name = 2;
+    google.protobuf.StringValue description = 3;
+}
+
+message GroupRequest {
+    string agent_id = 1;
+    string sam_group_name = 2;
+}
+
+message UserGroupRequest {
+    string agent_id = 1;
+    string sam_group_name = 2;
+    string sam_account_name = 3;
+}
