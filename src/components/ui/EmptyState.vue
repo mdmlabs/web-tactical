@@ -1,5 +1,8 @@
 <template>
-  <div class="empty-state text-center q-pa-lg" :class="error ? 'text-negative' : 'text-grey-6'">
+  <div
+    class="empty-state text-center q-pa-lg"
+    :class="error ? 'text-negative' : 'text-grey-6'"
+  >
     <q-icon :name="icon" size="2em" />
     <div class="q-mt-sm">{{ message }}</div>
     <slot name="action">

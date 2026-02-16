@@ -42,12 +42,16 @@
               <q-item-section avatar>
                 <q-checkbox
                   :model-value="selectedPolicies[policy.id] || false"
-                  @update:model-value="$emit('togglePolicySelection', policy.id)"
+                  @update:model-value="
+                    $emit('togglePolicySelection', policy.id)
+                  "
                   @click.stop
                 />
               </q-item-section>
               <q-item-section>
-                <q-item-label>{{ policy.displayName || policy.name }}</q-item-label>
+                <q-item-label>{{
+                  policy.displayName || policy.name
+                }}</q-item-label>
               </q-item-section>
               <q-item-section
                 v-if="selectedPolicies[policy.id]"
@@ -59,7 +63,9 @@
                   color="primary"
                   dense
                   :label="policyState[policy.id] !== false ? 'On' : 'Off'"
-                  @update:model-value="$emit('updatePolicyState', policy.id, $event)"
+                  @update:model-value="
+                    $emit('updatePolicyState', policy.id, $event)
+                  "
                   @click.stop
                 />
               </q-item-section>
@@ -80,11 +86,7 @@
         icon="info"
         message="No policies in category"
       />
-      <EmptyState
-        v-else
-        icon="info"
-        message="Select a category"
-      />
+      <EmptyState v-else icon="info" message="Select a category" />
     </q-card-section>
   </q-card>
 </template>
@@ -93,9 +95,12 @@
 import EmptyState from "@/components/ui/EmptyState.vue";
 import { PolicyItem } from "@/gpo/types/policy-catalog";
 
-
 defineProps<{
-  filteredGroupedPolicies: { scopeKey: string; scopeLabel: string; policies: PolicyItem[] }[];
+  filteredGroupedPolicies: {
+    scopeKey: string;
+    scopeLabel: string;
+    policies: PolicyItem[];
+  }[];
   loading: boolean;
   error?: string | null;
   selectedPolicy: PolicyItem | null;

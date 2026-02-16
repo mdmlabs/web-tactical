@@ -40,8 +40,16 @@
       :model-value="safeNumber(modelValue, minValue)"
       @update:model-value="emit('update:modelValue', $event)"
       type="number"
-      :min="minValue != null && Number.isFinite(Number(minValue)) ? Number(minValue) : undefined"
-      :max="maxValue != null && Number.isFinite(Number(maxValue)) ? Number(maxValue) : undefined"
+      :min="
+        minValue != null && Number.isFinite(Number(minValue))
+          ? Number(minValue)
+          : undefined
+      "
+      :max="
+        maxValue != null && Number.isFinite(Number(maxValue))
+          ? Number(maxValue)
+          : undefined
+      "
       :step="isDecimalNumeric(element) ? 0.01 : 1"
       outlined
       dense
@@ -118,21 +126,41 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import MultiTextBox from "@/components/ui/MultiTextBox.vue";
-import { getElementKey, isCheckboxType, isDecimalNumeric, isDropdownListType, isListboxEmptyType, isMultiSelectType, isMultitextType, isNumericType, isTextType, PolicyElementLike } from "@/gpo/utils/policy-field-types";
-
-
+import {
+  getElementKey,
+  isCheckboxType,
+  isDecimalNumeric,
+  isDropdownListType,
+  isListboxEmptyType,
+  isMultiSelectType,
+  isMultitextType,
+  isNumericType,
+  isTextType,
+  PolicyElementLike,
+} from "@/gpo/utils/policy-field-types";
 
 const props = defineProps<{
-  element: PolicyElementLike & { description?: string; items?: Array<{ id: number; name: string; display_name?: string; displayName?: string }> };
+  element: PolicyElementLike & {
+    description?: string;
+    items?: Array<{
+      id: number;
+      name: string;
+      display_name?: string;
+      displayName?: string;
+    }>;
+  };
   modelValue: unknown;
 }>();
 
 const emit = defineEmits<{ "update:modelValue": [value: unknown] }>();
 
-const fieldLabel = computed(() =>
-  (props.element as { display_name?: string; displayName?: string }).display_name ??
-  (props.element as { display_name?: string; displayName?: string }).displayName ??
-  getElementKey(props.element),
+const fieldLabel = computed(
+  () =>
+    (props.element as { display_name?: string; displayName?: string })
+      .display_name ??
+    (props.element as { display_name?: string; displayName?: string })
+      .displayName ??
+    getElementKey(props.element),
 );
 
 const maxLength = computed((): number | undefined => {
@@ -141,16 +169,31 @@ const maxLength = computed((): number | undefined => {
   const n = typeof raw === "object" ? undefined : Number(raw);
   return n != null && Number.isFinite(n) ? n : undefined;
 });
-const minValue = computed(() => props.element.minValue ?? props.element.min_value);
-const maxValue = computed(() => props.element.maxValue ?? props.element.max_value);
-const valueType = computed(() => props.element.valueType ?? (props.element as { value_type?: string }).value_type);
+const minValue = computed(
+  () => props.element.minValue ?? props.element.min_value,
+);
+const maxValue = computed(
+  () => props.element.maxValue ?? props.element.max_value,
+);
+const valueType = computed(
+  () =>
+    props.element.valueType ??
+    (props.element as { value_type?: string }).value_type,
+);
 
 const selectHint = computed(() =>
   valueType.value ? `Value type: ${valueType.value}` : "",
 );
 
-function optionLabel(opt: { display_name?: string; displayName?: string; name?: string; id?: number }): string {
-  return opt.display_name ?? opt.displayName ?? opt.name ?? `Value ${opt.id ?? ""}`;
+function optionLabel(opt: {
+  display_name?: string;
+  displayName?: string;
+  name?: string;
+  id?: number;
+}): string {
+  return (
+    opt.display_name ?? opt.displayName ?? opt.name ?? `Value ${opt.id ?? ""}`
+  );
 }
 
 function safeNumber(val: unknown, fallback: number | undefined): number {

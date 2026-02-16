@@ -246,15 +246,15 @@ function fixImportPaths(content, filePath) {
   const fileName = path.basename(filePath);
   const fileDir = path.dirname(filePath);
 
-  if (fileDir.endsWith('common')) {
-    if (fileName === 'node_pb.js') {
+  if (fileDir.endsWith("common")) {
+    if (fileName === "node_pb.js") {
       content = content.replace(
         /import \* as common_user_pb from ["']\.\.\/\.\.\/generated\/common\/user_pb\.js["'];/g,
-        'import * as common_user_pb from "./user_pb.js";'
+        'import * as common_user_pb from "./user_pb.js";',
       );
       content = content.replace(
         /import \* as common_user_pb from ["']\.\/common\/user_pb\.js["'];/g,
-        'import * as common_user_pb from "./user_pb.js";'
+        'import * as common_user_pb from "./user_pb.js";',
       );
     }
   }

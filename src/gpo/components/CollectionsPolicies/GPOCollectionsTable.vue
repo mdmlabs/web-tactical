@@ -40,10 +40,7 @@
       >
         <template v-slot:body-cell-scope="props">
           <q-td :props="props">
-            <div
-              class="scope-cell"
-              :class="scopeCellClass(props.row.scope)"
-            >
+            <div class="scope-cell" :class="scopeCellClass(props.row.scope)">
               <q-icon
                 v-for="icon in scopeIcons(props.row.scope)"
                 :key="icon"
@@ -153,7 +150,10 @@
             separator
             class="rounded-borders"
           >
-            <q-item v-for="(p, idx) in policiesForDisplay" :key="policyKey(p, idx)">
+            <q-item
+              v-for="(p, idx) in policiesForDisplay"
+              :key="policyKey(p, idx)"
+            >
               <q-item-section>
                 <q-item-label>
                   {{ p.displayName ?? p.display_name ?? "—" }}
@@ -574,8 +574,11 @@ async function submitCreateCollection() {
           collectionList?: unknown[];
         }
       ).collection ??
-      (response as { collection?: { id?: number; name?: string; scope?: number } })
-        .collection;
+      (
+        response as {
+          collection?: { id?: number; name?: string; scope?: number };
+        }
+      ).collection;
     const rawId = coll?.id;
     const id = rawId !== undefined && rawId !== null ? Number(rawId) : null;
     const displayName = coll?.name ?? name;
@@ -731,7 +734,10 @@ async function onRowClick(_evt: Event, row: CollectionRow) {
       const idx = collectionsList.value.findIndex((r) => r.id === row.id);
       if (idx >= 0) {
         const nextList = [...collectionsList.value];
-        nextList[idx] = { ...nextList[idx], scope: normalizeScope(detailScope as number | string) };
+        nextList[idx] = {
+          ...nextList[idx],
+          scope: normalizeScope(detailScope as number | string),
+        };
         collectionsList.value = nextList;
       }
     }

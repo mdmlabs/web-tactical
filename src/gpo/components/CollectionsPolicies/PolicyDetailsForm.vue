@@ -32,7 +32,15 @@ import { getElementKey } from "../../utils/policy-field-types";
 import type { PolicyElementLike } from "../../utils/policy-field-types";
 
 defineProps<{
-  elements: (PolicyElementLike & { description?: string; items?: Array<{ id: number; name: string; display_name?: string; displayName?: string }> })[];
+  elements: (PolicyElementLike & {
+    description?: string;
+    items?: Array<{
+      id: number;
+      name: string;
+      display_name?: string;
+      displayName?: string;
+    }>;
+  })[];
   settingsValues: Record<string, unknown>;
   loading?: boolean;
 }>();

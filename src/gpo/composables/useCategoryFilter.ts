@@ -32,9 +32,11 @@ export function useCategoryFilter(
     const query = (debouncedQuery.value ?? "").trim().toLowerCase();
     if (!query) return categories.value;
 
-    return filterTree(categories.value, (node) =>
-      (node.label?.toLowerCase().includes(query) ?? false) ||
-      (node.categoryName?.toLowerCase().includes(query) ?? false),
+    return filterTree(
+      categories.value,
+      (node) =>
+        (node.label?.toLowerCase().includes(query) ?? false) ||
+        (node.categoryName?.toLowerCase().includes(query) ?? false),
     );
   });
 

@@ -588,10 +588,7 @@ export default defineComponent({
       collector_all_output: props.template?.collector_all_output ?? false,
       task_supported_platforms: "windows",
       target: determineTarget(props.template),
-      client:
-        props.template?.clients?.[0] ??
-        props.template?.client ??
-        null,
+      client: props.template?.clients?.[0] ?? props.template?.client ?? null,
       site: props.template?.site || props.template?.sites?.[0] || null,
       agents: props.template?.agents || [],
       actions: parseActionsFromBackend(props.template?.actions),

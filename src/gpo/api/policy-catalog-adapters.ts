@@ -13,7 +13,6 @@ function num(val: unknown, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-
 export function normalizeCategoryTree(response: unknown): CategoryNode[] {
   const list =
     (response as { categoriesList?: unknown[] }).categoriesList ??
@@ -41,7 +40,9 @@ export function normalizeCategoryTree(response: unknown): CategoryNode[] {
       icon: "folder",
       categoryName,
       children: Array.isArray(childs)
-        ? childs.map((ch) => convert(ch)).filter((n): n is CategoryNode => n !== null)
+        ? childs
+            .map((ch) => convert(ch))
+            .filter((n): n is CategoryNode => n !== null)
         : [],
     };
   }
@@ -94,8 +95,7 @@ export function normalizePoliciesList(response: unknown): PolicyItem[] {
       typeof item.hash === "string" && item.hash.trim()
         ? item.hash.trim()
         : undefined;
-    const state =
-      typeof item.state === "boolean" ? item.state : undefined;
+    const state = typeof item.state === "boolean" ? item.state : undefined;
 
     policies.push({
       id: String(item.id ?? ""),

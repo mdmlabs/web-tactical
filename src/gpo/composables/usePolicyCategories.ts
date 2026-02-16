@@ -4,7 +4,6 @@ import { notifyError } from "@/utils/notify";
 import type { CategoryNode } from "../types/policy-catalog";
 import { normalizeCategoryTree } from "../api/policy-catalog-adapters";
 
-
 export function usePolicyCategories() {
   const loadingCategories = ref(false);
   const categories: Ref<CategoryNode[]> = ref([]);

@@ -126,15 +126,7 @@
                               Operating system
                             </div>
                             <div>
-                              {{
-                                agentDetails?.nodeInfo?.systemInfo?.osVersion ||
-                                agentDetails?.nodeInfo?.systemInfo
-                                  ?.os_version ||
-                                (agentDetails?.nodeInfo?.systemInfo as Record<string, string> | undefined)
-                                  ?.osversion ||
-                                selectedAgent.operating_system ||
-                                "N/A"
-                              }}
+                              {{ agentOsVersion }}
                             </div>
                           </div>
                           <div class="col-4">
@@ -209,11 +201,7 @@
                               <q-item-section>
                                 <q-item-label>Hostname</q-item-label>
                                 <q-item-label caption>{{
-                                  agentDetails.nodeInfo.systemInfo?.hostName ||
-                                  agentDetails.nodeInfo.systemInfo?.host_name ||
-                                  (agentDetails.nodeInfo.systemInfo as Record<string, string> | undefined)?.hostname ||
-                                  agentDetails.hostName ||
-                                  selectedAgent.hostname
+                                  agentSystemHostname
                                 }}</q-item-label>
                               </q-item-section>
                             </q-item>
@@ -221,11 +209,7 @@
                               <q-item-section>
                                 <q-item-label>Operating system</q-item-label>
                                 <q-item-label caption>{{
-                                  agentDetails.nodeInfo.systemInfo?.osVersion ||
-                                  agentDetails.nodeInfo.systemInfo?.os_version ||
-                                  (agentDetails.nodeInfo.systemInfo as Record<string, string> | undefined)?.osversion ||
-                                  selectedAgent.operating_system ||
-                                  "N/A"
+                                  agentOsVersion
                                 }}</q-item-label>
                               </q-item-section>
                             </q-item>
@@ -305,33 +289,14 @@
                                 </q-item-label>
                               </q-item-section>
                             </q-item>
-                            <q-item
-                              v-if="
-                                (
-                                  agentDetails.nodeInfo.systemInfo
-                                    ?.ipAddressesList ||
-                                  agentDetails.nodeInfo.systemInfo
-                                    ?.ipAddresses ||
-                                  agentDetails.nodeInfo.systemInfo?.ip_addresses ||
-                                  (agentDetails.nodeInfo?.systemInfo as Record<string, unknown>)
-                                    ?.ipaddressesList as string[] | undefined
-                                )?.length
-                              "
-                            >
+                            <q-item v-if="agentSystemIpAddresses.length">
                               <q-item-section>
                                 <q-item-label>IP address</q-item-label>
                                 <q-item-label caption>
                                   <div
-                                    v-for="(ip, index) in (
-                                      agentDetails.nodeInfo?.systemInfo
-                                        ?.ipAddressesList ||
-                                      agentDetails.nodeInfo?.systemInfo
-                                        ?.ipAddresses ||
-                                      agentDetails.nodeInfo?.systemInfo
-                                        ?.ip_addresses ||
-                                      (agentDetails.nodeInfo?.systemInfo as Record<string, unknown>)?.ipaddressesList ||
-                                      []
-                                    )"
+                                    v-for="(
+                                      ip, index
+                                    ) in agentSystemIpAddresses"
                                     :key="index"
                                     class="q-mb-xs"
                                   >
@@ -340,34 +305,14 @@
                                 </q-item-label>
                               </q-item-section>
                             </q-item>
-                            <q-item
-                              v-if="
-                                (
-                                  agentDetails.nodeInfo.systemInfo
-                                    ?.macAddressesList ||
-                                  agentDetails.nodeInfo.systemInfo
-                                    ?.macAddresses ||
-                                  agentDetails.nodeInfo.systemInfo
-                                    ?.mac_addresses ||
-                                  (agentDetails.nodeInfo?.systemInfo as Record<string, unknown>)
-                                    ?.macaddressesList as string[] | undefined
-                                )?.length
-                              "
-                            >
+                            <q-item v-if="agentSystemMacAddresses.length">
                               <q-item-section>
                                 <q-item-label>MAC address</q-item-label>
                                 <q-item-label caption>
                                   <div
-                                    v-for="(mac, index) in (
-                                      agentDetails.nodeInfo?.systemInfo
-                                        ?.macAddressesList ||
-                                      agentDetails.nodeInfo?.systemInfo
-                                        ?.macAddresses ||
-                                      agentDetails.nodeInfo?.systemInfo
-                                        ?.mac_addresses ||
-                                      (agentDetails.nodeInfo?.systemInfo as Record<string, unknown>)?.macaddressesList ||
-                                      []
-                                    )"
+                                    v-for="(
+                                      mac, index
+                                    ) in agentSystemMacAddresses"
                                     :key="index"
                                     class="q-mb-xs"
                                   >
@@ -2521,10 +2466,10 @@ import { useRoute } from "vue-router";
 import { formatDate } from "@/utils/format";
 import { useGPOPolicies, useGPOPolicyTree } from "../api/gpo";
 import {
-  agentServiceClient,
+  // agentServiceClient,
   agentServiceClientWrapper,
   userClient,
-  userServiceClient,
+  // userServiceClient,
   createGrpcMetadata,
   operator_pb,
   policyAssignmentClient,
@@ -3163,11 +3108,13 @@ async function loadAgents() {
     const tacticalAgents = await fetchTacticalAgents({ detail: false });
 
     const allowedAgentIds = Array.isArray(tacticalAgents)
-      ? tacticalAgents.map((agent: { agent_id?: string }) => String(agent.agent_id))
+      ? tacticalAgents.map((agent: { agent_id?: string }) =>
+          String(agent.agent_id),
+        )
       : [];
 
     const response = await agentServiceClientWrapper.listAgents(
-      allowedAgentIds.length > 0 ? allowedAgentIds : undefined
+      allowedAgentIds.length > 0 ? allowedAgentIds : undefined,
     );
 
     let agents: Array<{
@@ -3328,7 +3275,7 @@ const usersColumns: QTableColumn[] = [
     align: "left",
     field: "lastLogon",
     sortable: true,
-  }
+  },
 ];
 
 const agentTableColumns: QTableColumn[] = [
@@ -3613,6 +3560,61 @@ interface AgentDetails {
 }
 
 const agentDetails = ref<AgentDetails | null>(null);
+
+const agentOsVersion = computed(() => {
+  const details = agentDetails.value;
+  const sys = details?.nodeInfo?.systemInfo as
+    | Record<string, string>
+    | undefined;
+  return (
+    details?.nodeInfo?.systemInfo?.osVersion ||
+    details?.nodeInfo?.systemInfo?.os_version ||
+    sys?.osversion ||
+    selectedAgent.value?.operating_system ||
+    "N/A"
+  );
+});
+
+const agentSystemHostname = computed(() => {
+  const details = agentDetails.value;
+  const sys = details?.nodeInfo?.systemInfo as
+    | Record<string, string>
+    | undefined;
+  return (
+    details?.nodeInfo?.systemInfo?.hostName ||
+    details?.nodeInfo?.systemInfo?.host_name ||
+    sys?.hostname ||
+    details?.hostName ||
+    selectedAgent.value?.hostname ||
+    "N/A"
+  );
+});
+
+const agentSystemIpAddresses = computed(() => {
+  const sys = agentDetails.value?.nodeInfo?.systemInfo as
+    | Record<string, string[] | undefined>
+    | undefined;
+  return (
+    agentDetails.value?.nodeInfo?.systemInfo?.ipAddressesList ||
+    agentDetails.value?.nodeInfo?.systemInfo?.ipAddresses ||
+    agentDetails.value?.nodeInfo?.systemInfo?.ip_addresses ||
+    sys?.ipaddressesList ||
+    []
+  );
+});
+
+const agentSystemMacAddresses = computed(() => {
+  const sys = agentDetails.value?.nodeInfo?.systemInfo as
+    | Record<string, string[] | undefined>
+    | undefined;
+  return (
+    agentDetails.value?.nodeInfo?.systemInfo?.macAddressesList ||
+    agentDetails.value?.nodeInfo?.systemInfo?.macAddresses ||
+    agentDetails.value?.nodeInfo?.systemInfo?.mac_addresses ||
+    sys?.macaddressesList ||
+    []
+  );
+});
 
 async function loadUsersForAgent(agentId: string) {
   usersLoading.value = true;
@@ -4045,10 +4047,7 @@ const isDisplayableIp = (ip: string) =>
   !LOCAL_IP_SKIP.test(ip) && /^\d+\.\d+\.\d+\.\d+$/.test(ip);
 
 async function loadNetworkInfo(agentId: string) {
-  if (
-    selectedAgent.value?.id === agentId &&
-    selectedAgent.value.ip_address
-  ) {
+  if (selectedAgent.value?.id === agentId && selectedAgent.value.ip_address) {
     networkInfo.value = {
       local_ips: selectedAgent.value.ip_address,
       public_ip: "N/A",
@@ -4084,7 +4083,9 @@ async function loadNetworkInfo(agentId: string) {
                   ramGb: undefined,
                   cpu: "",
                   motherboard: "",
-                  ipAddressesList: agentData.ipAddress ? [agentData.ipAddress] : [],
+                  ipAddressesList: agentData.ipAddress
+                    ? [agentData.ipAddress]
+                    : [],
                   macAddressesList: [],
                   disksList: [],
                   gpuList: [],
@@ -4622,7 +4623,12 @@ async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
       if (!displayName) displayName = policyHash;
       const explainText =
         summary &&
-        String(summary["explainText"] || summary["explain_text"] || summary["policy_hash"] || "").trim();
+        String(
+          summary["explainText"] ||
+            summary["explain_text"] ||
+            summary["policy_hash"] ||
+            "",
+        ).trim();
       const scopeRaw = summary?.["scope"];
       const scope =
         scopeRaw !== undefined && scopeRaw !== null

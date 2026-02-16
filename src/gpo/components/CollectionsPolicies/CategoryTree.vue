@@ -67,11 +67,7 @@
         icon="search_off"
         message="No groups match the search"
       />
-      <EmptyState
-        v-else
-        icon="info"
-        message="No categories"
-      />
+      <EmptyState v-else icon="info" message="No categories" />
     </q-card-section>
   </q-card>
 </template>

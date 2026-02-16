@@ -201,7 +201,7 @@ export const policyCatalogClient = {
 
 export const agentServiceClientWrapper = {
   async listAgents(
-    allowedAgentIds?: string[]
+    allowedAgentIds?: string[],
   ): Promise<operator_pb_types.ListAgentsResponse.AsObject> {
     if (!operator_pb.ListAgentsRequest) {
       throw new Error(

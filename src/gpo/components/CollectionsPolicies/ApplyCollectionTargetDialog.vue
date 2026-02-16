@@ -7,7 +7,8 @@
     <q-card class="apply-collection-target-card" style="min-width: 480px">
       <q-card-section class="row items-center q-pb-none">
         <div class="text-h6">
-          {{ isRemoveMode ? "Remove collection" : "Apply collection" }}{{ collectionName ? `: ${collectionName}` : "" }}
+          {{ isRemoveMode ? "Remove collection" : "Apply collection"
+          }}{{ collectionName ? `: ${collectionName}` : "" }}
         </div>
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
@@ -15,7 +16,8 @@
       <q-separator />
       <q-card-section>
         <div class="text-subtitle2 q-mb-sm">
-          Select one target or tick several (Client / Site / Agent) for combined target.
+          Select one target or tick several (Client / Site / Agent) for combined
+          target.
         </div>
         <div v-if="treeLoading" class="flex flex-center q-pa-lg">
           <q-spinner color="primary" size="2em" />
@@ -84,7 +86,10 @@ import {
   policyCatalogClient,
   userClient,
 } from "@/gpo/api/grpc-client";
-import type { PolicyTargetType, PolicyTargetParams } from "@/gpo/api/grpc-client";
+import type {
+  PolicyTargetType,
+  PolicyTargetParams,
+} from "@/gpo/api/grpc-client";
 import { notifyError, notifySuccess } from "@/utils/notify";
 
 export interface TargetSelection {
@@ -135,7 +140,9 @@ const applying = ref(false);
 const selectedNodeId = ref<string | null>(null);
 const tickedNodeIds = ref<string[]>([]);
 const treeNodes = ref<TreeNode[]>([]);
-const agentsBySiteKey = ref<Map<string, Array<{ agent_id: string; hostname: string }>>>(new Map());
+const agentsBySiteKey = ref<
+  Map<string, Array<{ agent_id: string; hostname: string }>>
+>(new Map());
 
 const selectedTarget = computed((): TargetSelection | null => {
   const id = selectedNodeId.value;
@@ -258,7 +265,10 @@ async function loadTree() {
         .results;
     }
 
-    const agentsBySite = new Map<string, Array<{ agent_id: string; hostname: string }>>();
+    const agentsBySite = new Map<
+      string,
+      Array<{ agent_id: string; hostname: string }>
+    >();
     for (const a of agents) {
       const clientName = a.client ?? a.client_name;
       const siteName = a.site ?? a.site_name;
@@ -281,23 +291,22 @@ async function loadTree() {
         const sites = client.sites ?? [];
         const siteNodes: TreeNode[] = sites.map(
           (site: { id: number; name: string }) => {
-                const siteId = String(site.id);
-                const siteKey = `${client.name}::${site.name}`;
-                const siteAgents = agentsBySite.get(siteKey) ?? [];
-                const agentNodes: TreeNode[] = siteAgents.map((ag) => ({
-                  id: `agent-${ag.agent_id}`,
-                  label: ag.hostname,
-                  targetType: "agent" as const,
-                  clientId,
-                  siteId,
-                  agentId: ag.agent_id,
-                  lazy: true,
-                  tickable: true,
-                  children: [],
-                }));
+            const siteId = String(site.id);
+            const siteKey = `${client.name}::${site.name}`;
+            const siteAgents = agentsBySite.get(siteKey) ?? [];
+            const agentNodes: TreeNode[] = siteAgents.map((ag) => ({
+              id: `agent-${ag.agent_id}`,
+              label: ag.hostname,
+              targetType: "agent" as const,
+              clientId,
+              siteId,
+              agentId: ag.agent_id,
+              lazy: true,
+              tickable: true,
+              children: [],
+            }));
             const siteLabel =
-              site.name +
-              (siteAgents.length ? ` (${siteAgents.length})` : "");
+              site.name + (siteAgents.length ? ` (${siteAgents.length})` : "");
             return {
               id: `site-${siteId}`,
               label: siteLabel,
@@ -305,8 +314,7 @@ async function loadTree() {
               clientId,
               siteId,
               tickable: true,
-              children:
-                agentNodes.length > 0 ? agentNodes : undefined,
+              children: agentNodes.length > 0 ? agentNodes : undefined,
             };
           },
         );
@@ -384,9 +392,16 @@ async function onSubmit() {
         props.collectionId,
         "en-US",
       );
-      const coll = collectionResp.collection ?? (collectionResp as { collection?: { policiesList?: unknown[]; policies?: unknown[] } }).collection;
+      const coll =
+        collectionResp.collection ??
+        (
+          collectionResp as {
+            collection?: { policiesList?: unknown[]; policies?: unknown[] };
+          }
+        ).collection;
       const policiesList =
-        (coll as { policiesList?: unknown[]; policies?: unknown[] }).policiesList ??
+        (coll as { policiesList?: unknown[]; policies?: unknown[] })
+          .policiesList ??
         (coll as { policiesList?: unknown[]; policies?: unknown[] }).policies ??
         [];
       if (policiesList.length === 0) {
@@ -405,7 +420,8 @@ async function onSubmit() {
               Number(policyId),
               "en-US",
             );
-            const policyObj = (details as { policy?: { hash?: string } }).policy;
+            const policyObj = (details as { policy?: { hash?: string } })
+              .policy;
             hash = policyObj?.hash ?? "";
           } catch {
             continue;
