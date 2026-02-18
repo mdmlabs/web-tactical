@@ -8,16 +8,34 @@ import {
   PolicyAssignmentServiceClient,
   PolicyStateServiceClient,
 } from "@/generated/OperatorServiceClientPb";
+import { OperatorUserControlServiceClient } from "@/generated/User_serviceServiceClientPb";
 
 import operator_pb from "@/generated/operator_pb";
+import  {
+  UpdateUserRequest,
+  UserIdentifier,
+  CreateUserRequest,
+  EnableUserRequest,
+  SetUserPasswordRequest,
+  SetUserAccountExpirationRequest,
+  CreateUserGroupRequest,
+  GroupRequest,
+  UserGroupRequest,
+} from "@/generated/user_service_pb";
 
 import type * as operator_pb_types from "@/generated/operator_pb";
+import type * as user_service_pb_types from "@/generated/user_service_pb";
+import * as wrappers_pb from "google-protobuf/google/protobuf/wrappers_pb";
 import { useAuthStore } from "@/stores/auth";
-import { GroupInfo, UserInfo } from "@/generated/common/user_pb";
+import {
+  GroupInfo,
+  UserInfo,
+  UserRequest as CommonUserRequest,
+} from "@/generated/common/user_pb";
 
-if (!operator_pb) {
-  throw new Error("operator_pb module failed to load");
-}
+
+
+
 
 // interface WindowWithEnv extends Window {
 //   _env_?: {
@@ -76,6 +94,9 @@ const collectionsControlServiceClient = createClient(
   CollectionsControlServiceClient,
 );
 const userServiceClient = createClient(UserServiceClient);
+const operatorUserControlServiceClient = createClient(
+  OperatorUserControlServiceClient,
+);
 const admxServiceClient = createClient(AdmxServiceClient);
 const policyCatalogServiceClient = createClient(PolicyCatalogServiceClient);
 const policyAssignmentServiceClient = createClient(
@@ -286,6 +307,294 @@ export const userClient = {
 
     const responseObj = response.toObject();
     return responseObj.groupsList || [];
+  },
+};
+
+export type CreateUserParams = {
+  samAccountName: string;
+  password?: string;
+  displayName?: string;
+  description?: string;
+  enabled?: boolean;
+  passwordNotRequired?: boolean;
+  userCannotChangePassword?: boolean;
+  smartcardLogonRequired?: boolean;
+  accountExpirationDate?: string;
+  name?: string;
+  middleName?: string;
+  surname?: string;
+  email?: string;
+  homeDirectory?: string;
+  scriptPath?: string;
+  telephoneNumber?: string;
+  employeeId?: string;
+};
+
+function setStringWrapper(
+  userReq: InstanceType<typeof CommonUserRequest>,
+  setter: (v: InstanceType<typeof wrappers_pb.StringValue>) => unknown,
+  value: string | undefined,
+): void {
+  if (value != null && value !== "") {
+    const w = new wrappers_pb.StringValue();
+    w.setValue(value);
+    setter.call(userReq, w);
+  }
+}
+
+function setBoolWrapper(
+  userReq: InstanceType<typeof CommonUserRequest>,
+  setter: (v: InstanceType<typeof wrappers_pb.BoolValue>) => unknown,
+  value: boolean | undefined,
+): void {
+  if (value != null) {
+    const w = new wrappers_pb.BoolValue();
+    w.setValue(value);
+    setter.call(userReq, w);
+  }
+}
+
+function fillUserRequest(
+  userReq: InstanceType<typeof CommonUserRequest>,
+  data: Partial<CreateUserParams> & { samAccountName: string },
+): void {
+  userReq.setSamAccountName(data.samAccountName);
+  if (data.password != null) userReq.setPassword(data.password);
+  setStringWrapper(userReq, userReq.setDisplayName, data.displayName);
+  setStringWrapper(userReq, userReq.setDescription, data.description);
+  setBoolWrapper(userReq, userReq.setEnabled, data.enabled);
+  setBoolWrapper(
+    userReq,
+    userReq.setPasswordNotRequired,
+    data.passwordNotRequired,
+  );
+  setBoolWrapper(
+    userReq,
+    userReq.setUserCannotChangePassword,
+    data.userCannotChangePassword,
+  );
+  setBoolWrapper(
+    userReq,
+    userReq.setSmartcardLogonRequired,
+    data.smartcardLogonRequired,
+  );
+  setStringWrapper(
+    userReq,
+    userReq.setAccountExpirationDate,
+    data.accountExpirationDate,
+  );
+  setStringWrapper(userReq, userReq.setName, data.name);
+  setStringWrapper(userReq, userReq.setMiddleName, data.middleName);
+  setStringWrapper(userReq, userReq.setSurname, data.surname);
+  setStringWrapper(userReq, userReq.setEmail, data.email);
+  setStringWrapper(userReq, userReq.setHomeDirectory, data.homeDirectory);
+  setStringWrapper(userReq, userReq.setScriptPath, data.scriptPath);
+  setStringWrapper(userReq, userReq.setTelephoneNumber, data.telephoneNumber);
+  setStringWrapper(userReq, userReq.setEmployeeId, data.employeeId);
+}
+
+export const userControlClient = {
+  async createUser(
+    agentId: string,
+    userData: CreateUserParams,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new CreateUserRequest();
+    req.setAgentId(agentId);
+    const userReq = new CommonUserRequest();
+    fillUserRequest(userReq, userData);
+    req.setUser(userReq);
+    const response = await operatorUserControlServiceClient.createUser(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async updateUser(
+    agentId: string,
+    samId: string,
+    data: Partial<CreateUserParams>,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new UpdateUserRequest();
+    const uid = new UserIdentifier();
+    uid.setAgentId(agentId);
+    uid.setSamId(samId);
+    req.setUser(uid);
+    const dataReq = new CommonUserRequest();
+    fillUserRequest(dataReq, { samAccountName: samId, ...data });
+    req.setData(dataReq);
+    const response = await operatorUserControlServiceClient.updateUser(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async deleteUser(
+    agentId: string,
+    samId: string,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new UserIdentifier();
+    req.setAgentId(agentId);
+    req.setSamId(samId);
+    const response = await operatorUserControlServiceClient.deleteUser(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async enableUser(
+    agentId: string,
+    samId: string,
+    enable: boolean,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new EnableUserRequest();
+    const uid = new UserIdentifier();
+    uid.setAgentId(agentId);
+    uid.setSamId(samId);
+    req.setUser(uid);
+    req.setEnable(enable);
+    const response = await operatorUserControlServiceClient.enableUser(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async setUserPassword(
+    agentId: string,
+    samId: string,
+    newPassword: string,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new SetUserPasswordRequest();
+    const uid = new UserIdentifier();
+    uid.setAgentId(agentId);
+    uid.setSamId(samId);
+    req.setUser(uid);
+    req.setNewPassword(newPassword);
+    const response = await operatorUserControlServiceClient.setUserPassword(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async unlockUser(
+    agentId: string,
+    samId: string,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new UserIdentifier();
+    req.setAgentId(agentId);
+    req.setSamId(samId);
+    const response = await operatorUserControlServiceClient.unlockUser(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async expireUserPassword(
+    agentId: string,
+    samId: string,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new UserIdentifier();
+    req.setAgentId(agentId);
+    req.setSamId(samId);
+    const response = await operatorUserControlServiceClient.expireUserPassword(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async setUserAccountExpiration(
+    agentId: string,
+    samId: string,
+    accountExpirationDate: string | undefined,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new SetUserAccountExpirationRequest();
+    const uid = new UserIdentifier();
+    uid.setAgentId(agentId);
+    uid.setSamId(samId);
+    req.setUser(uid);
+    if (accountExpirationDate != null) {
+      const w = new wrappers_pb.StringValue();
+      w.setValue(accountExpirationDate);
+      req.setAccountExpirationDate(w);
+    }
+    const response =
+      await operatorUserControlServiceClient.setUserAccountExpiration(
+        req,
+        createGrpcMetadata(),
+      );
+    return response.toObject();
+  },
+
+  async createGroup(
+    agentId: string,
+    samGroupName: string,
+    description?: string,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new CreateUserGroupRequest();
+    req.setAgentId(agentId);
+    req.setSamGroupName(samGroupName);
+    if (description != null) {
+      const w = new wrappers_pb.StringValue();
+      w.setValue(description);
+      req.setDescription(w);
+    }
+    const response = await operatorUserControlServiceClient.createGroup(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async deleteGroup(
+    agentId: string,
+    samGroupName: string,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new GroupRequest();
+    req.setAgentId(agentId);
+    req.setSamGroupName(samGroupName);
+    const response = await operatorUserControlServiceClient.deleteGroup(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async addUserToGroup(
+    agentId: string,
+    samGroupName: string,
+    samAccountName: string,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new UserGroupRequest();
+    req.setAgentId(agentId);
+    req.setSamGroupName(samGroupName);
+    req.setSamAccountName(samAccountName);
+    const response = await operatorUserControlServiceClient.addUserToGroup(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async removeUserFromGroup(
+    agentId: string,
+    samGroupName: string,
+    samAccountName: string,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new UserGroupRequest();
+    req.setAgentId(agentId);
+    req.setSamGroupName(samGroupName);
+    req.setSamAccountName(samAccountName);
+    const response = await operatorUserControlServiceClient.removeUserFromGroup(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
   },
 };
 
@@ -1074,6 +1383,7 @@ export {
   agentServiceClient,
   collectionsControlServiceClient,
   userServiceClient,
+  operatorUserControlServiceClient,
   admxServiceClient,
   policyCatalogServiceClient,
   policyAssignmentServiceClient,

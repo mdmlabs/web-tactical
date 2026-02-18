@@ -179,6 +179,21 @@ function generateES6Imports(imports, packageName) {
         "  proto.google.protobuf.StringValue = google_protobuf_wrappers_pb.StringValue;",
       );
       lines.push("}");
+      lines.push("if (google_protobuf_wrappers_pb.BoolValue) {");
+      lines.push(
+        "  proto.google.protobuf.BoolValue = google_protobuf_wrappers_pb.BoolValue;",
+      );
+      lines.push("}");
+      lines.push("if (google_protobuf_wrappers_pb.Int32Value) {");
+      lines.push(
+        "  proto.google.protobuf.Int32Value = google_protobuf_wrappers_pb.Int32Value;",
+      );
+      lines.push("}");
+      lines.push("if (google_protobuf_wrappers_pb.Int64Value) {");
+      lines.push(
+        "  proto.google.protobuf.Int64Value = google_protobuf_wrappers_pb.Int64Value;",
+      );
+      lines.push("}");
     }
 
     if (imports.user) {
@@ -207,6 +222,31 @@ function generateES6Imports(imports, packageName) {
       lines.push(
         "if (google_protobuf_timestamp_pb.Timestamp) { proto.google.protobuf.Timestamp = google_protobuf_timestamp_pb.Timestamp; }",
       );
+    }
+
+    // явно присваиваем враппер а то проблемы для корректной сериализации
+    if (imports.wrappers) {
+      lines.push("");
+      lines.push("if (google_protobuf_wrappers_pb.StringValue) {");
+      lines.push(
+        "  proto.google.protobuf.StringValue = google_protobuf_wrappers_pb.StringValue;",
+      );
+      lines.push("}");
+      lines.push("if (google_protobuf_wrappers_pb.BoolValue) {");
+      lines.push(
+        "  proto.google.protobuf.BoolValue = google_protobuf_wrappers_pb.BoolValue;",
+      );
+      lines.push("}");
+      lines.push("if (google_protobuf_wrappers_pb.Int32Value) {");
+      lines.push(
+        "  proto.google.protobuf.Int32Value = google_protobuf_wrappers_pb.Int32Value;",
+      );
+      lines.push("}");
+      lines.push("if (google_protobuf_wrappers_pb.Int64Value) {");
+      lines.push(
+        "  proto.google.protobuf.Int64Value = google_protobuf_wrappers_pb.Int64Value;",
+      );
+      lines.push("}");
     }
   } else if (packageName.startsWith("laborato.common.node")) {
     lines.push("proto.laborato = proto.laborato || {};");
