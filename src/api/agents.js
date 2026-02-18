@@ -265,3 +265,25 @@ export async function wakeUpWOL(agent_id) {
   const { data } = await axios.post(`${baseUrl}/${agent_id}/wol/`);
   return data;
 }
+
+// agent versions
+export async function fetchAgentVersions() {
+  try {
+    const { data } = await axios.get(`${baseUrl}/versions/`);
+    return data;
+  } catch (e) {
+    console.error(e);
+    throw e;
+  }
+}
+
+// update agents with optional version and downgrade parameters
+export async function updateAgents(payload) {
+  try {
+    const { data } = await axios.post(`${baseUrl}/update/`, payload);
+    return data;
+  } catch (e) {
+    console.error(e);
+    throw e;
+  }
+}

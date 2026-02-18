@@ -1,4 +1,4 @@
-<template>
+npm<template>
   <q-page class="gpo-manager-page">
     <div class="row gpo-main-row">
       <div
