@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "common/user.proto";
+import "operator.proto";
 
 import "google/protobuf/wrappers.proto";
 
@@ -19,10 +20,27 @@ service OperatorUserControlService {
     rpc DeleteGroup(GroupRequest) returns (UserControlResponse);
     rpc AddUserToGroup(UserGroupRequest) returns (UserControlResponse);
     rpc RemoveUserFromGroup(UserGroupRequest) returns (UserControlResponse);
+
+    rpc GetUserEffectiveAgents(UserIdentifier) returns (UserAgentsResponse);
+    rpc SetGroupChildGroups(SetGroupChildGroupsRequest) returns (UserControlResponse);
+
+    // ===== USER READ =====
+    rpc GetUser(UserIdentifier) returns (UserResponse);
+    rpc GetAllUsers(UserGroupTarget) returns (UsersResponse);
+    rpc GetUserGroups(UserIdentifier) returns (GroupListResponse);
+    rpc GetUserAgents(UserIdentifier) returns (UserAgentsResponse);
+
+    // ===== GROUP READ =====
+    rpc GetGroup(GroupRequest) returns (GroupResponse);
+    rpc GetAllGroups(UserGroupTarget) returns (GroupsResponse);
+    rpc GetGroupUsers(GroupRequest) returns (UserListResponse);
+    rpc GetGroupAgents(GroupRequest) returns (AgentListResponse);
+    rpc GetGroupChildGroups(GroupRequest) returns (GroupListResponse);
+    rpc GetGroupParentGroups(GroupRequest) returns (GroupListResponse);
 }
 
 message CreateUserRequest {
-    string agent_id = 1;
+    UserGroupTarget target = 1;
     laborato.common.user.UserRequest user = 2;
 }
 
@@ -47,14 +65,69 @@ message SetUserAccountExpirationRequest {
 }
 
 message UserIdentifier {
-    string agent_id = 1;
+    UserGroupTarget target = 1;
     string sam_id = 2;
 }
+
+message SetGroupChildGroupsRequest {
+    GroupRequest group = 1;
+    repeated string child_group_ids = 2;
+}
+
 
 message UserControlResponse {
     ResponseStatus status = 1;
     optional string error_message = 2;
 }
+
+message UserAgentsResponse {
+    ResponseStatus status = 1;
+    repeated string agent_ids = 2;
+    optional string error_message = 3;
+}
+
+message UserResponse {
+    ResponseStatus status = 1;
+    laborato.common.user.UserInfo user = 2;
+    optional string error_message = 3;
+}
+
+message UsersResponse {
+    ResponseStatus status = 1;
+    repeated laborato.common.user.UserInfo users = 2;
+    optional string error_message = 3;
+}
+
+message GroupResponse {
+    ResponseStatus status = 1;
+    laborato.common.user.GroupInfo group = 2;
+    optional string error_message = 3;
+}
+
+message GroupsResponse {
+    ResponseStatus status = 1;
+    repeated laborato.common.user.GroupInfo groups = 2;
+    optional string error_message = 3;
+}
+
+message GroupListResponse {
+    ResponseStatus status = 1;
+    repeated laborato.common.user.GroupInfo groups = 2;
+    optional string error_message = 3;
+}
+
+message UserListResponse {
+    ResponseStatus status = 1;
+    repeated laborato.common.user.UserInfo users = 2;
+    optional string error_message = 3;
+}
+
+message AgentListResponse {
+    ResponseStatus status = 1;
+    repeated string agent_ids = 2;
+    optional string error_message = 3;
+}
+
 
 enum ResponseStatus {
     RESPONSE_STATUS_OK = 0;
@@ -62,18 +135,32 @@ enum ResponseStatus {
 }
 
 message CreateUserGroupRequest {
-    string agent_id = 1;
+    UserGroupTarget target = 1;
     string sam_group_name = 2;
     google.protobuf.StringValue description = 3;
 }
 
 message GroupRequest {
-    string agent_id = 1;
+    UserGroupTarget target = 1;
     string sam_group_name = 2;
 }
 
 message UserGroupRequest {
-    string agent_id = 1;
+    UserGroupTarget target = 1;
     string sam_group_name = 2;
     string sam_account_name = 3;
+}
+
+message UserGroupTarget {
+    oneof target {
+        laborato.mesh.operator.v1.GlobalTarget global = 1;
+        laborato.mesh.operator.v1.AgentTarget agent = 2;
+        laborato.mesh.operator.v1.UserTarget user = 3;
+        laborato.mesh.operator.v1.TacticalClientTarget client = 4;
+        laborato.mesh.operator.v1.TacticalClientsTarget clients = 5;
+        laborato.mesh.operator.v1.TacticalSiteTarget site = 6;
+        laborato.mesh.operator.v1.TacticalSitesTarget sites = 7;
+        laborato.mesh.operator.v1.AggentsTarget agents = 8;
+        laborato.mesh.operator.v1.CombinedTarget combined = 9;
+  }
 }

@@ -400,16 +400,7 @@
                               <q-item-section>
                                 <q-item-label>Online status</q-item-label>
                                 <q-item-label caption>{{
-                                  (
-                                    agentDetails.nodeInfo.isOnline !== undefined
-                                      ? agentDetails.nodeInfo.isOnline
-                                      : agentDetails.nodeInfo.is_online !==
-                                          undefined
-                                        ? agentDetails.nodeInfo.is_online
-                                        : false
-                                  )
-                                    ? "Online"
-                                    : "Offline"
+                                  agentDetails.isOnline ? "Online" : "Offline"
                                 }}</q-item-label>
                               </q-item-section>
                             </q-item>
@@ -501,7 +492,6 @@
                                 <q-item-section>Set Password</q-item-section>
                               </q-item>
                               <q-item
-                                v-if="props.row.type === 'Local'"
                                 clickable
                                 v-close-popup
                                 @click="toggleUserEnabled(props.row)"
@@ -518,12 +508,21 @@
                               <q-item
                                 clickable
                                 v-close-popup
-                                @click="unlockUserConfirm(props.row)"
+                                @click="
+                                  props.row.isLocked
+                                    ? unlockUserConfirm(props.row)
+                                    : $q.notify({ message: 'User is not locked', type: 'info' })
+                                "
                               >
                                 <q-item-section side>
-                                  <q-icon name="lock_open" size="xs" />
+                                  <q-icon
+                                    :name="props.row.isLocked ? 'lock_open' : 'lock'"
+                                    size="xs"
+                                  />
                                 </q-item-section>
-                                <q-item-section>Unlock</q-item-section>
+                                <q-item-section>{{
+                                  props.row.isLocked ? "Unlock" : "lock"
+                                }}</q-item-section>
                               </q-item>
                               <q-item
                                 clickable
@@ -538,7 +537,9 @@
                               <q-item
                                 clickable
                                 v-close-popup
-                                @click="openSetAccountExpirationDialog(props.row)"
+                                @click="
+                                  openSetAccountExpirationDialog(props.row)
+                                "
                               >
                                 <q-item-section side>
                                   <q-icon name="event" size="xs" />
@@ -561,7 +562,9 @@
                               <q-item
                                 clickable
                                 v-close-popup
-                                @click="openRemoveUserFromGroupDialog(props.row)"
+                                @click="
+                                  openRemoveUserFromGroupDialog(props.row)
+                                "
                               >
                                 <q-item-section side>
                                   <q-icon name="group_remove" size="xs" />
@@ -588,7 +591,11 @@
                                 @click="deleteUserConfirm(props.row)"
                               >
                                 <q-item-section side>
-                                  <q-icon name="delete" size="xs" color="negative" />
+                                  <q-icon
+                                    name="delete"
+                                    size="xs"
+                                    color="negative"
+                                  />
                                 </q-item-section>
                                 <q-item-section class="text-negative"
                                   >Delete</q-item-section
@@ -667,17 +674,23 @@
                               <q-item
                                 clickable
                                 v-close-popup
-                                @click="openAddUserToGroupFromGroupRow(props.row)"
+                                @click="
+                                  openAddUserToGroupFromGroupRow(props.row)
+                                "
                               >
                                 <q-item-section side>
                                   <q-icon name="person_add" size="xs" />
                                 </q-item-section>
-                                <q-item-section>Add User to Group</q-item-section>
+                                <q-item-section
+                                  >Add User to Group</q-item-section
+                                >
                               </q-item>
                               <q-item
                                 clickable
                                 v-close-popup
-                                @click="openRemoveUserFromGroupFromGroupRow(props.row)"
+                                @click="
+                                  openRemoveUserFromGroupFromGroupRow(props.row)
+                                "
                               >
                                 <q-item-section side>
                                   <q-icon name="person_remove" size="xs" />
@@ -693,7 +706,11 @@
                                 @click="deleteGroupConfirm(props.row)"
                               >
                                 <q-item-section side>
-                                  <q-icon name="delete" size="xs" color="negative" />
+                                  <q-icon
+                                    name="delete"
+                                    size="xs"
+                                    color="negative"
+                                  />
                                 </q-item-section>
                                 <q-item-section class="text-negative"
                                   >Delete Group</q-item-section
@@ -2664,11 +2681,14 @@
           <q-card-section>
             <div class="text-h6">Create User</div>
           </q-card-section>
-          <q-card-section class="q-pt-none q-gutter-sm" style="max-height: 70vh; overflow-y: auto">
+          <q-card-section
+            class="q-pt-none q-gutter-sm"
+            style="max-height: 70vh; overflow-y: auto"
+          >
             <div class="text-subtitle2 text-grey-7">Required</div>
             <q-input
               v-model="createUserForm.samAccountName"
-              label="SAM Account Name *"
+              label="Account Name *"
               dense
               outlined
               class="q-mb-sm"
@@ -2684,7 +2704,9 @@
               :rules="[(v) => !!v?.trim() || 'Required']"
             />
             <q-separator class="q-my-sm" />
-            <div class="text-subtitle2 text-grey-7">Display and description</div>
+            <div class="text-subtitle2 text-grey-7">
+              Display and description
+            </div>
             <q-input
               v-model="createUserForm.displayName"
               label="Display Name"
@@ -2702,9 +2724,18 @@
             <q-separator class="q-my-sm" />
             <div class="text-subtitle2 text-grey-7">Account options</div>
             <q-checkbox v-model="createUserForm.enabled" label="Enabled" />
-            <q-checkbox v-model="createUserForm.passwordNotRequired" label="Password not required" />
-            <q-checkbox v-model="createUserForm.userCannotChangePassword" label="User cannot change password" />
-            <q-checkbox v-model="createUserForm.smartcardLogonRequired" label="Smartcard logon required" />
+            <q-checkbox
+              v-model="createUserForm.passwordNotRequired"
+              label="Password not required"
+            />
+            <q-checkbox
+              v-model="createUserForm.userCannotChangePassword"
+              label="User cannot change password"
+            />
+            <q-checkbox
+              v-model="createUserForm.smartcardLogonRequired"
+              label="Smartcard logon required"
+            />
             <q-input
               v-model="createUserForm.accountExpirationDate"
               label="Account expiration date (ISO 8601)"
@@ -2714,15 +2745,66 @@
               placeholder="YYYY-MM-DD or empty"
             />
             <q-separator class="q-my-sm" />
-            <div class="text-subtitle2 text-grey-7">Supported local attributes</div>
-            <q-input v-model="createUserForm.name" label="Name" dense outlined class="q-mb-sm" />
-            <q-input v-model="createUserForm.middleName" label="Middle Name" dense outlined class="q-mb-sm" />
-            <q-input v-model="createUserForm.surname" label="Surname" dense outlined class="q-mb-sm" />
-            <q-input v-model="createUserForm.email" label="Email" dense outlined type="email" class="q-mb-sm" />
-            <q-input v-model="createUserForm.homeDirectory" label="Home Directory" dense outlined class="q-mb-sm" />
-            <q-input v-model="createUserForm.scriptPath" label="Script Path" dense outlined class="q-mb-sm" />
-            <q-input v-model="createUserForm.telephoneNumber" label="Telephone Number" dense outlined class="q-mb-sm" />
-            <q-input v-model="createUserForm.employeeId" label="Employee ID" dense outlined class="q-mb-sm" />
+            <div class="text-subtitle2 text-grey-7">
+              Supported local attributes
+            </div>
+            <q-input
+              v-model="createUserForm.name"
+              label="Name"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="createUserForm.middleName"
+              label="Middle Name"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="createUserForm.surname"
+              label="Surname"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="createUserForm.email"
+              label="Email"
+              dense
+              outlined
+              type="email"
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="createUserForm.homeDirectory"
+              label="Home Directory"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="createUserForm.scriptPath"
+              label="Script Path"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="createUserForm.telephoneNumber"
+              label="Telephone Number"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="createUserForm.employeeId"
+              label="Employee ID"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
           </q-card-section>
           <q-card-actions align="right">
             <q-btn flat label="Cancel" color="primary" v-close-popup />
@@ -2741,15 +2823,17 @@
         <q-card style="min-width: 480px; max-width: 90vw">
           <q-card-section>
             <div class="text-h6">Edit User</div>
-            <div
-              v-if="editUserRow"
-              class="text-caption text-grey-7 q-mt-xs"
-            >
+            <div v-if="editUserRow" class="text-caption text-grey-7 q-mt-xs">
               {{ editUserRow.samAccountName }}
             </div>
           </q-card-section>
-          <q-card-section class="q-pt-none q-gutter-sm" style="max-height: 70vh; overflow-y: auto">
-            <div class="text-subtitle2 text-grey-7">Display and description</div>
+          <q-card-section
+            class="q-pt-none q-gutter-sm"
+            style="max-height: 70vh; overflow-y: auto"
+          >
+            <div class="text-subtitle2 text-grey-7">
+              Display and description
+            </div>
             <q-input
               v-model="editUserForm.displayName"
               label="Display Name"
@@ -2767,9 +2851,18 @@
             <q-separator class="q-my-sm" />
             <div class="text-subtitle2 text-grey-7">Account options</div>
             <q-checkbox v-model="editUserForm.enabled" label="Enabled" />
-            <q-checkbox v-model="editUserForm.passwordNotRequired" label="Password not required" />
-            <q-checkbox v-model="editUserForm.userCannotChangePassword" label="User cannot change password" />
-            <q-checkbox v-model="editUserForm.smartcardLogonRequired" label="Smartcard logon required" />
+            <q-checkbox
+              v-model="editUserForm.passwordNotRequired"
+              label="Password not required"
+            />
+            <q-checkbox
+              v-model="editUserForm.userCannotChangePassword"
+              label="User cannot change password"
+            />
+            <q-checkbox
+              v-model="editUserForm.smartcardLogonRequired"
+              label="Smartcard logon required"
+            />
             <q-input
               v-model="editUserForm.accountExpirationDate"
               label="Account expiration date (ISO 8601)"
@@ -2779,15 +2872,66 @@
               placeholder="YYYY-MM-DD or empty"
             />
             <q-separator class="q-my-sm" />
-            <div class="text-subtitle2 text-grey-7">Supported local attributes</div>
-            <q-input v-model="editUserForm.name" label="Name" dense outlined class="q-mb-sm" />
-            <q-input v-model="editUserForm.middleName" label="Middle Name" dense outlined class="q-mb-sm" />
-            <q-input v-model="editUserForm.surname" label="Surname" dense outlined class="q-mb-sm" />
-            <q-input v-model="editUserForm.email" label="Email" dense outlined type="email" class="q-mb-sm" />
-            <q-input v-model="editUserForm.homeDirectory" label="Home Directory" dense outlined class="q-mb-sm" />
-            <q-input v-model="editUserForm.scriptPath" label="Script Path" dense outlined class="q-mb-sm" />
-            <q-input v-model="editUserForm.telephoneNumber" label="Telephone Number" dense outlined class="q-mb-sm" />
-            <q-input v-model="editUserForm.employeeId" label="Employee ID" dense outlined class="q-mb-sm" />
+            <div class="text-subtitle2 text-grey-7">
+              Supported local attributes
+            </div>
+            <q-input
+              v-model="editUserForm.name"
+              label="Name"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="editUserForm.middleName"
+              label="Middle Name"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="editUserForm.surname"
+              label="Surname"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="editUserForm.email"
+              label="Email"
+              dense
+              outlined
+              type="email"
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="editUserForm.homeDirectory"
+              label="Home Directory"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="editUserForm.scriptPath"
+              label="Script Path"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="editUserForm.telephoneNumber"
+              label="Telephone Number"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="editUserForm.employeeId"
+              label="Employee ID"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
           </q-card-section>
           <q-card-actions align="right">
             <q-btn flat label="Cancel" color="primary" v-close-popup />
@@ -2952,7 +3096,7 @@
           <q-card-section class="q-pt-none">
             <q-input
               v-model="createGroupForm.samGroupName"
-              label="SAM Group Name *"
+              label="Group Name *"
               dense
               outlined
               class="q-mb-sm"
@@ -2982,7 +3126,11 @@
           <q-card-section>
             <div class="text-h6">Add User to Group</div>
             <div v-if="addUserToGroupGroupRow" class="text-caption text-grey">
-              Group: {{ addUserToGroupGroupRow.samAccountName || addUserToGroupGroupRow.name }}
+              Group:
+              {{
+                addUserToGroupGroupRow.samAccountName ||
+                addUserToGroupGroupRow.name
+              }}
             </div>
           </q-card-section>
           <q-card-section class="q-pt-none">
@@ -3021,8 +3169,15 @@
         <q-card style="min-width: 360px">
           <q-card-section>
             <div class="text-h6">Remove User from Group</div>
-            <div v-if="removeUserFromGroupGroupRow" class="text-caption text-grey">
-              Group: {{ removeUserFromGroupGroupRow.samAccountName || removeUserFromGroupGroupRow.name }}
+            <div
+              v-if="removeUserFromGroupGroupRow"
+              class="text-caption text-grey"
+            >
+              Group:
+              {{
+                removeUserFromGroupGroupRow.samAccountName ||
+                removeUserFromGroupGroupRow.name
+              }}
             </div>
           </q-card-section>
           <q-card-section class="q-pt-none">
@@ -3077,6 +3232,7 @@ import {
   agentServiceClientWrapper,
   userClient,
   userControlClient,
+  createUserGroupTargetForAgent,
   // userServiceClient,
   createGrpcMetadata,
   operator_pb,
@@ -3127,6 +3283,10 @@ interface User {
   lastLogon?: string;
   groups?: string;
   isEnabled?: boolean;
+  isLocked?: boolean;
+  passwordExpired?: boolean;
+  passwordLastSet?: string;
+  accountExpirationDate?: string;
   displayName?: string;
   description?: string;
   givenName?: string;
@@ -3137,7 +3297,6 @@ interface User {
   scriptPath?: string;
   telephoneNumber?: string;
   employeeId?: string;
-  accountExpirationDate?: string;
 }
 
 interface AdmxFile {
@@ -3248,6 +3407,7 @@ const showAppliedPoliciesDialog = ref(false);
 
 const showCreateUserDialog = ref(false);
 const createUserForm = ref({
+  target: { agentId: "" as string },
   samAccountName: "",
   password: "",
   displayName: "",
@@ -3299,9 +3459,12 @@ const removeFromGroupUser = ref<User | null>(null);
 const removeFromGroupSelectedGroup = ref("");
 const userControlLoading = ref(false);
 
-
 const showCreateGroupDialog = ref(false);
-const createGroupForm = ref({ samGroupName: "", description: "" });
+const createGroupForm = ref({
+  target: { agentId: "" as string },
+  samGroupName: "",
+  description: "",
+});
 const showAddUserToGroupFromGroupDialog = ref(false);
 const addUserToGroupGroupRow = ref<{
   samAccountName?: string;
@@ -3909,7 +4072,7 @@ const groupsColumns: QTableColumn[] = [
   },
   {
     name: "samAccountName",
-    label: "SAM Account Name",
+    label: "Account Name",
     align: "left",
     field: "samAccountName",
     sortable: true,
@@ -3931,25 +4094,12 @@ const groupsColumns: QTableColumn[] = [
 ];
 
 const usersColumns: QTableColumn[] = [
-  // {
-  //   name: "actions",
-  //   label: "Actions",
-  //   align: "center",
-  //   field: "actions",
-  // },
   {
     name: "name",
     required: true,
     label: "Name",
     align: "left",
     field: "name",
-    sortable: true,
-  },
-  {
-    name: "sid",
-    label: "SID",
-    align: "left",
-    field: "sid",
     sortable: true,
   },
   {
@@ -3960,10 +4110,118 @@ const usersColumns: QTableColumn[] = [
     sortable: true,
   },
   {
+    name: "isEnabled",
+    label: "Enabled",
+    align: "center",
+    field: "isEnabled",
+    format: (val: boolean) => (val === false ? "No" : "Yes"),
+    sortable: true,
+  },
+  {
+    name: "isLocked",
+    label: "Locked",
+    align: "center",
+    field: "isLocked",
+    format: (val: boolean) => (val ? "Yes" : "No"),
+    sortable: true,
+  },
+  {
+    name: "passwordExpired",
+    label: "Password Expired",
+    align: "center",
+    field: "passwordExpired",
+    format: (val: boolean) => (val ? "Yes" : "No"),
+    sortable: true,
+  },
+  {
+    name: "accountExpirationDate",
+    label: "Account Expires",
+    align: "left",
+    field: "accountExpirationDate",
+    sortable: true,
+  },
+  {
     name: "lastLogon",
     label: "Last Logon",
     align: "left",
     field: "lastLogon",
+    sortable: true,
+  },
+  {
+    name: "passwordLastSet",
+    label: "Password Last Set",
+    align: "left",
+    field: "passwordLastSet",
+    sortable: true,
+  },
+  {
+    name: "displayName",
+    label: "Display Name",
+    align: "left",
+    field: "displayName",
+    sortable: true,
+  },
+  {
+    name: "description",
+    label: "Description",
+    align: "left",
+    field: "description",
+    sortable: true,
+  },
+  {
+    name: "givenName",
+    label: "Given Name",
+    align: "left",
+    field: "givenName",
+    sortable: true,
+  },
+  {
+    name: "middleName",
+    label: "Middle Name",
+    align: "left",
+    field: "middleName",
+    sortable: true,
+  },
+  {
+    name: "surname",
+    label: "Surname",
+    align: "left",
+    field: "surname",
+    sortable: true,
+  },
+  {
+    name: "email",
+    label: "Email",
+    align: "left",
+    field: "email",
+    sortable: true,
+  },
+  {
+    name: "telephoneNumber",
+    label: "Phone",
+    align: "left",
+    field: "telephoneNumber",
+    sortable: true,
+  },
+  {
+    name: "homeDirectory",
+    label: "Home Dir",
+    align: "left",
+    field: "homeDirectory",
+    sortable: true,
+  },
+  {
+    name: "scriptPath",
+    label: "Script Path",
+    align: "left",
+    field: "scriptPath",
+    sortable: true,
+  },
+  {
+    name: "employeeId",
+    label: "Employee ID",
+    align: "left",
+    field: "employeeId",
     sortable: true,
   },
 ];
@@ -4349,15 +4607,36 @@ async function loadUsersForAgent(agentId: string) {
         }
 
         let accountExpirationDate: string | undefined;
-        const u = user as unknown as Record<string, { seconds?: number | string } | undefined>;
+        const u = user as unknown as Record<
+          string,
+          { seconds?: number | string } | undefined
+        >;
         const exp = u.accountexpirationdate;
         if (exp && typeof exp === "object" && exp.seconds != null) {
-          const sec = typeof exp.seconds === "string" ? Number.parseInt(exp.seconds, 10) : exp.seconds;
-          accountExpirationDate = new Date(sec * 1000).toISOString().slice(0, 10);
+          const sec =
+            typeof exp.seconds === "string"
+              ? Number.parseInt(exp.seconds, 10)
+              : exp.seconds;
+          accountExpirationDate = new Date(sec * 1000)
+            .toISOString()
+            .slice(0, 10);
         }
 
         const uStr = user as unknown as Record<string, string | undefined>;
-        const getStr = (a: string, b?: string) => uStr[a] || (b ? uStr[b] : undefined) || "";
+        const getStr = (a: string, b?: string) =>
+          uStr[a] || (b ? uStr[b] : undefined) || "";
+
+        let passwordLastSet: string | undefined;
+        const pls = (
+          user as unknown as { passwordlastset?: { seconds?: number | string } }
+        ).passwordlastset;
+        if (pls?.seconds != null) {
+          const sec =
+            typeof pls.seconds === "string"
+              ? Number.parseInt(pls.seconds, 10)
+              : pls.seconds;
+          passwordLastSet = new Date(sec * 1000).toISOString().slice(0, 10);
+        }
 
         return {
           name: userName,
@@ -4367,6 +4646,10 @@ async function loadUsersForAgent(agentId: string) {
           lastLogon,
           groups: groupsString,
           isEnabled: user.isenabled ?? true,
+          isLocked: user.islocked ?? false,
+          passwordExpired: user.passwordexpired ?? false,
+          passwordLastSet,
+          accountExpirationDate,
           displayName: getStr("displayname", "displayName"),
           description: getStr("description"),
           givenName: getStr("givenname", "givenName"),
@@ -4377,7 +4660,6 @@ async function loadUsersForAgent(agentId: string) {
           scriptPath: getStr("scriptpath", "scriptPath"),
           telephoneNumber: getStr("telephonenumber", "telephoneNumber"),
           employeeId: getStr("employeeid", "employeeId"),
-          accountExpirationDate,
         };
       });
     }
@@ -5308,7 +5590,9 @@ async function refreshUsersAndGroups() {
 }
 
 function openCreateUserDialog() {
+  const agentId = getAgentId();
   createUserForm.value = {
+    target: { agentId },
     samAccountName: "",
     password: "",
     displayName: "",
@@ -5331,10 +5615,10 @@ function openCreateUserDialog() {
 }
 
 async function createUser() {
-  const agentId = getAgentId();
   const f = createUserForm.value;
+  const targetAgentId = f.target?.agentId || getAgentId();
   if (!f.samAccountName.trim()) {
-    notifyError("SAM Account Name is required");
+    notifyError("Account Name is required");
     return;
   }
   if (!f.password.trim()) {
@@ -5343,25 +5627,28 @@ async function createUser() {
   }
   userControlLoading.value = true;
   try {
-    await userControlClient.createUser(agentId, {
-      samAccountName: f.samAccountName.trim(),
-      password: f.password.trim(),
-      displayName: f.displayName.trim() || undefined,
-      description: f.description.trim() || undefined,
-      enabled: f.enabled,
-      passwordNotRequired: f.passwordNotRequired || undefined,
-      userCannotChangePassword: f.userCannotChangePassword || undefined,
-      smartcardLogonRequired: f.smartcardLogonRequired || undefined,
-      accountExpirationDate: f.accountExpirationDate.trim() || undefined,
-      name: f.name.trim() || undefined,
-      middleName: f.middleName.trim() || undefined,
-      surname: f.surname.trim() || undefined,
-      email: f.email.trim() || undefined,
-      homeDirectory: f.homeDirectory.trim() || undefined,
-      scriptPath: f.scriptPath.trim() || undefined,
-      telephoneNumber: f.telephoneNumber.trim() || undefined,
-      employeeId: f.employeeId.trim() || undefined,
-    });
+    await userControlClient.createUser(
+      createUserGroupTargetForAgent(targetAgentId),
+      {
+        samAccountName: f.samAccountName.trim(),
+        password: f.password.trim(),
+        displayName: f.displayName.trim() || undefined,
+        description: f.description.trim() || undefined,
+        enabled: f.enabled,
+        passwordNotRequired: f.passwordNotRequired || undefined,
+        userCannotChangePassword: f.userCannotChangePassword || undefined,
+        smartcardLogonRequired: f.smartcardLogonRequired || undefined,
+        accountExpirationDate: f.accountExpirationDate.trim() || undefined,
+        name: f.name.trim() || undefined,
+        middleName: f.middleName.trim() || undefined,
+        surname: f.surname.trim() || undefined,
+        email: f.email.trim() || undefined,
+        homeDirectory: f.homeDirectory.trim() || undefined,
+        scriptPath: f.scriptPath.trim() || undefined,
+        telephoneNumber: f.telephoneNumber.trim() || undefined,
+        employeeId: f.employeeId.trim() || undefined,
+      },
+    );
     notifySuccess("User created");
     showCreateUserDialog.value = false;
     await refreshUsersAndGroups();
@@ -5396,29 +5683,33 @@ function openEditUserDialog(row: User) {
 }
 
 async function updateUser() {
-  const agentId = getAgentId();
+  const targetAgentId = getAgentId();
   const row = editUserRow.value;
   if (!row) return;
   const f = editUserForm.value;
   userControlLoading.value = true;
   try {
-    await userControlClient.updateUser(agentId, row.samAccountName, {
-      displayName: f.displayName.trim() || undefined,
-      description: f.description.trim() || undefined,
-      enabled: f.enabled,
-      passwordNotRequired: f.passwordNotRequired,
-      userCannotChangePassword: f.userCannotChangePassword,
-      smartcardLogonRequired: f.smartcardLogonRequired,
-      accountExpirationDate: f.accountExpirationDate.trim() || undefined,
-      name: f.name.trim() || undefined,
-      middleName: f.middleName.trim() || undefined,
-      surname: f.surname.trim() || undefined,
-      email: f.email.trim() || undefined,
-      homeDirectory: f.homeDirectory.trim() || undefined,
-      scriptPath: f.scriptPath.trim() || undefined,
-      telephoneNumber: f.telephoneNumber.trim() || undefined,
-      employeeId: f.employeeId.trim() || undefined,
-    });
+    await userControlClient.updateUser(
+      createUserGroupTargetForAgent(targetAgentId),
+      row.samAccountName,
+      {
+        displayName: f.displayName.trim() || undefined,
+        description: f.description.trim() || undefined,
+        enabled: f.enabled,
+        passwordNotRequired: f.passwordNotRequired,
+        userCannotChangePassword: f.userCannotChangePassword,
+        smartcardLogonRequired: f.smartcardLogonRequired,
+        accountExpirationDate: f.accountExpirationDate.trim() || undefined,
+        name: f.name.trim() || undefined,
+        middleName: f.middleName.trim() || undefined,
+        surname: f.surname.trim() || undefined,
+        email: f.email.trim() || undefined,
+        homeDirectory: f.homeDirectory.trim() || undefined,
+        scriptPath: f.scriptPath.trim() || undefined,
+        telephoneNumber: f.telephoneNumber.trim() || undefined,
+        employeeId: f.employeeId.trim() || undefined,
+      },
+    );
     notifySuccess("User updated");
     showEditUserDialog.value = false;
     editUserRow.value = null;
@@ -5438,7 +5729,7 @@ function openSetPasswordDialog(row: User) {
 }
 
 async function setPassword() {
-  const agentId = getAgentId();
+  const targetAgentId = getAgentId();
   const row = setPasswordUser.value;
   if (!row || !setPasswordValue.value) {
     notifyError("Password is required");
@@ -5447,7 +5738,7 @@ async function setPassword() {
   userControlLoading.value = true;
   try {
     await userControlClient.setUserPassword(
-      agentId,
+      createUserGroupTargetForAgent(targetAgentId),
       row.samAccountName,
       setPasswordValue.value,
     );
@@ -5465,11 +5756,15 @@ async function setPassword() {
 }
 
 async function toggleUserEnabled(row: User) {
-  const agentId = getAgentId();
+  const targetAgentId = getAgentId();
   const enable = row.isEnabled === false;
   userControlLoading.value = true;
   try {
-    await userControlClient.enableUser(agentId, row.samAccountName, enable);
+    await userControlClient.enableUser(
+      createUserGroupTargetForAgent(targetAgentId),
+      row.samAccountName,
+      enable,
+    );
     notifySuccess(enable ? "User enabled" : "User disabled");
     await refreshUsersAndGroups();
   } catch (e) {
@@ -5487,17 +5782,20 @@ function unlockUserConfirm(row: User) {
     cancel: true,
     persistent: true,
   }).onOk(async () => {
-    const agentId = getAgentId();
+    const targetAgentId = getAgentId();
     userControlLoading.value = true;
     try {
-      await userControlClient.unlockUser(agentId, row.samAccountName);
+      await userControlClient.unlockUser(
+        createUserGroupTargetForAgent(targetAgentId),
+        row.samAccountName,
+      );
       notifySuccess("User unlocked");
       await refreshUsersAndGroups();
     } catch (e) {
       const msg = (e as { message?: string })?.message || String(e);
       notifyError(msg);
     } finally {
-    userControlLoading.value = false;
+      userControlLoading.value = false;
     }
   });
 }
@@ -5509,10 +5807,13 @@ function expirePasswordConfirm(row: User) {
     cancel: true,
     persistent: true,
   }).onOk(async () => {
-    const agentId = getAgentId();
+    const targetAgentId = getAgentId();
     userControlLoading.value = true;
     try {
-      await userControlClient.expireUserPassword(agentId, row.samAccountName);
+      await userControlClient.expireUserPassword(
+        createUserGroupTargetForAgent(targetAgentId),
+        row.samAccountName,
+      );
       notifySuccess("Password expired");
       await refreshUsersAndGroups();
     } catch (e) {
@@ -5531,13 +5832,13 @@ function openSetAccountExpirationDialog(row: User) {
 }
 
 async function setAccountExpiration() {
-  const agentId = getAgentId();
+  const targetAgentId = getAgentId();
   const row = accountExpirationUser.value;
   if (!row) return;
   userControlLoading.value = true;
   try {
     await userControlClient.setUserAccountExpiration(
-      agentId,
+      createUserGroupTargetForAgent(targetAgentId),
       row.samAccountName,
       accountExpirationDate.value,
     );
@@ -5556,13 +5857,12 @@ async function setAccountExpiration() {
 
 function openAddUserToGroupDialog(row: User) {
   addToGroupUser.value = row;
-  addToGroupSelectedGroup.value =
-    groupsList.value[0]?.samAccountName ?? "";
+  addToGroupSelectedGroup.value = groupsList.value[0]?.samAccountName ?? "";
   showAddToGroupDialog.value = true;
 }
 
 async function addUserToGroup() {
-  const agentId = getAgentId();
+  const targetAgentId = getAgentId();
   const row = addToGroupUser.value;
   if (!row || !addToGroupSelectedGroup.value) {
     notifyError("Select a group");
@@ -5571,7 +5871,7 @@ async function addUserToGroup() {
   userControlLoading.value = true;
   try {
     await userControlClient.addUserToGroup(
-      agentId,
+      createUserGroupTargetForAgent(targetAgentId),
       addToGroupSelectedGroup.value,
       row.samAccountName,
     );
@@ -5596,7 +5896,7 @@ function openRemoveUserFromGroupDialog(row: User) {
 }
 
 async function removeUserFromGroup() {
-  const agentId = getAgentId();
+  const targetAgentId = getAgentId();
   const row = removeFromGroupUser.value;
   if (!row || !removeFromGroupSelectedGroup.value) {
     notifyError("Select a group");
@@ -5605,7 +5905,7 @@ async function removeUserFromGroup() {
   userControlLoading.value = true;
   try {
     await userControlClient.removeUserFromGroup(
-      agentId,
+      createUserGroupTargetForAgent(targetAgentId),
       removeFromGroupSelectedGroup.value,
       row.samAccountName,
     );
@@ -5629,10 +5929,13 @@ function deleteUserConfirm(row: User) {
     cancel: true,
     persistent: true,
   }).onOk(async () => {
-    const agentId = getAgentId();
+    const targetAgentId = getAgentId();
     userControlLoading.value = true;
     try {
-      await userControlClient.deleteUser(agentId, row.samAccountName);
+      await userControlClient.deleteUser(
+        createUserGroupTargetForAgent(targetAgentId),
+        row.samAccountName,
+      );
       notifySuccess("User deleted");
       await refreshUsersAndGroups();
     } catch (e) {
@@ -5645,13 +5948,18 @@ function deleteUserConfirm(row: User) {
 }
 
 function openCreateGroupDialog() {
-  createGroupForm.value = { samGroupName: "", description: "" };
+  const agentId = getAgentId();
+  createGroupForm.value = {
+    target: { agentId },
+    samGroupName: "",
+    description: "",
+  };
   showCreateGroupDialog.value = true;
 }
 
 async function createGroup() {
-  const agentId = getAgentId();
   const f = createGroupForm.value;
+  const targetAgentId = f.target?.agentId || getAgentId();
   if (!f.samGroupName.trim()) {
     notifyError("Group name is required");
     return;
@@ -5659,7 +5967,7 @@ async function createGroup() {
   userControlLoading.value = true;
   try {
     await userControlClient.createGroup(
-      agentId,
+      createUserGroupTargetForAgent(targetAgentId),
       f.samGroupName.trim(),
       f.description.trim() || undefined,
     );
@@ -5682,12 +5990,15 @@ function deleteGroupConfirm(row: { samAccountName?: string; name?: string }) {
     cancel: true,
     persistent: true,
   }).onOk(async () => {
-    const agentId = getAgentId();
+    const targetAgentId = getAgentId();
     const samGroupName = row.samAccountName || row.name || "";
     if (!samGroupName) return;
     userControlLoading.value = true;
     try {
-      await userControlClient.deleteGroup(agentId, samGroupName);
+      await userControlClient.deleteGroup(
+        createUserGroupTargetForAgent(targetAgentId),
+        samGroupName,
+      );
       notifySuccess("Group deleted");
       await refreshUsersAndGroups();
     } catch (e) {
@@ -5699,14 +6010,17 @@ function deleteGroupConfirm(row: { samAccountName?: string; name?: string }) {
   });
 }
 
-function openAddUserToGroupFromGroupRow(row: { samAccountName?: string; name?: string }) {
+function openAddUserToGroupFromGroupRow(row: {
+  samAccountName?: string;
+  name?: string;
+}) {
   addUserToGroupGroupRow.value = row;
   addUserToGroupSelectedUser.value = usersList.value[0]?.samAccountName ?? "";
   showAddUserToGroupFromGroupDialog.value = true;
 }
 
 async function addUserToGroupFromGroupSubmit() {
-  const agentId = getAgentId();
+  const targetAgentId = getAgentId();
   const groupRow = addUserToGroupGroupRow.value;
   if (!groupRow?.samAccountName || !addUserToGroupSelectedUser.value) {
     notifyError("Select a user");
@@ -5715,7 +6029,7 @@ async function addUserToGroupFromGroupSubmit() {
   userControlLoading.value = true;
   try {
     await userControlClient.addUserToGroup(
-      agentId,
+      createUserGroupTargetForAgent(targetAgentId),
       groupRow.samAccountName,
       addUserToGroupSelectedUser.value,
     );
@@ -5732,14 +6046,18 @@ async function addUserToGroupFromGroupSubmit() {
   }
 }
 
-function openRemoveUserFromGroupFromGroupRow(row: { samAccountName?: string; name?: string }) {
+function openRemoveUserFromGroupFromGroupRow(row: {
+  samAccountName?: string;
+  name?: string;
+}) {
   removeUserFromGroupGroupRow.value = row;
-  removeUserFromGroupSelectedUser.value = usersList.value[0]?.samAccountName ?? "";
+  removeUserFromGroupSelectedUser.value =
+    usersList.value[0]?.samAccountName ?? "";
   showRemoveUserFromGroupFromGroupDialog.value = true;
 }
 
 async function removeUserFromGroupFromGroupSubmit() {
-  const agentId = getAgentId();
+  const targetAgentId = getAgentId();
   const groupRow = removeUserFromGroupGroupRow.value;
   if (!groupRow?.samAccountName || !removeUserFromGroupSelectedUser.value) {
     notifyError("Select a user");
@@ -5748,7 +6066,7 @@ async function removeUserFromGroupFromGroupSubmit() {
   userControlLoading.value = true;
   try {
     await userControlClient.removeUserFromGroup(
-      agentId,
+      createUserGroupTargetForAgent(targetAgentId),
       groupRow.samAccountName,
       removeUserFromGroupSelectedUser.value,
     );
