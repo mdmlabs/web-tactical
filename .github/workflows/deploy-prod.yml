@@ -1,0 +1,62 @@
+name: Deploy to Server (Preprod)
+on:
+  push:
+    branches:
+      - preprod
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+      - name: Deploy to server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+          nvm use 20
+          
+          node -v
+          npm -v
+          
+          cd ~/mdmlabsrmm/web-tactical/
+          
+          echo "🔀 Checking out preprod branch..."
+          git fetch origin
+          git checkout preprod
+          git reset --hard origin/preprod
+          
+          # Проверяем что действительно на preprod
+          CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          echo "📍 Current branch: $CURRENT_BRANCH"
+          
+          if [ "$CURRENT_BRANCH" != "preprod" ]; then
+            echo "❌ Error: Failed to checkout preprod branch. Aborting deployment."
+            exit 1
+          fi
+          
+          echo "🌐 Pulling latest changes..."
+          git pull origin preprod
+          echo "📦 Installing dependencies..."
+          npm install --legacy-peer-deps
+          echo "🔧 Generating proto files..."
+          npm run proto:generate
+          echo "🏗️ Building project..."
+          npm run build
+          
+          cd ~/mdmlabsrmm/
+          echo "🐳 Building Docker image..."
+          docker build --pull --no-cache -t "mdmlabs-frontend" -f "docker/containers/mdmlabs-frontend/dockerfile" .
+          echo "🛑 Stopping frontend container..."
+          docker stop mdmlabs-frontend || true
+          echo "🗑️ Removing frontend container..."
+          docker rm mdmlabs-frontend || true
+          echo "🚀 Starting new frontend container..."
+          cd ~/mdmlabsrmm/docker/
+          docker compose up -d mdmlabs-frontend
+          
+          EOF
