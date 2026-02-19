@@ -1,133 +1,330 @@
 <template>
-  <q-card style="min-width: 600px">
+  <q-card style="min-width: 750px; max-width: 900px">
     <q-bar>
-      Update Agents
+      Agent Version Management
       <q-space />
       <q-btn dense flat icon="close" v-close-popup>
         <q-tooltip class="bg-white text-primary">Close</q-tooltip>
       </q-btn>
     </q-bar>
-    <q-separator />
-    <q-banner class="bg-primary">
-      <template v-slot:avatar>
-        <q-icon name="info" />
-      </template>
-      If agent auto update is enabled in Global Settings, agents will
-      automatically self update at 35 min past the hour, every hour. Use this
-      tool to manually trigger an agent update cycle.
-    </q-banner>
 
-    <!-- Version Information -->
-    <q-card-section v-if="versionInfo">
-      <div class="row items-center q-mb-sm">
-        <div class="col-auto text-weight-medium">Current Version:</div>
-        <div class="col q-ml-sm">{{ versionInfo.current_version }}</div>
-      </div>
-      <div class="row items-center q-mb-sm" v-if="versionInfo.nexus_configured">
-        <div class="col-auto text-weight-medium">Latest Available:</div>
-        <div class="col q-ml-sm">
-          {{ versionInfo.latest_version }}
-          <q-badge
-            v-if="versionInfo.nexus_version && versionInfo.nexus_version !== versionInfo.current_version"
-            color="positive"
-            class="q-ml-sm"
-          >
-            New version available
-          </q-badge>
+    <!-- Loading State -->
+    <q-inner-loading :showing="loading">
+      <q-spinner-dots size="50px" color="primary" />
+    </q-inner-loading>
+
+    <template v-if="versionInfo && !loading">
+      <!-- System Information Panel -->
+      <q-card-section class="bg-grey-2">
+        <div class="text-subtitle1 text-weight-medium q-mb-sm">
+          <q-icon name="info" class="q-mr-xs" />
+          System Version Information
         </div>
-      </div>
-    </q-card-section>
-
-    <q-separator />
-
-    <!-- Version Selection -->
-    <q-card-section>
-      <div class="text-weight-medium q-mb-sm">Select Target Version</div>
-      <q-select
-        square
-        dense
-        options-dense
-        outlined
-        v-model="selectedVersion"
-        :options="versionOptions"
-        @update:model-value="onVersionChange"
-      >
-        <template v-slot:option="scope">
-          <q-item v-bind="scope.itemProps">
-            <q-item-section>
-              <q-item-label>{{ scope.opt.label }}</q-item-label>
-              <q-item-label caption v-if="scope.opt.count">
-                {{ scope.opt.count }} agent(s) on this version
-              </q-item-label>
-            </q-item-section>
-            <q-item-section side v-if="scope.opt.isLatest">
-              <q-badge color="positive">Latest</q-badge>
-            </q-item-section>
-            <q-item-section side v-else-if="scope.opt.isCurrent">
-              <q-badge color="info">Current</q-badge>
-            </q-item-section>
-          </q-item>
-        </template>
-      </q-select>
-
-      <!-- Downgrade Warning -->
-      <div
-        v-if="isDowngrade"
-        class="q-mt-md q-pa-md bg-warning text-dark rounded-borders"
-      >
-        <div class="row items-center">
-          <q-icon name="warning" size="sm" class="q-mr-sm" />
-          <div class="text-weight-medium">
-            Warning: You are about to downgrade agents from a newer version
+        <div class="row q-col-gutter-md">
+          <div class="col-6">
+            <div class="text-caption text-grey-7">Server Configured Version</div>
+            <div class="text-body1">{{ versionInfo.current_version || 'Not set' }}</div>
+          </div>
+          <div class="col-6">
+            <div class="text-caption text-grey-7">
+              Latest Available
+              <q-icon
+                name="help_outline"
+                size="xs"
+                class="cursor-pointer"
+              >
+                <q-tooltip>
+                  The recommended version from your repository.
+                  This may be older than some agent versions if you tested newer builds.
+                </q-tooltip>
+              </q-icon>
+            </div>
+            <div class="text-body1">
+              {{ versionInfo.latest_version || 'Not configured' }}
+              <q-badge
+                v-if="hasNewerAgents"
+                color="orange"
+                class="q-ml-sm"
+              >
+                Some agents have newer versions
+              </q-badge>
+            </div>
           </div>
         </div>
-        <q-checkbox
-          v-model="allowDowngrade"
-          label="I understand and want to allow downgrade/rollback"
-          class="q-mt-sm"
-        />
-      </div>
-    </q-card-section>
+      </q-card-section>
 
-    <q-separator />
-
-    <!-- Agent Selection -->
-    <q-card-section v-show="selectedVersion !== null">
-      <div class="text-weight-medium q-mb-sm">Select Agents</div>
       <q-separator />
-      <div class="row items-center q-mt-sm q-mb-sm">
-        <q-checkbox
-          v-model="selectAll"
-          label="Select All"
-          @update:model-value="selectAllAction"
-        />
-        <q-space />
-        <q-btn
-          v-show="group.length !== 0"
-          :label="isDowngrade ? 'Rollback' : 'Update'"
-          :color="isDowngrade ? 'warning' : 'primary'"
-          @click="update"
-          :disable="isDowngrade && !allowDowngrade"
+
+      <!-- Version Statistics -->
+      <q-card-section>
+        <div class="text-subtitle1 text-weight-medium q-mb-sm">
+          <q-icon name="analytics" class="q-mr-xs" />
+          Agent Version Distribution
+        </div>
+        <q-markup-table flat bordered dense class="q-mb-md">
+          <thead class="bg-grey-3">
+            <tr>
+              <th class="text-left">Version</th>
+              <th class="text-center">Agents</th>
+              <th class="text-center">Status</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="stat in versionStats" :key="stat.version">
+              <td class="text-left">
+                <span class="text-weight-medium">{{ stat.version }}</span>
+              </td>
+              <td class="text-center">{{ stat.count }}</td>
+              <td class="text-center">
+                <q-badge
+                  :color="getVersionStatusColor(stat.version)"
+                  :label="getVersionStatusLabel(stat.version)"
+                />
+              </td>
+              <td class="text-right">
+                <q-btn
+                  flat
+                  dense
+                  size="sm"
+                  color="primary"
+                  label="Select All"
+                  @click="selectAgentsByVersion(stat.version)"
+                  :disable="stat.version === selectedVersion?.value"
+                />
+              </td>
+            </tr>
+            <tr v-if="versionStats.length === 0">
+              <td colspan="4" class="text-center text-grey">
+                No agents found
+              </td>
+            </tr>
+          </tbody>
+        </q-markup-table>
+      </q-card-section>
+
+      <q-separator />
+
+      <!-- Target Version Selection -->
+      <q-card-section>
+        <div class="text-subtitle1 text-weight-medium q-mb-md">
+          <q-icon name="update" class="q-mr-xs" />
+          Select Target Version
+        </div>
+
+        <div class="row q-col-gutter-md items-start">
+          <div class="col-6">
+            <q-select
+              square
+              dense
+              outlined
+              v-model="selectedVersion"
+              :options="versionOptions"
+              label="Target Version"
+              @update:model-value="onVersionChange"
+            >
+              <template v-slot:option="scope">
+                <q-item v-bind="scope.itemProps">
+                  <q-item-section>
+                    <q-item-label>{{ scope.opt.label }}</q-item-label>
+                    <q-item-label caption>
+                      {{ scope.opt.count }} agent(s) currently on this version
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-badge
+                      v-if="scope.opt.isLatest"
+                      color="positive"
+                      label="Recommended"
+                    />
+                    <q-badge
+                      v-else-if="scope.opt.isNewer"
+                      color="orange"
+                      label="Newer"
+                    />
+                  </q-item-section>
+                </q-item>
+              </template>
+              <template v-slot:selected-item="scope">
+                <span>{{ scope.opt.label }}</span>
+                <q-badge
+                  v-if="scope.opt.isLatest"
+                  color="positive"
+                  class="q-ml-sm"
+                  label="Recommended"
+                />
+              </template>
+            </q-select>
+          </div>
+
+          <div class="col-6">
+            <q-checkbox
+              v-model="allowDowngrade"
+              :disable="!hasDowngradeAgents"
+            >
+              <span>Allow version downgrade</span>
+              <q-tooltip v-if="!hasDowngradeAgents">
+                No agents require downgrade for selected version
+              </q-tooltip>
+            </q-checkbox>
+            <div class="text-caption text-grey-7 q-mt-xs q-ml-lg">
+              Enable to include agents with newer versions
+            </div>
+          </div>
+        </div>
+
+        <!-- Operation Preview -->
+        <div
+          v-if="selectedVersion && operationPreview.length > 0"
+          class="q-mt-md q-pa-md rounded-borders"
+          :class="previewBgClass"
         >
-          <q-tooltip v-if="isDowngrade && !allowDowngrade">
-            Enable "Allow downgrade" checkbox to proceed
+          <div class="text-weight-medium q-mb-sm">
+            <q-icon :name="previewIcon" class="q-mr-xs" />
+            Operation Preview
+          </div>
+          <div
+            v-for="preview in operationPreview"
+            :key="preview.type"
+            class="row items-center q-mb-xs"
+          >
+            <q-icon
+              :name="preview.icon"
+              :color="preview.color"
+              size="sm"
+              class="q-mr-sm"
+            />
+            <span>{{ preview.text }}</span>
+          </div>
+        </div>
+
+        <!-- Downgrade Warning -->
+        <q-banner
+          v-if="hasDowngradeAgents && !allowDowngrade && selectedVersion"
+          class="bg-orange-1 text-orange-9 q-mt-md"
+          rounded
+        >
+          <template v-slot:avatar>
+            <q-icon name="warning" color="orange" />
+          </template>
+          <div class="text-weight-medium">Downgrade Required</div>
+          <div class="text-caption">
+            {{ downgradeAgentsCount }} agent(s) have version newer than {{ selectedVersion.value }}.
+            Enable "Allow version downgrade" to include them.
+          </div>
+        </q-banner>
+      </q-card-section>
+
+      <q-separator />
+
+      <!-- Agent Selection -->
+      <q-card-section>
+        <div class="row items-center q-mb-sm">
+          <div class="text-subtitle1 text-weight-medium">
+            <q-icon name="devices" class="q-mr-xs" />
+            Select Agents
+          </div>
+          <q-space />
+          <div class="text-caption text-grey-7">
+            {{ selectedAgents.length }} of {{ availableAgents.length }} agents selected
+          </div>
+        </div>
+
+        <div class="row items-center q-mb-sm q-gutter-sm">
+          <q-checkbox
+            v-model="selectAll"
+            :indeterminate="isIndeterminate"
+            label="Select All"
+            @update:model-value="toggleSelectAll"
+            :disable="availableAgents.length === 0"
+          />
+          <q-space />
+          <q-input
+            v-model="searchFilter"
+            dense
+            outlined
+            placeholder="Filter agents..."
+            style="width: 200px"
+            clearable
+          >
+            <template v-slot:prepend>
+              <q-icon name="search" size="xs" />
+            </template>
+          </q-input>
+        </div>
+
+        <q-separator class="q-mb-sm" />
+
+        <div
+          v-if="availableAgents.length === 0"
+          class="text-center text-grey q-pa-lg"
+        >
+          <q-icon name="info" size="md" class="q-mb-sm" />
+          <div>
+            No agents available for this operation.
+            <span v-if="!allowDowngrade && hasDowngradeAgents">
+              Enable "Allow version downgrade" to see more agents.
+            </span>
+          </div>
+        </div>
+
+        <q-virtual-scroll
+          v-else
+          :items="filteredAgentsList"
+          style="max-height: 300px"
+          v-slot="{ item }"
+        >
+          <q-item
+            :key="item.agent_id"
+            dense
+            clickable
+            @click="toggleAgentSelection(item.agent_id)"
+          >
+            <q-item-section side>
+              <q-checkbox
+                :model-value="selectedAgents.includes(item.agent_id)"
+                @update:model-value="toggleAgentSelection(item.agent_id)"
+              />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>{{ item.hostname }}</q-item-label>
+              <q-item-label caption>
+                {{ item.client }} > {{ item.site }}
+              </q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-badge
+                :color="getAgentOperationColor(item)"
+                :label="getAgentOperationLabel(item)"
+              />
+            </q-item-section>
+            <q-item-section side>
+              <span class="text-caption">v{{ item.version }}</span>
+            </q-item-section>
+          </q-item>
+        </q-virtual-scroll>
+      </q-card-section>
+
+      <q-separator />
+
+      <!-- Action Buttons -->
+      <q-card-actions align="right" class="q-pa-md">
+        <q-btn flat label="Cancel" v-close-popup />
+        <q-btn
+          :label="actionButtonLabel"
+          :color="actionButtonColor"
+          :disable="!canExecute"
+          @click="executeUpdate"
+        >
+          <q-tooltip v-if="!canExecute && hasDowngradeAgents && !allowDowngrade">
+            Enable "Allow version downgrade" to proceed with rollback
+          </q-tooltip>
+          <q-tooltip v-else-if="!canExecute && selectedAgents.length === 0">
+            Select at least one agent
           </q-tooltip>
         </q-btn>
-      </div>
-      <q-separator />
-      <q-option-group
-        v-model="group"
-        :options="filteredAgentOptions"
-        color="green"
-        type="checkbox"
-        style="max-height: 50vh; max-width: 100%"
-        class="scroll q-mt-sm"
-      />
-      <div v-if="filteredAgentOptions.length === 0" class="text-grey q-mt-md">
-        No agents available for
-        {{ isDowngrade ? "rollback" : "update" }} to this version
-      </div>
-    </q-card-section>
+      </q-card-actions>
+    </template>
   </q-card>
 </template>
 
@@ -141,68 +338,102 @@ export default {
   mixins: [mixins],
   data() {
     return {
+      loading: true,
       versionInfo: null,
       selectedVersion: null,
       agents: [],
-      group: [],
+      selectedAgents: [],
       selectAll: false,
       allowDowngrade: false,
+      searchFilter: "",
     };
   },
   methods: {
-    selectAllAction() {
-      this.selectAll
-        ? (this.group = this.filteredAgentIds)
-        : (this.group = []);
-    },
-    onVersionChange() {
-      // Reset selection when version changes
-      this.group = [];
-      this.selectAll = false;
-      this.allowDowngrade = false;
-    },
     async getVersions() {
-      this.$q.loading.show();
+      this.loading = true;
       try {
         const data = await fetchAgentVersions();
         this.versionInfo = data;
-        this.agents = data.agents;
+        this.agents = data.agents || [];
 
         // Set default selected version to latest
-        if (data.latest_version) {
+        if (data.latest_version && this.versionOptions.length > 0) {
           const defaultOption = this.versionOptions.find(
-            (opt) => opt.value === data.latest_version,
+            (opt) => opt.value === data.latest_version
           );
           if (defaultOption) {
             this.selectedVersion = defaultOption;
+          } else {
+            this.selectedVersion = this.versionOptions[0];
           }
         } else if (this.versionOptions.length > 0) {
           this.selectedVersion = this.versionOptions[0];
         }
-
-        this.$q.loading.hide();
       } catch (error) {
-        this.$q.loading.hide();
         this.notifyError("Failed to fetch agent versions");
+      } finally {
+        this.loading = false;
       }
     },
-    async update() {
-      if (!this.selectedVersion || this.group.length === 0) {
-        this.notifyError("Please select version and agents");
-        return;
-      }
 
-      if (this.isDowngrade && !this.allowDowngrade) {
-        this.notifyError("Please enable downgrade checkbox to proceed");
-        return;
+    onVersionChange() {
+      this.selectedAgents = [];
+      this.selectAll = false;
+      // Auto-disable downgrade when switching versions
+      if (!this.hasDowngradeAgents) {
+        this.allowDowngrade = false;
       }
+    },
+
+    toggleSelectAll(value) {
+      if (value) {
+        this.selectedAgents = this.availableAgents.map((a) => a.agent_id);
+      } else {
+        this.selectedAgents = [];
+      }
+    },
+
+    toggleAgentSelection(agentId) {
+      const index = this.selectedAgents.indexOf(agentId);
+      if (index === -1) {
+        this.selectedAgents.push(agentId);
+      } else {
+        this.selectedAgents.splice(index, 1);
+      }
+      this.updateSelectAllState();
+    },
+
+    updateSelectAllState() {
+      if (this.selectedAgents.length === 0) {
+        this.selectAll = false;
+      } else if (this.selectedAgents.length === this.availableAgents.length) {
+        this.selectAll = true;
+      }
+    },
+
+    selectAgentsByVersion(version) {
+      const agentIds = this.availableAgents
+        .filter((a) => a.version === version)
+        .map((a) => a.agent_id);
+
+      // Add to selection (don't replace)
+      agentIds.forEach((id) => {
+        if (!this.selectedAgents.includes(id)) {
+          this.selectedAgents.push(id);
+        }
+      });
+      this.updateSelectAllState();
+    },
+
+    async executeUpdate() {
+      if (!this.canExecute) return;
 
       const payload = {
-        agent_ids: this.group,
+        agent_ids: this.selectedAgents,
         target_version: this.selectedVersion.value,
       };
 
-      if (this.isDowngrade) {
+      if (this.allowDowngrade) {
         payload.allow_downgrade = true;
       }
 
@@ -212,20 +443,20 @@ export default {
         this.$q.loading.hide();
         this.$emit("close");
 
-        const action = this.isDowngrade ? "rollback" : "update";
+        const actionWord = this.hasOnlyDowngrades ? "rolled back" : "updated";
         this.notifySuccess(
           response.message ||
-            `${response.count} agent(s) will be ${action}ed to version ${response.target_version}`,
+            `${response.count} agent(s) will be ${actionWord} to version ${response.target_version}`
         );
       } catch (error) {
         this.$q.loading.hide();
         this.notifyError(
-          error.response?.data?.error || "Failed to update agents",
+          error.response?.data?.error || "Failed to update agents"
         );
       }
     },
+
     compareVersions(v1, v2) {
-      // Simple semver comparison
       if (v1 === v2) return 0;
       if (!v1 || v1 === "unknown") return -1;
       if (!v2 || v2 === "unknown") return 1;
@@ -236,71 +467,229 @@ export default {
       for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
         const p1 = parts1[i] || 0;
         const p2 = parts2[i] || 0;
-
         if (p1 > p2) return 1;
         if (p1 < p2) return -1;
       }
-
       return 0;
+    },
+
+    getVersionStatusColor(version) {
+      if (!this.versionInfo) return "grey";
+      const latest = this.versionInfo.latest_version;
+
+      if (version === latest) return "positive";
+      if (this.compareVersions(version, latest) > 0) return "orange";
+      return "grey";
+    },
+
+    getVersionStatusLabel(version) {
+      if (!this.versionInfo) return "";
+      const latest = this.versionInfo.latest_version;
+
+      if (version === latest) return "Recommended";
+      if (this.compareVersions(version, latest) > 0) return "Newer";
+      return "Older";
+    },
+
+    getAgentOperationColor(agent) {
+      if (!this.selectedVersion) return "grey";
+      const cmp = this.compareVersions(agent.version, this.selectedVersion.value);
+      if (cmp < 0) return "positive";
+      if (cmp > 0) return "orange";
+      return "grey";
+    },
+
+    getAgentOperationLabel(agent) {
+      if (!this.selectedVersion) return "";
+      const cmp = this.compareVersions(agent.version, this.selectedVersion.value);
+      if (cmp < 0) return "Upgrade";
+      if (cmp > 0) return "Downgrade";
+      return "Same";
     },
   },
   computed: {
+    versionStats() {
+      if (!this.versionInfo?.version_stats) return [];
+
+      const stats = this.versionInfo.version_stats;
+      return Object.entries(stats)
+        .map(([version, count]) => ({ version, count }))
+        .sort((a, b) => this.compareVersions(b.version, a.version));
+    },
+
     versionOptions() {
       if (!this.versionInfo) return [];
 
-      const options = [];
       const versions = this.versionInfo.available_versions || [];
       const stats = this.versionInfo.version_stats || {};
       const latest = this.versionInfo.latest_version;
-      const current = this.versionInfo.current_version;
 
-      versions.forEach((version) => {
-        options.push({
+      return versions
+        .map((version) => ({
           label: version,
           value: version,
           count: stats[version] || 0,
           isLatest: version === latest,
-          isCurrent: version === current,
-        });
-      });
-
-      return options;
+          isNewer: this.compareVersions(version, latest) > 0,
+        }))
+        .sort((a, b) => this.compareVersions(b.value, a.value));
     },
-    isDowngrade() {
-      if (!this.selectedVersion || !this.versionInfo) return false;
 
-      const targetVersion = this.selectedVersion.value;
-      const currentVersion = this.versionInfo.current_version;
-
-      // Simple version comparison (works for semver like 2.9.0)
-      return this.compareVersions(targetVersion, currentVersion) < 0;
+    hasNewerAgents() {
+      if (!this.versionInfo?.latest_version) return false;
+      return this.agents.some(
+        (a) => this.compareVersions(a.version, this.versionInfo.latest_version) > 0
+      );
     },
-    filteredAgentOptions() {
+
+    availableAgents() {
       if (!this.selectedVersion) return [];
 
-      const targetVersion = this.selectedVersion.value;
-      const filteredAgents = this.agents.filter((agent) => {
-        if (this.allowDowngrade) {
-          // For rollback: show all agents with different version
-          return agent.version !== targetVersion;
-        } else {
-          // For upgrade: show only agents with older version
-          return (
-            this.compareVersions(agent.version, targetVersion) < 0 ||
-            agent.version === "unknown"
-          );
-        }
-      });
+      return this.agents.filter((agent) => {
+        const cmp = this.compareVersions(agent.version, this.selectedVersion.value);
 
-      return filteredAgents
-        .map((agent) => ({
-          label: `${agent.hostname} (${agent.client} > ${agent.site}) - v${agent.version}`,
-          value: agent.agent_id,
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label));
+        // Always include agents that need upgrade
+        if (cmp < 0 || agent.version === "unknown") return true;
+
+        // Include agents that need downgrade only if allowed
+        if (cmp > 0 && this.allowDowngrade) return true;
+
+        return false;
+      });
     },
-    filteredAgentIds() {
-      return this.filteredAgentOptions.map((opt) => opt.value);
+
+    filteredAgentsList() {
+      if (!this.searchFilter) return this.availableAgents;
+
+      const filter = this.searchFilter.toLowerCase();
+      return this.availableAgents.filter(
+        (a) =>
+          a.hostname.toLowerCase().includes(filter) ||
+          a.client?.toLowerCase().includes(filter) ||
+          a.site?.toLowerCase().includes(filter)
+      );
+    },
+
+    hasDowngradeAgents() {
+      if (!this.selectedVersion) return false;
+
+      return this.agents.some(
+        (a) => this.compareVersions(a.version, this.selectedVersion.value) > 0
+      );
+    },
+
+    downgradeAgentsCount() {
+      if (!this.selectedVersion) return 0;
+
+      return this.agents.filter(
+        (a) => this.compareVersions(a.version, this.selectedVersion.value) > 0
+      ).length;
+    },
+
+    upgradeAgentsCount() {
+      if (!this.selectedVersion) return 0;
+
+      return this.selectedAgents.filter((id) => {
+        const agent = this.agents.find((a) => a.agent_id === id);
+        return agent && this.compareVersions(agent.version, this.selectedVersion.value) < 0;
+      }).length;
+    },
+
+    selectedDowngradeCount() {
+      if (!this.selectedVersion) return 0;
+
+      return this.selectedAgents.filter((id) => {
+        const agent = this.agents.find((a) => a.agent_id === id);
+        return agent && this.compareVersions(agent.version, this.selectedVersion.value) > 0;
+      }).length;
+    },
+
+    hasOnlyDowngrades() {
+      return this.upgradeAgentsCount === 0 && this.selectedDowngradeCount > 0;
+    },
+
+    operationPreview() {
+      if (!this.selectedVersion || this.selectedAgents.length === 0) return [];
+
+      const preview = [];
+      const upgradeCount = this.upgradeAgentsCount;
+      const downgradeCount = this.selectedDowngradeCount;
+
+      if (upgradeCount > 0) {
+        preview.push({
+          type: "upgrade",
+          icon: "arrow_upward",
+          color: "positive",
+          text: `${upgradeCount} agent(s) will be upgraded to v${this.selectedVersion.value}`,
+        });
+      }
+
+      if (downgradeCount > 0) {
+        preview.push({
+          type: "downgrade",
+          icon: "arrow_downward",
+          color: "orange",
+          text: `${downgradeCount} agent(s) will be rolled back to v${this.selectedVersion.value}`,
+        });
+      }
+
+      return preview;
+    },
+
+    previewBgClass() {
+      if (this.selectedDowngradeCount > 0 && this.upgradeAgentsCount > 0) {
+        return "bg-blue-1";
+      }
+      if (this.selectedDowngradeCount > 0) {
+        return "bg-orange-1";
+      }
+      return "bg-green-1";
+    },
+
+    previewIcon() {
+      if (this.selectedDowngradeCount > 0 && this.upgradeAgentsCount > 0) {
+        return "swap_vert";
+      }
+      if (this.selectedDowngradeCount > 0) {
+        return "arrow_downward";
+      }
+      return "arrow_upward";
+    },
+
+    isIndeterminate() {
+      return (
+        this.selectedAgents.length > 0 &&
+        this.selectedAgents.length < this.availableAgents.length
+      );
+    },
+
+    canExecute() {
+      if (!this.selectedVersion || this.selectedAgents.length === 0) return false;
+
+      // If there are downgrade operations among selected, require allowDowngrade
+      if (this.selectedDowngradeCount > 0 && !this.allowDowngrade) return false;
+
+      return true;
+    },
+
+    actionButtonLabel() {
+      if (this.selectedAgents.length === 0) return "Select Agents";
+
+      if (this.hasOnlyDowngrades) {
+        return `Rollback ${this.selectedAgents.length} Agent(s)`;
+      }
+
+      if (this.selectedDowngradeCount > 0) {
+        return `Update ${this.selectedAgents.length} Agent(s)`;
+      }
+
+      return `Update ${this.selectedAgents.length} Agent(s)`;
+    },
+
+    actionButtonColor() {
+      if (this.hasOnlyDowngrades) return "warning";
+      if (this.selectedDowngradeCount > 0) return "primary";
+      return "primary";
     },
   },
   mounted() {
