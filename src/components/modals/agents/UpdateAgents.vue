@@ -537,7 +537,8 @@ export default {
         target_version: this.selectedVersion.value,
       };
 
-      if (this.allowDowngrade) {
+      // Always include allow_downgrade if there are any downgrade operations
+      if (this.selectedDowngradeCount > 0) {
         payload.allow_downgrade = true;
       }
 
