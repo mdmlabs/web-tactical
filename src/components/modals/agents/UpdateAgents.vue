@@ -537,8 +537,14 @@ export default {
         target_version: this.selectedVersion.value,
       };
 
+      // Check if any selected agent requires downgrade
+      const hasDowngrade = this.selectedAgents.some((id) => {
+        const agent = this.agents.find((a) => a.agent_id === id);
+        return agent && this.compareVersions(agent.version, this.selectedVersion.value) > 0;
+      });
+
       // Always include allow_downgrade if there are any downgrade operations
-      if (this.selectedDowngradeCount > 0) {
+      if (hasDowngrade) {
         payload.allow_downgrade = true;
       }
 
@@ -657,8 +663,8 @@ export default {
         // Always include agents that need upgrade
         if (cmp < 0 || agent.version === "unknown") return true;
 
-        // Include agents that need downgrade only if allowed
-        if (cmp > 0 && this.allowDowngrade) return true;
+        // Always include agents that need downgrade (allow_downgrade will be set automatically)
+        if (cmp > 0) return true;
 
         return false;
       });
@@ -786,9 +792,7 @@ export default {
     canExecute() {
       if (!this.selectedVersion || this.selectedAgents.length === 0) return false;
 
-      // If there are downgrade operations among selected, require allowDowngrade
-      if (this.selectedDowngradeCount > 0 && !this.allowDowngrade) return false;
-
+      // Allow execution - allow_downgrade will be set automatically if needed
       return true;
     },
 
