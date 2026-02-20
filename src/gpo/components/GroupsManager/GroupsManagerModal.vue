@@ -8,10 +8,22 @@
         <q-badge
           v-if="targetLabel"
           :label="targetLabel"
-          class="q-mr-md target-badge cursor-pointer"
+          class="target-badge cursor-pointer"
           color="white"
           text-color="primary"
           @click="showTargetPanel = true"
+        />
+        <q-btn
+          v-if="currentTarget"
+          flat
+          round
+          dense
+          icon="close"
+          size="xs"
+          color="white"
+          class="q-mr-md"
+          title="Reset target"
+          @click.stop="resetTarget"
         />
 
         <q-btn
@@ -576,6 +588,12 @@ function handleTargetSelect(ref: TargetRef) {
   currentTarget.value = ref.target;
   targetLabel.value = ref.label;
   onTargetChange();
+}
+
+function resetTarget() {
+  currentTargetRef.value = null;
+  currentTarget.value = null;
+  targetLabel.value = "Select target";
 }
 
 function onTargetChange() {

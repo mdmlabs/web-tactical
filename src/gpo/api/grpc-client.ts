@@ -553,6 +553,12 @@ export const userControlClient = {
       w.setValue(description);
       req.setDescription(w);
     }
+    console.log("[createGroup] Request:", {
+      samGroupName,
+      description,
+      target: target.toObject(),
+      request: req.toObject(),
+    });
     const response = await operatorUserControlServiceClient.createGroup(
       req,
       createGrpcMetadata(),
@@ -811,7 +817,7 @@ export function createUserGroupTargetGlobal(): UserGroupTarget {
 export function createUserGroupTargetForClient(clientId: string): UserGroupTarget {
   const ugTarget = new UserGroupTarget();
   const clientTarget = new operator_pb.TacticalClientTarget();
-  clientTarget.setClientId(clientId);
+  clientTarget.setClientId(Number(clientId));
   ugTarget.setClient(clientTarget);
   return ugTarget;
 }
@@ -824,7 +830,7 @@ export function createUserGroupTargetForClients(
   clientsTarget.setClientsList(
     clientIds.map((id) => {
       const c = new operator_pb.TacticalClientTarget();
-      c.setClientId(id);
+      c.setClientId(Number(id));
       return c;
     }),
   );
@@ -835,7 +841,7 @@ export function createUserGroupTargetForClients(
 export function createUserGroupTargetForSite(siteId: string): UserGroupTarget {
   const ugTarget = new UserGroupTarget();
   const siteTarget = new operator_pb.TacticalSiteTarget();
-  siteTarget.setSiteId(siteId);
+  siteTarget.setSiteId(Number(siteId));
   ugTarget.setSite(siteTarget);
   return ugTarget;
 }
@@ -848,7 +854,7 @@ export function createUserGroupTargetForSites(
   sitesTarget.setSitesList(
     siteIds.map((id) => {
       const s = new operator_pb.TacticalSiteTarget();
-      s.setSiteId(id);
+      s.setSiteId(Number(id));
       return s;
     }),
   );
@@ -879,39 +885,37 @@ export function createUserGroupTargetCombined(params: {
 }): UserGroupTarget {
   const { clientIds = [], siteIds = [], agentIds = [] } = params;
   const combined = new operator_pb.CombinedTarget();
-  if (clientIds.length > 0) {
-    const clientsTarget = new operator_pb.TacticalClientsTarget();
-    clientsTarget.setClientsList(
-      clientIds.map((id) => {
-        const c = new operator_pb.TacticalClientTarget();
-        c.setClientId(id);
-        return c;
-      }),
-    );
-    combined.setClients(clientsTarget);
-  }
-  if (siteIds.length > 0) {
-    const sitesTarget = new operator_pb.TacticalSitesTarget();
-    sitesTarget.setSitesList(
-      siteIds.map((id) => {
-        const s = new operator_pb.TacticalSiteTarget();
-        s.setSiteId(id);
-        return s;
-      }),
-    );
-    combined.setSites(sitesTarget);
-  }
-  if (agentIds.length > 0) {
-    const agentsTarget = new operator_pb.AggentsTarget();
-    agentsTarget.setAgentsList(
-      agentIds.map((id) => {
-        const a = new operator_pb.AgentTarget();
-        a.setAgentId(id);
-        return a;
-      }),
-    );
-    combined.setAgents(agentsTarget);
-  }
+
+  const clientsTarget = new operator_pb.TacticalClientsTarget();
+  clientsTarget.setClientsList(
+    clientIds.map((id) => {
+      const c = new operator_pb.TacticalClientTarget();
+      c.setClientId(Number(id));
+      return c;
+    }),
+  );
+  combined.setClients(clientsTarget);
+
+  const sitesTarget = new operator_pb.TacticalSitesTarget();
+  sitesTarget.setSitesList(
+    siteIds.map((id) => {
+      const s = new operator_pb.TacticalSiteTarget();
+      s.setSiteId(Number(id));
+      return s;
+    }),
+  );
+  combined.setSites(sitesTarget);
+
+  const agentsTarget = new operator_pb.AggentsTarget();
+  agentsTarget.setAgentsList(
+    agentIds.map((id) => {
+      const a = new operator_pb.AgentTarget();
+      a.setAgentId(id);
+      return a;
+    }),
+  );
+  combined.setAgents(agentsTarget);
+
   const ugTarget = new UserGroupTarget();
   ugTarget.setCombined(combined);
   return ugTarget;
@@ -1002,7 +1006,7 @@ export function createTacticalClientTarget(
 ): operator_pb.PolicyTarget {
   const target = new operator_pb.PolicyTarget();
   const clientTarget = new operator_pb.TacticalClientTarget();
-  clientTarget.setClientId(clientId);
+  clientTarget.setClientId(Number(clientId));
   target.setClient(clientTarget);
   return target;
 }
@@ -1012,7 +1016,7 @@ export function createTacticalSiteTarget(
 ): operator_pb.PolicyTarget {
   const target = new operator_pb.PolicyTarget();
   const siteTarget = new operator_pb.TacticalSiteTarget();
-  siteTarget.setSiteId(siteId);
+  siteTarget.setSiteId(Number(siteId));
   target.setSite(siteTarget);
   return target;
 }
@@ -1024,39 +1028,37 @@ export function createCombinedTarget(params: {
 }): operator_pb.PolicyTarget {
   const { clientIds = [], siteIds = [], agentIds = [] } = params;
   const combined = new operator_pb.CombinedTarget();
-  if (clientIds.length > 0) {
-    const clientsTarget = new operator_pb.TacticalClientsTarget();
-    clientsTarget.setClientsList(
-      clientIds.map((id) => {
-        const c = new operator_pb.TacticalClientTarget();
-        c.setClientId(id);
-        return c;
-      }),
-    );
-    combined.setClients(clientsTarget);
-  }
-  if (siteIds.length > 0) {
-    const sitesTarget = new operator_pb.TacticalSitesTarget();
-    sitesTarget.setSitesList(
-      siteIds.map((id) => {
-        const s = new operator_pb.TacticalSiteTarget();
-        s.setSiteId(id);
-        return s;
-      }),
-    );
-    combined.setSites(sitesTarget);
-  }
-  if (agentIds.length > 0) {
-    const agentsTarget = new operator_pb.AggentsTarget();
-    agentsTarget.setAgentsList(
-      agentIds.map((id) => {
-        const a = new operator_pb.AgentTarget();
-        a.setAgentId(id);
-        return a;
-      }),
-    );
-    combined.setAgents(agentsTarget);
-  }
+
+  const clientsTarget = new operator_pb.TacticalClientsTarget();
+  clientsTarget.setClientsList(
+    clientIds.map((id) => {
+      const c = new operator_pb.TacticalClientTarget();
+      c.setClientId(Number(id));
+      return c;
+    }),
+  );
+  combined.setClients(clientsTarget);
+
+  const sitesTarget = new operator_pb.TacticalSitesTarget();
+  sitesTarget.setSitesList(
+    siteIds.map((id) => {
+      const s = new operator_pb.TacticalSiteTarget();
+      s.setSiteId(Number(id));
+      return s;
+    }),
+  );
+  combined.setSites(sitesTarget);
+
+  const agentsTarget = new operator_pb.AggentsTarget();
+  agentsTarget.setAgentsList(
+    agentIds.map((id) => {
+      const a = new operator_pb.AgentTarget();
+      a.setAgentId(id);
+      return a;
+    }),
+  );
+  combined.setAgents(agentsTarget);
+
   const target = new operator_pb.PolicyTarget();
   target.setCombined(combined);
   return target;

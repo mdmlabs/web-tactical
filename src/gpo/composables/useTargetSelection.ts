@@ -151,36 +151,44 @@ export function useTargetSelection() {
 
   function buildTargetFromSingleNode(): TargetRef | null {
     const id = targetSelectedId.value;
+    console.log("[TargetSelection] buildTargetFromSingleNode - selectedId:", id);
     if (!id) return null;
     const node = findTargetNodeById(targetTreeNodes.value, id);
     if (!node?.targetType) return null;
+    let result: TargetRef | null = null;
     if (node.targetType === "client" && node.clientId) {
-      return {
+      result = {
         target: createUserGroupTargetFromParams("client", {
           clientId: node.clientId,
         }),
         label: `Client: ${node.label}`,
       };
-    }
-    if (node.targetType === "site" && node.siteId) {
-      return {
+    } else if (node.targetType === "site" && node.siteId) {
+      result = {
         target: createUserGroupTargetFromParams("site", { siteId: node.siteId }),
         label: `Site: ${node.label}`,
       };
-    }
-    if (node.targetType === "agent" && node.agentId) {
-      return {
+    } else if (node.targetType === "agent" && node.agentId) {
+      result = {
         target: createUserGroupTargetFromParams("agent", {
           agentId: node.agentId,
         }),
         label: `Agent: ${node.label}`,
       };
     }
-    return null;
+    if (result) {
+      console.log("[TargetSelection] Single target built:", {
+        type: node.targetType,
+        node,
+        targetObject: result.target.toObject(),
+      });
+    }
+    return result;
   }
 
   function buildCombinedTargetFromTicked(): TargetRef | null {
     const ids = targetTickedIds.value;
+    console.log("[TargetSelection] buildCombinedTargetFromTicked - tickedIds:", ids);
     if (ids.length === 0) return null;
     const clientIds: string[] = [];
     const siteIds: string[] = [];
@@ -202,27 +210,38 @@ export function useTargetSelection() {
     }
     if (clientIds.length === 0 && siteIds.length === 0 && agentIds.length === 0)
       return null;
+    const target = createUserGroupTargetFromParams("combined", {
+      clientIds,
+      siteIds,
+      agentIds,
+    });
+    console.log("[TargetSelection] Combined target built:", {
+      clientIds,
+      siteIds,
+      agentIds,
+      targetObject: target.toObject(),
+    });
     return {
-      target: createUserGroupTargetFromParams("combined", {
-        clientIds,
-        siteIds,
-        agentIds,
-      }),
+      target,
       label: labels.length ? `Combined: ${labels.join(", ")}` : "Combined",
     };
   }
 
   function applyTargetSelection(): boolean {
+    console.log("[TargetSelection] applyTargetSelection called");
     const combined = buildCombinedTargetFromTicked();
     if (combined) {
+      console.log("[TargetSelection] Applied COMBINED target:", combined.label);
       currentTargetRef.value = combined;
       return true;
     }
     const single = buildTargetFromSingleNode();
     if (single) {
+      console.log("[TargetSelection] Applied SINGLE target:", single.label);
       currentTargetRef.value = single;
       return true;
     }
+    console.log("[TargetSelection] No target applied");
     return false;
   }
 
