@@ -119,16 +119,31 @@
               dense
               outlined
               v-model="selectedVersion"
-              :options="versionOptions"
+              :options="filteredVersionOptions"
               label="Target Version"
               @update:model-value="onVersionChange"
+              use-input
+              input-debounce="0"
+              @filter="filterVersions"
+              @new-value="createVersionOption"
+              new-value-mode="add-unique"
+              clearable
             >
+              <template v-slot:prepend>
+                <q-icon name="edit" size="xs" />
+              </template>
+              <template v-slot:hint>
+                Select from list or type custom version (e.g., 2.8.5)
+              </template>
               <template v-slot:option="scope">
                 <q-item v-bind="scope.itemProps">
                   <q-item-section>
                     <q-item-label>{{ scope.opt.label }}</q-item-label>
-                    <q-item-label caption>
+                    <q-item-label caption v-if="scope.opt.count !== undefined">
                       {{ scope.opt.count }} agent(s) currently on this version
+                    </q-item-label>
+                    <q-item-label caption v-else class="text-italic">
+                      Custom version
                     </q-item-label>
                   </q-item-section>
                   <q-item-section side>
@@ -142,6 +157,11 @@
                       color="orange"
                       label="Newer"
                     />
+                    <q-badge
+                      v-else-if="scope.opt.isOlder"
+                      color="grey"
+                      label="Older"
+                    />
                   </q-item-section>
                 </q-item>
               </template>
@@ -153,22 +173,65 @@
                   class="q-ml-sm"
                   label="Recommended"
                 />
+                <q-badge
+                  v-else-if="scope.opt.isOlder"
+                  color="grey"
+                  class="q-ml-sm"
+                  label="Older"
+                />
+                <q-badge
+                  v-else-if="scope.opt.isCustom"
+                  color="purple"
+                  class="q-ml-sm"
+                  label="Custom"
+                />
+              </template>
+              <template v-slot:no-option>
+                <q-item>
+                  <q-item-section class="text-grey">
+                    Type to enter custom version
+                  </q-item-section>
+                </q-item>
               </template>
             </q-select>
           </div>
 
           <div class="col-6">
-            <q-checkbox
-              v-model="allowDowngrade"
-              :disable="!hasDowngradeAgents"
-            >
-              <span>Allow version downgrade</span>
-              <q-tooltip v-if="!hasDowngradeAgents">
-                No agents require downgrade for selected version
-              </q-tooltip>
-            </q-checkbox>
-            <div class="text-caption text-grey-7 q-mt-xs q-ml-lg">
-              Enable to include agents with newer versions
+            <div v-if="hasDowngradeAgents">
+              <q-checkbox
+                v-model="allowDowngrade"
+                color="orange"
+              >
+                <span class="text-weight-medium">Allow version downgrade</span>
+                <q-tooltip>
+                  When enabled, agents with versions newer than {{ selectedVersion?.value }} will be included for rollback
+                </q-tooltip>
+              </q-checkbox>
+              <div class="text-caption q-mt-xs q-ml-lg">
+                <q-icon name="info" size="xs" />
+                <span class="text-grey-7">
+                  {{ totalUpgradeableAgents }} agent(s) for upgrade,
+                </span>
+                <span class="text-orange-9 text-weight-medium">
+                  {{ totalDowngradeableAgents }} agent(s) for downgrade
+                </span>
+              </div>
+            </div>
+            <div v-else class="q-pa-sm bg-blue-1 rounded-borders">
+              <div class="row items-center">
+                <q-icon name="arrow_upward" color="positive" size="sm" class="q-mr-sm" />
+                <div>
+                  <div class="text-weight-medium text-positive">Upgrade Operation</div>
+                  <div class="text-caption text-grey-7">
+                    <span v-if="totalUpgradeableAgents > 0">
+                      {{ totalUpgradeableAgents }} agent(s) available for upgrade to {{ selectedVersion?.value }}
+                    </span>
+                    <span v-else>
+                      All agents are already on version {{ selectedVersion?.value }}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -346,6 +409,7 @@ export default {
       selectAll: false,
       allowDowngrade: false,
       searchFilter: "",
+      filteredVersionOptions: [],
     };
   },
   methods: {
@@ -355,6 +419,9 @@ export default {
         const data = await fetchAgentVersions();
         this.versionInfo = data;
         this.agents = data.agents || [];
+
+        // Initialize filtered options with all available versions
+        this.filteredVersionOptions = this.versionOptions;
 
         // Set default selected version to latest
         if (data.latest_version && this.versionOptions.length > 0) {
@@ -376,11 +443,48 @@ export default {
       }
     },
 
+    filterVersions(val, update) {
+      update(() => {
+        if (val === '') {
+          this.filteredVersionOptions = this.versionOptions;
+        } else {
+          const needle = val.toLowerCase();
+          this.filteredVersionOptions = this.versionOptions.filter(
+            v => v.label.toLowerCase().indexOf(needle) > -1
+          );
+        }
+      });
+    },
+
+    createVersionOption(val, done) {
+      // Validate version format (basic semver check)
+      const versionPattern = /^\d+\.\d+(\.\d+)?$/;
+      if (!versionPattern.test(val)) {
+        this.notifyError(`Invalid version format: ${val}. Expected format: X.Y or X.Y.Z`);
+        done(null);
+        return;
+      }
+
+      const newOption = {
+        label: val,
+        value: val,
+        count: 0,
+        isLatest: false,
+        isNewer: false,
+        isOlder: false,
+        isCustom: true,
+      };
+
+      done(newOption, 'add-unique');
+    },
+
     onVersionChange() {
       this.selectedAgents = [];
       this.selectAll = false;
-      // Auto-disable downgrade when switching versions
-      if (!this.hasDowngradeAgents) {
+      // Auto-enable downgrade when switching to a version that requires it
+      if (this.hasDowngradeAgents) {
+        this.allowDowngrade = true;
+      } else {
         this.allowDowngrade = false;
       }
     },
@@ -531,6 +635,7 @@ export default {
           count: stats[version] || 0,
           isLatest: version === latest,
           isNewer: this.compareVersions(version, latest) > 0,
+          isOlder: this.compareVersions(version, latest) < 0,
         }))
         .sort((a, b) => this.compareVersions(b.value, a.value));
     },
@@ -556,6 +661,20 @@ export default {
 
         return false;
       });
+    },
+
+    totalUpgradeableAgents() {
+      if (!this.selectedVersion) return 0;
+      return this.agents.filter(
+        (a) => this.compareVersions(a.version, this.selectedVersion.value) < 0 || a.version === "unknown"
+      ).length;
+    },
+
+    totalDowngradeableAgents() {
+      if (!this.selectedVersion) return 0;
+      return this.agents.filter(
+        (a) => this.compareVersions(a.version, this.selectedVersion.value) > 0
+      ).length;
     },
 
     filteredAgentsList() {
