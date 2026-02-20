@@ -400,16 +400,7 @@ npm<template>
                               <q-item-section>
                                 <q-item-label>Online status</q-item-label>
                                 <q-item-label caption>{{
-                                  (
-                                    agentDetails.nodeInfo.isOnline !== undefined
-                                      ? agentDetails.nodeInfo.isOnline
-                                      : agentDetails.nodeInfo.is_online !==
-                                          undefined
-                                        ? agentDetails.nodeInfo.is_online
-                                        : false
-                                  )
-                                    ? "Online"
-                                    : "Offline"
+                                  agentDetails.isOnline ? "Online" : "Offline"
                                 }}</q-item-label>
                               </q-item-section>
                             </q-item>
@@ -455,56 +446,300 @@ npm<template>
                 </q-tab-panel>
 
                 <q-tab-panel name="users" class="q-pa-md">
-                  <div v-if="selectedAgent">
-                    <div class="text-h6 q-mb-md">Users</div>
-                    <q-table
-                      :rows="usersList"
-                      :columns="usersColumns"
-                      row-key="sid"
-                      :loading="usersLoading"
-                      flat
-                      bordered
-                    >
-                      <template v-slot:body-cell-type="props">
-                        <q-td :props="props">
-                          <q-badge
-                            :color="
-                              props.value === 'Local' ? 'primary' : 'secondary'
-                            "
-                            :label="props.value"
-                          />
-                        </q-td>
-                      </template>
-                      <template v-slot:body-cell-actions="props">
-                        <q-td :props="props">
-                          <q-btn
-                            flat
-                            dense
-                            round
-                            icon="policy"
-                            color="primary"
-                            @click="openApplyPolicyDialogForUser(props.row)"
+                  <div v-if="selectedAgent" class="column full-height">
+                    <div class="row q-mb-md items-center">
+                      <div class="text-h6">Users</div>
+                      <q-space />
+                      <q-btn
+                        flat
+                        dense
+                        color="primary"
+                        icon="person_add"
+                        label="Create User"
+                        @click="openCreateUserDialog"
+                      />
+                    </div>
+                    <q-scroll-area class="agent-tab-table-scroll">
+                      <q-table
+                        :rows="usersList"
+                        :columns="usersColumns"
+                        row-key="sid"
+                        :loading="usersLoading"
+                        flat
+                        bordered
+                      >
+                      <template v-slot:body="props">
+                        <q-tr :props="props">
+                          <q-menu context-menu>
+                            <q-list dense style="min-width: 220px">
+                              <q-item
+                                clickable
+                                v-close-popup
+                                @click="openEditUserDialog(props.row)"
+                              >
+                                <q-item-section side>
+                                  <q-icon name="edit" size="xs" />
+                                </q-item-section>
+                                <q-item-section>Edit</q-item-section>
+                              </q-item>
+                              <q-item
+                                clickable
+                                v-close-popup
+                                @click="openSetPasswordDialog(props.row)"
+                              >
+                                <q-item-section side>
+                                  <q-icon name="lock" size="xs" />
+                                </q-item-section>
+                                <q-item-section>Set Password</q-item-section>
+                              </q-item>
+                              <q-item
+                                clickable
+                                v-close-popup
+                                @click="toggleUserEnabled(props.row)"
+                              >
+                                <q-item-section side>
+                                  <q-icon name="toggle_on" size="xs" />
+                                </q-item-section>
+                                <q-item-section>{{
+                                  props.row.isEnabled !== false
+                                    ? "Disable"
+                                    : "Enable"
+                                }}</q-item-section>
+                              </q-item>
+                              <q-item
+                                clickable
+                                v-close-popup
+                                @click="
+                                  props.row.isLocked
+                                    ? unlockUserConfirm(props.row)
+                                    : $q.notify({
+                                        message: 'User is not locked',
+                                        type: 'info',
+                                      })
+                                "
+                              >
+                                <q-item-section side>
+                                  <q-icon
+                                    :name="
+                                      props.row.isLocked ? 'lock_open' : 'lock'
+                                    "
+                                    size="xs"
+                                  />
+                                </q-item-section>
+                                <q-item-section>{{
+                                  props.row.isLocked ? "Unlock" : "lock"
+                                }}</q-item-section>
+                              </q-item>
+                              <q-item
+                                clickable
+                                v-close-popup
+                                @click="expirePasswordConfirm(props.row)"
+                              >
+                                <q-item-section side>
+                                  <q-icon name="schedule" size="xs" />
+                                </q-item-section>
+                                <q-item-section>Expire Password</q-item-section>
+                              </q-item>
+                              <q-item
+                                clickable
+                                v-close-popup
+                                @click="
+                                  openSetAccountExpirationDialog(props.row)
+                                "
+                              >
+                                <q-item-section side>
+                                  <q-icon name="event" size="xs" />
+                                </q-item-section>
+                                <q-item-section
+                                  >Set Account Expiration</q-item-section
+                                >
+                              </q-item>
+                              <q-separator />
+                              <q-item
+                                clickable
+                                v-close-popup
+                                @click="openAddUserToGroupDialog(props.row)"
+                              >
+                                <q-item-section side>
+                                  <q-icon name="group_add" size="xs" />
+                                </q-item-section>
+                                <q-item-section>Add to Group</q-item-section>
+                              </q-item>
+                              <q-item
+                                clickable
+                                v-close-popup
+                                @click="
+                                  openRemoveUserFromGroupDialog(props.row)
+                                "
+                              >
+                                <q-item-section side>
+                                  <q-icon name="group_remove" size="xs" />
+                                </q-item-section>
+                                <q-item-section
+                                  >Remove from Group</q-item-section
+                                >
+                              </q-item>
+                              <q-separator />
+                              <q-item
+                                clickable
+                                v-close-popup
+                                @click="openApplyPolicyDialogForUser(props.row)"
+                              >
+                                <q-item-section side>
+                                  <q-icon name="policy" size="xs" />
+                                </q-item-section>
+                                <q-item-section>Assign policy</q-item-section>
+                              </q-item>
+                              <q-separator />
+                              <q-item
+                                clickable
+                                v-close-popup
+                                @click="deleteUserConfirm(props.row)"
+                              >
+                                <q-item-section side>
+                                  <q-icon
+                                    name="delete"
+                                    size="xs"
+                                    color="negative"
+                                  />
+                                </q-item-section>
+                                <q-item-section class="text-negative"
+                                  >Delete</q-item-section
+                                >
+                              </q-item>
+                              <q-item clickable v-close-popup>
+                                <q-item-section>Close</q-item-section>
+                              </q-item>
+                            </q-list>
+                          </q-menu>
+                          <q-td
+                            v-for="col in props.cols"
+                            :key="col.name"
+                            :props="props"
                           >
-                            <q-tooltip>Assign a policy</q-tooltip>
-                          </q-btn>
-                        </q-td>
+                            <template v-if="col.name === 'actions'">
+                              <q-btn
+                                flat
+                                dense
+                                round
+                                icon="policy"
+                                color="primary"
+                                @click.stop="
+                                  openApplyPolicyDialogForUser(props.row)
+                                "
+                              >
+                                <q-tooltip>Assign a policy</q-tooltip>
+                              </q-btn>
+                            </template>
+                            <template v-else-if="col.name === 'type'">
+                              <q-badge
+                                :color="
+                                  props.row.type === 'Local'
+                                    ? 'primary'
+                                    : 'secondary'
+                                "
+                                :label="props.row.type"
+                              />
+                            </template>
+                            <template v-else>
+                              {{ col.value }}
+                            </template>
+                          </q-td>
+                        </q-tr>
                       </template>
-                    </q-table>
+                      </q-table>
+                    </q-scroll-area>
                   </div>
                 </q-tab-panel>
 
                 <q-tab-panel name="groups" class="q-pa-md">
-                  <div v-if="selectedAgent">
-                    <div class="text-h6 q-mb-md">Groups</div>
-                    <q-table
-                      :rows="groupsList"
-                      :columns="groupsColumns"
-                      row-key="sid"
-                      :loading="groupsLoading"
-                      flat
-                      bordered
-                    >
-                    </q-table>
+                  <div v-if="selectedAgent" class="column full-height">
+                    <div class="row q-mb-md items-center">
+                      <div class="text-h6">Groups</div>
+                      <q-space />
+                      <q-btn
+                        flat
+                        dense
+                        color="primary"
+                        icon="group_add"
+                        label="Create Group"
+                        @click="openCreateGroupDialog"
+                      />
+                    </div>
+                    <q-scroll-area class="agent-tab-table-scroll">
+                      <q-table
+                        :rows="groupsList"
+                        :columns="groupsColumns"
+                        row-key="sid"
+                        :loading="groupsLoading"
+                        flat
+                        bordered
+                      >
+                      <template v-slot:body="props">
+                        <q-tr :props="props">
+                          <q-menu context-menu>
+                            <q-list dense style="min-width: 220px">
+                              <q-item
+                                clickable
+                                v-close-popup
+                                @click="
+                                  openAddUserToGroupFromGroupRow(props.row)
+                                "
+                              >
+                                <q-item-section side>
+                                  <q-icon name="person_add" size="xs" />
+                                </q-item-section>
+                                <q-item-section
+                                  >Add User to Group</q-item-section
+                                >
+                              </q-item>
+                              <q-item
+                                clickable
+                                v-close-popup
+                                @click="
+                                  openRemoveUserFromGroupFromGroupRow(props.row)
+                                "
+                              >
+                                <q-item-section side>
+                                  <q-icon name="person_remove" size="xs" />
+                                </q-item-section>
+                                <q-item-section
+                                  >Remove User from Group</q-item-section
+                                >
+                              </q-item>
+                              <q-separator />
+                              <q-item
+                                clickable
+                                v-close-popup
+                                @click="deleteGroupConfirm(props.row)"
+                              >
+                                <q-item-section side>
+                                  <q-icon
+                                    name="delete"
+                                    size="xs"
+                                    color="negative"
+                                  />
+                                </q-item-section>
+                                <q-item-section class="text-negative"
+                                  >Delete Group</q-item-section
+                                >
+                              </q-item>
+                              <q-item clickable v-close-popup>
+                                <q-item-section>Close</q-item-section>
+                              </q-item>
+                            </q-list>
+                          </q-menu>
+                          <q-td
+                            v-for="col in props.cols"
+                            :key="col.name"
+                            :props="props"
+                          >
+                            {{ col.value }}
+                          </q-td>
+                        </q-tr>
+                      </template>
+                      </q-table>
+                    </q-scroll-area>
                   </div>
                 </q-tab-panel>
               </q-tab-panels>
@@ -2450,6 +2685,585 @@ npm<template>
         @refresh="refreshAppliedPoliciesDialog"
       />
 
+      <q-dialog v-model="showCreateUserDialog" persistent>
+        <q-card style="min-width: 480px; max-width: 90vw">
+          <q-card-section>
+            <div class="text-h6">Create User</div>
+          </q-card-section>
+          <q-card-section
+            class="q-pt-none q-gutter-sm"
+            style="max-height: 70vh; overflow-y: auto"
+          >
+            <div class="text-subtitle2 text-grey-7">Required</div>
+            <q-input
+              v-model="createUserForm.samAccountName"
+              label="Account Name *"
+              dense
+              outlined
+              class="q-mb-sm"
+              :rules="[(v) => !!v?.trim() || 'Required']"
+            />
+            <q-input
+              v-model="createUserForm.password"
+              label="Password *"
+              type="password"
+              dense
+              outlined
+              class="q-mb-sm"
+              :rules="[(v) => !!v?.trim() || 'Required']"
+            />
+            <q-separator class="q-my-sm" />
+            <div class="text-subtitle2 text-grey-7">
+              Display and description
+            </div>
+            <q-input
+              v-model="createUserForm.displayName"
+              label="Display Name"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="createUserForm.description"
+              label="Description"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-separator class="q-my-sm" />
+            <div class="text-subtitle2 text-grey-7">Account options</div>
+            <q-checkbox v-model="createUserForm.enabled" label="Enabled" />
+            <q-checkbox
+              v-model="createUserForm.passwordNotRequired"
+              label="Password not required"
+            />
+            <q-checkbox
+              v-model="createUserForm.userCannotChangePassword"
+              label="User cannot change password"
+            />
+            <q-checkbox
+              v-model="createUserForm.smartcardLogonRequired"
+              label="Smartcard logon required"
+            />
+            <q-input
+              v-model="createUserForm.accountExpirationDate"
+              label="Account expiration date (ISO 8601)"
+              dense
+              outlined
+              class="q-mb-sm"
+              placeholder="YYYY-MM-DD or empty"
+            />
+            <q-separator class="q-my-sm" />
+            <div class="text-subtitle2 text-grey-7">
+              Supported local attributes
+            </div>
+            <q-input
+              v-model="createUserForm.name"
+              label="Name"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="createUserForm.middleName"
+              label="Middle Name"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="createUserForm.surname"
+              label="Surname"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="createUserForm.email"
+              label="Email"
+              dense
+              outlined
+              type="email"
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="createUserForm.homeDirectory"
+              label="Home Directory"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="createUserForm.scriptPath"
+              label="Script Path"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="createUserForm.telephoneNumber"
+              label="Telephone Number"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="createUserForm.employeeId"
+              label="Employee ID"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" color="primary" v-close-popup />
+            <q-btn
+              unelevated
+              label="Create"
+              color="primary"
+              :loading="userControlLoading"
+              @click="createUser"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="showEditUserDialog" persistent>
+        <q-card style="min-width: 480px; max-width: 90vw">
+          <q-card-section>
+            <div class="text-h6">Edit User</div>
+            <div v-if="editUserRow" class="text-caption text-grey-7 q-mt-xs">
+              {{ editUserRow.samAccountName }}
+            </div>
+          </q-card-section>
+          <q-card-section
+            class="q-pt-none q-gutter-sm"
+            style="max-height: 70vh; overflow-y: auto"
+          >
+            <div class="text-subtitle2 text-grey-7">
+              Display and description
+            </div>
+            <q-input
+              v-model="editUserForm.displayName"
+              label="Display Name"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="editUserForm.description"
+              label="Description"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-separator class="q-my-sm" />
+            <div class="text-subtitle2 text-grey-7">Account options</div>
+            <q-checkbox v-model="editUserForm.enabled" label="Enabled" />
+            <q-checkbox
+              v-model="editUserForm.passwordNotRequired"
+              label="Password not required"
+            />
+            <q-checkbox
+              v-model="editUserForm.userCannotChangePassword"
+              label="User cannot change password"
+            />
+            <q-checkbox
+              v-model="editUserForm.smartcardLogonRequired"
+              label="Smartcard logon required"
+            />
+            <q-input
+              v-model="editUserForm.accountExpirationDate"
+              label="Account expiration date (ISO 8601)"
+              dense
+              outlined
+              class="q-mb-sm"
+              placeholder="YYYY-MM-DD or empty"
+            />
+            <q-separator class="q-my-sm" />
+            <div class="text-subtitle2 text-grey-7">
+              Supported local attributes
+            </div>
+            <q-input
+              v-model="editUserForm.name"
+              label="Name"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="editUserForm.middleName"
+              label="Middle Name"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="editUserForm.surname"
+              label="Surname"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="editUserForm.email"
+              label="Email"
+              dense
+              outlined
+              type="email"
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="editUserForm.homeDirectory"
+              label="Home Directory"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="editUserForm.scriptPath"
+              label="Script Path"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="editUserForm.telephoneNumber"
+              label="Telephone Number"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="editUserForm.employeeId"
+              label="Employee ID"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" color="primary" v-close-popup />
+            <q-btn
+              unelevated
+              label="Save"
+              color="primary"
+              :loading="userControlLoading"
+              @click="updateUser"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="showSetPasswordDialog" persistent>
+        <q-card style="min-width: 360px">
+          <q-card-section>
+            <div class="text-h6">Set Password</div>
+            <div v-if="setPasswordUser" class="text-caption text-grey">
+              {{ setPasswordUser.name }} ({{ setPasswordUser.samAccountName }})
+            </div>
+          </q-card-section>
+          <q-card-section class="q-pt-none">
+            <q-input
+              v-model="setPasswordValue"
+              label="New password"
+              type="password"
+              dense
+              outlined
+              autofocus
+            />
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" color="primary" v-close-popup />
+            <q-btn
+              unelevated
+              label="Set"
+              color="primary"
+              :loading="userControlLoading"
+              :disable="!setPasswordValue"
+              @click="setPassword"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="showSetAccountExpirationDialog" persistent>
+        <q-card style="min-width: 360px">
+          <q-card-section>
+            <div class="text-h6">Set Account Expiration</div>
+            <div v-if="accountExpirationUser" class="text-caption text-grey">
+              {{ accountExpirationUser.name }}
+            </div>
+          </q-card-section>
+          <q-card-section class="q-pt-none">
+            <div class="row q-col-gutter-sm">
+              <div class="col-7">
+                <q-input
+                  v-model="gpoExpirationDate"
+                  label="Date"
+                  outlined
+                  dense
+                  readonly
+                  clearable
+                  class="cursor-pointer"
+                  @clear="gpoExpirationDate = ''"
+                >
+                  <template v-slot:prepend>
+                    <q-icon name="event" />
+                  </template>
+                  <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                    <q-date v-model="gpoExpirationDate" mask="YYYY-MM-DD">
+                      <div class="row items-center justify-end">
+                        <q-btn v-close-popup label="OK" color="primary" flat />
+                      </div>
+                    </q-date>
+                  </q-popup-proxy>
+                </q-input>
+              </div>
+              <div class="col-5">
+                <q-input
+                  v-model="gpoExpirationTime"
+                  label="Time"
+                  outlined
+                  dense
+                  readonly
+                  clearable
+                  class="cursor-pointer"
+                  @clear="gpoExpirationTime = ''"
+                >
+                  <template v-slot:prepend>
+                    <q-icon name="access_time" />
+                  </template>
+                  <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                    <q-time v-model="gpoExpirationTime" mask="HH:mm" format24h>
+                      <div class="row items-center justify-end">
+                        <q-btn v-close-popup label="OK" color="primary" flat />
+                      </div>
+                    </q-time>
+                  </q-popup-proxy>
+                </q-input>
+              </div>
+            </div>
+            
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" color="primary" v-close-popup />
+            <q-btn flat label="Clear" color="orange" @click="gpoExpirationDate = ''; gpoExpirationTime = ''" />
+            <q-btn
+              unelevated
+              label="Save"
+              color="primary"
+              :loading="userControlLoading"
+              @click="setAccountExpiration"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="showAddToGroupDialog" persistent>
+        <q-card style="min-width: 360px">
+          <q-card-section>
+            <div class="text-h6">Add to Group</div>
+            <div v-if="addToGroupUser" class="text-caption text-grey">
+              User: {{ addToGroupUser.name }}
+            </div>
+          </q-card-section>
+          <q-card-section class="q-pt-none">
+            <q-select
+              v-model="addToGroupSelectedGroup"
+              :options="
+                groupsList.map((g) => ({
+                  label: g.samAccountName || g.name || g.sid,
+                  value: g.samAccountName || '',
+                }))
+              "
+              option-value="value"
+              option-label="label"
+              emit-value
+              map-options
+              label="Group"
+              dense
+              outlined
+            />
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" color="primary" v-close-popup />
+            <q-btn
+              unelevated
+              label="Add"
+              color="primary"
+              :loading="userControlLoading"
+              :disable="!addToGroupSelectedGroup"
+              @click="addUserToGroup"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="showRemoveFromGroupDialog" persistent>
+        <q-card style="min-width: 360px">
+          <q-card-section>
+            <div class="text-h6">Remove from Group</div>
+            <div v-if="removeFromGroupUser" class="text-caption text-grey">
+              User: {{ removeFromGroupUser.name }}
+            </div>
+          </q-card-section>
+          <q-card-section class="q-pt-none">
+            <q-select
+              v-model="removeFromGroupSelectedGroup"
+              :options="
+                groupsList.map((g) => ({
+                  label: g.samAccountName || g.name || g.sid,
+                  value: g.samAccountName || '',
+                }))
+              "
+              option-value="value"
+              option-label="label"
+              emit-value
+              map-options
+              label="Group"
+              dense
+              outlined
+            />
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" color="primary" v-close-popup />
+            <q-btn
+              unelevated
+              label="Remove"
+              color="primary"
+              :loading="userControlLoading"
+              :disable="!removeFromGroupSelectedGroup"
+              @click="removeUserFromGroup"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="showCreateGroupDialog" persistent>
+        <q-card style="min-width: 400px">
+          <q-card-section>
+            <div class="text-h6">Create Group</div>
+          </q-card-section>
+          <q-card-section class="q-pt-none">
+            <q-input
+              v-model="createGroupForm.samGroupName"
+              label="Group Name *"
+              dense
+              outlined
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="createGroupForm.description"
+              label="Description"
+              dense
+              outlined
+            />
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" color="primary" v-close-popup />
+            <q-btn
+              unelevated
+              label="Create"
+              color="primary"
+              :loading="userControlLoading"
+              @click="createGroup"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="showAddUserToGroupFromGroupDialog" persistent>
+        <q-card style="min-width: 360px">
+          <q-card-section>
+            <div class="text-h6">Add User to Group</div>
+            <div v-if="addUserToGroupGroupRow" class="text-caption text-grey">
+              Group:
+              {{
+                addUserToGroupGroupRow.samAccountName ||
+                addUserToGroupGroupRow.name
+              }}
+            </div>
+          </q-card-section>
+          <q-card-section class="q-pt-none">
+            <q-select
+              v-model="addUserToGroupSelectedUser"
+              :options="
+                usersList.map((u) => ({
+                  label: u.name || u.samAccountName,
+                  value: u.samAccountName,
+                }))
+              "
+              option-value="value"
+              option-label="label"
+              emit-value
+              map-options
+              label="User"
+              dense
+              outlined
+            />
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" color="primary" v-close-popup />
+            <q-btn
+              unelevated
+              label="Add"
+              color="primary"
+              :loading="userControlLoading"
+              :disable="!addUserToGroupSelectedUser"
+              @click="addUserToGroupFromGroupSubmit"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="showRemoveUserFromGroupFromGroupDialog" persistent>
+        <q-card style="min-width: 360px">
+          <q-card-section>
+            <div class="text-h6">Remove User from Group</div>
+            <div
+              v-if="removeUserFromGroupGroupRow"
+              class="text-caption text-grey"
+            >
+              Group:
+              {{
+                removeUserFromGroupGroupRow.samAccountName ||
+                removeUserFromGroupGroupRow.name
+              }}
+            </div>
+          </q-card-section>
+          <q-card-section class="q-pt-none">
+            <q-select
+              v-model="removeUserFromGroupSelectedUser"
+              :options="
+                usersList.map((u) => ({
+                  label: u.name || u.samAccountName,
+                  value: u.samAccountName,
+                }))
+              "
+              option-value="value"
+              option-label="label"
+              emit-value
+              map-options
+              label="User"
+              dense
+              outlined
+            />
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" color="primary" v-close-popup />
+            <q-btn
+              unelevated
+              label="Remove"
+              color="primary"
+              :loading="userControlLoading"
+              :disable="!removeUserFromGroupSelectedUser"
+              @click="removeUserFromGroupFromGroupSubmit"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
       <ApplyPolicyDialog
         v-model="showApplyPolicyDialogForUser"
         :agent="selectedAgent"
@@ -2469,6 +3283,8 @@ import {
   // agentServiceClient,
   agentServiceClientWrapper,
   userClient,
+  userControlClient,
+  createUserGroupTargetForAgent,
   // userServiceClient,
   createGrpcMetadata,
   operator_pb,
@@ -2514,9 +3330,25 @@ interface Agent {
 interface User {
   name: string;
   sid: string;
+  samAccountName: string;
   type: string;
   lastLogon?: string;
   groups?: string;
+  isEnabled?: boolean;
+  isLocked?: boolean;
+  passwordExpired?: boolean;
+  passwordLastSet?: string;
+  accountExpirationDate?: string;
+  displayName?: string;
+  description?: string;
+  givenName?: string;
+  middleName?: string;
+  surname?: string;
+  email?: string;
+  homeDirectory?: string;
+  scriptPath?: string;
+  telephoneNumber?: string;
+  employeeId?: string;
 }
 
 interface AdmxFile {
@@ -2624,6 +3456,85 @@ const showApplyPolicyDialog = ref(false);
 const showApplyPolicyDialogForUser = ref(false);
 const initialUserSid = ref<string>("");
 const showAppliedPoliciesDialog = ref(false);
+
+const showCreateUserDialog = ref(false);
+const createUserForm = ref({
+  target: { agentId: "" as string },
+  samAccountName: "",
+  password: "",
+  displayName: "",
+  description: "",
+  enabled: true,
+  passwordNotRequired: false,
+  userCannotChangePassword: false,
+  smartcardLogonRequired: false,
+  accountExpirationDate: "",
+  name: "",
+  middleName: "",
+  surname: "",
+  email: "",
+  homeDirectory: "",
+  scriptPath: "",
+  telephoneNumber: "",
+  employeeId: "",
+});
+const showEditUserDialog = ref(false);
+const editUserRow = ref<User | null>(null);
+const editUserForm = ref({
+  displayName: "",
+  description: "",
+  enabled: true,
+  passwordNotRequired: false,
+  userCannotChangePassword: false,
+  smartcardLogonRequired: false,
+  accountExpirationDate: "",
+  name: "",
+  middleName: "",
+  surname: "",
+  email: "",
+  homeDirectory: "",
+  scriptPath: "",
+  telephoneNumber: "",
+  employeeId: "",
+});
+const showSetPasswordDialog = ref(false);
+const setPasswordUser = ref<User | null>(null);
+const setPasswordValue = ref("");
+const showSetAccountExpirationDialog = ref(false);
+const accountExpirationUser = ref<User | null>(null);
+const gpoExpirationDate = ref("");
+const gpoExpirationTime = ref("");
+const accountExpirationDate = computed(() => {
+  if (!gpoExpirationDate.value) return undefined;
+  const time = gpoExpirationTime.value || "00:00";
+  return `${gpoExpirationDate.value}T${time}:00.000Z`;
+});
+const showAddToGroupDialog = ref(false);
+const addToGroupUser = ref<User | null>(null);
+const addToGroupSelectedGroup = ref("");
+const showRemoveFromGroupDialog = ref(false);
+const removeFromGroupUser = ref<User | null>(null);
+const removeFromGroupSelectedGroup = ref("");
+const userControlLoading = ref(false);
+
+const showCreateGroupDialog = ref(false);
+const createGroupForm = ref({
+  target: { agentId: "" as string },
+  samGroupName: "",
+  description: "",
+});
+const showAddUserToGroupFromGroupDialog = ref(false);
+const addUserToGroupGroupRow = ref<{
+  samAccountName?: string;
+  name?: string;
+} | null>(null);
+const addUserToGroupSelectedUser = ref("");
+const showRemoveUserFromGroupFromGroupDialog = ref(false);
+const removeUserFromGroupGroupRow = ref<{
+  samAccountName?: string;
+  name?: string;
+} | null>(null);
+const removeUserFromGroupSelectedUser = ref("");
 const appliedDialogAssignments = ref<Array<Record<string, unknown>>>([]);
 const appliedDialogEffective = ref<Array<Record<string, unknown>>>([]);
 const showAppliedPoliciesLoading = ref(false);
@@ -3219,7 +4130,7 @@ const groupsColumns: QTableColumn[] = [
   },
   {
     name: "samAccountName",
-    label: "SAM Account Name",
+    label: "Account Name",
     align: "left",
     field: "samAccountName",
     sortable: true,
@@ -3242,24 +4153,11 @@ const groupsColumns: QTableColumn[] = [
 
 const usersColumns: QTableColumn[] = [
   {
-    name: "actions",
-    label: "Actions",
-    align: "center",
-    field: "actions",
-  },
-  {
     name: "name",
     required: true,
     label: "Name",
     align: "left",
     field: "name",
-    sortable: true,
-  },
-  {
-    name: "sid",
-    label: "SID",
-    align: "left",
-    field: "sid",
     sortable: true,
   },
   {
@@ -3270,10 +4168,118 @@ const usersColumns: QTableColumn[] = [
     sortable: true,
   },
   {
+    name: "isEnabled",
+    label: "Enabled",
+    align: "center",
+    field: "isEnabled",
+    format: (val: boolean) => (val === false ? "No" : "Yes"),
+    sortable: true,
+  },
+  {
+    name: "isLocked",
+    label: "Locked",
+    align: "center",
+    field: "isLocked",
+    format: (val: boolean) => (val ? "Yes" : "No"),
+    sortable: true,
+  },
+  {
+    name: "passwordExpired",
+    label: "Password Expired",
+    align: "center",
+    field: "passwordExpired",
+    format: (val: boolean) => (val ? "Yes" : "No"),
+    sortable: true,
+  },
+  {
+    name: "accountExpirationDate",
+    label: "Account Expires",
+    align: "left",
+    field: "accountExpirationDate",
+    sortable: true,
+  },
+  {
     name: "lastLogon",
     label: "Last Logon",
     align: "left",
     field: "lastLogon",
+    sortable: true,
+  },
+  {
+    name: "passwordLastSet",
+    label: "Password Last Set",
+    align: "left",
+    field: "passwordLastSet",
+    sortable: true,
+  },
+  {
+    name: "displayName",
+    label: "Display Name",
+    align: "left",
+    field: "displayName",
+    sortable: true,
+  },
+  {
+    name: "description",
+    label: "Description",
+    align: "left",
+    field: "description",
+    sortable: true,
+  },
+  {
+    name: "givenName",
+    label: "Name",
+    align: "left",
+    field: "givenName",
+    sortable: true,
+  },
+  {
+    name: "middleName",
+    label: "Middle Name",
+    align: "left",
+    field: "middleName",
+    sortable: true,
+  },
+  {
+    name: "surname",
+    label: "Surname",
+    align: "left",
+    field: "surname",
+    sortable: true,
+  },
+  {
+    name: "email",
+    label: "Email",
+    align: "left",
+    field: "email",
+    sortable: true,
+  },
+  {
+    name: "telephoneNumber",
+    label: "Phone",
+    align: "left",
+    field: "telephoneNumber",
+    sortable: true,
+  },
+  {
+    name: "homeDirectory",
+    label: "Home Dir",
+    align: "left",
+    field: "homeDirectory",
+    sortable: true,
+  },
+  {
+    name: "scriptPath",
+    label: "Script Path",
+    align: "left",
+    field: "scriptPath",
+    sortable: true,
+  },
+  {
+    name: "employeeId",
+    label: "Employee ID",
+    align: "left",
+    field: "employeeId",
     sortable: true,
   },
 ];
@@ -3627,7 +4633,7 @@ async function loadUsersForAgent(agentId: string) {
       usersList.value = users.map((user) => {
         const userName =
           user.displayname || user.name || user.samaccountname || "Unknown";
-        const accountTypeNum = user.accounttype || 0;
+        const accountTypeNum = user.accounttype ?? 0;
 
         let accountType = "Unknown";
         if (accountTypeNum === 1) {
@@ -3639,18 +4645,19 @@ async function loadUsersForAgent(agentId: string) {
         let groupsString: string | undefined;
         if (user.groupsList && user.groupsList.length > 0) {
           const groupNames = user.groupsList
-            .map((group) => {
-              return (
-                group.displayname || group.name || group.samaccountname || ""
-              );
-            })
+            .map((group) =>
+              group.displayname || group.name || group.samaccountname || "",
+            )
             .filter((name) => name !== "");
           groupsString = groupNames.join(", ");
         }
 
         let lastLogon: string | undefined;
-        if (user.lastlogon && user.lastlogon.seconds) {
-          const timestamp = user.lastlogon.seconds;
+        if (user.lastlogon?.seconds != null) {
+          const timestamp =
+            typeof user.lastlogon.seconds === "string"
+              ? Number.parseInt(user.lastlogon.seconds, 10)
+              : user.lastlogon.seconds;
           if (timestamp === 0) {
             lastLogon = "Never";
           } else {
@@ -3658,12 +4665,54 @@ async function loadUsersForAgent(agentId: string) {
           }
         }
 
+        let accountExpirationDate: string | undefined;
+        const exp = user.accountexpirationdate;
+        if (exp?.seconds != null) {
+          const sec =
+            typeof exp.seconds === "string"
+              ? Number.parseInt(exp.seconds, 10)
+              : exp.seconds;
+          accountExpirationDate = new Date(sec * 1000)
+            .toISOString()
+            .slice(0, 10);
+        }
+
+        const uStr = user as unknown as Record<string, string | undefined>;
+        const getStr = (a: string, b?: string) =>
+          uStr[a] || (b ? uStr[b] : undefined) || "";
+
+        let passwordLastSet: string | undefined;
+        const pls = user.passwordlastset;
+        if (pls?.seconds != null) {
+          const sec =
+            typeof pls.seconds === "string"
+              ? Number.parseInt(pls.seconds, 10)
+              : pls.seconds;
+          passwordLastSet = new Date(sec * 1000).toISOString().slice(0, 10);
+        }
+
         return {
           name: userName,
           sid: user.sid || "",
+          samAccountName: user.samaccountname || user.name || "",
           type: accountType,
           lastLogon,
           groups: groupsString,
+          isEnabled: user.isenabled ?? true,
+          isLocked: user.islocked ?? false,
+          passwordExpired: user.passwordexpired ?? false,
+          passwordLastSet,
+          accountExpirationDate,
+          displayName: getStr("displayname", "displayName"),
+          description: getStr("description"),
+          givenName: getStr("givenname", "givenName"),
+          middleName: getStr("middlename", "middleName"),
+          surname: getStr("surname"),
+          email: getStr("email"),
+          homeDirectory: getStr("homedirectory", "homeDirectory"),
+          scriptPath: getStr("scriptpath", "scriptPath"),
+          telephoneNumber: getStr("telephonenumber", "telephoneNumber"),
+          employeeId: getStr("employeeid", "employeeId"),
         };
       });
     }
@@ -4576,6 +5625,539 @@ watch(showApplyPolicyDialogForUser, (newVal) => {
   }
 });
 
+function getAgentId(): string {
+  const id = selectedAgent.value?.id;
+  if (!id) {
+    notifyError("No agent selected");
+    throw new Error("No agent selected");
+  }
+  return id;
+}
+
+async function refreshUsersAndGroups() {
+  const id = selectedAgent.value?.id;
+  if (id) {
+    await loadUsersForAgent(id);
+    await loadGroupsForAgent(id);
+  }
+}
+
+function openCreateUserDialog() {
+  const agentId = getAgentId();
+  createUserForm.value = {
+    target: { agentId },
+    samAccountName: "",
+    password: "",
+    displayName: "",
+    description: "",
+    enabled: true,
+    passwordNotRequired: false,
+    userCannotChangePassword: false,
+    smartcardLogonRequired: false,
+    accountExpirationDate: "",
+    name: "",
+    middleName: "",
+    surname: "",
+    email: "",
+    homeDirectory: "",
+    scriptPath: "",
+    telephoneNumber: "",
+    employeeId: "",
+  };
+  showCreateUserDialog.value = true;
+}
+
+async function createUser() {
+  const f = createUserForm.value;
+  let targetAgentId: string;
+  try {
+    targetAgentId = (f.target?.agentId?.trim() || getAgentId()) ?? "";
+  } catch {
+    notifyError("No agent selected");
+    return;
+  }
+  if (!targetAgentId) {
+    notifyError("No agent selected");
+    return;
+  }
+  const sam = (f.samAccountName ?? "").trim();
+  const pwd = (f.password ?? "").trim();
+  if (!sam) {
+    notifyError("Account Name is required");
+    return;
+  }
+  if (!pwd) {
+    notifyError("Password is required");
+    return;
+  }
+  userControlLoading.value = true;
+  const userPayload = {
+    samAccountName: f.samAccountName.trim(),
+    password: f.password.trim(),
+    displayName: f.displayName.trim() || "",
+    description: f.description.trim() || "",
+    enabled: f.enabled,
+    passwordNotRequired: f.passwordNotRequired || false,
+    userCannotChangePassword: f.userCannotChangePassword || false,
+    smartcardLogonRequired: f.smartcardLogonRequired || false,
+    accountExpirationDate: f.accountExpirationDate.trim() || "",
+    name: f.name.trim() || "",
+    middleName: f.middleName.trim() || "",
+    surname: f.surname.trim() || "",
+    email: f.email.trim() || "",
+    homeDirectory: f.homeDirectory.trim() || "",
+    scriptPath: f.scriptPath.trim() || "",
+    telephoneNumber: f.telephoneNumber.trim() || "",
+    employeeId: f.employeeId.trim() || "",
+  };
+  console.log("[CreateUser] target:", { agentId: targetAgentId });
+  console.log("[CreateUser] payload:", {
+    ...userPayload,
+    password: userPayload.password ? "***" : undefined,
+  });
+  try {
+    await userControlClient.createUser(
+      createUserGroupTargetForAgent(targetAgentId),
+      userPayload,
+    );
+    notifySuccess("User created");
+    showCreateUserDialog.value = false;
+    await refreshUsersAndGroups();
+  } catch (e) {
+    const msg = (e as { message?: string })?.message || String(e);
+    notifyError(msg);
+  } finally {
+    userControlLoading.value = false;
+  }
+}
+
+function openEditUserDialog(row: User) {
+  editUserRow.value = row;
+  editUserForm.value = {
+    displayName: row.displayName ?? "",
+    description: row.description ?? "",
+    enabled: row.isEnabled !== false,
+    passwordNotRequired: false,
+    userCannotChangePassword: false,
+    smartcardLogonRequired: false,
+    accountExpirationDate: row.accountExpirationDate ?? "",
+    name: row.givenName ?? "",
+    middleName: row.middleName ?? "",
+    surname: row.surname ?? "",
+    email: row.email ?? "",
+    homeDirectory: row.homeDirectory ?? "",
+    scriptPath: row.scriptPath ?? "",
+    telephoneNumber: row.telephoneNumber ?? "",
+    employeeId: row.employeeId ?? "",
+  };
+  showEditUserDialog.value = true;
+}
+
+async function updateUser() {
+  const targetAgentId = getAgentId();
+  const row = editUserRow.value;
+  if (!row) return;
+  const f = editUserForm.value;
+  userControlLoading.value = true;
+  try {
+    await userControlClient.updateUser(
+      createUserGroupTargetForAgent(targetAgentId),
+      row.samAccountName,
+      {
+        displayName: f.displayName.trim() || undefined,
+        description: f.description.trim() || undefined,
+        enabled: f.enabled,
+        passwordNotRequired: f.passwordNotRequired,
+        userCannotChangePassword: f.userCannotChangePassword,
+        smartcardLogonRequired: f.smartcardLogonRequired,
+        accountExpirationDate: f.accountExpirationDate.trim() || undefined,
+        name: f.name.trim() || undefined,
+        middleName: f.middleName.trim() || undefined,
+        surname: f.surname.trim() || undefined,
+        email: f.email.trim() || undefined,
+        homeDirectory: f.homeDirectory.trim() || undefined,
+        scriptPath: f.scriptPath.trim() || undefined,
+        telephoneNumber: f.telephoneNumber.trim() || undefined,
+        employeeId: f.employeeId.trim() || undefined,
+      },
+    );
+    notifySuccess("User updated");
+    showEditUserDialog.value = false;
+    editUserRow.value = null;
+    await refreshUsersAndGroups();
+  } catch (e) {
+    const msg = (e as { message?: string })?.message || String(e);
+    notifyError(msg);
+  } finally {
+    userControlLoading.value = false;
+  }
+}
+
+function openSetPasswordDialog(row: User) {
+  setPasswordUser.value = row;
+  setPasswordValue.value = "";
+  showSetPasswordDialog.value = true;
+}
+
+async function setPassword() {
+  const targetAgentId = getAgentId();
+  const row = setPasswordUser.value;
+  if (!row || !setPasswordValue.value) {
+    notifyError("Password is required");
+    return;
+  }
+  userControlLoading.value = true;
+  try {
+    await userControlClient.setUserPassword(
+      createUserGroupTargetForAgent(targetAgentId),
+      row.samAccountName,
+      setPasswordValue.value,
+    );
+    notifySuccess("Password set");
+    showSetPasswordDialog.value = false;
+    setPasswordUser.value = null;
+    setPasswordValue.value = "";
+    await refreshUsersAndGroups();
+  } catch (e) {
+    const msg = (e as { message?: string })?.message || String(e);
+    notifyError(msg);
+  } finally {
+    userControlLoading.value = false;
+  }
+}
+
+async function toggleUserEnabled(row: User) {
+  const targetAgentId = getAgentId();
+  const enable = row.isEnabled === false;
+  userControlLoading.value = true;
+  try {
+    await userControlClient.enableUser(
+      createUserGroupTargetForAgent(targetAgentId),
+      row.samAccountName,
+      enable,
+    );
+    notifySuccess(enable ? "User enabled" : "User disabled");
+    const u = usersList.value.find((x) => x.samAccountName === row.samAccountName);
+    if (u) u.isEnabled = enable;
+    await refreshUsersAndGroups();
+  } catch (e) {
+    const msg = (e as { message?: string })?.message || String(e);
+    notifyError(msg);
+  } finally {
+    userControlLoading.value = false;
+  }
+}
+
+function unlockUserConfirm(row: User) {
+  $q.dialog({
+    title: "Unlock user",
+    message: `Unlock user ${row.name} (${row.samAccountName})?`,
+    cancel: true,
+    persistent: true,
+  }).onOk(async () => {
+    const targetAgentId = getAgentId();
+    userControlLoading.value = true;
+    try {
+      await userControlClient.unlockUser(
+        createUserGroupTargetForAgent(targetAgentId),
+        row.samAccountName,
+      );
+      notifySuccess("User unlocked");
+      await refreshUsersAndGroups();
+    } catch (e) {
+      const msg = (e as { message?: string })?.message || String(e);
+      notifyError(msg);
+    } finally {
+      userControlLoading.value = false;
+    }
+  });
+}
+
+function expirePasswordConfirm(row: User) {
+  $q.dialog({
+    title: "Expire password",
+    message: `Force password change at next logon for ${row.name}?`,
+    cancel: true,
+    persistent: true,
+  }).onOk(async () => {
+    const targetAgentId = getAgentId();
+    userControlLoading.value = true;
+    try {
+      await userControlClient.expireUserPassword(
+        createUserGroupTargetForAgent(targetAgentId),
+        row.samAccountName,
+      );
+      notifySuccess("Password expired");
+      await refreshUsersAndGroups();
+    } catch (e) {
+      const msg = (e as { message?: string })?.message || String(e);
+      notifyError(msg);
+    } finally {
+      userControlLoading.value = false;
+    }
+  });
+}
+
+function openSetAccountExpirationDialog(row: User) {
+  accountExpirationUser.value = row;
+  gpoExpirationDate.value = "";
+  gpoExpirationTime.value = "";
+  showSetAccountExpirationDialog.value = true;
+}
+
+async function setAccountExpiration() {
+  const targetAgentId = getAgentId();
+  const row = accountExpirationUser.value;
+  if (!row) return;
+  userControlLoading.value = true;
+  try {
+    await userControlClient.setUserAccountExpiration(
+      createUserGroupTargetForAgent(targetAgentId),
+      row.samAccountName,
+      accountExpirationDate.value,
+    );
+    notifySuccess("Account expiration updated");
+    showSetAccountExpirationDialog.value = false;
+    accountExpirationUser.value = null;
+    gpoExpirationDate.value = "";
+    gpoExpirationTime.value = "";
+    await refreshUsersAndGroups();
+  } catch (e) {
+    const msg = (e as { message?: string })?.message || String(e);
+    notifyError(msg);
+  } finally {
+    userControlLoading.value = false;
+  }
+}
+
+function openAddUserToGroupDialog(row: User) {
+  addToGroupUser.value = row;
+  addToGroupSelectedGroup.value = groupsList.value[0]?.samAccountName ?? "";
+  showAddToGroupDialog.value = true;
+}
+
+async function addUserToGroup() {
+  const targetAgentId = getAgentId();
+  const row = addToGroupUser.value;
+  if (!row || !addToGroupSelectedGroup.value) {
+    notifyError("Select a group");
+    return;
+  }
+  userControlLoading.value = true;
+  try {
+    await userControlClient.addUserToGroup(
+      createUserGroupTargetForAgent(targetAgentId),
+      addToGroupSelectedGroup.value,
+      row.samAccountName,
+    );
+    notifySuccess("User added to group");
+    showAddToGroupDialog.value = false;
+    addToGroupUser.value = null;
+    addToGroupSelectedGroup.value = "";
+    await refreshUsersAndGroups();
+  } catch (e) {
+    const msg = (e as { message?: string })?.message || String(e);
+    notifyError(msg);
+  } finally {
+    userControlLoading.value = false;
+  }
+}
+
+function openRemoveUserFromGroupDialog(row: User) {
+  removeFromGroupUser.value = row;
+  removeFromGroupSelectedGroup.value =
+    groupsList.value[0]?.samAccountName ?? "";
+  showRemoveFromGroupDialog.value = true;
+}
+
+async function removeUserFromGroup() {
+  const targetAgentId = getAgentId();
+  const row = removeFromGroupUser.value;
+  if (!row || !removeFromGroupSelectedGroup.value) {
+    notifyError("Select a group");
+    return;
+  }
+  userControlLoading.value = true;
+  try {
+    await userControlClient.removeUserFromGroup(
+      createUserGroupTargetForAgent(targetAgentId),
+      removeFromGroupSelectedGroup.value,
+      row.samAccountName,
+    );
+    notifySuccess("User removed from group");
+    showRemoveFromGroupDialog.value = false;
+    removeFromGroupUser.value = null;
+    removeFromGroupSelectedGroup.value = "";
+    await refreshUsersAndGroups();
+  } catch (e) {
+    const msg = (e as { message?: string })?.message || String(e);
+    notifyError(msg);
+  } finally {
+    userControlLoading.value = false;
+  }
+}
+
+function deleteUserConfirm(row: User) {
+  $q.dialog({
+    title: "Delete user",
+    message: `Delete user ${row.name} (${row.samAccountName})? This cannot be undone.`,
+    cancel: true,
+    persistent: true,
+  }).onOk(async () => {
+    const targetAgentId = getAgentId();
+    userControlLoading.value = true;
+    try {
+      await userControlClient.deleteUser(
+        createUserGroupTargetForAgent(targetAgentId),
+        row.samAccountName,
+      );
+      notifySuccess("User deleted");
+      await refreshUsersAndGroups();
+    } catch (e) {
+      const msg = (e as { message?: string })?.message || String(e);
+      notifyError(msg);
+    } finally {
+      userControlLoading.value = false;
+    }
+  });
+}
+
+function openCreateGroupDialog() {
+  const agentId = getAgentId();
+  createGroupForm.value = {
+    target: { agentId },
+    samGroupName: "",
+    description: "",
+  };
+  showCreateGroupDialog.value = true;
+}
+
+async function createGroup() {
+  const f = createGroupForm.value;
+  const targetAgentId = f.target?.agentId || getAgentId();
+  if (!f.samGroupName.trim()) {
+    notifyError("Group name is required");
+    return;
+  }
+  userControlLoading.value = true;
+  try {
+    await userControlClient.createGroup(
+      createUserGroupTargetForAgent(targetAgentId),
+      f.samGroupName.trim(),
+      f.description.trim() || undefined,
+    );
+    notifySuccess("Group created");
+    showCreateGroupDialog.value = false;
+    await refreshUsersAndGroups();
+  } catch (e) {
+    const msg = (e as { message?: string })?.message || String(e);
+    notifyError(msg);
+  } finally {
+    userControlLoading.value = false;
+  }
+}
+
+function deleteGroupConfirm(row: { samAccountName?: string; name?: string }) {
+  const name = row.samAccountName || row.name || "this group";
+  $q.dialog({
+    title: "Delete group",
+    message: `Delete group ${name}? This cannot be undone.`,
+    cancel: true,
+    persistent: true,
+  }).onOk(async () => {
+    const targetAgentId = getAgentId();
+    const samGroupName = row.samAccountName || row.name || "";
+    if (!samGroupName) return;
+    userControlLoading.value = true;
+    try {
+      await userControlClient.deleteGroup(
+        createUserGroupTargetForAgent(targetAgentId),
+        samGroupName,
+      );
+      notifySuccess("Group deleted");
+      await refreshUsersAndGroups();
+    } catch (e) {
+      const msg = (e as { message?: string })?.message || String(e);
+      notifyError(msg);
+    } finally {
+      userControlLoading.value = false;
+    }
+  });
+}
+
+function openAddUserToGroupFromGroupRow(row: {
+  samAccountName?: string;
+  name?: string;
+}) {
+  addUserToGroupGroupRow.value = row;
+  addUserToGroupSelectedUser.value = usersList.value[0]?.samAccountName ?? "";
+  showAddUserToGroupFromGroupDialog.value = true;
+}
+
+async function addUserToGroupFromGroupSubmit() {
+  const targetAgentId = getAgentId();
+  const groupRow = addUserToGroupGroupRow.value;
+  if (!groupRow?.samAccountName || !addUserToGroupSelectedUser.value) {
+    notifyError("Select a user");
+    return;
+  }
+  userControlLoading.value = true;
+  try {
+    await userControlClient.addUserToGroup(
+      createUserGroupTargetForAgent(targetAgentId),
+      groupRow.samAccountName,
+      addUserToGroupSelectedUser.value,
+    );
+    notifySuccess("User added to group");
+    showAddUserToGroupFromGroupDialog.value = false;
+    addUserToGroupGroupRow.value = null;
+    addUserToGroupSelectedUser.value = "";
+    await refreshUsersAndGroups();
+  } catch (e) {
+    const msg = (e as { message?: string })?.message || String(e);
+    notifyError(msg);
+  } finally {
+    userControlLoading.value = false;
+  }
+}
+
+function openRemoveUserFromGroupFromGroupRow(row: {
+  samAccountName?: string;
+  name?: string;
+}) {
+  removeUserFromGroupGroupRow.value = row;
+  removeUserFromGroupSelectedUser.value =
+    usersList.value[0]?.samAccountName ?? "";
+  showRemoveUserFromGroupFromGroupDialog.value = true;
+}
+
+async function removeUserFromGroupFromGroupSubmit() {
+  const targetAgentId = getAgentId();
+  const groupRow = removeUserFromGroupGroupRow.value;
+  if (!groupRow?.samAccountName || !removeUserFromGroupSelectedUser.value) {
+    notifyError("Select a user");
+    return;
+  }
+  userControlLoading.value = true;
+  try {
+    await userControlClient.removeUserFromGroup(
+      createUserGroupTargetForAgent(targetAgentId),
+      groupRow.samAccountName,
+      removeUserFromGroupSelectedUser.value,
+    );
+    notifySuccess("User removed from group");
+    showRemoveUserFromGroupFromGroupDialog.value = false;
+    removeUserFromGroupGroupRow.value = null;
+    removeUserFromGroupSelectedUser.value = "";
+    await refreshUsersAndGroups();
+  } catch (e) {
+    const msg = (e as { message?: string })?.message || String(e);
+    notifyError(msg);
+  } finally {
+    userControlLoading.value = false;
+  }
+}
+
 async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
   const [assignmentsResp, effectiveResp] = await Promise.all([
     policyStateClient.getAssignmentsFor("agent", { agentId }),
@@ -4617,7 +6199,7 @@ async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
                 policyHash,
             ) || policyHash;
         } catch {
-          // ignore
+          // игнор
         }
       }
       if (!displayName) displayName = policyHash;
@@ -4723,7 +6305,7 @@ function onPolicySettingsApplied(
             policyName,
         );
       } catch (e) {
-        // ignore
+        // игнор
       }
 
       addActionToHistory({
@@ -4755,7 +6337,7 @@ function onPolicySettingsDisabled(policyId: string) {
             policyName,
         );
       } catch (e) {
-        // ignore
+        // игнор
       }
 
       addActionToHistory({
@@ -4975,6 +6557,11 @@ onMounted(async () => {
 
 .policy-assignment-scroll-area
   height: 400px
+  width: 100%
+
+.agent-tab-table-scroll
+  height: calc(100vh - 320px)
+  min-height: 300px
   width: 100%
 
 .policy-assignment-table

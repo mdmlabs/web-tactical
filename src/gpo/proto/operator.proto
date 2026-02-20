@@ -541,7 +541,18 @@ message PolicyTarget {
     TacticalSitesTarget sites = 7;
     AggentsTarget agents = 8;
     CombinedTarget combined = 9;
+    GroupTarget group = 10;
+    GroupsTarget groups = 11;
   }
+}
+
+// Group targets
+message GroupTarget {
+    string groupId = 1;
+}
+
+message GroupsTarget {
+    repeated string groupIds = 1;
 }
 
 // Tactical targets
