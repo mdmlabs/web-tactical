@@ -446,7 +446,7 @@
                 </q-tab-panel>
 
                 <q-tab-panel name="users" class="q-pa-md">
-                  <div v-if="selectedAgent">
+                  <div v-if="selectedAgent" class="column full-height">
                     <div class="row q-mb-md items-center">
                       <div class="text-h6">Users</div>
                       <q-space />
@@ -459,14 +459,15 @@
                         @click="openCreateUserDialog"
                       />
                     </div>
-                    <q-table
-                      :rows="usersList"
-                      :columns="usersColumns"
-                      row-key="sid"
-                      :loading="usersLoading"
-                      flat
-                      bordered
-                    >
+                    <q-scroll-area class="agent-tab-table-scroll">
+                      <q-table
+                        :rows="usersList"
+                        :columns="usersColumns"
+                        row-key="sid"
+                        :loading="usersLoading"
+                        flat
+                        bordered
+                      >
                       <template v-slot:body="props">
                         <q-tr :props="props">
                           <q-menu context-menu>
@@ -511,12 +512,17 @@
                                 @click="
                                   props.row.isLocked
                                     ? unlockUserConfirm(props.row)
-                                    : $q.notify({ message: 'User is not locked', type: 'info' })
+                                    : $q.notify({
+                                        message: 'User is not locked',
+                                        type: 'info',
+                                      })
                                 "
                               >
                                 <q-item-section side>
                                   <q-icon
-                                    :name="props.row.isLocked ? 'lock_open' : 'lock'"
+                                    :name="
+                                      props.row.isLocked ? 'lock_open' : 'lock'
+                                    "
                                     size="xs"
                                   />
                                 </q-item-section>
@@ -641,12 +647,13 @@
                           </q-td>
                         </q-tr>
                       </template>
-                    </q-table>
+                      </q-table>
+                    </q-scroll-area>
                   </div>
                 </q-tab-panel>
 
                 <q-tab-panel name="groups" class="q-pa-md">
-                  <div v-if="selectedAgent">
+                  <div v-if="selectedAgent" class="column full-height">
                     <div class="row q-mb-md items-center">
                       <div class="text-h6">Groups</div>
                       <q-space />
@@ -659,14 +666,15 @@
                         @click="openCreateGroupDialog"
                       />
                     </div>
-                    <q-table
-                      :rows="groupsList"
-                      :columns="groupsColumns"
-                      row-key="sid"
-                      :loading="groupsLoading"
-                      flat
-                      bordered
-                    >
+                    <q-scroll-area class="agent-tab-table-scroll">
+                      <q-table
+                        :rows="groupsList"
+                        :columns="groupsColumns"
+                        row-key="sid"
+                        :loading="groupsLoading"
+                        flat
+                        bordered
+                      >
                       <template v-slot:body="props">
                         <q-tr :props="props">
                           <q-menu context-menu>
@@ -730,7 +738,8 @@
                           </q-td>
                         </q-tr>
                       </template>
-                    </q-table>
+                      </q-table>
+                    </q-scroll-area>
                   </div>
                 </q-tab-panel>
               </q-tab-panels>
@@ -2987,16 +2996,59 @@
             </div>
           </q-card-section>
           <q-card-section class="q-pt-none">
-            <q-input
-              v-model="accountExpirationDate"
-              label="Expiration date (ISO or empty for never)"
-              dense
-              outlined
-              placeholder="YYYY-MM-DD or leave empty"
-            />
+            <div class="row q-col-gutter-sm">
+              <div class="col-7">
+                <q-input
+                  v-model="gpoExpirationDate"
+                  label="Date"
+                  outlined
+                  dense
+                  readonly
+                  clearable
+                  class="cursor-pointer"
+                  @clear="gpoExpirationDate = ''"
+                >
+                  <template v-slot:prepend>
+                    <q-icon name="event" />
+                  </template>
+                  <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                    <q-date v-model="gpoExpirationDate" mask="YYYY-MM-DD">
+                      <div class="row items-center justify-end">
+                        <q-btn v-close-popup label="OK" color="primary" flat />
+                      </div>
+                    </q-date>
+                  </q-popup-proxy>
+                </q-input>
+              </div>
+              <div class="col-5">
+                <q-input
+                  v-model="gpoExpirationTime"
+                  label="Time"
+                  outlined
+                  dense
+                  readonly
+                  clearable
+                  class="cursor-pointer"
+                  @clear="gpoExpirationTime = ''"
+                >
+                  <template v-slot:prepend>
+                    <q-icon name="access_time" />
+                  </template>
+                  <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                    <q-time v-model="gpoExpirationTime" mask="HH:mm" format24h>
+                      <div class="row items-center justify-end">
+                        <q-btn v-close-popup label="OK" color="primary" flat />
+                      </div>
+                    </q-time>
+                  </q-popup-proxy>
+                </q-input>
+              </div>
+            </div>
+            
           </q-card-section>
           <q-card-actions align="right">
             <q-btn flat label="Cancel" color="primary" v-close-popup />
+            <q-btn flat label="Clear" color="orange" @click="gpoExpirationDate = ''; gpoExpirationTime = ''" />
             <q-btn
               unelevated
               label="Save"
@@ -3450,7 +3502,13 @@ const setPasswordUser = ref<User | null>(null);
 const setPasswordValue = ref("");
 const showSetAccountExpirationDialog = ref(false);
 const accountExpirationUser = ref<User | null>(null);
-const accountExpirationDate = ref<string | undefined>(undefined);
+const gpoExpirationDate = ref("");
+const gpoExpirationTime = ref("");
+const accountExpirationDate = computed(() => {
+  if (!gpoExpirationDate.value) return undefined;
+  const time = gpoExpirationTime.value || "00:00";
+  return `${gpoExpirationDate.value}T${time}:00.000Z`;
+});
 const showAddToGroupDialog = ref(false);
 const addToGroupUser = ref<User | null>(null);
 const addToGroupSelectedGroup = ref("");
@@ -4170,7 +4228,7 @@ const usersColumns: QTableColumn[] = [
   },
   {
     name: "givenName",
-    label: "Given Name",
+    label: "Name",
     align: "left",
     field: "givenName",
     sortable: true,
@@ -4575,7 +4633,7 @@ async function loadUsersForAgent(agentId: string) {
       usersList.value = users.map((user) => {
         const userName =
           user.displayname || user.name || user.samaccountname || "Unknown";
-        const accountTypeNum = user.accounttype || 0;
+        const accountTypeNum = user.accounttype ?? 0;
 
         let accountType = "Unknown";
         if (accountTypeNum === 1) {
@@ -4587,18 +4645,19 @@ async function loadUsersForAgent(agentId: string) {
         let groupsString: string | undefined;
         if (user.groupsList && user.groupsList.length > 0) {
           const groupNames = user.groupsList
-            .map((group) => {
-              return (
-                group.displayname || group.name || group.samaccountname || ""
-              );
-            })
+            .map((group) =>
+              group.displayname || group.name || group.samaccountname || "",
+            )
             .filter((name) => name !== "");
           groupsString = groupNames.join(", ");
         }
 
         let lastLogon: string | undefined;
-        if (user.lastlogon && user.lastlogon.seconds) {
-          const timestamp = user.lastlogon.seconds;
+        if (user.lastlogon?.seconds != null) {
+          const timestamp =
+            typeof user.lastlogon.seconds === "string"
+              ? Number.parseInt(user.lastlogon.seconds, 10)
+              : user.lastlogon.seconds;
           if (timestamp === 0) {
             lastLogon = "Never";
           } else {
@@ -4607,12 +4666,8 @@ async function loadUsersForAgent(agentId: string) {
         }
 
         let accountExpirationDate: string | undefined;
-        const u = user as unknown as Record<
-          string,
-          { seconds?: number | string } | undefined
-        >;
-        const exp = u.accountexpirationdate;
-        if (exp && typeof exp === "object" && exp.seconds != null) {
+        const exp = user.accountexpirationdate;
+        if (exp?.seconds != null) {
           const sec =
             typeof exp.seconds === "string"
               ? Number.parseInt(exp.seconds, 10)
@@ -4627,9 +4682,7 @@ async function loadUsersForAgent(agentId: string) {
           uStr[a] || (b ? uStr[b] : undefined) || "";
 
         let passwordLastSet: string | undefined;
-        const pls = (
-          user as unknown as { passwordlastset?: { seconds?: number | string } }
-        ).passwordlastset;
+        const pls = user.passwordlastset;
         if (pls?.seconds != null) {
           const sec =
             typeof pls.seconds === "string"
@@ -5616,38 +5669,56 @@ function openCreateUserDialog() {
 
 async function createUser() {
   const f = createUserForm.value;
-  const targetAgentId = f.target?.agentId || getAgentId();
-  if (!f.samAccountName.trim()) {
+  let targetAgentId: string;
+  try {
+    targetAgentId = (f.target?.agentId?.trim() || getAgentId()) ?? "";
+  } catch {
+    notifyError("No agent selected");
+    return;
+  }
+  if (!targetAgentId) {
+    notifyError("No agent selected");
+    return;
+  }
+  const sam = (f.samAccountName ?? "").trim();
+  const pwd = (f.password ?? "").trim();
+  if (!sam) {
     notifyError("Account Name is required");
     return;
   }
-  if (!f.password.trim()) {
+  if (!pwd) {
     notifyError("Password is required");
     return;
   }
   userControlLoading.value = true;
+  const userPayload = {
+    samAccountName: f.samAccountName.trim(),
+    password: f.password.trim(),
+    displayName: f.displayName.trim() || "",
+    description: f.description.trim() || "",
+    enabled: f.enabled,
+    passwordNotRequired: f.passwordNotRequired || false,
+    userCannotChangePassword: f.userCannotChangePassword || false,
+    smartcardLogonRequired: f.smartcardLogonRequired || false,
+    accountExpirationDate: f.accountExpirationDate.trim() || "",
+    name: f.name.trim() || "",
+    middleName: f.middleName.trim() || "",
+    surname: f.surname.trim() || "",
+    email: f.email.trim() || "",
+    homeDirectory: f.homeDirectory.trim() || "",
+    scriptPath: f.scriptPath.trim() || "",
+    telephoneNumber: f.telephoneNumber.trim() || "",
+    employeeId: f.employeeId.trim() || "",
+  };
+  console.log("[CreateUser] target:", { agentId: targetAgentId });
+  console.log("[CreateUser] payload:", {
+    ...userPayload,
+    password: userPayload.password ? "***" : undefined,
+  });
   try {
     await userControlClient.createUser(
       createUserGroupTargetForAgent(targetAgentId),
-      {
-        samAccountName: f.samAccountName.trim(),
-        password: f.password.trim(),
-        displayName: f.displayName.trim() || undefined,
-        description: f.description.trim() || undefined,
-        enabled: f.enabled,
-        passwordNotRequired: f.passwordNotRequired || undefined,
-        userCannotChangePassword: f.userCannotChangePassword || undefined,
-        smartcardLogonRequired: f.smartcardLogonRequired || undefined,
-        accountExpirationDate: f.accountExpirationDate.trim() || undefined,
-        name: f.name.trim() || undefined,
-        middleName: f.middleName.trim() || undefined,
-        surname: f.surname.trim() || undefined,
-        email: f.email.trim() || undefined,
-        homeDirectory: f.homeDirectory.trim() || undefined,
-        scriptPath: f.scriptPath.trim() || undefined,
-        telephoneNumber: f.telephoneNumber.trim() || undefined,
-        employeeId: f.employeeId.trim() || undefined,
-      },
+      userPayload,
     );
     notifySuccess("User created");
     showCreateUserDialog.value = false;
@@ -5766,6 +5837,8 @@ async function toggleUserEnabled(row: User) {
       enable,
     );
     notifySuccess(enable ? "User enabled" : "User disabled");
+    const u = usersList.value.find((x) => x.samAccountName === row.samAccountName);
+    if (u) u.isEnabled = enable;
     await refreshUsersAndGroups();
   } catch (e) {
     const msg = (e as { message?: string })?.message || String(e);
@@ -5827,7 +5900,8 @@ function expirePasswordConfirm(row: User) {
 
 function openSetAccountExpirationDialog(row: User) {
   accountExpirationUser.value = row;
-  accountExpirationDate.value = undefined;
+  gpoExpirationDate.value = "";
+  gpoExpirationTime.value = "";
   showSetAccountExpirationDialog.value = true;
 }
 
@@ -5845,7 +5919,8 @@ async function setAccountExpiration() {
     notifySuccess("Account expiration updated");
     showSetAccountExpirationDialog.value = false;
     accountExpirationUser.value = null;
-    accountExpirationDate.value = undefined;
+    gpoExpirationDate.value = "";
+    gpoExpirationTime.value = "";
     await refreshUsersAndGroups();
   } catch (e) {
     const msg = (e as { message?: string })?.message || String(e);
@@ -6124,7 +6199,7 @@ async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
                 policyHash,
             ) || policyHash;
         } catch {
-          // ignore
+          // игнор
         }
       }
       if (!displayName) displayName = policyHash;
@@ -6230,7 +6305,7 @@ function onPolicySettingsApplied(
             policyName,
         );
       } catch (e) {
-        // ignore
+        // игнор
       }
 
       addActionToHistory({
@@ -6262,7 +6337,7 @@ function onPolicySettingsDisabled(policyId: string) {
             policyName,
         );
       } catch (e) {
-        // ignore
+        // игнор
       }
 
       addActionToHistory({
@@ -6482,6 +6557,11 @@ onMounted(async () => {
 
 .policy-assignment-scroll-area
   height: 400px
+  width: 100%
+
+.agent-tab-table-scroll
+  height: calc(100vh - 320px)
+  min-height: 300px
   width: 100%
 
 .policy-assignment-table

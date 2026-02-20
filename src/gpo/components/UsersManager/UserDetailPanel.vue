@@ -1,0 +1,248 @@
+<template>
+  <div class="users-right-panel">
+    <div
+      v-if="!selectedId"
+      class="column items-center justify-center full-height text-grey-6"
+    >
+      <q-icon name="person" size="3rem" class="q-mb-md" />
+      <div class="text-h6">Select a user</div>
+      <div class="text-caption q-mt-xs">
+        Click on a user in the list or create a new one
+      </div>
+    </div>
+
+    <template v-else>
+      <div class="users-detail-header q-px-lg q-py-md row items-center">
+        <div>
+          <div class="text-h6 text-weight-medium">
+            {{ user?.info?.displayname || user?.info?.samaccountname || selectedId }}
+          </div>
+          <div class="text-caption text-grey-6">
+            {{ user?.info?.samaccountname || selectedId }}
+            <span
+              v-if="user?.info?.sid"
+              class="q-ml-sm text-mono"
+              style="font-size: 11px"
+            >{{ user.info.sid }}</span>
+          </div>
+        </div>
+        <q-space />
+        <div class="row q-gutter-xs">
+          <q-btn
+            flat
+            dense
+            color="primary"
+            icon="edit"
+            label="Update"
+            :loading="actionLoading"
+            :disable="!hasTarget"
+            :title="!hasTarget ? 'Select target first' : ''"
+            @click="$emit('update')"
+          />
+          <q-btn
+            flat
+            dense
+            :color="user?.info?.isenabled !== false ? 'orange' : 'positive'"
+            :icon="user?.info?.isenabled !== false ? 'block' : 'check_circle'"
+            :label="user?.info?.isenabled !== false ? 'Disable' : 'Enable'"
+            :loading="actionLoading"
+            :disable="!hasTarget"
+            :title="!hasTarget ? 'Select target first (click badge in header)' : ''"
+            @click="$emit('toggle-enable')"
+          />
+          <q-btn
+            flat
+            dense
+            icon="lock"
+            label="Set Password"
+            :loading="actionLoading"
+            :disable="!hasTarget"
+            :title="!hasTarget ? 'Select target first' : ''"
+            @click="$emit('set-password')"
+          />
+          <q-btn
+            flat
+            dense
+            icon="lock_open"
+            label="Unlock"
+            :loading="actionLoading"
+            :disable="!hasTarget"
+            :title="!hasTarget ? 'Select target first' : ''"
+            @click="$emit('unlock')"
+          />
+          <q-btn
+            flat
+            dense
+            icon="password"
+            label="Expire Password"
+            :loading="actionLoading"
+            :disable="!hasTarget"
+            :title="!hasTarget ? 'Select target first' : ''"
+            @click="$emit('expire-password')"
+          />
+          <q-btn
+            flat
+            dense
+            icon="event"
+            label="Account Expiration"
+            :loading="actionLoading"
+            :disable="!hasTarget"
+            :title="!hasTarget ? 'Select target first' : ''"
+            @click="$emit('set-expiration')"
+          />
+          <q-btn
+            flat
+            dense
+            color="negative"
+            icon="delete"
+            label="Delete"
+            :loading="actionLoading"
+            :disable="!hasTarget"
+            :title="!hasTarget ? 'Select target first' : ''"
+            @click="$emit('delete')"
+          />
+        </div>
+      </div>
+
+      <q-separator />
+
+      <div v-if="loading" class="flex flex-center q-pa-xl">
+        <q-spinner color="primary" size="2em" />
+      </div>
+
+      <template v-else-if="user">
+        <div class="row q-gutter-sm q-px-lg q-py-md">
+          <q-card flat bordered class="col-auto">
+            <q-card-section class="q-pa-sm text-center" style="min-width: 100px">
+              <div class="text-caption text-grey-6">Enabled</div>
+              <q-icon
+                :name="user.info?.isenabled !== false ? 'check_circle' : 'block'"
+                :color="user.info?.isenabled !== false ? 'positive' : 'negative'"
+                size="sm"
+              />
+            </q-card-section>
+          </q-card>
+          <q-card flat bordered class="col-auto">
+            <q-card-section class="q-pa-sm text-center" style="min-width: 100px">
+              <div class="text-caption text-grey-6">Locked</div>
+              <q-icon
+                :name="user.info?.islocked ? 'lock' : 'lock_open'"
+                :color="user.info?.islocked ? 'negative' : 'grey'"
+                size="sm"
+              />
+            </q-card-section>
+          </q-card>
+          <q-card flat bordered class="col-auto">
+            <q-card-section class="q-pa-sm text-center" style="min-width: 100px">
+              <div class="text-caption text-grey-6">Password expired</div>
+              <q-icon
+                :name="user.info?.passwordexpired ? 'warning' : 'check_circle'"
+                :color="user.info?.passwordexpired ? 'orange' : 'grey'"
+                size="sm"
+              />
+            </q-card-section>
+          </q-card>
+        </div>
+
+        <q-separator />
+
+        <q-tabs
+          :model-value="detailTab"
+          dense
+          inline-label
+          class="text-grey bg-grey-1"
+          active-color="primary"
+          indicator-color="primary"
+          align="left"
+          narrow-indicator
+          no-caps
+          @update:model-value="$emit('update:detailTab', $event)"
+        >
+          <q-tab name="info" icon="info" label="Info" />
+          <q-tab name="groups" icon="group" label="Groups">
+            <q-badge
+              v-if="groups.length"
+              color="primary"
+              :label="groups.length"
+              floating
+              rounded
+            />
+          </q-tab>
+          <q-tab name="agents" icon="dns" label="Agents">
+            <q-badge
+              v-if="agents.length"
+              color="primary"
+              :label="agents.length"
+              floating
+              rounded
+            />
+          </q-tab>
+        </q-tabs>
+
+        <q-separator />
+
+        <q-tab-panels :model-value="detailTab" class="users-tab-panels">
+          <q-tab-panel name="info" class="q-pa-md">
+            <UserInfoTab :user="user" />
+          </q-tab-panel>
+          <q-tab-panel name="groups" class="q-pa-md">
+            <UserGroupsTab :groups="groups" :loading="groupsLoading" />
+          </q-tab-panel>
+          <q-tab-panel name="agents" class="q-pa-md">
+            <UserAgentsTab :agents="agents" :loading="agentsLoading" />
+          </q-tab-panel>
+        </q-tab-panels>
+      </template>
+    </template>
+  </div>
+</template>
+
+<script setup lang="ts">
+import type { UserWithIdInfo } from "@/generated/user_service_pb";
+import type { GroupRow } from "@/gpo/composables/useUserActions";
+import UserInfoTab from "./UserInfoTab.vue";
+import UserGroupsTab from "./UserGroupsTab.vue";
+import UserAgentsTab from "./UserAgentsTab.vue";
+
+defineProps<{
+  selectedId: string | null;
+  user: UserWithIdInfo.AsObject | null;
+  loading: boolean;
+  hasTarget: boolean;
+  actionLoading: boolean;
+  detailTab: string;
+  groups: GroupRow[];
+  groupsLoading: boolean;
+  agents: string[];
+  agentsLoading: boolean;
+}>();
+
+defineEmits<{
+  update: [];
+  delete: [];
+  "toggle-enable": [];
+  "set-password": [];
+  unlock: [];
+  "expire-password": [];
+  "set-expiration": [];
+  "update:detailTab": [value: string];
+}>();
+</script>
+
+<style scoped lang="sass">
+.users-right-panel
+  flex: 1
+  display: flex
+  flex-direction: column
+  overflow: hidden
+
+.users-detail-header
+  flex-shrink: 0
+
+.users-tab-panels
+  flex: 1
+  overflow: auto
+
+.text-mono
+  font-family: monospace
+</style>

@@ -20,14 +20,17 @@ import {
   SetUserAccountExpirationRequest,
   SetGroupChildGroupsRequest,
   CreateUserGroupRequest,
+  GroupIdRequest,
   GroupRequest,
   UserGroupRequest,
   UserGroupTarget,
+  UserIdRequest,
 } from "@/generated/user_service_pb";
 
 import type * as operator_pb_types from "@/generated/operator_pb";
 import type * as user_service_pb_types from "@/generated/user_service_pb";
 import * as wrappers_pb from "google-protobuf/google/protobuf/wrappers_pb";
+import * as empty_pb from "google-protobuf/google/protobuf/empty_pb";
 import { useAuthStore } from "@/stores/auth";
 import {
   GroupInfo,
@@ -402,16 +405,8 @@ function setUserIdentifier(
   samId: string,
 ): void {
   uid.setTarget(target);
+  uid.setUserId(samId);
   uid.setSamId(samId);
-}
-
-function setGroupRequest(
-  gr: GroupRequest,
-  target: UserGroupTarget,
-  samGroupName: string,
-): void {
-  gr.setTarget(target);
-  gr.setSamGroupName(samGroupName);
 }
 
 export const userControlClient = {
@@ -612,11 +607,11 @@ export const userControlClient = {
   },
 
   async getUserEffectiveAgents(
-    target: UserGroupTarget,
+    _target: UserGroupTarget,
     samId: string,
   ): Promise<user_service_pb_types.UserAgentsResponse.AsObject> {
-    const req = new UserIdentifier();
-    setUserIdentifier(req, target, samId);
+    const req = new UserIdRequest();
+    req.setUserid(samId);
     const response =
       await operatorUserControlServiceClient.getUserEffectiveAgents(
         req,
@@ -626,13 +621,12 @@ export const userControlClient = {
   },
 
   async setGroupChildGroups(
-    target: UserGroupTarget,
-    samGroupName: string,
+    groupId: string,
     childGroupIds: string[],
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
     const req = new SetGroupChildGroupsRequest();
-    const gr = new GroupRequest();
-    setGroupRequest(gr, target, samGroupName);
+    const gr = new GroupIdRequest();
+    gr.setGroupid(groupId);
     req.setGroup(gr);
     req.setChildGroupIdsList(childGroupIds);
     const response =
@@ -644,11 +638,11 @@ export const userControlClient = {
   },
 
   async getUser(
-    target: UserGroupTarget,
+    _target: UserGroupTarget,
     samId: string,
   ): Promise<user_service_pb_types.UserResponse.AsObject> {
-    const req = new UserIdentifier();
-    setUserIdentifier(req, target, samId);
+    const req = new UserIdRequest();
+    req.setUserid(samId);
     const response = await operatorUserControlServiceClient.getUser(
       req,
       createGrpcMetadata(),
@@ -656,22 +650,21 @@ export const userControlClient = {
     return response.toObject();
   },
 
-  async getAllUsers(
-    target: UserGroupTarget,
-  ): Promise<user_service_pb_types.UsersResponse.AsObject> {
+  async getAllUsers(): Promise<user_service_pb_types.UsersResponse.AsObject> {
+    const request = new empty_pb.Empty();
     const response = await operatorUserControlServiceClient.getAllUsers(
-      target,
+      request,
       createGrpcMetadata(),
     );
     return response.toObject();
   },
 
   async getUserGroups(
-    target: UserGroupTarget,
+    _target: UserGroupTarget,
     samId: string,
   ): Promise<user_service_pb_types.GroupListResponse.AsObject> {
-    const req = new UserIdentifier();
-    setUserIdentifier(req, target, samId);
+    const req = new UserIdRequest();
+    req.setUserid(samId);
     const response = await operatorUserControlServiceClient.getUserGroups(
       req,
       createGrpcMetadata(),
@@ -680,11 +673,11 @@ export const userControlClient = {
   },
 
   async getUserAgents(
-    target: UserGroupTarget,
+    _target: UserGroupTarget,
     samId: string,
   ): Promise<user_service_pb_types.UserAgentsResponse.AsObject> {
-    const req = new UserIdentifier();
-    setUserIdentifier(req, target, samId);
+    const req = new UserIdRequest();
+    req.setUserid(samId);
     const response = await operatorUserControlServiceClient.getUserAgents(
       req,
       createGrpcMetadata(),
@@ -693,11 +686,10 @@ export const userControlClient = {
   },
 
   async getGroup(
-    target: UserGroupTarget,
-    samGroupName: string,
+    groupId: string,
   ): Promise<user_service_pb_types.GroupResponse.AsObject> {
-    const req = new GroupRequest();
-    setGroupRequest(req, target, samGroupName);
+    const req = new GroupIdRequest();
+    req.setGroupid(groupId);
     const response = await operatorUserControlServiceClient.getGroup(
       req,
       createGrpcMetadata(),
@@ -705,22 +697,29 @@ export const userControlClient = {
     return response.toObject();
   },
 
-  async getAllGroups(
-    target: UserGroupTarget,
-  ): Promise<user_service_pb_types.GroupsResponse.AsObject> {
+  async getAllGroups(): Promise<user_service_pb_types.GroupsResponse.AsObject> {
+    const request = new empty_pb.Empty();
     const response = await operatorUserControlServiceClient.getAllGroups(
-      target,
+      request,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async getGroupTree(): Promise<user_service_pb_types.GroupTreeResponse.AsObject> {
+    const request = new empty_pb.Empty();
+    const response = await operatorUserControlServiceClient.getGroupTree(
+      request,
       createGrpcMetadata(),
     );
     return response.toObject();
   },
 
   async getGroupUsers(
-    target: UserGroupTarget,
-    samGroupName: string,
+    groupId: string,
   ): Promise<user_service_pb_types.UserListResponse.AsObject> {
-    const req = new GroupRequest();
-    setGroupRequest(req, target, samGroupName);
+    const req = new GroupIdRequest();
+    req.setGroupid(groupId);
     const response = await operatorUserControlServiceClient.getGroupUsers(
       req,
       createGrpcMetadata(),
@@ -729,11 +728,10 @@ export const userControlClient = {
   },
 
   async getGroupAgents(
-    target: UserGroupTarget,
-    samGroupName: string,
+    groupId: string,
   ): Promise<user_service_pb_types.AgentListResponse.AsObject> {
-    const req = new GroupRequest();
-    setGroupRequest(req, target, samGroupName);
+    const req = new GroupIdRequest();
+    req.setGroupid(groupId);
     const response = await operatorUserControlServiceClient.getGroupAgents(
       req,
       createGrpcMetadata(),
@@ -742,11 +740,10 @@ export const userControlClient = {
   },
 
   async getGroupChildGroups(
-    target: UserGroupTarget,
-    samGroupName: string,
+    groupId: string,
   ): Promise<user_service_pb_types.GroupListResponse.AsObject> {
-    const req = new GroupRequest();
-    setGroupRequest(req, target, samGroupName);
+    const req = new GroupIdRequest();
+    req.setGroupid(groupId);
     const response =
       await operatorUserControlServiceClient.getGroupChildGroups(
         req,
@@ -756,11 +753,10 @@ export const userControlClient = {
   },
 
   async getGroupParentGroups(
-    target: UserGroupTarget,
-    samGroupName: string,
+    groupId: string,
   ): Promise<user_service_pb_types.GroupListResponse.AsObject> {
-    const req = new GroupRequest();
-    setGroupRequest(req, target, samGroupName);
+    const req = new GroupIdRequest();
+    req.setGroupid(groupId);
     const response =
       await operatorUserControlServiceClient.getGroupParentGroups(
         req,

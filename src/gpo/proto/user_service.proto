@@ -3,7 +3,9 @@ syntax = "proto3";
 import "common/user.proto";
 import "operator.proto";
 
+
 import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
 
 package laborato.operator.service;
 
@@ -21,22 +23,23 @@ service OperatorUserControlService {
     rpc AddUserToGroup(UserGroupRequest) returns (UserControlResponse);
     rpc RemoveUserFromGroup(UserGroupRequest) returns (UserControlResponse);
 
-    rpc GetUserEffectiveAgents(UserIdentifier) returns (UserAgentsResponse);
+    rpc GetUserEffectiveAgents(UserIdRequest) returns (UserAgentsResponse);
     rpc SetGroupChildGroups(SetGroupChildGroupsRequest) returns (UserControlResponse);
 
-    // ===== USER READ =====
-    rpc GetUser(UserIdentifier) returns (UserResponse);
-    rpc GetAllUsers(UserGroupTarget) returns (UsersResponse);
-    rpc GetUserGroups(UserIdentifier) returns (GroupListResponse);
-    rpc GetUserAgents(UserIdentifier) returns (UserAgentsResponse);
+    // USER READ
+    rpc GetUser(UserIdRequest) returns (UserResponse);
+    rpc GetAllUsers(google.protobuf.Empty) returns (UsersResponse);
+    rpc GetUserGroups(UserIdRequest) returns (GroupListResponse);
+    rpc GetUserAgents(UserIdRequest) returns (UserAgentsResponse);
 
-    // ===== GROUP READ =====
-    rpc GetGroup(GroupRequest) returns (GroupResponse);
-    rpc GetAllGroups(UserGroupTarget) returns (GroupsResponse);
-    rpc GetGroupUsers(GroupRequest) returns (UserListResponse);
-    rpc GetGroupAgents(GroupRequest) returns (AgentListResponse);
-    rpc GetGroupChildGroups(GroupRequest) returns (GroupListResponse);
-    rpc GetGroupParentGroups(GroupRequest) returns (GroupListResponse);
+    // GROUP READ
+    rpc GetGroup(GroupIdRequest) returns (GroupResponse);
+    rpc GetAllGroups(google.protobuf.Empty) returns (GroupsResponse);
+    rpc GetGroupTree(google.protobuf.Empty) returns (GroupTreeResponse);
+    rpc GetGroupUsers(GroupIdRequest) returns (UserListResponse);
+    rpc GetGroupAgents(GroupIdRequest) returns (AgentListResponse);
+    rpc GetGroupChildGroups(GroupIdRequest) returns (GroupListResponse);
+    rpc GetGroupParentGroups(GroupIdRequest) returns (GroupListResponse);
 }
 
 message CreateUserRequest {
@@ -66,11 +69,20 @@ message SetUserAccountExpirationRequest {
 
 message UserIdentifier {
     UserGroupTarget target = 1;
-    string sam_id = 2;
+    string user_id = 2;
+    string sam_id = 3;
+}
+
+message UserIdRequest {
+    string userId = 1;
+}
+
+message GroupIdRequest {
+    string groupId = 1;
 }
 
 message SetGroupChildGroupsRequest {
-    GroupRequest group = 1;
+    GroupIdRequest group = 1;
     repeated string child_group_ids = 2;
 }
 
@@ -88,37 +100,60 @@ message UserAgentsResponse {
 
 message UserResponse {
     ResponseStatus status = 1;
-    laborato.common.user.UserInfo user = 2;
+    UserWithIdInfo user = 2;
     optional string error_message = 3;
 }
 
 message UsersResponse {
     ResponseStatus status = 1;
-    repeated laborato.common.user.UserInfo users = 2;
+    repeated UserWithIdInfo users = 2;
     optional string error_message = 3;
+}
+
+message UserWithIdInfo {
+    string userId = 1;
+    laborato.common.user.UserInfo info  = 2;
 }
 
 message GroupResponse {
     ResponseStatus status = 1;
-    laborato.common.user.GroupInfo group = 2;
+    GroupWithIdInfo group = 2;
     optional string error_message = 3;
 }
 
 message GroupsResponse {
     ResponseStatus status = 1;
-    repeated laborato.common.user.GroupInfo groups = 2;
+    repeated GroupWithIdInfo groups = 2;
     optional string error_message = 3;
 }
 
 message GroupListResponse {
     ResponseStatus status = 1;
-    repeated laborato.common.user.GroupInfo groups = 2;
+    repeated GroupWithIdInfo groups = 2;
     optional string error_message = 3;
 }
 
+message GroupWithIdInfo {
+    string groupId = 1;
+    laborato.common.user.GroupInfo info = 2;
+}
+
+message GroupTreeResponse {
+    ResponseStatus status = 1;
+    repeated GroupTreeNode roots = 2;
+    optional string error_message = 3;
+}
+
+message GroupTreeNode {
+    string groupId = 1;
+    laborato.common.user.GroupInfo info = 2;
+    repeated GroupTreeNode children = 3;
+}
+
+
 message UserListResponse {
     ResponseStatus status = 1;
-    repeated laborato.common.user.UserInfo users = 2;
+    repeated UserWithIdInfo users = 2;
     optional string error_message = 3;
 }
 

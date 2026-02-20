@@ -1216,7 +1216,15 @@
       transition-show="slide-up"
       transition-hide="slide-down"
     >
-      <GroupsManagerModal @close="showGroupsManager = false" />
+      <GroupsManagerModal :open="showGroupsManager" @close="showGroupsManager = false" />
+    </q-dialog>
+    <q-dialog
+      v-model="showUsersManager"
+      maximized
+      transition-show="slide-up"
+      transition-hide="slide-down"
+    >
+      <UsersManagerModal :open="showUsersManager" @close="showUsersManager = false" />
     </q-dialog>
   </q-drawer>
 </template>
@@ -1243,7 +1251,9 @@ import ServerMaintenance from "@/components/modals/core/ServerMaintenance.vue";
 import CodeSign from "@/components/modals/coresettings/CodeSign.vue";
 import PermissionsManager from "@/components/accounts/PermissionsManager.vue";
 import TemplateManager from "@/components/tasks/TemplateManager.vue";
-import GroupsManagerModal from "@/gpo/components/GroupsManagerModal.vue";
+import GroupsManagerModal from "@/gpo/components/GroupsManager/GroupsManagerModal.vue";
+import UsersManagerModal from "@/gpo/components/UsersManager/UsersManagerModal.vue";
+
 
 export default {
   name: "FileBar",
@@ -1256,6 +1266,7 @@ export default {
     ServerMaintenance,
     CodeSign,
     GroupsManagerModal,
+    UsersManagerModal,
   },
   data() {
     return {
@@ -1266,6 +1277,7 @@ export default {
       showInstallAgent: false,
       showCodeSign: false,
       showGroupsManager: false,
+      showUsersManager: false,
     };
   },
   computed: {
@@ -1342,7 +1354,7 @@ export default {
           this.showPendingActions();
           break;
         case "users":
-          // TODO: открыть раздел Users
+          this.showUsersManager = true;
           break;
         case "groups":
           this.showGroupsManager = true;
