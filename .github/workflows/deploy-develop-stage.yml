@@ -25,12 +25,6 @@ jobs:
           
           cd ~/mdmlabsrmm/web-tactical/
 
-          echo "💾 Saving local package.json..."
-          cp package.json package.json.local || true
-
-          echo "🔄 Resetting tracked package.json..."
-          git checkout -- package.json || true
-
           echo "🌐 Pulling latest changes..."
           git pull
 
