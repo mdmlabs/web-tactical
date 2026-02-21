@@ -27,10 +27,7 @@ jobs:
 
           echo "🌐 Pulling latest changes..."
           git pull
-
-          echo "♻️ Restoring local package.json..."
-          mv package.json.local package.json || true
-
+          
           echo "📦 Installing dependencies..."
           npm install --legacy-peer-deps
 
