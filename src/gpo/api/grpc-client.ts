@@ -8,16 +8,39 @@ import {
   PolicyAssignmentServiceClient,
   PolicyStateServiceClient,
 } from "@/generated/OperatorServiceClientPb";
+import { OperatorUserControlServiceClient } from "@/generated/User_serviceServiceClientPb";
 
 import operator_pb from "@/generated/operator_pb";
+import {
+  UpdateUserRequest,
+  UserIdentifier,
+  CreateUserRequest,
+  EnableUserRequest,
+  SetUserPasswordRequest,
+  SetUserAccountExpirationRequest,
+  SetGroupChildGroupsRequest,
+  CreateUserGroupRequest,
+  GroupIdRequest,
+  GroupRequest,
+  UserGroupRequest,
+  UserGroupTarget,
+  UserIdRequest,
+} from "@/generated/user_service_pb";
 
 import type * as operator_pb_types from "@/generated/operator_pb";
+import type * as user_service_pb_types from "@/generated/user_service_pb";
+import * as wrappers_pb from "google-protobuf/google/protobuf/wrappers_pb";
+import * as empty_pb from "google-protobuf/google/protobuf/empty_pb";
 import { useAuthStore } from "@/stores/auth";
-import { GroupInfo, UserInfo } from "@/generated/common/user_pb";
+import {
+  GroupInfo,
+  UserInfo,
+  UserRequest as CommonUserRequest,
+} from "@/generated/common/user_pb";
 
-if (!operator_pb) {
-  throw new Error("operator_pb module failed to load");
-}
+
+
+
 
 // interface WindowWithEnv extends Window {
 //   _env_?: {
@@ -76,6 +99,9 @@ const collectionsControlServiceClient = createClient(
   CollectionsControlServiceClient,
 );
 const userServiceClient = createClient(UserServiceClient);
+const operatorUserControlServiceClient = createClient(
+  OperatorUserControlServiceClient,
+);
 const admxServiceClient = createClient(AdmxServiceClient);
 const policyCatalogServiceClient = createClient(PolicyCatalogServiceClient);
 const policyAssignmentServiceClient = createClient(
@@ -289,6 +315,463 @@ export const userClient = {
   },
 };
 
+export type CreateUserParams = {
+  samAccountName: string;
+  password?: string;
+  displayName?: string;
+  description?: string;
+  enabled?: boolean;
+  passwordNotRequired?: boolean;
+  userCannotChangePassword?: boolean;
+  smartcardLogonRequired?: boolean;
+  accountExpirationDate?: string;
+  name?: string;
+  middleName?: string;
+  surname?: string;
+  email?: string;
+  homeDirectory?: string;
+  scriptPath?: string;
+  telephoneNumber?: string;
+  employeeId?: string;
+};
+
+function setStringWrapper(
+  userReq: InstanceType<typeof CommonUserRequest>,
+  setter: (v: InstanceType<typeof wrappers_pb.StringValue>) => unknown,
+  value: string | undefined,
+): void {
+  if (value != null && value !== "") {
+    const w = new wrappers_pb.StringValue();
+    w.setValue(value);
+    setter.call(userReq, w);
+  }
+}
+
+function setBoolWrapper(
+  userReq: InstanceType<typeof CommonUserRequest>,
+  setter: (v: InstanceType<typeof wrappers_pb.BoolValue>) => unknown,
+  value: boolean | undefined,
+): void {
+  if (value != null) {
+    const w = new wrappers_pb.BoolValue();
+    w.setValue(value);
+    setter.call(userReq, w);
+  }
+}
+
+function fillUserRequest(
+  userReq: InstanceType<typeof CommonUserRequest>,
+  data: Partial<CreateUserParams> & { samAccountName: string },
+): void {
+  userReq.setSamAccountName(data.samAccountName);
+  if (data.password != null) userReq.setPassword(data.password);
+  setStringWrapper(userReq, userReq.setDisplayName, data.displayName);
+  setStringWrapper(userReq, userReq.setDescription, data.description);
+  setBoolWrapper(userReq, userReq.setEnabled, data.enabled);
+  setBoolWrapper(
+    userReq,
+    userReq.setPasswordNotRequired,
+    data.passwordNotRequired,
+  );
+  setBoolWrapper(
+    userReq,
+    userReq.setUserCannotChangePassword,
+    data.userCannotChangePassword,
+  );
+  setBoolWrapper(
+    userReq,
+    userReq.setSmartcardLogonRequired,
+    data.smartcardLogonRequired,
+  );
+  setStringWrapper(
+    userReq,
+    userReq.setAccountExpirationDate,
+    data.accountExpirationDate,
+  );
+  setStringWrapper(userReq, userReq.setName, data.name);
+  setStringWrapper(userReq, userReq.setMiddleName, data.middleName);
+  setStringWrapper(userReq, userReq.setSurname, data.surname);
+  setStringWrapper(userReq, userReq.setEmail, data.email);
+  setStringWrapper(userReq, userReq.setHomeDirectory, data.homeDirectory);
+  setStringWrapper(userReq, userReq.setScriptPath, data.scriptPath);
+  setStringWrapper(userReq, userReq.setTelephoneNumber, data.telephoneNumber);
+  setStringWrapper(userReq, userReq.setEmployeeId, data.employeeId);
+}
+
+
+function setUserIdentifier(
+  uid: UserIdentifier,
+  target: UserGroupTarget,
+  samId: string,
+): void {
+  uid.setTarget(target);
+  uid.setUserId(samId);
+  uid.setSamId(samId);
+}
+
+export const userControlClient = {
+  async createUser(
+    target: UserGroupTarget,
+    userData: CreateUserParams,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new CreateUserRequest();
+    req.setTarget(target);
+    const userReq = new CommonUserRequest();
+    fillUserRequest(userReq, userData);
+    req.setUser(userReq);
+    const response = await operatorUserControlServiceClient.createUser(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async updateUser(
+    target: UserGroupTarget,
+    samId: string,
+    data: Partial<CreateUserParams>,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new UpdateUserRequest();
+    const uid = new UserIdentifier();
+    setUserIdentifier(uid, target, samId);
+    req.setUser(uid);
+    const dataReq = new CommonUserRequest();
+    fillUserRequest(dataReq, { samAccountName: samId, ...data });
+    req.setData(dataReq);
+    const response = await operatorUserControlServiceClient.updateUser(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async deleteUser(
+    target: UserGroupTarget,
+    samId: string,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new UserIdentifier();
+    setUserIdentifier(req, target, samId);
+    const response = await operatorUserControlServiceClient.deleteUser(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async enableUser(
+    target: UserGroupTarget,
+    samId: string,
+    enable: boolean,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new EnableUserRequest();
+    const uid = new UserIdentifier();
+    setUserIdentifier(uid, target, samId);
+    req.setUser(uid);
+    req.setEnable(enable);
+    const response = await operatorUserControlServiceClient.enableUser(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async setUserPassword(
+    target: UserGroupTarget,
+    samId: string,
+    newPassword: string,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new SetUserPasswordRequest();
+    const uid = new UserIdentifier();
+    setUserIdentifier(uid, target, samId);
+    req.setUser(uid);
+    req.setNewPassword(newPassword);
+    const response = await operatorUserControlServiceClient.setUserPassword(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async unlockUser(
+    target: UserGroupTarget,
+    samId: string,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new UserIdentifier();
+    setUserIdentifier(req, target, samId);
+    const response = await operatorUserControlServiceClient.unlockUser(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async expireUserPassword(
+    target: UserGroupTarget,
+    samId: string,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new UserIdentifier();
+    setUserIdentifier(req, target, samId);
+    const response = await operatorUserControlServiceClient.expireUserPassword(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async setUserAccountExpiration(
+    target: UserGroupTarget,
+    samId: string,
+    accountExpirationDate: string | undefined,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new SetUserAccountExpirationRequest();
+    const uid = new UserIdentifier();
+    setUserIdentifier(uid, target, samId);
+    req.setUser(uid);
+    if (accountExpirationDate != null) {
+      const w = new wrappers_pb.StringValue();
+      w.setValue(accountExpirationDate);
+      req.setAccountExpirationDate(w);
+    }
+    const response =
+      await operatorUserControlServiceClient.setUserAccountExpiration(
+        req,
+        createGrpcMetadata(),
+      );
+    return response.toObject();
+  },
+
+  async createGroup(
+    target: UserGroupTarget,
+    samGroupName: string,
+    description?: string,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new CreateUserGroupRequest();
+    req.setTarget(target);
+    req.setSamGroupName(samGroupName);
+    if (description != null) {
+      const w = new wrappers_pb.StringValue();
+      w.setValue(description);
+      req.setDescription(w);
+    }
+    console.log("[createGroup] Request:", {
+      samGroupName,
+      description,
+      target: target.toObject(),
+      request: req.toObject(),
+    });
+    const response = await operatorUserControlServiceClient.createGroup(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async deleteGroup(
+    target: UserGroupTarget,
+    samGroupName: string,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new GroupRequest();
+    req.setTarget(target);
+    req.setSamGroupName(samGroupName);
+    const response = await operatorUserControlServiceClient.deleteGroup(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async addUserToGroup(
+    target: UserGroupTarget,
+    samGroupName: string,
+    samAccountName: string,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new UserGroupRequest();
+    req.setTarget(target);
+    req.setSamGroupName(samGroupName);
+    req.setSamAccountName(samAccountName);
+    const response = await operatorUserControlServiceClient.addUserToGroup(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async removeUserFromGroup(
+    target: UserGroupTarget,
+    samGroupName: string,
+    samAccountName: string,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new UserGroupRequest();
+    req.setTarget(target);
+    req.setSamGroupName(samGroupName);
+    req.setSamAccountName(samAccountName);
+    const response = await operatorUserControlServiceClient.removeUserFromGroup(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async getUserEffectiveAgents(
+    _target: UserGroupTarget,
+    samId: string,
+  ): Promise<user_service_pb_types.UserAgentsResponse.AsObject> {
+    const req = new UserIdRequest();
+    req.setUserid(samId);
+    const response =
+      await operatorUserControlServiceClient.getUserEffectiveAgents(
+        req,
+        createGrpcMetadata(),
+      );
+    return response.toObject();
+  },
+
+  async setGroupChildGroups(
+    groupId: string,
+    childGroupIds: string[],
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new SetGroupChildGroupsRequest();
+    const gr = new GroupIdRequest();
+    gr.setGroupid(groupId);
+    req.setGroup(gr);
+    req.setChildGroupIdsList(childGroupIds);
+    const response =
+      await operatorUserControlServiceClient.setGroupChildGroups(
+        req,
+        createGrpcMetadata(),
+      );
+    return response.toObject();
+  },
+
+  async getUser(
+    _target: UserGroupTarget,
+    samId: string,
+  ): Promise<user_service_pb_types.UserResponse.AsObject> {
+    const req = new UserIdRequest();
+    req.setUserid(samId);
+    const response = await operatorUserControlServiceClient.getUser(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async getAllUsers(): Promise<user_service_pb_types.UsersResponse.AsObject> {
+    const request = new empty_pb.Empty();
+    const response = await operatorUserControlServiceClient.getAllUsers(
+      request,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async getUserGroups(
+    _target: UserGroupTarget,
+    samId: string,
+  ): Promise<user_service_pb_types.GroupListResponse.AsObject> {
+    const req = new UserIdRequest();
+    req.setUserid(samId);
+    const response = await operatorUserControlServiceClient.getUserGroups(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async getUserAgents(
+    _target: UserGroupTarget,
+    samId: string,
+  ): Promise<user_service_pb_types.UserAgentsResponse.AsObject> {
+    const req = new UserIdRequest();
+    req.setUserid(samId);
+    const response = await operatorUserControlServiceClient.getUserAgents(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async getGroup(
+    groupId: string,
+  ): Promise<user_service_pb_types.GroupResponse.AsObject> {
+    const req = new GroupIdRequest();
+    req.setGroupid(groupId);
+    const response = await operatorUserControlServiceClient.getGroup(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async getAllGroups(): Promise<user_service_pb_types.GroupsResponse.AsObject> {
+    const request = new empty_pb.Empty();
+    const response = await operatorUserControlServiceClient.getAllGroups(
+      request,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async getGroupTree(): Promise<user_service_pb_types.GroupTreeResponse.AsObject> {
+    const request = new empty_pb.Empty();
+    const response = await operatorUserControlServiceClient.getGroupTree(
+      request,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async getGroupUsers(
+    groupId: string,
+  ): Promise<user_service_pb_types.UserListResponse.AsObject> {
+    const req = new GroupIdRequest();
+    req.setGroupid(groupId);
+    const response = await operatorUserControlServiceClient.getGroupUsers(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async getGroupAgents(
+    groupId: string,
+  ): Promise<user_service_pb_types.AgentListResponse.AsObject> {
+    const req = new GroupIdRequest();
+    req.setGroupid(groupId);
+    const response = await operatorUserControlServiceClient.getGroupAgents(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async getGroupChildGroups(
+    groupId: string,
+  ): Promise<user_service_pb_types.GroupListResponse.AsObject> {
+    const req = new GroupIdRequest();
+    req.setGroupid(groupId);
+    const response =
+      await operatorUserControlServiceClient.getGroupChildGroups(
+        req,
+        createGrpcMetadata(),
+      );
+    return response.toObject();
+  },
+
+  async getGroupParentGroups(
+    groupId: string,
+  ): Promise<user_service_pb_types.GroupListResponse.AsObject> {
+    const req = new GroupIdRequest();
+    req.setGroupid(groupId);
+    const response =
+      await operatorUserControlServiceClient.getGroupParentGroups(
+        req,
+        createGrpcMetadata(),
+      );
+    return response.toObject();
+  },
+};
+
 export function createGlobalTarget(): operator_pb.PolicyTarget {
   const target = new operator_pb.PolicyTarget();
   const globalTarget = new operator_pb.GlobalTarget();
@@ -302,6 +785,208 @@ export function createAgentTarget(agentId: string): operator_pb.PolicyTarget {
   agentTarget.setAgentId(agentId);
   target.setAgent(agentTarget);
   return target;
+}
+
+
+export function createUserGroupTargetForAgent(agentId: string): UserGroupTarget {
+  const ugTarget = new UserGroupTarget();
+  const agentTarget = new operator_pb.AgentTarget();
+  agentTarget.setAgentId(agentId);
+  ugTarget.setAgent(agentTarget);
+  return ugTarget;
+}
+
+export function createUserGroupTargetForUser(
+  agentId: string,
+  userSid: string,
+): UserGroupTarget {
+  const ugTarget = new UserGroupTarget();
+  const userTarget = new operator_pb.UserTarget();
+  userTarget.setAgentId(agentId);
+  userTarget.setUserSid(userSid);
+  ugTarget.setUser(userTarget);
+  return ugTarget;
+}
+
+export function createUserGroupTargetGlobal(): UserGroupTarget {
+  const ugTarget = new UserGroupTarget();
+  ugTarget.setGlobal(new operator_pb.GlobalTarget());
+  return ugTarget;
+}
+
+export function createUserGroupTargetForClient(clientId: string): UserGroupTarget {
+  const ugTarget = new UserGroupTarget();
+  const clientTarget = new operator_pb.TacticalClientTarget();
+  clientTarget.setClientId(Number(clientId));
+  ugTarget.setClient(clientTarget);
+  return ugTarget;
+}
+
+export function createUserGroupTargetForClients(
+  clientIds: string[],
+): UserGroupTarget {
+  const ugTarget = new UserGroupTarget();
+  const clientsTarget = new operator_pb.TacticalClientsTarget();
+  clientsTarget.setClientsList(
+    clientIds.map((id) => {
+      const c = new operator_pb.TacticalClientTarget();
+      c.setClientId(Number(id));
+      return c;
+    }),
+  );
+  ugTarget.setClients(clientsTarget);
+  return ugTarget;
+}
+
+export function createUserGroupTargetForSite(siteId: string): UserGroupTarget {
+  const ugTarget = new UserGroupTarget();
+  const siteTarget = new operator_pb.TacticalSiteTarget();
+  siteTarget.setSiteId(Number(siteId));
+  ugTarget.setSite(siteTarget);
+  return ugTarget;
+}
+
+export function createUserGroupTargetForSites(
+  siteIds: string[],
+): UserGroupTarget {
+  const ugTarget = new UserGroupTarget();
+  const sitesTarget = new operator_pb.TacticalSitesTarget();
+  sitesTarget.setSitesList(
+    siteIds.map((id) => {
+      const s = new operator_pb.TacticalSiteTarget();
+      s.setSiteId(Number(id));
+      return s;
+    }),
+  );
+  ugTarget.setSites(sitesTarget);
+  return ugTarget;
+}
+
+export function createUserGroupTargetForAgents(
+  agentIds: string[],
+): UserGroupTarget {
+  const ugTarget = new UserGroupTarget();
+  const agentsTarget = new operator_pb.AggentsTarget();
+  agentsTarget.setAgentsList(
+    agentIds.map((id) => {
+      const a = new operator_pb.AgentTarget();
+      a.setAgentId(id);
+      return a;
+    }),
+  );
+  ugTarget.setAgents(agentsTarget);
+  return ugTarget;
+}
+
+export function createUserGroupTargetCombined(params: {
+  clientIds?: string[];
+  siteIds?: string[];
+  agentIds?: string[];
+}): UserGroupTarget {
+  const { clientIds = [], siteIds = [], agentIds = [] } = params;
+  const combined = new operator_pb.CombinedTarget();
+
+  const clientsTarget = new operator_pb.TacticalClientsTarget();
+  clientsTarget.setClientsList(
+    clientIds.map((id) => {
+      const c = new operator_pb.TacticalClientTarget();
+      c.setClientId(Number(id));
+      return c;
+    }),
+  );
+  combined.setClients(clientsTarget);
+
+  const sitesTarget = new operator_pb.TacticalSitesTarget();
+  sitesTarget.setSitesList(
+    siteIds.map((id) => {
+      const s = new operator_pb.TacticalSiteTarget();
+      s.setSiteId(Number(id));
+      return s;
+    }),
+  );
+  combined.setSites(sitesTarget);
+
+  const agentsTarget = new operator_pb.AggentsTarget();
+  agentsTarget.setAgentsList(
+    agentIds.map((id) => {
+      const a = new operator_pb.AgentTarget();
+      a.setAgentId(id);
+      return a;
+    }),
+  );
+  combined.setAgents(agentsTarget);
+
+  const ugTarget = new UserGroupTarget();
+  ugTarget.setCombined(combined);
+  return ugTarget;
+}
+
+export type UserGroupTargetType =
+  | "global"
+  | "agent"
+  | "user"
+  | "client"
+  | "site"
+  | "clients"
+  | "sites"
+  | "agents"
+  | "combined";
+
+export type UserGroupTargetParams = {
+  agentId?: string;
+  userSid?: string;
+  clientId?: string;
+  siteId?: string;
+  clientIds?: string[];
+  siteIds?: string[];
+  agentIds?: string[];
+};
+
+export function createUserGroupTargetFromParams(
+  targetType: UserGroupTargetType,
+  targetParams: UserGroupTargetParams = {},
+): UserGroupTarget {
+  switch (targetType) {
+    case "global":
+      return createUserGroupTargetGlobal();
+    case "agent":
+      if (!targetParams.agentId) {
+        throw new Error("agentId обязателен для типа 'agent'");
+      }
+      return createUserGroupTargetForAgent(targetParams.agentId);
+    case "user":
+      if (!targetParams.agentId || !targetParams.userSid) {
+        throw new Error("agentId и userSid обязательны для типа 'user'");
+      }
+      return createUserGroupTargetForUser(
+        targetParams.agentId,
+        targetParams.userSid,
+      );
+    case "client":
+      if (!targetParams.clientId) {
+        throw new Error("clientId обязателен для типа 'client'");
+      }
+      return createUserGroupTargetForClient(targetParams.clientId);
+    case "site":
+      if (!targetParams.siteId) {
+        throw new Error("siteId обязателен для типа 'site'");
+      }
+      return createUserGroupTargetForSite(targetParams.siteId);
+    case "clients":
+      return createUserGroupTargetForClients(targetParams.clientIds ?? []);
+    case "sites":
+      return createUserGroupTargetForSites(targetParams.siteIds ?? []);
+    case "agents":
+      return createUserGroupTargetForAgents(targetParams.agentIds ?? []);
+    case "combined":
+      return createUserGroupTargetCombined({
+        clientIds: targetParams.clientIds,
+        siteIds: targetParams.siteIds,
+        agentIds: targetParams.agentIds,
+      });
+    default:
+      throw new Error(`Неизвестный тип цели: ${targetType}`);
+  }
 }
 
 export function createUserTarget(
@@ -321,7 +1006,7 @@ export function createTacticalClientTarget(
 ): operator_pb.PolicyTarget {
   const target = new operator_pb.PolicyTarget();
   const clientTarget = new operator_pb.TacticalClientTarget();
-  clientTarget.setClientId(clientId);
+  clientTarget.setClientId(Number(clientId));
   target.setClient(clientTarget);
   return target;
 }
@@ -331,7 +1016,7 @@ export function createTacticalSiteTarget(
 ): operator_pb.PolicyTarget {
   const target = new operator_pb.PolicyTarget();
   const siteTarget = new operator_pb.TacticalSiteTarget();
-  siteTarget.setSiteId(siteId);
+  siteTarget.setSiteId(Number(siteId));
   target.setSite(siteTarget);
   return target;
 }
@@ -343,39 +1028,37 @@ export function createCombinedTarget(params: {
 }): operator_pb.PolicyTarget {
   const { clientIds = [], siteIds = [], agentIds = [] } = params;
   const combined = new operator_pb.CombinedTarget();
-  if (clientIds.length > 0) {
-    const clientsTarget = new operator_pb.TacticalClientsTarget();
-    clientsTarget.setClientsList(
-      clientIds.map((id) => {
-        const c = new operator_pb.TacticalClientTarget();
-        c.setClientId(id);
-        return c;
-      }),
-    );
-    combined.setClients(clientsTarget);
-  }
-  if (siteIds.length > 0) {
-    const sitesTarget = new operator_pb.TacticalSitesTarget();
-    sitesTarget.setSitesList(
-      siteIds.map((id) => {
-        const s = new operator_pb.TacticalSiteTarget();
-        s.setSiteId(id);
-        return s;
-      }),
-    );
-    combined.setSites(sitesTarget);
-  }
-  if (agentIds.length > 0) {
-    const agentsTarget = new operator_pb.AggentsTarget();
-    agentsTarget.setAgentsList(
-      agentIds.map((id) => {
-        const a = new operator_pb.AgentTarget();
-        a.setAgentId(id);
-        return a;
-      }),
-    );
-    combined.setAgents(agentsTarget);
-  }
+
+  const clientsTarget = new operator_pb.TacticalClientsTarget();
+  clientsTarget.setClientsList(
+    clientIds.map((id) => {
+      const c = new operator_pb.TacticalClientTarget();
+      c.setClientId(Number(id));
+      return c;
+    }),
+  );
+  combined.setClients(clientsTarget);
+
+  const sitesTarget = new operator_pb.TacticalSitesTarget();
+  sitesTarget.setSitesList(
+    siteIds.map((id) => {
+      const s = new operator_pb.TacticalSiteTarget();
+      s.setSiteId(Number(id));
+      return s;
+    }),
+  );
+  combined.setSites(sitesTarget);
+
+  const agentsTarget = new operator_pb.AggentsTarget();
+  agentsTarget.setAgentsList(
+    agentIds.map((id) => {
+      const a = new operator_pb.AgentTarget();
+      a.setAgentId(id);
+      return a;
+    }),
+  );
+  combined.setAgents(agentsTarget);
+
   const target = new operator_pb.PolicyTarget();
   target.setCombined(combined);
   return target;
@@ -1074,6 +1757,7 @@ export {
   agentServiceClient,
   collectionsControlServiceClient,
   userServiceClient,
+  operatorUserControlServiceClient,
   admxServiceClient,
   policyCatalogServiceClient,
   policyAssignmentServiceClient,
@@ -1081,3 +1765,5 @@ export {
 };
 
 export { default as operator_pb } from "@/generated/operator_pb";
+export { default as mesh_pb } from "@/generated/mesh_pb";
+export { default as mesh_user_service_pb } from "@/generated/mesh/user_service_pb";
