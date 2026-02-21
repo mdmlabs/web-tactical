@@ -24,12 +24,25 @@ jobs:
           npm -v
           
           cd ~/mdmlabsrmm/web-tactical/
+
+          echo "💾 Saving local package.json..."
+          cp package.json package.json.local || true
+
+          echo "🔄 Resetting tracked package.json..."
+          git checkout -- package.json || true
+
           echo "🌐 Pulling latest changes..."
           git pull
+
+          echo "♻️ Restoring local package.json..."
+          mv package.json.local package.json || true
+
           echo "📦 Installing dependencies..."
           npm install --legacy-peer-deps
+
           echo "🔧 Generating proto files..."
           npm run proto:generate
+
           echo "🏗️ Building project..."
           npm run build
           
