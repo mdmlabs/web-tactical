@@ -535,18 +535,8 @@ export default {
       const payload = {
         agent_ids: this.selectedAgents,
         target_version: this.selectedVersion.value,
+        allow_downgrade: true,
       };
-
-      // Check if any selected agent requires downgrade
-      const hasDowngrade = this.selectedAgents.some((id) => {
-        const agent = this.agents.find((a) => a.agent_id === id);
-        return agent && this.compareVersions(agent.version, this.selectedVersion.value) > 0;
-      });
-
-      // Always include allow_downgrade if there are any downgrade operations
-      if (hasDowngrade) {
-        payload.allow_downgrade = true;
-      }
 
       this.$q.loading.show();
       try {
