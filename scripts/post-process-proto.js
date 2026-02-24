@@ -73,6 +73,9 @@ function getImportsForFile(filePath) {
     imports.wrappers = true;
     imports.user = true;
     imports.operator = true; // UserGroupTarget использует laborato.mesh.operator.v1.*
+  } else if (fileName === "agent_category_service_pb.js") {
+    imports.wrappers = true;
+    imports.empty = true;
   } else if (fileName === "mesh_pb.js") {
     imports.node = true;
     imports.timestamp = true;
@@ -222,6 +225,13 @@ function generateES6Imports(imports, packageName, filePath) {
       lines.push("");
       lines.push("proto.laborato.common = proto.laborato.common || {};");
       lines.push("proto.laborato.common.user = common_user_pb;");
+    }
+
+    if (imports.empty) {
+      lines.push("");
+      lines.push("proto.google = proto.google || {};");
+      lines.push("proto.google.protobuf = proto.google.protobuf || {};");
+      lines.push("goog.object.extend(proto, google_protobuf_empty_pb);");
     }
   } else if (packageName.startsWith("laborato.common.user")) {
     lines.push("proto.laborato = proto.laborato || {};");
@@ -498,6 +508,10 @@ function main() {
     },
     {
       path: path.join(GENERATED_DIR, "user_service_pb.js"),
+      package: "laborato.operator.service",
+    },
+    {
+      path: path.join(GENERATED_DIR, "agent_category_service_pb.js"),
       package: "laborato.operator.service",
     },
     {

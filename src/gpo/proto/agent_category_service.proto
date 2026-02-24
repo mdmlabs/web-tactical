@@ -1,0 +1,131 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+
+package laborato.operator.service;
+
+service OperatorAgentCategoryService {
+
+    // WRITE
+
+    rpc CreateCategory(CreateAgentCategoryRequest) returns (AgentCategoryControlResponse);
+    rpc UpdateCategory(UpdateAgentCategoryRequest) returns (AgentCategoryControlResponse);
+    rpc DeleteCategory(AgentCategoryIdRequest) returns (AgentCategoryControlResponse);
+
+    rpc SetCategoryParent(SetCategoryParentRequest) returns (AgentCategoryControlResponse);
+
+    rpc SetCategoryAgents(SetCategoryAgentsRequest) returns (AgentCategoryControlResponse);
+    rpc AddAgentToCategory(AddAgentToCategoryRequest) returns (AgentCategoryControlResponse);
+    rpc RemoveAgentFromCategory(RemoveAgentFromCategoryRequest) returns (AgentCategoryControlResponse);
+
+    // READ
+
+    rpc GetCategory(AgentCategoryIdRequest) returns (AgentCategoryResponse);
+    rpc GetAllCategories(google.protobuf.Empty) returns (AgentCategoriesResponse);
+    rpc GetCategoryTree(google.protobuf.Empty) returns (AgentCategoryTreeResponse);
+
+    rpc GetCategoryChildren(AgentCategoryIdRequest) returns (AgentCategoriesResponse);
+    rpc GetCategoryAgents(AgentCategoryIdRequest) returns (AgentsListResponse);
+    rpc GetAgentsInSubtree(AgentCategoryIdRequest) returns (AgentsListResponse);
+}
+
+//////////////////////////////////////////////////////////////
+// REQUESTS
+//////////////////////////////////////////////////////////////
+
+message AgentCategoryIdRequest {
+    int64 category_id = 1;
+}
+
+message CreateAgentCategoryRequest {
+    string name = 1;
+    google.protobuf.StringValue description = 2;
+    optional int64 parent_id = 3;
+}
+
+message UpdateAgentCategoryRequest {
+    int64 category_id = 1;
+    string name = 2;
+    google.protobuf.StringValue description = 3;
+}
+
+message SetCategoryParentRequest {
+    int64 category_id = 1;
+    optional int64 parent_id = 2; // null = сделать корнем
+}
+
+message SetCategoryAgentsRequest {
+    int64 category_id = 1;
+    repeated string agent_ids = 2;
+}
+
+message AddAgentToCategoryRequest {
+    int64 category_id = 1;
+    string agent_id = 2;
+}
+
+message RemoveAgentFromCategoryRequest {
+    int64 category_id = 1;
+    string agent_id = 2;
+}
+
+//////////////////////////////////////////////////////////////
+// RESPONSES
+//////////////////////////////////////////////////////////////
+
+message AgentCategoryControlResponse {
+    ACResponseStatus status = 1;
+    optional string error_message = 2;
+}
+
+message AgentCategoryResponse {
+    ACResponseStatus status = 1;
+    AgentCategoryWithIdInfo category = 2;
+    optional string error_message = 3;
+}
+
+message AgentCategoriesResponse {
+    ACResponseStatus status = 1;
+    repeated AgentCategoryWithIdInfo categories = 2;
+    optional string error_message = 3;
+}
+
+message AgentCategoryTreeResponse {
+    ACResponseStatus status = 1;
+    repeated AgentCategoryTreeNode roots = 2;
+    optional string error_message = 3;
+}
+
+message AgentCategoryWithIdInfo {
+    int64 category_id = 1;
+    AgentCategoryInfo info = 2;
+}
+
+message AgentCategoryTreeNode {
+    int64 category_id = 1;
+    string name = 2;
+    string description = 3;
+    repeated AgentCategoryTreeNode children = 4;
+}
+
+message AgentCategoryInfo {
+    string name = 1;
+    google.protobuf.StringValue description = 2;
+    optional google.protobuf.Int64Value parent_id = 3;
+}
+
+message AgentsListResponse {
+    ACResponseStatus status = 1;
+    repeated string agent_ids = 2;
+    optional string error_message = 3;
+}
+
+//////////////////////////////////////////////////////////////
+// STATUS
+//////////////////////////////////////////////////////////////
+
+enum ACResponseStatus {
+    AC_RESPONSE_STATUS_OK = 0;
+    AC_RESPONSE_STATUS_ERROR = 1;
+}

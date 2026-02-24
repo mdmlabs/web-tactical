@@ -14,7 +14,7 @@
           @click="showTargetPanel = true"
         />
         <q-btn
-          v-if="currentTarget"
+          v-if="currentTargetRef"
           flat
           round
           dense
@@ -22,7 +22,7 @@
           size="xs"
           color="white"
           class="q-mr-md"
-          title="Reset target"
+          title="Reset to Global"
           @click.stop="resetTarget"
         />
 
@@ -51,7 +51,6 @@
                 icon="add"
                 color="primary"
                 title="Create group"
-                :disable="!currentUserGroupTarget"
                 @click="openCreateGroupDialog"
               />
               <q-btn
@@ -374,7 +373,7 @@
     </q-page-container>
 
     <q-dialog v-model="showCreateGroup">
-      <q-card style="min-width: 380px">
+      <q-card style="min-width: 360px; margin-bottom: 250px">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">Create Group</div>
           <q-space />
@@ -389,6 +388,26 @@
             class="q-mb-sm"
             autofocus
           />
+          <q-select
+            v-model="createGroupForm.parentId"
+            :options="parentGroupOptions"
+            option-value="groupId"
+            option-label="label"
+            emit-value
+            map-options
+            label="Parent Group"
+            outlined
+            dense
+            clearable
+            class="q-mb-sm"
+            :disable="parentGroupOptions.length === 0"
+          >
+            <template v-slot:no-option>
+              <q-item>
+                <q-item-section class="text-grey">No groups available</q-item-section>
+              </q-item>
+            </template>
+          </q-select>
           <q-input
             v-model="createGroupForm.description"
             label="Description"
@@ -411,8 +430,8 @@
       </q-card>
     </q-dialog>
 
-    <q-dialog v-model="showAddUser">
-      <q-card style="min-width: 360px">
+    <q-dialog v-model="showAddUser" position="top">
+      <q-card style="min-width: 360px; margin-top: 60px">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">Add User to Group</div>
           <q-space />
@@ -422,13 +441,34 @@
           <div class="text-caption text-grey-7 q-mb-sm">
             Group: <strong>{{ selectedGroupSam }}</strong>
           </div>
-          <q-input
+          <q-select
             v-model="addUserForm.samAccountName"
-            label="SAM Account Name *"
+            :options="addUserOptions"
+            option-value="samAccountName"
+            option-label="label"
+            emit-value
+            map-options
+            label="User *"
             outlined
             dense
-            autofocus
-          />
+            use-input
+            input-debounce="200"
+            :loading="addUserOptionsLoading"
+            :disable="addUserOptionsLoading"
+            clearable
+            menu-anchor="bottom left"
+            menu-self="top left"
+            popup-content-style="max-height: 220px; overflow-y: auto;"
+            @filter="filterAddUserOptions"
+          >
+            <template v-slot:no-option>
+              <q-item>
+                <q-item-section class="text-grey">
+                  {{ addUserOptionsLoading ? 'Loading...' : (addUserOptions.length === 0 ? 'No users available' : 'No match') }}
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-select>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancel" v-close-popup />
@@ -436,7 +476,7 @@
             color="primary"
             label="Add"
             :loading="addUserLoading"
-            :disable="!addUserForm.samAccountName.trim()"
+            :disable="!addUserForm.samAccountName"
             @click="doAddUserToGroup"
           />
         </q-card-actions>
@@ -453,7 +493,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { useQuasar } from "quasar";
-import { userControlClient } from "@/gpo/api/grpc-client";
+import { userControlClient, createGlobalTarget } from "@/gpo/api/grpc-client";
 import type { Target } from "@/gpo/api/grpc-client";
 import type { TargetRef } from "@/gpo/composables/useTargetSelection";
 import TargetSelectionDialog from "@/gpo/components/shared/TargetSelectionDialog.vue";
@@ -485,8 +525,8 @@ const $q = useQuasar();
 
 const showTargetPanel = ref(false);
 const currentTargetRef = ref<TargetRef | null>(null);
-const currentTarget = ref<Target | null>(null);
-const targetLabel = ref("Select target");
+const currentTarget = ref<Target>(createGlobalTarget());
+const targetLabel = ref("Global");
 
 const allGroups = ref<GroupRowWithId[]>([]);
 const groupTreeNodes = ref<TreeNode[]>([]);
@@ -509,11 +549,24 @@ const deleteLoading = ref(false);
 
 const showCreateGroup = ref(false);
 const createGroupLoading = ref(false);
-const createGroupForm = ref({ samGroupName: "", description: "" });
+const createGroupForm = ref<{ samGroupName: string; description: string; parentId: string | null }>({
+  samGroupName: "",
+  description: "",
+  parentId: null,
+});
+
+const parentGroupOptions = computed(() =>
+  allGroups.value.map((g) => ({
+    groupId: g.groupId,
+    label: g.displayname || g.samaccountname || g.groupId,
+  })),
+);
 
 const showAddUser = ref(false);
 const addUserLoading = ref(false);
 const addUserForm = ref({ samAccountName: "" });
+const addUserOptions = ref<{ id: string; label: string; samAccountName: string }[]>([]);
+const addUserOptionsLoading = ref(false);
 
 
 const usersColumns = [
@@ -592,8 +645,8 @@ function handleTargetSelect(ref: TargetRef) {
 
 function resetTarget() {
   currentTargetRef.value = null;
-  currentTarget.value = null;
-  targetLabel.value = "Select target";
+  currentTarget.value = createGlobalTarget();
+  targetLabel.value = "Global";
 }
 
 function onTargetChange() {
@@ -739,7 +792,11 @@ async function doDeleteGroup() {
 }
 
 function openCreateGroupDialog() {
-  createGroupForm.value = { samGroupName: "", description: "" };
+  createGroupForm.value = {
+    samGroupName: "",
+    description: "",
+    parentId: selectedGroupId.value ?? null,
+  };
   showCreateGroup.value = true;
 }
 
@@ -752,6 +809,7 @@ async function doCreateGroup() {
       target,
       createGroupForm.value.samGroupName.trim(),
       createGroupForm.value.description.trim() || undefined,
+      createGroupForm.value.parentId || undefined,
     );
     if (res.status === 0) {
       $q.notify({ type: "positive", message: `Group "${createGroupForm.value.samGroupName}" created` });
@@ -767,9 +825,56 @@ async function doCreateGroup() {
   }
 }
 
-function openAddUserToGroupDialog() {
+const addUserOptionsFilter = ref("");
+const addUserOptionsAll = ref<{ id: string; label: string; samAccountName: string }[]>([]);
+
+function filterAddUserOptions(val: string, update: (cb: () => void) => void) {
+  addUserOptionsFilter.value = val ?? "";
+  update(() => {
+    if (!val || !val.trim()) {
+      addUserOptions.value = [...addUserOptionsAll.value];
+    } else {
+      const lower = val.toLowerCase();
+      addUserOptions.value = addUserOptionsAll.value.filter(
+        (o) =>
+          o.label.toLowerCase().includes(lower) ||
+          o.samAccountName.toLowerCase().includes(lower),
+      );
+    }
+  });
+}
+
+async function openAddUserToGroupDialog() {
   addUserForm.value = { samAccountName: "" };
+  addUserOptions.value = [];
+  addUserOptionsAll.value = [];
+  addUserOptionsFilter.value = "";
   showAddUser.value = true;
+  addUserOptionsLoading.value = true;
+  try {
+    const res = await userControlClient.getAllUsers();
+    const list = res.usersList ?? [];
+    const alreadyInGroup = new Set(
+      groupUsers.value.map((u) => (u.samaccountname ?? "").toLowerCase()),
+    );
+    const options: { id: string; label: string; samAccountName: string }[] = [];
+    for (const u of list) {
+      const rec = u as { info?: Record<string, string>; userid?: string; userId?: string };
+      const info = rec.info ?? {};
+      const uid = rec.userid ?? rec.userId ?? "";
+      const sam = (info.samaccountname ?? uid).trim();
+      if (!sam || alreadyInGroup.has(sam.toLowerCase())) continue;
+      const label =
+        (info.displayname ?? info.name ?? info.samaccountname ?? uid ?? sam) || sam;
+      options.push({ id: uid || sam, label, samAccountName: sam });
+    }
+    addUserOptionsAll.value = options;
+    addUserOptions.value = options;
+  } catch {
+    addUserOptions.value = [];
+  } finally {
+    addUserOptionsLoading.value = false;
+  }
 }
 
 async function doAddUserToGroup() {

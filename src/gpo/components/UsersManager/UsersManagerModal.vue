@@ -14,7 +14,7 @@
           @click="showTargetPanel = true"
         />
         <q-btn
-          v-if="currentTarget"
+          v-if="currentTargetRef"
           flat
           round
           dense
@@ -22,7 +22,7 @@
           size="xs"
           color="white"
           class="q-mr-md"
-          title="Reset target"
+          title="Reset to Global"
           @click.stop="resetTarget"
         />
 
@@ -115,7 +115,7 @@ import { ref, watch } from "vue";
 import { useUserActions } from "@/gpo/composables/useUserActions";
 import type { CreateUserParams } from "@/gpo/composables/useUserActions";
 import type { TargetRef } from "@/gpo/composables/useTargetSelection";
-import type { Target } from "@/gpo/api/grpc-client";
+import { createGlobalTarget, type Target } from "@/gpo/api/grpc-client";
 
 import UsersListPanel from "./UsersListPanel.vue";
 import UserDetailPanel from "./UserDetailPanel.vue";
@@ -129,8 +129,8 @@ const props = defineProps<{ open?: boolean }>();
 defineEmits<{ close: [] }>();
 
 const currentTargetRef = ref<TargetRef | null>(null);
-const currentTarget = ref<Target | null>(null);
-const targetLabel = ref("Select target");
+const currentTarget = ref<Target>(createGlobalTarget());
+const targetLabel = ref("Global");
 
 const showTargetPanel = ref(false);
 const showCreateUser = ref(false);
@@ -172,8 +172,8 @@ function handleTargetSelect(ref: TargetRef) {
 
 function resetTarget() {
   currentTargetRef.value = null;
-  currentTarget.value = null;
-  targetLabel.value = "Select target";
+  currentTarget.value = createGlobalTarget();
+  targetLabel.value = "Global";
   selectedUserId.value = null;
   userDetail.value = null;
 }

@@ -546,6 +546,7 @@ export const userControlClient = {
     target: Target,
     samGroupName: string,
     description?: string,
+    parentId?: string,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
     const req = new CreateUserGroupRequest();
     req.setTarget(target);
@@ -555,9 +556,13 @@ export const userControlClient = {
       w.setValue(description);
       req.setDescription(w);
     }
+    if (parentId != null && parentId !== "") {
+      req.setParentId(parentId);
+    }
     console.log("[createGroup] Request:", {
       samGroupName,
       description,
+      parentId,
       target: target.toObject(),
       request: req.toObject(),
     });
