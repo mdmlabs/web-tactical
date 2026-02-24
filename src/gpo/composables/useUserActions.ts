@@ -1,7 +1,8 @@
 import { ref, computed, watch } from "vue";
 import { useQuasar } from "quasar";
 import { userControlClient } from "@/gpo/api/grpc-client";
-import type { UserGroupTarget, UserWithIdInfo } from "@/generated/user_service_pb";
+import type { Target } from "@/gpo/api/grpc-client";
+import type { UserWithIdInfo } from "@/generated/user_service_pb";
 import type { GroupInfo } from "@/generated/common/user_pb";
 
 export interface CreateUserParams {
@@ -95,7 +96,7 @@ export function useUserActions() {
     userDetail.value = null;
     try {
       const res = await userControlClient.getUser(
-        null as unknown as UserGroupTarget,
+        null as unknown as Target,
         selectedUserId.value,
       );
       if (res.user) {
@@ -123,7 +124,7 @@ export function useUserActions() {
     userGroups.value = [];
     try {
       const res = await userControlClient.getUserGroups(
-        null as unknown as UserGroupTarget,
+        null as unknown as Target,
         selectedUserId.value,
       );
       const list = res.groupsList ?? [];
@@ -149,7 +150,7 @@ export function useUserActions() {
     userAgents.value = [];
     try {
       const res = await userControlClient.getUserAgents(
-        null as unknown as UserGroupTarget,
+        null as unknown as Target,
         selectedUserId.value,
       );
       userAgents.value = res.agentIdsList ?? [];
@@ -166,7 +167,7 @@ export function useUserActions() {
   });
 
   async function createUser(
-    target: UserGroupTarget,
+    target: Target,
     params: CreateUserParams,
   ): Promise<boolean> {
     try {
@@ -213,7 +214,7 @@ export function useUserActions() {
   }
 
   async function updateUser(
-    target: UserGroupTarget,
+    target: Target,
     userId: string,
     params: Partial<CreateUserParams>,
   ): Promise<boolean> {
@@ -259,7 +260,7 @@ export function useUserActions() {
     }
   }
 
-  async function deleteUser(target: UserGroupTarget): Promise<boolean> {
+  async function deleteUser(target: Target): Promise<boolean> {
     if (!selectedUserId.value) return false;
     actionLoading.value = true;
     try {
@@ -291,7 +292,7 @@ export function useUserActions() {
     }
   }
 
-  async function toggleEnableUser(target: UserGroupTarget): Promise<boolean> {
+  async function toggleEnableUser(target: Target): Promise<boolean> {
     if (!target) {
       $q.notify({
         type: "warning",
@@ -337,7 +338,7 @@ export function useUserActions() {
   }
 
   async function setPassword(
-    target: UserGroupTarget,
+    target: Target,
     password: string,
   ): Promise<boolean> {
     if (!selectedUserId.value) return false;
@@ -363,7 +364,7 @@ export function useUserActions() {
     }
   }
 
-  async function unlockUser(target: UserGroupTarget): Promise<boolean> {
+  async function unlockUser(target: Target): Promise<boolean> {
     if (!selectedUserId.value) return false;
     actionLoading.value = true;
     try {
@@ -390,7 +391,7 @@ export function useUserActions() {
     }
   }
 
-  async function expirePassword(target: UserGroupTarget): Promise<boolean> {
+  async function expirePassword(target: Target): Promise<boolean> {
     if (!selectedUserId.value) return false;
     actionLoading.value = true;
     try {
@@ -418,7 +419,7 @@ export function useUserActions() {
   }
 
   async function setAccountExpiration(
-    target: UserGroupTarget,
+    target: Target,
     expirationValue: string | undefined,
   ): Promise<boolean> {
     if (!selectedUserId.value) return false;
@@ -445,7 +446,7 @@ export function useUserActions() {
     }
   }
 
-  function confirmDeleteUser(target: UserGroupTarget) {
+  function confirmDeleteUser(target: Target) {
     $q.dialog({
       title: "Delete User",
       message: `Are you sure you want to delete user "${selectedUserId.value}"?`,

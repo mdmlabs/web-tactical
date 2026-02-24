@@ -115,7 +115,7 @@ import { ref, watch } from "vue";
 import { useUserActions } from "@/gpo/composables/useUserActions";
 import type { CreateUserParams } from "@/gpo/composables/useUserActions";
 import type { TargetRef } from "@/gpo/composables/useTargetSelection";
-import type { UserGroupTarget } from "@/generated/user_service_pb";
+import type { Target } from "@/gpo/api/grpc-client";
 
 import UsersListPanel from "./UsersListPanel.vue";
 import UserDetailPanel from "./UserDetailPanel.vue";
@@ -129,7 +129,7 @@ const props = defineProps<{ open?: boolean }>();
 defineEmits<{ close: [] }>();
 
 const currentTargetRef = ref<TargetRef | null>(null);
-const currentTarget = ref<UserGroupTarget | null>(null);
+const currentTarget = ref<Target | null>(null);
 const targetLabel = ref("Select target");
 
 const showTargetPanel = ref(false);

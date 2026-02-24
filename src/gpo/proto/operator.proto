@@ -2,6 +2,7 @@ syntax = "proto3";
 
 import "common/user.proto";
 import "common/node.proto";
+import "common/target.proto";
 
 import "google/protobuf/wrappers.proto";
 
@@ -485,20 +486,20 @@ service PolicyAssignmentService {
 }
 message AssignPolicyCollectionRequest {
   int64 collection_id = 1;
-  PolicyTarget target = 2;
+  laborato.common.target.Target target = 2;
   PolicySelection selection = 3;
 }
 message AssignPolicyCollectionResponse {}
 
 message RemovePolicyCollectionRequest {
   int64 collection_id = 1;
-  PolicyTarget target = 2;
+  laborato.common.target.Target target = 2;
 }
 message RemovePolicyCollectionResponse {}
 
 message AssignPolicyRequest {
   string policy_hash = 1;
-  PolicyTarget target = 2;
+  laborato.common.target.Target target = 2;
   PolicySelection selection = 3;
 }
 
@@ -525,74 +526,10 @@ message AssignPolicyResponse {}
 
 message RemovePolicyRequest {
   string policy_hash = 1;
-  PolicyTarget target = 2;
+  laborato.common.target.Target target = 2;
 }
 
 message RemovePolicyResponse {}
-
-message PolicyTarget {
-  oneof target {
-    GlobalTarget global = 1;
-    AgentTarget agent = 2;
-    UserTarget user = 3;
-    TacticalClientTarget client = 4;
-    TacticalClientsTarget clients = 5;
-    TacticalSiteTarget site = 6;
-    TacticalSitesTarget sites = 7;
-    AggentsTarget agents = 8;
-    CombinedTarget combined = 9;
-    GroupTarget group = 10;
-    GroupsTarget groups = 11;
-  }
-}
-
-// Group targets
-message GroupTarget {
-    string groupId = 1;
-}
-
-message GroupsTarget {
-    repeated string groupIds = 1;
-}
-
-// Tactical targets
-message TacticalClientTarget {
-    int64 client_id = 1;
-}
-
-message TacticalClientsTarget {
-    repeated TacticalClientTarget clients = 1;
-}
-
-message TacticalSiteTarget {
-    int64 site_id = 1;
-}
-
-message TacticalSitesTarget {
-    repeated TacticalSiteTarget sites = 1;
-}
-
-message AggentsTarget {
-    repeated AgentTarget agents = 1;
-}
-
-message CombinedTarget {
-    optional TacticalClientsTarget clients = 1;
-    optional TacticalSitesTarget sites = 2;
-    optional AggentsTarget agents = 3;
-}
-
-// System targets
-message GlobalTarget {}
-
-message AgentTarget {
-  string agent_id = 1;
-}
-
-message UserTarget {
-  string agent_id = 1;
-  string user_sid = 2;
-}
 
 message PolicyValueOverride {
   oneof value {
@@ -613,7 +550,7 @@ service PolicyStateService {
 }
 
 message GetEffectivePoliciesRequest {
-  PolicyTarget target = 1;
+  laborato.common.target.Target target = 1;
   string lang_code = 2;
 }
 
@@ -629,7 +566,7 @@ message EffectivePolicy {
 }
 
 message GetAssignmentsRequest {
-  PolicyTarget target = 1;
+  laborato.common.target.Target target = 1;
   string lang_code = 2;
 }
 
@@ -641,6 +578,6 @@ message PolicyAssignment {
   string policy_hash = 1;
   PolicyDesiredState desired_state = 2;
   PolicyValueOverride override = 3;
-  PolicyTarget target = 4;
+  laborato.common.target.Target target = 4;
   PolicySummary summary = 5;
 }

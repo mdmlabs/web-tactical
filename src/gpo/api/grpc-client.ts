@@ -23,9 +23,11 @@ import {
   GroupIdRequest,
   GroupRequest,
   UserGroupRequest,
-  UserGroupTarget,
   UserIdRequest,
 } from "@/generated/user_service_pb";
+
+import target_pb from "@/generated/common/target_pb";
+import type { Target } from "@/generated/common/target_pb";
 
 import type * as operator_pb_types from "@/generated/operator_pb";
 import type * as user_service_pb_types from "@/generated/user_service_pb";
@@ -401,7 +403,7 @@ function fillUserRequest(
 
 function setUserIdentifier(
   uid: UserIdentifier,
-  target: UserGroupTarget,
+  target: Target,
   samId: string,
 ): void {
   uid.setTarget(target);
@@ -411,7 +413,7 @@ function setUserIdentifier(
 
 export const userControlClient = {
   async createUser(
-    target: UserGroupTarget,
+    target: Target,
     userData: CreateUserParams,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
     const req = new CreateUserRequest();
@@ -427,7 +429,7 @@ export const userControlClient = {
   },
 
   async updateUser(
-    target: UserGroupTarget,
+    target: Target,
     samId: string,
     data: Partial<CreateUserParams>,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
@@ -446,7 +448,7 @@ export const userControlClient = {
   },
 
   async deleteUser(
-    target: UserGroupTarget,
+    target: Target,
     samId: string,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
     const req = new UserIdentifier();
@@ -459,7 +461,7 @@ export const userControlClient = {
   },
 
   async enableUser(
-    target: UserGroupTarget,
+    target: Target,
     samId: string,
     enable: boolean,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
@@ -476,7 +478,7 @@ export const userControlClient = {
   },
 
   async setUserPassword(
-    target: UserGroupTarget,
+    target: Target,
     samId: string,
     newPassword: string,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
@@ -493,7 +495,7 @@ export const userControlClient = {
   },
 
   async unlockUser(
-    target: UserGroupTarget,
+    target: Target,
     samId: string,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
     const req = new UserIdentifier();
@@ -506,7 +508,7 @@ export const userControlClient = {
   },
 
   async expireUserPassword(
-    target: UserGroupTarget,
+    target: Target,
     samId: string,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
     const req = new UserIdentifier();
@@ -519,7 +521,7 @@ export const userControlClient = {
   },
 
   async setUserAccountExpiration(
-    target: UserGroupTarget,
+    target: Target,
     samId: string,
     accountExpirationDate: string | undefined,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
@@ -541,7 +543,7 @@ export const userControlClient = {
   },
 
   async createGroup(
-    target: UserGroupTarget,
+    target: Target,
     samGroupName: string,
     description?: string,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
@@ -567,7 +569,7 @@ export const userControlClient = {
   },
 
   async deleteGroup(
-    target: UserGroupTarget,
+    target: Target,
     samGroupName: string,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
     const req = new GroupRequest();
@@ -581,7 +583,7 @@ export const userControlClient = {
   },
 
   async addUserToGroup(
-    target: UserGroupTarget,
+    target: Target,
     samGroupName: string,
     samAccountName: string,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
@@ -597,7 +599,7 @@ export const userControlClient = {
   },
 
   async removeUserFromGroup(
-    target: UserGroupTarget,
+    target: Target,
     samGroupName: string,
     samAccountName: string,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
@@ -613,7 +615,7 @@ export const userControlClient = {
   },
 
   async getUserEffectiveAgents(
-    _target: UserGroupTarget,
+    _target: Target,
     samId: string,
   ): Promise<user_service_pb_types.UserAgentsResponse.AsObject> {
     const req = new UserIdRequest();
@@ -644,7 +646,7 @@ export const userControlClient = {
   },
 
   async getUser(
-    _target: UserGroupTarget,
+    _target: Target,
     samId: string,
   ): Promise<user_service_pb_types.UserResponse.AsObject> {
     const req = new UserIdRequest();
@@ -666,7 +668,7 @@ export const userControlClient = {
   },
 
   async getUserGroups(
-    _target: UserGroupTarget,
+    _target: Target,
     samId: string,
   ): Promise<user_service_pb_types.GroupListResponse.AsObject> {
     const req = new UserIdRequest();
@@ -679,7 +681,7 @@ export const userControlClient = {
   },
 
   async getUserAgents(
-    _target: UserGroupTarget,
+    _target: Target,
     samId: string,
   ): Promise<user_service_pb_types.UserAgentsResponse.AsObject> {
     const req = new UserIdRequest();
@@ -772,25 +774,23 @@ export const userControlClient = {
   },
 };
 
-export function createGlobalTarget(): operator_pb.PolicyTarget {
-  const target = new operator_pb.PolicyTarget();
-  const globalTarget = new operator_pb.GlobalTarget();
-  target.setGlobal(globalTarget);
-  return target;
+export function createGlobalTarget(): Target {
+  const t = new target_pb.Target();
+  t.setGlobal(new target_pb.GlobalTarget());
+  return t;
 }
 
-export function createAgentTarget(agentId: string): operator_pb.PolicyTarget {
-  const target = new operator_pb.PolicyTarget();
-  const agentTarget = new operator_pb.AgentTarget();
+export function createAgentTarget(agentId: string): Target {
+  const t = new target_pb.Target();
+  const agentTarget = new target_pb.AgentTarget();
   agentTarget.setAgentId(agentId);
-  target.setAgent(agentTarget);
-  return target;
+  t.setAgent(agentTarget);
+  return t;
 }
 
-
-export function createUserGroupTargetForAgent(agentId: string): UserGroupTarget {
-  const ugTarget = new UserGroupTarget();
-  const agentTarget = new operator_pb.AgentTarget();
+export function createUserGroupTargetForAgent(agentId: string): Target {
+  const ugTarget = new target_pb.Target();
+  const agentTarget = new target_pb.AgentTarget();
   agentTarget.setAgentId(agentId);
   ugTarget.setAgent(agentTarget);
   return ugTarget;
@@ -799,37 +799,35 @@ export function createUserGroupTargetForAgent(agentId: string): UserGroupTarget 
 export function createUserGroupTargetForUser(
   agentId: string,
   userSid: string,
-): UserGroupTarget {
-  const ugTarget = new UserGroupTarget();
-  const userTarget = new operator_pb.UserTarget();
+): Target {
+  const ugTarget = new target_pb.Target();
+  const userTarget = new target_pb.UserTarget();
   userTarget.setAgentId(agentId);
   userTarget.setUserSid(userSid);
   ugTarget.setUser(userTarget);
   return ugTarget;
 }
 
-export function createUserGroupTargetGlobal(): UserGroupTarget {
-  const ugTarget = new UserGroupTarget();
-  ugTarget.setGlobal(new operator_pb.GlobalTarget());
-  return ugTarget;
+export function createUserGroupTargetGlobal(): Target {
+  const t = new target_pb.Target();
+  t.setGlobal(new target_pb.GlobalTarget());
+  return t;
 }
 
-export function createUserGroupTargetForClient(clientId: string): UserGroupTarget {
-  const ugTarget = new UserGroupTarget();
-  const clientTarget = new operator_pb.TacticalClientTarget();
+export function createUserGroupTargetForClient(clientId: string): Target {
+  const ugTarget = new target_pb.Target();
+  const clientTarget = new target_pb.TacticalClientTarget();
   clientTarget.setClientId(Number(clientId));
   ugTarget.setClient(clientTarget);
   return ugTarget;
 }
 
-export function createUserGroupTargetForClients(
-  clientIds: string[],
-): UserGroupTarget {
-  const ugTarget = new UserGroupTarget();
-  const clientsTarget = new operator_pb.TacticalClientsTarget();
+export function createUserGroupTargetForClients(clientIds: string[]): Target {
+  const ugTarget = new target_pb.Target();
+  const clientsTarget = new target_pb.TacticalClientsTarget();
   clientsTarget.setClientsList(
     clientIds.map((id) => {
-      const c = new operator_pb.TacticalClientTarget();
+      const c = new target_pb.TacticalClientTarget();
       c.setClientId(Number(id));
       return c;
     }),
@@ -838,22 +836,20 @@ export function createUserGroupTargetForClients(
   return ugTarget;
 }
 
-export function createUserGroupTargetForSite(siteId: string): UserGroupTarget {
-  const ugTarget = new UserGroupTarget();
-  const siteTarget = new operator_pb.TacticalSiteTarget();
+export function createUserGroupTargetForSite(siteId: string): Target {
+  const ugTarget = new target_pb.Target();
+  const siteTarget = new target_pb.TacticalSiteTarget();
   siteTarget.setSiteId(Number(siteId));
   ugTarget.setSite(siteTarget);
   return ugTarget;
 }
 
-export function createUserGroupTargetForSites(
-  siteIds: string[],
-): UserGroupTarget {
-  const ugTarget = new UserGroupTarget();
-  const sitesTarget = new operator_pb.TacticalSitesTarget();
+export function createUserGroupTargetForSites(siteIds: string[]): Target {
+  const ugTarget = new target_pb.Target();
+  const sitesTarget = new target_pb.TacticalSitesTarget();
   sitesTarget.setSitesList(
     siteIds.map((id) => {
-      const s = new operator_pb.TacticalSiteTarget();
+      const s = new target_pb.TacticalSiteTarget();
       s.setSiteId(Number(id));
       return s;
     }),
@@ -862,14 +858,12 @@ export function createUserGroupTargetForSites(
   return ugTarget;
 }
 
-export function createUserGroupTargetForAgents(
-  agentIds: string[],
-): UserGroupTarget {
-  const ugTarget = new UserGroupTarget();
-  const agentsTarget = new operator_pb.AggentsTarget();
+export function createUserGroupTargetForAgents(agentIds: string[]): Target {
+  const ugTarget = new target_pb.Target();
+  const agentsTarget = new target_pb.AggentsTarget();
   agentsTarget.setAgentsList(
     agentIds.map((id) => {
-      const a = new operator_pb.AgentTarget();
+      const a = new target_pb.AgentTarget();
       a.setAgentId(id);
       return a;
     }),
@@ -882,41 +876,41 @@ export function createUserGroupTargetCombined(params: {
   clientIds?: string[];
   siteIds?: string[];
   agentIds?: string[];
-}): UserGroupTarget {
+}): Target {
   const { clientIds = [], siteIds = [], agentIds = [] } = params;
-  const combined = new operator_pb.CombinedTarget();
+  const combined = new target_pb.CombinedTarget();
 
-  const clientsTarget = new operator_pb.TacticalClientsTarget();
+  const clientsTarget = new target_pb.TacticalClientsTarget();
   clientsTarget.setClientsList(
     clientIds.map((id) => {
-      const c = new operator_pb.TacticalClientTarget();
+      const c = new target_pb.TacticalClientTarget();
       c.setClientId(Number(id));
       return c;
     }),
   );
   combined.setClients(clientsTarget);
 
-  const sitesTarget = new operator_pb.TacticalSitesTarget();
+  const sitesTarget = new target_pb.TacticalSitesTarget();
   sitesTarget.setSitesList(
     siteIds.map((id) => {
-      const s = new operator_pb.TacticalSiteTarget();
+      const s = new target_pb.TacticalSiteTarget();
       s.setSiteId(Number(id));
       return s;
     }),
   );
   combined.setSites(sitesTarget);
 
-  const agentsTarget = new operator_pb.AggentsTarget();
+  const agentsTarget = new target_pb.AggentsTarget();
   agentsTarget.setAgentsList(
     agentIds.map((id) => {
-      const a = new operator_pb.AgentTarget();
+      const a = new target_pb.AgentTarget();
       a.setAgentId(id);
       return a;
     }),
   );
   combined.setAgents(agentsTarget);
 
-  const ugTarget = new UserGroupTarget();
+  const ugTarget = new target_pb.Target();
   ugTarget.setCombined(combined);
   return ugTarget;
 }
@@ -945,7 +939,7 @@ export type UserGroupTargetParams = {
 export function createUserGroupTargetFromParams(
   targetType: UserGroupTargetType,
   targetParams: UserGroupTargetParams = {},
-): UserGroupTarget {
+): Target {
   switch (targetType) {
     case "global":
       return createUserGroupTargetGlobal();
@@ -992,76 +986,72 @@ export function createUserGroupTargetFromParams(
 export function createUserTarget(
   agentId: string,
   userSid: string,
-): operator_pb.PolicyTarget {
-  const target = new operator_pb.PolicyTarget();
-  const userTarget = new operator_pb.UserTarget();
+): Target {
+  const t = new target_pb.Target();
+  const userTarget = new target_pb.UserTarget();
   userTarget.setAgentId(agentId);
   userTarget.setUserSid(userSid);
-  target.setUser(userTarget);
-  return target;
+  t.setUser(userTarget);
+  return t;
 }
 
-export function createTacticalClientTarget(
-  clientId: string,
-): operator_pb.PolicyTarget {
-  const target = new operator_pb.PolicyTarget();
-  const clientTarget = new operator_pb.TacticalClientTarget();
+export function createTacticalClientTarget(clientId: string): Target {
+  const t = new target_pb.Target();
+  const clientTarget = new target_pb.TacticalClientTarget();
   clientTarget.setClientId(Number(clientId));
-  target.setClient(clientTarget);
-  return target;
+  t.setClient(clientTarget);
+  return t;
 }
 
-export function createTacticalSiteTarget(
-  siteId: string,
-): operator_pb.PolicyTarget {
-  const target = new operator_pb.PolicyTarget();
-  const siteTarget = new operator_pb.TacticalSiteTarget();
+export function createTacticalSiteTarget(siteId: string): Target {
+  const t = new target_pb.Target();
+  const siteTarget = new target_pb.TacticalSiteTarget();
   siteTarget.setSiteId(Number(siteId));
-  target.setSite(siteTarget);
-  return target;
+  t.setSite(siteTarget);
+  return t;
 }
 
 export function createCombinedTarget(params: {
   clientIds?: string[];
   siteIds?: string[];
   agentIds?: string[];
-}): operator_pb.PolicyTarget {
+}): Target {
   const { clientIds = [], siteIds = [], agentIds = [] } = params;
-  const combined = new operator_pb.CombinedTarget();
+  const combined = new target_pb.CombinedTarget();
 
-  const clientsTarget = new operator_pb.TacticalClientsTarget();
+  const clientsTarget = new target_pb.TacticalClientsTarget();
   clientsTarget.setClientsList(
     clientIds.map((id) => {
-      const c = new operator_pb.TacticalClientTarget();
+      const c = new target_pb.TacticalClientTarget();
       c.setClientId(Number(id));
       return c;
     }),
   );
   combined.setClients(clientsTarget);
 
-  const sitesTarget = new operator_pb.TacticalSitesTarget();
+  const sitesTarget = new target_pb.TacticalSitesTarget();
   sitesTarget.setSitesList(
     siteIds.map((id) => {
-      const s = new operator_pb.TacticalSiteTarget();
+      const s = new target_pb.TacticalSiteTarget();
       s.setSiteId(Number(id));
       return s;
     }),
   );
   combined.setSites(sitesTarget);
 
-  const agentsTarget = new operator_pb.AggentsTarget();
+  const agentsTarget = new target_pb.AggentsTarget();
   agentsTarget.setAgentsList(
     agentIds.map((id) => {
-      const a = new operator_pb.AgentTarget();
+      const a = new target_pb.AgentTarget();
       a.setAgentId(id);
       return a;
     }),
   );
   combined.setAgents(agentsTarget);
 
-  const target = new operator_pb.PolicyTarget();
-  target.setCombined(combined);
-  return target;
+  const t = new target_pb.Target();
+  t.setCombined(combined);
+  return t;
 }
 
 export type PolicyTargetType =
@@ -1085,7 +1075,7 @@ export type PolicyTargetParams = {
 export function createPolicyTargetFromParams(
   targetType: PolicyTargetType,
   targetParams: PolicyTargetParams = {},
-): operator_pb.PolicyTarget {
+): Target {
   switch (targetType) {
     case "global":
       return createGlobalTarget();
@@ -1266,16 +1256,13 @@ export const policyAssignmentClient = {
     const target = createPolicyTargetFromParams(targetType, targetParams);
     request.setTarget(target);
 
+    let policySelection: operator_pb.PolicySelection;
     if (selection) {
-      let policySelection: operator_pb.PolicySelection;
       if (selection instanceof operator_pb.PolicySelection) {
         policySelection = selection;
       } else {
         policySelection = createPolicySelection(selection);
       }
-      request.setSelection(policySelection);
-
-      //для дэбага
       console.log("асайн полиси дебаг:", {
         policyHash,
         targetType,
@@ -1284,12 +1271,14 @@ export const policyAssignmentClient = {
         selectionProto: policySelection.toObject?.() || "no toObject",
       });
     } else {
-      console.log("асайн полиси дебаг: selection is undefined/null", {
-        policyHash,
-        targetType,
-        targetParams,
-      });
+      policySelection = new operator_pb.PolicySelection();
+      policySelection.setValue("1");
+      console.log("асайн полиси дебаг: selection пустой — отправляем value 1");
     }
+    request.setSelection(policySelection);
+
+    const requestObj = request.toObject();
+    console.log("[assignPolicy]request:", JSON.stringify(requestObj, null, 2));
 
     const response = await policyAssignmentServiceClient.assignPolicy(
       request,
@@ -1341,15 +1330,21 @@ export const policyAssignmentClient = {
     const target = createPolicyTargetFromParams(targetType, targetParams);
     request.setTarget(target);
 
+    let policySelection: operator_pb.PolicySelection;
     if (selection) {
-      let policySelection: operator_pb.PolicySelection;
       if (selection instanceof operator_pb.PolicySelection) {
         policySelection = selection;
       } else {
         policySelection = createPolicySelection(selection);
       }
-      request.setSelection(policySelection);
+    } else {
+      policySelection = new operator_pb.PolicySelection();
+      policySelection.setValue("1");
     }
+    request.setSelection(policySelection);
+
+    const requestObj = request.toObject();
+    console.log("[assignPolicyCollection]request:", JSON.stringify(requestObj, null, 2));
 
     const response = await policyAssignmentServiceClient.assignPolicyCollection(
       request,
@@ -1392,7 +1387,7 @@ export const policyAssignmentClient = {
 
 export const policyStateClient = {
   async getEffectivePolicies(
-    target: operator_pb_types.PolicyTarget,
+    target: Target,
     langCode: string = "en-US",
   ): Promise<operator_pb_types.GetEffectivePoliciesResponse.AsObject> {
     const request = new operator_pb.GetEffectivePoliciesRequest();
@@ -1408,7 +1403,7 @@ export const policyStateClient = {
   },
 
   async getAssignments(
-    target: operator_pb_types.PolicyTarget,
+    target: Target,
     langCode: string = "en-US",
   ): Promise<operator_pb_types.GetAssignmentsResponse.AsObject> {
     const request = new operator_pb.GetAssignmentsRequest();
@@ -1767,3 +1762,5 @@ export {
 export { default as operator_pb } from "@/generated/operator_pb";
 export { default as mesh_pb } from "@/generated/mesh_pb";
 export { default as mesh_user_service_pb } from "@/generated/mesh/user_service_pb";
+export { default as target_pb } from "@/generated/common/target_pb";
+export type { Target } from "@/generated/common/target_pb";

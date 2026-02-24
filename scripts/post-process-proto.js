@@ -270,6 +270,12 @@ function generateES6Imports(imports, packageName, filePath) {
       );
       lines.push("}");
     }
+  } else if (packageName.startsWith("laborato.common.target")) {
+    lines.push("proto.laborato = proto.laborato || {};");
+    lines.push("proto.laborato.common = proto.laborato.common || {};");
+    lines.push(
+      "proto.laborato.common.target = proto.laborato.common.target || {};",
+    );
   } else if (packageName.startsWith("laborato.common.node")) {
     lines.push("proto.laborato = proto.laborato || {};");
     lines.push("proto.laborato.common = proto.laborato.common || {};");
@@ -481,6 +487,10 @@ function main() {
     {
       path: path.join(GENERATED_DIR, "common/node_pb.js"),
       package: "laborato.common.node",
+    },
+    {
+      path: path.join(GENERATED_DIR, "common/target_pb.js"),
+      package: "laborato.common.target",
     },
     {
       path: path.join(GENERATED_DIR, "operator_pb.js"),

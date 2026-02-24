@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "common/user.proto";
+import "common/target.proto";
 import "operator.proto";
 
 
@@ -43,7 +44,7 @@ service OperatorUserControlService {
 }
 
 message CreateUserRequest {
-    UserGroupTarget target = 1;
+    laborato.common.target.Target target = 1;
     laborato.common.user.UserRequest user = 2;
 }
 
@@ -68,7 +69,7 @@ message SetUserAccountExpirationRequest {
 }
 
 message UserIdentifier {
-    UserGroupTarget target = 1;
+    laborato.common.target.Target target = 1;
     string user_id = 2;
     string sam_id = 3;
 }
@@ -170,32 +171,18 @@ enum ResponseStatus {
 }
 
 message CreateUserGroupRequest {
-    UserGroupTarget target = 1;
+    laborato.common.target.Target target = 1;
     string sam_group_name = 2;
     google.protobuf.StringValue description = 3;
 }
 
 message GroupRequest {
-    UserGroupTarget target = 1;
+    laborato.common.target.Target target = 1;
     string sam_group_name = 2;
 }
 
 message UserGroupRequest {
-    UserGroupTarget target = 1;
+    laborato.common.target.Target target = 1;
     string sam_group_name = 2;
     string sam_account_name = 3;
-}
-
-message UserGroupTarget {
-    oneof target {
-        laborato.mesh.operator.v1.GlobalTarget global = 1;
-        laborato.mesh.operator.v1.AgentTarget agent = 2;
-        laborato.mesh.operator.v1.UserTarget user = 3;
-        laborato.mesh.operator.v1.TacticalClientTarget client = 4;
-        laborato.mesh.operator.v1.TacticalClientsTarget clients = 5;
-        laborato.mesh.operator.v1.TacticalSiteTarget site = 6;
-        laborato.mesh.operator.v1.TacticalSitesTarget sites = 7;
-        laborato.mesh.operator.v1.AggentsTarget agents = 8;
-        laborato.mesh.operator.v1.CombinedTarget combined = 9;
-  }
 }

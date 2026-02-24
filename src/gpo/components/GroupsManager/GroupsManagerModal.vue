@@ -454,7 +454,7 @@
 import { ref, computed, watch } from "vue";
 import { useQuasar } from "quasar";
 import { userControlClient } from "@/gpo/api/grpc-client";
-import type { UserGroupTarget } from "@/generated/user_service_pb";
+import type { Target } from "@/gpo/api/grpc-client";
 import type { TargetRef } from "@/gpo/composables/useTargetSelection";
 import TargetSelectionDialog from "@/gpo/components/shared/TargetSelectionDialog.vue";
 
@@ -485,7 +485,7 @@ const $q = useQuasar();
 
 const showTargetPanel = ref(false);
 const currentTargetRef = ref<TargetRef | null>(null);
-const currentTarget = ref<UserGroupTarget | null>(null);
+const currentTarget = ref<Target | null>(null);
 const targetLabel = ref("Select target");
 
 const allGroups = ref<GroupRowWithId[]>([]);

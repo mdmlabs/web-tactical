@@ -8,8 +8,8 @@
     "build": "quasar build",
     "lint": "eslint --ext .js,.ts,.vue ./",
     "format": "prettier --write \"**/*.{js,ts,vue,,html,md,json}\" --ignore-path .gitignore",
-    "proto:generate": "protoc --experimental_allow_proto3_optional -I=./src/gpo/proto --js_out=import_style=es6,binary:./src/generated --grpc-web_out=import_style=typescript,mode=grpcwebtext:./src/generated ./src/gpo/proto/common/user.proto ./src/gpo/proto/common/node.proto ./src/gpo/proto/operator.proto ./src/gpo/proto/user_service.proto ./src/gpo/proto/mesh.proto ./src/gpo/proto/mesh/user_service.proto && node scripts/post-process-proto.js",
-    "proto:generate:mac": "PATH=$PATH:/opt/homebrew/bin protoc --experimental_allow_proto3_optional -I=./src/gpo/proto --js_out=import_style=es6,binary:./src/generated --grpc-web_out=import_style=typescript,mode=grpcwebtext:./src/generated ./src/gpo/proto/common/user.proto ./src/gpo/proto/common/node.proto ./src/gpo/proto/operator.proto ./src/gpo/proto/user_service.proto ./src/gpo/proto/mesh.proto ./src/gpo/proto/mesh/user_service.proto && node scripts/post-process-proto.js"
+    "proto:generate": "protoc --experimental_allow_proto3_optional -I=./src/gpo/proto --js_out=import_style=es6,binary:./src/generated --grpc-web_out=import_style=typescript,mode=grpcwebtext:./src/generated ./src/gpo/proto/common/user.proto ./src/gpo/proto/common/node.proto ./src/gpo/proto/common/target.proto ./src/gpo/proto/operator.proto ./src/gpo/proto/user_service.proto ./src/gpo/proto/mesh.proto ./src/gpo/proto/mesh/user_service.proto && node scripts/post-process-proto.js",
+    "proto:generate:mac": "PATH=$PATH:/opt/homebrew/bin protoc --experimental_allow_proto3_optional -I=./src/gpo/proto --js_out=import_style=es6,binary:./src/generated --grpc-web_out=import_style=typescript,mode=grpcwebtext:./src/generated ./src/gpo/proto/common/user.proto ./src/gpo/proto/common/node.proto ./src/gpo/proto/common/target.proto ./src/gpo/proto/operator.proto ./src/gpo/proto/user_service.proto ./src/gpo/proto/mesh.proto ./src/gpo/proto/mesh/user_service.proto && node scripts/post-process-proto.js"
   },
   "dependencies": {
     "@quasar/extras": "1.16.17",
