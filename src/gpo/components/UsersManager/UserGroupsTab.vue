@@ -1,6 +1,19 @@
 <template>
   <div>
-    <div class="text-subtitle2 q-mb-md">User groups (GetUserGroups)</div>
+    <div class="row items-center q-mb-md">
+      <div class="text-subtitle2">User groups</div>
+      <q-space />
+      <q-btn
+        flat
+        dense
+        color="primary"
+        icon="group_add"
+        label="Add to group"
+        :disable="!hasTarget"
+        :title="!hasTarget ? 'Select target first (click badge in header)' : ''"
+        @click="$emit('add-to-group')"
+      />
+    </div>
     <div v-if="loading" class="text-center q-pa-md">
       <q-spinner color="primary" />
     </div>
@@ -24,7 +37,10 @@ import type { GroupRow } from "@/gpo/composables/useUserActions";
 defineProps<{
   groups: GroupRow[];
   loading: boolean;
+  hasTarget: boolean;
 }>();
+
+defineEmits<{ "add-to-group": [] }>();
 
 const columns = [
   {

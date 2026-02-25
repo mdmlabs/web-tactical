@@ -55,7 +55,7 @@
         <template v-slot:body-cell-actions="props">
           <q-td :props="props">
             <div class="no-wrap justify-center q-gutter-xs">
-              <!-- <q-btn
+              <q-btn
                 icon="play_arrow"
                 size="s"
                 flat
@@ -76,7 +76,7 @@
                 @click.stop="onRemoveCollection(props.row)"
               >
                 <q-tooltip>Remove collection from target</q-tooltip>
-              </q-btn> -->
+              </q-btn>
               <q-btn
                 icon="edit"
                 size="s"
@@ -288,12 +288,14 @@
       @done="onPolicyPickerDone"
     />
 
-    <!-- <ApplyCollectionTargetDialog
+    <ApplyCollectionTargetDialog
       v-model="applyTargetDialogVisible"
       :collection-id="applyTargetCollectionId"
       :collection-name="applyTargetCollectionName"
       :mode="applyTargetMode"
-    /> -->
+      @applied="loadCollections"
+      @removed="loadCollections"
+    />
   </div>
 </template>
 
@@ -307,7 +309,7 @@ import {
 } from "../../api/grpc-client";
 import { notifyError, notifySuccess } from "@/utils/notify";
 import CollectionPolicyPickerDialog from "../CollectionsPolicies/CollectionPolicyPickerDialog.vue";
-// import ApplyCollectionTargetDialog from "../CollectionsPolicies/ApplyCollectionTargetDialog.vue";
+import ApplyCollectionTargetDialog from "../CollectionsPolicies/ApplyCollectionTargetDialog.vue";
 
 interface PolicyItem {
   id?: number | string;
@@ -443,10 +445,10 @@ const collectionScopeCache = ref<Record<number, number>>({});
 const createdCollectionId = ref<number | null>(null);
 const createdCollectionName = ref("");
 const policyPickerVisible = ref(false);
-// const applyTargetDialogVisible = ref(false);
-// const applyTargetCollectionId = ref<number>(0);
-// const applyTargetCollectionName = ref("");
-// const applyTargetMode = ref<"apply" | "remove">("apply");
+const applyTargetDialogVisible = ref(false);
+const applyTargetCollectionId = ref<number>(0);
+const applyTargetCollectionName = ref("");
+const applyTargetMode = ref<"apply" | "remove">("apply");
 
 const policiesForDisplay = computed(() => {
   const c = collectionDetails.value;
@@ -535,19 +537,23 @@ async function submitEditCollection() {
   }
 }
 
-// function onApplyCollection(row: CollectionRow) {
-//   applyTargetMode.value = "apply";
-//   applyTargetCollectionId.value = row.id;
-//   applyTargetCollectionName.value = row.name;
-//   applyTargetDialogVisible.value = true;
-// }
+function onApplyCollection(row: CollectionRow) {
+  const payload = { mode: "apply" as const, collectionId: row.id, collectionName: row.name ?? "" };
+  console.log("[GPOCollectionsTable] Open target dialog — apply collection:", payload);
+  applyTargetMode.value = "apply";
+  applyTargetCollectionId.value = row.id;
+  applyTargetCollectionName.value = row.name ?? "";
+  applyTargetDialogVisible.value = true;
+}
 
-// function onRemoveCollection(row: CollectionRow) {
-//   applyTargetMode.value = "remove";
-//   applyTargetCollectionId.value = row.id;
-//   applyTargetCollectionName.value = row.name;
-//   applyTargetDialogVisible.value = true;
-// }
+function onRemoveCollection(row: CollectionRow) {
+  const payload = { mode: "remove" as const, collectionId: row.id, collectionName: row.name ?? "" };
+  console.log("[GPOCollectionsTable] Open target dialog — remove collection:", payload);
+  applyTargetMode.value = "remove";
+  applyTargetCollectionId.value = row.id;
+  applyTargetCollectionName.value = row.name ?? "";
+  applyTargetDialogVisible.value = true;
+}
 
 function openCreateCollection() {
   createName.value = "";

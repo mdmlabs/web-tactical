@@ -1,21 +1,25 @@
 import { ref, computed } from "vue";
 import { fetchClients } from "@/api/clients";
 import { fetchAgents } from "@/api/agents";
-import { createUserGroupTargetFromParams } from "@/gpo/api/grpc-client";
-import type { UserGroupTarget } from "@/generated/user_service_pb";
+import {
+  createUserGroupTargetFromParams,
+  type Target,
+} from "@/gpo/api/grpc-client";
+
+export const GLOBAL_TARGET_NODE_ID = "target-global";
 
 export interface TargetTreeNode {
   id: string;
   label: string;
   children?: TargetTreeNode[];
-  targetType?: "client" | "site" | "agent";
+  targetType?: "global" | "client" | "site" | "agent";
   clientId?: string;
   siteId?: string;
   agentId?: string;
 }
 
 export interface TargetRef {
-  target: UserGroupTarget;
+  target: Target;
   label: string;
 }
 
@@ -27,6 +31,7 @@ function getStringValue(val: unknown): string {
 }
 
 function getTargetNodeIcon(node: TargetTreeNode): string {
+  if (node.targetType === "global") return "public";
   if (node.targetType === "client") return "business";
   if (node.targetType === "site") return "location_on";
   if (node.targetType === "agent") return "computer";
@@ -45,6 +50,15 @@ function findTargetNodeById(
     }
   }
   return null;
+}
+
+function collectAgentNodes(nodes: TargetTreeNode[]): TargetTreeNode[] {
+  const result: TargetTreeNode[] = [];
+  for (const n of nodes) {
+    if (n.targetType === "agent") result.push(n);
+    if (n.children?.length) result.push(...collectAgentNodes(n.children));
+  }
+  return result;
 }
 
 function buildAgentsBySiteMap(agents: Array<Record<string, unknown>>) {
@@ -124,6 +138,10 @@ export function useTargetSelection() {
     return targetSelectedId.value != null;
   });
 
+  const agentNodesOnly = computed(() =>
+    collectAgentNodes(targetTreeNodes.value),
+  );
+
   async function loadTargetTree() {
     targetTreeLoading.value = true;
     targetTreeNodes.value = [];
@@ -141,7 +159,15 @@ export function useTargetSelection() {
         agents = ((rawAgents as { results: unknown[] }).results || []) as Array<Record<string, unknown>>;
       }
       const agentsBySite = buildAgentsBySiteMap(agents);
-      targetTreeNodes.value = clients.map((client) => buildClientNode(client, agentsBySite));
+      const clientNodes = clients.map((client) =>
+        buildClientNode(client, agentsBySite),
+      );
+      const globalNode: TargetTreeNode = {
+        id: GLOBAL_TARGET_NODE_ID,
+        label: "Global",
+        targetType: "global",
+      };
+      targetTreeNodes.value = [globalNode, ...clientNodes];
     } catch (e) {
       console.error("Load target tree failed:", e);
     } finally {
@@ -156,7 +182,12 @@ export function useTargetSelection() {
     const node = findTargetNodeById(targetTreeNodes.value, id);
     if (!node?.targetType) return null;
     let result: TargetRef | null = null;
-    if (node.targetType === "client" && node.clientId) {
+    if (node.targetType === "global") {
+      result = {
+        target: createUserGroupTargetFromParams("global"),
+        label: "Global",
+      };
+    } else if (node.targetType === "client" && node.clientId) {
       result = {
         target: createUserGroupTargetFromParams("client", {
           clientId: node.clientId,
@@ -190,11 +221,18 @@ export function useTargetSelection() {
     const ids = targetTickedIds.value;
     console.log("[TargetSelection] buildCombinedTargetFromTicked - tickedIds:", ids);
     if (ids.length === 0) return null;
+    if (ids.length === 1 && ids[0] === GLOBAL_TARGET_NODE_ID) {
+      return {
+        target: createUserGroupTargetFromParams("global"),
+        label: "Global",
+      };
+    }
     const clientIds: string[] = [];
     const siteIds: string[] = [];
     const agentIds: string[] = [];
     const labels: string[] = [];
     for (const id of ids) {
+      if (id === GLOBAL_TARGET_NODE_ID) continue;
       const node = findTargetNodeById(targetTreeNodes.value, id);
       if (!node?.targetType) continue;
       if (node.targetType === "client" && node.clientId) {
@@ -264,6 +302,7 @@ export function useTargetSelection() {
     currentTarget,
     targetLabel,
     canApplyTarget,
+    agentNodesOnly,
     getTargetNodeIcon,
     findTargetNodeById,
     loadTargetTree,

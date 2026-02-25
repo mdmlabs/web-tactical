@@ -177,6 +177,22 @@
               rounded
             />
           </q-tab>
+          <q-tab name="collections" icon="collections_bookmark" label="Policy collections">
+            <q-badge
+              v-if="appliedCollectionsLoading"
+              color="grey"
+              label="..."
+              floating
+              rounded
+            />
+            <q-badge
+              v-else-if="(appliedCollections?.length ?? 0) > 0"
+              color="primary"
+              :label="(appliedCollections?.length ?? 0)"
+              floating
+              rounded
+            />
+          </q-tab>
         </q-tabs>
 
         <q-separator />
@@ -186,10 +202,59 @@
             <UserInfoTab :user="user" />
           </q-tab-panel>
           <q-tab-panel name="groups" class="q-pa-md">
-            <UserGroupsTab :groups="groups" :loading="groupsLoading" />
+            <UserGroupsTab
+              :groups="groups"
+              :loading="groupsLoading"
+              :has-target="hasTarget"
+              @add-to-group="$emit('add-to-group')"
+            />
           </q-tab-panel>
           <q-tab-panel name="agents" class="q-pa-md">
-            <UserAgentsTab :agents="agents" :loading="agentsLoading" />
+            <UserAgentsTab
+              :agents="agents"
+              :loading="agentsLoading"
+              :has-target="hasTarget"
+              @add-agent="$emit('add-agent')"
+            />
+          </q-tab-panel>
+          <q-tab-panel name="collections" class="q-pa-md">
+            <div class="row items-center q-mb-md">
+              <div class="text-subtitle2">
+                Policy collections for this user
+              </div>
+              <q-space />
+              <q-btn
+                flat
+                dense
+                color="primary"
+                icon="add_circle_outline"
+                label="Apply collection"
+                :disable="!canApplyCollection"
+                :title="canApplyCollection ? '' : 'Select a single agent as target in the header'"
+                @click="$emit('add-collection')"
+              />
+            </div>
+            <div v-if="appliedCollectionsLoading" class="column items-center q-py-lg">
+              <q-spinner color="primary" size="2em" />
+              <div class="text-caption text-grey-7 q-mt-sm">Loading applied collections...</div>
+            </div>
+            <template v-else-if="appliedCollections.length">
+              <div class="text-caption text-grey-7 q-mb-sm">Applied collections:</div>
+              <q-list bordered separator>
+                <q-item v-for="c in appliedCollections" :key="c.id">
+                  <q-item-section>
+                    <q-item-label>{{ c.name || c.id }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </template>
+            <div v-else-if="!canApplyCollection" class="text-grey-6 text-caption">
+              Select a single agent as target (click the badge in the header) to apply policy collections to this user.
+            </div>
+            <div v-else class="text-body2 text-grey-7">
+              Apply a policy collection to this user on the selected agent. Use the button above to choose a collection.
+              No collections applied yet.
+            </div>
           </q-tab-panel>
         </q-tab-panels>
       </template>
@@ -204,18 +269,27 @@ import UserInfoTab from "./UserInfoTab.vue";
 import UserGroupsTab from "./UserGroupsTab.vue";
 import UserAgentsTab from "./UserAgentsTab.vue";
 
-defineProps<{
-  selectedId: string | null;
-  user: UserWithIdInfo.AsObject | null;
-  loading: boolean;
-  hasTarget: boolean;
-  actionLoading: boolean;
-  detailTab: string;
-  groups: GroupRow[];
-  groupsLoading: boolean;
-  agents: string[];
-  agentsLoading: boolean;
-}>();
+withDefaults(
+  defineProps<{
+    selectedId: string | null;
+    user: UserWithIdInfo.AsObject | null;
+    loading: boolean;
+    hasTarget: boolean;
+    actionLoading: boolean;
+    detailTab: string;
+    groups: GroupRow[];
+    groupsLoading: boolean;
+    agents: string[];
+    agentsLoading: boolean;
+    appliedCollections?: { id: number; name: string }[];
+    appliedCollectionsLoading?: boolean;
+    canApplyCollection: boolean;
+  }>(),
+  {
+    appliedCollections: () => [],
+    appliedCollectionsLoading: false,
+  },
+);
 
 defineEmits<{
   update: [];
@@ -225,6 +299,9 @@ defineEmits<{
   unlock: [];
   "expire-password": [];
   "set-expiration": [];
+  "add-to-group": [];
+  "add-agent": [];
+  "add-collection": [];
   "update:detailTab": [value: string];
 }>();
 </script>
