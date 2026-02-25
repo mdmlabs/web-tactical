@@ -63,5 +63,5 @@ message AgentTarget {
 
 message UserTarget {
   string agent_id = 1;
-  string user_sid = 2;
+  string user_id = 2;
 }

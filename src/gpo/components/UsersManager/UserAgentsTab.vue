@@ -1,6 +1,19 @@
 <template>
   <div>
-    <div class="text-subtitle2 q-mb-md">Effective agents</div>
+    <div class="row items-center q-mb-md">
+      <div class="text-subtitle2">Effective agents</div>
+      <q-space />
+      <q-btn
+        flat
+        dense
+        color="primary"
+        icon="add_circle_outline"
+        label="Add agent"
+        :disable="!hasTarget"
+        :title="!hasTarget ? 'Select target first (click badge in header)' : ''"
+        @click="$emit('add-agent')"
+      />
+    </div>
     <div v-if="loading" class="text-center q-pa-md">
       <q-spinner color="primary" />
     </div>
@@ -24,5 +37,8 @@
 defineProps<{
   agents: string[];
   loading: boolean;
+  hasTarget: boolean;
 }>();
+
+defineEmits<{ "add-agent": [] }>();
 </script>

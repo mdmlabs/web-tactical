@@ -89,6 +89,32 @@ service CollectionsControlService {
       returns (GetPoliciesInCollectionResponse);
   rpc RemovePoliciesFromCollection(RemovePoliciesFromCollectionRequest)
       returns (DeleteCollectionResponse);
+  // Получение коллекций, примененных к агенту, пользователю или группе
+  rpc GetAppliedCollectionsByAgent (GetAppliedCollectionsByAgentRequest)
+      returns (GetAppliedCollectionsResponse);
+  rpc GetAppliedCollectionsByUser (GetAppliedCollectionsByUserRequest)
+      returns (GetAppliedCollectionsResponse);
+  rpc GetAppliedCollectionsByGroup (GetAppliedCollectionsByGroupRequest)
+     returns (GetAppliedCollectionsResponse);
+}
+
+message GetAppliedCollectionsByAgentRequest {
+  string agent_id = 1;
+  string lang_code = 2;
+}
+
+message GetAppliedCollectionsByUserRequest {
+  string user_id = 1; // Guid в строке
+  string lang_code = 2;
+}
+
+message GetAppliedCollectionsByGroupRequest {
+  string group_id = 1; // Guid в строке
+  string lang_code = 2;
+}
+
+message GetAppliedCollectionsResponse {
+  repeated CollectionsSummary collections = 1;
 }
 
 message CreateCollectionsPoliciesRequest {

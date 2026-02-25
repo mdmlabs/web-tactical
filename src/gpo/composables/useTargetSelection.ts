@@ -52,6 +52,15 @@ function findTargetNodeById(
   return null;
 }
 
+function collectAgentNodes(nodes: TargetTreeNode[]): TargetTreeNode[] {
+  const result: TargetTreeNode[] = [];
+  for (const n of nodes) {
+    if (n.targetType === "agent") result.push(n);
+    if (n.children?.length) result.push(...collectAgentNodes(n.children));
+  }
+  return result;
+}
+
 function buildAgentsBySiteMap(agents: Array<Record<string, unknown>>) {
   const agentsBySite = new Map<string, Array<{ agent_id: string; hostname: string }>>();
   for (const a of agents) {
@@ -128,6 +137,10 @@ export function useTargetSelection() {
     if (targetTickedIds.value.length > 0) return true;
     return targetSelectedId.value != null;
   });
+
+  const agentNodesOnly = computed(() =>
+    collectAgentNodes(targetTreeNodes.value),
+  );
 
   async function loadTargetTree() {
     targetTreeLoading.value = true;
@@ -289,6 +302,7 @@ export function useTargetSelection() {
     currentTarget,
     targetLabel,
     canApplyTarget,
+    agentNodesOnly,
     getTargetNodeIcon,
     findTargetNodeById,
     loadTargetTree,

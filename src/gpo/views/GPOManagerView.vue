@@ -2064,6 +2064,21 @@ npm<template>
                 </q-tab-panel>
               </q-tab-panels>
             </div>
+
+            <div
+              v-else-if="mainTab === 'users'"
+              key="users"
+              class="gpo-content-panels gpo-standalone-page-wrap"
+            >
+              <UsersManagerModal standalone-page />
+            </div>
+            <div
+              v-else-if="mainTab === 'groups'"
+              key="groups"
+              class="gpo-content-panels gpo-standalone-page-wrap"
+            >
+              <GroupsManagerModal standalone-page />
+            </div>
           </div>
 
           <div
@@ -3301,6 +3316,8 @@ import GPOPolicySettingsDialog from "../components/GPOPolicySettingsDialog.vue";
 import AppliedPoliciesDialog from "../components/AppliedPoliciesDialog.vue";
 import ApplyPolicyDialog from "../components/ApplyPolicyDialog.vue";
 import GPOCollectionsTable from "../components/CollectionsPolicies/GPOCollectionsTable.vue";
+import UsersManagerModal from "../components/UsersManager/UsersManagerModal.vue";
+import GroupsManagerModal from "../components/GroupsManager/GroupsManagerModal.vue";
 import MultiTextBox from "@/components/ui/MultiTextBox.vue";
 import type {
   GPOPolicy,
@@ -5602,6 +5619,8 @@ watch(
         "library",
         "windows",
         "devices",
+        "users",
+        "groups",
       ].includes(newTab)
     ) {
       mainTab.value = newTab;
@@ -6373,6 +6392,8 @@ onMounted(async () => {
       "library",
       "windows",
       "devices",
+      "users",
+      "groups",
     ].includes(tabFromQuery)
   ) {
     mainTab.value = tabFromQuery;
@@ -6487,6 +6508,23 @@ onMounted(async () => {
   display: flex
   flex-direction: column
 
+.gpo-standalone-page-wrap
+  display: flex
+  flex-direction: column
+  min-height: 0
+  overflow: hidden
+  padding: 0
+
+.gpo-standalone-page-wrap :deep(.users-manager-layout),
+.gpo-standalone-page-wrap :deep(.groups-manager-layout)
+  height: 100%
+  min-height: 0
+  flex: 1
+
+.gpo-standalone-page-wrap :deep(.users-manager-page),
+.gpo-standalone-page-wrap :deep(.groups-manager-page)
+  flex: 1
+  min-height: 0
 
 .body--dark .gpo-content-header
   background: rgba(30, 30, 30, 0.98)

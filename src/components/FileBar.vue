@@ -296,6 +296,32 @@
                     </q-item-section>
                     <q-item-section>Device Policies</q-item-section>
                   </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('users')"
+                    :class="['filebar-popup-item', { 'active-menu-item': isActiveGPOTab('users') }]"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="person" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Users</q-item-section>
+                  </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('groups')"
+                    :class="['filebar-popup-item', { 'active-menu-item': isActiveGPOTab('groups') }]"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="group" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Groups</q-item-section>
+                  </q-item>
                 </q-list>
               </q-menu>
             </q-item>
@@ -392,6 +418,28 @@
                 </q-item-section>
                 <q-item-section>Device Policies</q-item-section>
               </q-item>
+              <q-item
+                clickable
+                v-ripple
+                @click="handleMenuAction('users')"
+                :class="['filebar-menu-item', { 'active-menu-item': isActiveGPOTab('users') }]"
+              >
+                <q-item-section avatar>
+                  <q-icon name="person" />
+                </q-item-section>
+                <q-item-section>Users</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                @click="handleMenuAction('groups')"
+                :class="['filebar-menu-item', { 'active-menu-item': isActiveGPOTab('groups') }]"
+              >
+                <q-item-section avatar>
+                  <q-icon name="group" />
+                </q-item-section>
+                <q-item-section>Groups</q-item-section>
+              </q-item>
             </q-list>
           </q-expansion-item>
 
@@ -437,60 +485,6 @@
             </q-item>
           </template>
 
-          <template v-if="isMiniMode && !isMobile">
-            <q-item clickable class="filebar-menu-section-mini">
-              <q-item-section avatar>
-                <q-icon name="group" size="24px">
-                  <q-tooltip
-                    anchor="center right"
-                    self="center left"
-                    :offset="[10, 0]"
-                  >
-                    Users & Groups
-                  </q-tooltip>
-                </q-icon>
-              </q-item-section>
-              <q-menu
-                anchor="top end"
-                self="top start"
-                :offset="[8, 0]"
-                class="sidebar-popup-menu"
-              >
-                <q-list class="filebar-popup-list">
-                  <q-item-label header class="text-weight-bold"
-                    >Users & Groups</q-item-label
-                  >
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('users')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="person" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Users</q-item-section>
-                  </q-item>
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('groups')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="group" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Groups</q-item-section>
-                  </q-item>
-                </q-list>
-              </q-menu>
-            </q-item>
-          </template>
-
           <q-expansion-item
             v-else
             icon="visibility"
@@ -508,38 +502,6 @@
                   <q-icon name="pending_actions" />
                 </q-item-section>
                 <q-item-section>Pending Actions</q-item-section>
-              </q-item>
-            </q-list>
-          </q-expansion-item>
-
-          <q-expansion-item
-            v-if="!isMiniMode || isMobile"
-            icon="group"
-            label="Users & Groups"
-            class="filebar-menu-section"
-          >
-            <q-list>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('users')"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="person" />
-                </q-item-section>
-                <q-item-section>Users</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('groups')"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="group" />
-                </q-item-section>
-                <q-item-section>Groups</q-item-section>
               </q-item>
             </q-list>
           </q-expansion-item>
@@ -1210,22 +1172,6 @@
     <q-dialog v-model="showCodeSign">
       <CodeSign @close="showCodeSign = false" />
     </q-dialog>
-    <q-dialog
-      v-model="showGroupsManager"
-      maximized
-      transition-show="slide-up"
-      transition-hide="slide-down"
-    >
-      <GroupsManagerModal :open="showGroupsManager" @close="showGroupsManager = false" />
-    </q-dialog>
-    <q-dialog
-      v-model="showUsersManager"
-      maximized
-      transition-show="slide-up"
-      transition-hide="slide-down"
-    >
-      <UsersManagerModal :open="showUsersManager" @close="showUsersManager = false" />
-    </q-dialog>
   </q-drawer>
 </template>
 
@@ -1251,8 +1197,6 @@ import ServerMaintenance from "@/components/modals/core/ServerMaintenance.vue";
 import CodeSign from "@/components/modals/coresettings/CodeSign.vue";
 import PermissionsManager from "@/components/accounts/PermissionsManager.vue";
 import TemplateManager from "@/components/tasks/TemplateManager.vue";
-import GroupsManagerModal from "@/gpo/components/GroupsManager/GroupsManagerModal.vue";
-import UsersManagerModal from "@/gpo/components/UsersManager/UsersManagerModal.vue";
 
 
 export default {
@@ -1265,8 +1209,6 @@ export default {
     AdminManager,
     ServerMaintenance,
     CodeSign,
-    GroupsManagerModal,
-    UsersManagerModal,
   },
   data() {
     return {
@@ -1276,8 +1218,6 @@ export default {
       showAdminManager: false,
       showInstallAgent: false,
       showCodeSign: false,
-      showGroupsManager: false,
-      showUsersManager: false,
     };
   },
   computed: {
@@ -1354,10 +1294,10 @@ export default {
           this.showPendingActions();
           break;
         case "users":
-          this.showUsersManager = true;
+          this.navigateToGPO("users");
           break;
         case "groups":
-          this.showGroupsManager = true;
+          this.navigateToGPO("groups");
           break;
         case "installAgent":
           this.showInstallAgent = true;

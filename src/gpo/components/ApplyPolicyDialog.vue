@@ -1893,7 +1893,7 @@ async function applySelectedPolicy() {
         policyAssignmentClient.assignPolicy(
           policyHash,
           "user",
-          { agentId: String(props.agent.id), userSid: String(user.sid) },
+          { agentId: String(props.agent.id), userId: String(user.sid) },
           processedSettings,
         ),
       );
@@ -1973,7 +1973,7 @@ async function removePolicy() {
       removePromises.push(
         policyAssignmentClient.removePolicy(policyHash, "user", {
           agentId: String(props.agent.id),
-          userSid: String(user.sid),
+          userId: String(user.sid),
         }),
       );
     }

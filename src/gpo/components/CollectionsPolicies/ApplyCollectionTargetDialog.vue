@@ -97,7 +97,7 @@ export interface TargetSelection {
   clientId?: string;
   siteId?: string;
   agentId?: string;
-  userSid?: string;
+  userId?: string;
   label?: string;
 }
 
@@ -111,7 +111,7 @@ interface TreeNode {
   clientId?: string;
   siteId?: string;
   agentId?: string;
-  userSid?: string;
+  userId?: string;
 }
 
 const props = withDefaults(
@@ -154,7 +154,7 @@ const selectedTarget = computed((): TargetSelection | null => {
     clientId: node.clientId,
     siteId: node.siteId,
     agentId: node.agentId,
-    userSid: node.userSid,
+    userId: node.userId,
     label: node.label,
   };
 });
@@ -239,7 +239,7 @@ function onLazyLoad(details: {
           label: u.name ?? u.sid ?? "—",
           targetType: "user" as const,
           agentId: node.agentId!,
-          userSid: String(u.sid),
+          userId: String(u.sid),
         }));
       done(userNodes);
     })
@@ -366,11 +366,11 @@ async function onSubmit() {
     } else if (
       target.targetType === "user" &&
       target.agentId &&
-      target.userSid
+      target.userId
     ) {
       targetType = "user";
       targetParams.agentId = target.agentId;
-      targetParams.userSid = target.userSid;
+      targetParams.userId = target.userId;
     } else {
       notifyError("Invalid target selection");
       return;

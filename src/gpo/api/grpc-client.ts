@@ -24,6 +24,8 @@ import {
   GroupRequest,
   UserGroupRequest,
   UserIdRequest,
+  SetUserAgentRequest,
+  SetGroupAgentRequest,
 } from "@/generated/user_service_pb";
 
 import target_pb from "@/generated/common/target_pb";
@@ -633,6 +635,47 @@ export const userControlClient = {
     return response.toObject();
   },
 
+  async setUserAgent(
+    target: Target,
+    userId: string,
+    options?: {
+      password?: string;
+      passwordNotRequired?: boolean;
+      userCannotChangePassword?: boolean;
+      smartcardLogonRequired?: boolean;
+    },
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new SetUserAgentRequest();
+    req.setTarget(target);
+    req.setUserId(userId);
+    if (options?.password != null) req.setPassword(options.password);
+    if (options?.passwordNotRequired != null)
+      req.setPasswordNotRequired(options.passwordNotRequired);
+    if (options?.userCannotChangePassword != null)
+      req.setUserCannotChangePassword(options.userCannotChangePassword);
+    if (options?.smartcardLogonRequired != null)
+      req.setSmartcardLogonRequired(options.smartcardLogonRequired);
+    const response = await operatorUserControlServiceClient.setUserAgent(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async setGroupAgent(
+    target: Target,
+    groupId: string,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new SetGroupAgentRequest();
+    req.setTarget(target);
+    req.setGroupId(groupId);
+    const response = await operatorUserControlServiceClient.setGroupAgent(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
   async setGroupChildGroups(
     groupId: string,
     childGroupIds: string[],
@@ -803,12 +846,12 @@ export function createUserGroupTargetForAgent(agentId: string): Target {
 
 export function createUserGroupTargetForUser(
   agentId: string,
-  userSid: string,
+  userId: string,
 ): Target {
   const ugTarget = new target_pb.Target();
   const userTarget = new target_pb.UserTarget();
   userTarget.setAgentId(agentId);
-  userTarget.setUserSid(userSid);
+  userTarget.setUserId(userId);
   ugTarget.setUser(userTarget);
   return ugTarget;
 }
@@ -933,7 +976,7 @@ export type UserGroupTargetType =
 
 export type UserGroupTargetParams = {
   agentId?: string;
-  userSid?: string;
+  userId?: string;
   clientId?: string;
   siteId?: string;
   clientIds?: string[];
@@ -954,12 +997,12 @@ export function createUserGroupTargetFromParams(
       }
       return createUserGroupTargetForAgent(targetParams.agentId);
     case "user":
-      if (!targetParams.agentId || !targetParams.userSid) {
-        throw new Error("agentId и userSid обязательны для типа 'user'");
+      if (!targetParams.agentId || !targetParams.userId) {
+        throw new Error("agentId и userId обязательны для типа 'user'");
       }
       return createUserGroupTargetForUser(
         targetParams.agentId,
-        targetParams.userSid,
+        targetParams.userId,
       );
     case "client":
       if (!targetParams.clientId) {
@@ -990,14 +1033,23 @@ export function createUserGroupTargetFromParams(
 
 export function createUserTarget(
   agentId: string,
-  userSid: string,
+  userId: string,
 ): Target {
   const t = new target_pb.Target();
   const userTarget = new target_pb.UserTarget();
   userTarget.setAgentId(agentId);
-  userTarget.setUserSid(userSid);
+  userTarget.setUserId(userId);
   t.setUser(userTarget);
   return t;
+}
+
+
+export function getSingleAgentIdFromTarget(target: Target | null): string | null {
+  if (!target) return null;
+  const agentTarget = (target as { getAgent?: () => { getAgentId?: () => string } }).getAgent?.();
+  if (agentTarget?.getAgentId) return agentTarget.getAgentId() || null;
+  const o = (target as { toObject?: () => { agent?: { agentId?: string } } }).toObject?.();
+  return o?.agent?.agentId ?? null;
 }
 
 export function createTacticalClientTarget(clientId: string): Target {
@@ -1013,6 +1065,22 @@ export function createTacticalSiteTarget(siteId: string): Target {
   const siteTarget = new target_pb.TacticalSiteTarget();
   siteTarget.setSiteId(Number(siteId));
   t.setSite(siteTarget);
+  return t;
+}
+
+export function createGroupTarget(groupId: string): Target {
+  const t = new target_pb.Target();
+  const groupTarget = new target_pb.GroupTarget();
+  groupTarget.setGroupid(groupId);
+  t.setGroup(groupTarget);
+  return t;
+}
+
+export function createGroupsTarget(groupIds: string[]): Target {
+  const t = new target_pb.Target();
+  const groupsTarget = new target_pb.GroupsTarget();
+  groupsTarget.setGroupidsList(groupIds);
+  t.setGroups(groupsTarget);
   return t;
 }
 
@@ -1065,13 +1133,17 @@ export type PolicyTargetType =
   | "user"
   | "client"
   | "site"
+  | "group"
+  | "groups"
   | "combined";
 
 export type PolicyTargetParams = {
   agentId?: string;
-  userSid?: string;
+  userId?: string;
   clientId?: string;
   siteId?: string;
+  groupId?: string;
+  groupIds?: string[];
   clientIds?: string[];
   siteIds?: string[];
   agentIds?: string[];
@@ -1090,10 +1162,10 @@ export function createPolicyTargetFromParams(
       }
       return createAgentTarget(targetParams.agentId);
     case "user":
-      if (!targetParams.agentId || !targetParams.userSid) {
-        throw new Error("agentId и userSid обязательны для типа 'user'");
+      if (!targetParams.agentId || !targetParams.userId) {
+        throw new Error("agentId и userId обязательны для типа 'user'");
       }
-      return createUserTarget(targetParams.agentId, targetParams.userSid);
+      return createUserTarget(targetParams.agentId, targetParams.userId);
     case "client":
       if (!targetParams.clientId) {
         throw new Error("clientId обязателен для типа 'client'");
@@ -1104,6 +1176,13 @@ export function createPolicyTargetFromParams(
         throw new Error("siteId обязателен для типа 'site'");
       }
       return createTacticalSiteTarget(targetParams.siteId);
+    case "group":
+      if (!targetParams.groupId) {
+        throw new Error("groupId обязателен для типа 'group'");
+      }
+      return createGroupTarget(targetParams.groupId);
+    case "groups":
+      return createGroupsTarget(targetParams.groupIds ?? []);
     case "combined":
       return createCombinedTarget({
         clientIds: targetParams.clientIds,
@@ -1745,6 +1824,40 @@ export const collectionsClient = {
 
     const response =
       await collectionsControlServiceClient.getPoliciesInCollection(
+        request,
+        createGrpcMetadata(),
+      );
+
+    return response.toObject();
+  },
+
+  async getAppliedCollectionsByUser(
+    userId: string,
+    langCode: string = "en-US",
+  ): Promise<operator_pb_types.GetAppliedCollectionsResponse.AsObject> {
+    const request = new operator_pb.GetAppliedCollectionsByUserRequest();
+    request.setUserId(userId);
+    request.setLangCode(langCode);
+
+    const response =
+      await collectionsControlServiceClient.getAppliedCollectionsByUser(
+        request,
+        createGrpcMetadata(),
+      );
+
+    return response.toObject();
+  },
+
+  async getAppliedCollectionsByGroup(
+    groupId: string,
+    langCode: string = "en-US",
+  ): Promise<operator_pb_types.GetAppliedCollectionsResponse.AsObject> {
+    const request = new operator_pb.GetAppliedCollectionsByGroupRequest();
+    request.setGroupId(groupId);
+    request.setLangCode(langCode);
+
+    const response =
+      await collectionsControlServiceClient.getAppliedCollectionsByGroup(
         request,
         createGrpcMetadata(),
       );
