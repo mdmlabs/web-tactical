@@ -297,8 +297,13 @@
 
     <TargetSelectionDialog
       v-model="showAddAgentPanel"
-      agents-only
       @select="handleAddAgentTargetSelect"
+    />
+
+    <SetUserAgentOptionsDialog
+      v-model="showSetUserAgentOptions"
+      :target-label="pendingAddAgentRef?.label"
+      @confirm="handleSetUserAgentOptionsConfirm"
     />
   </div>
 </template>
@@ -327,6 +332,8 @@ import CreateUserDialog from "./dialogs/CreateUserDialog.vue";
 import UpdateUserDialog from "./dialogs/UpdateUserDialog.vue";
 import SetPasswordDialog from "./dialogs/SetPasswordDialog.vue";
 import SetAccountExpirationDialog from "./dialogs/SetAccountExpirationDialog.vue";
+import SetUserAgentOptionsDialog from "./dialogs/SetUserAgentOptionsDialog.vue";
+import type { SetUserAgentOptions } from "./dialogs/SetUserAgentOptionsDialog.vue";
 import TargetSelectionDialog from "@/gpo/components/shared/TargetSelectionDialog.vue";
 
 const props = withDefaults(
@@ -352,6 +359,8 @@ const showSetPassword = ref(false);
 const showSetAccountExpiration = ref(false);
 const showAddToGroupDialog = ref(false);
 const showAddAgentPanel = ref(false);
+const showSetUserAgentOptions = ref(false);
+const pendingAddAgentRef = ref<TargetRef | null>(null);
 const showApplyCollectionDialog = ref(false);
 
 const addToGroupOptions = ref<{ sam: string; label: string }[]>([]);
@@ -524,28 +533,46 @@ async function doAddUserToGroup() {
   }
 }
 
-async function handleAddAgentTargetSelect(ref: TargetRef) {
+function handleAddAgentTargetSelect(ref: TargetRef) {
   const userId =
     selectedUserId.value ??
     userDetail.value?.info?.samaccountname ??
     userDetail.value?.userid;
   if (!userId) return;
   showAddAgentPanel.value = false;
+  pendingAddAgentRef.value = ref;
+  showSetUserAgentOptions.value = true;
+}
+
+async function handleSetUserAgentOptionsConfirm(options: SetUserAgentOptions) {
+  const ref = pendingAddAgentRef.value;
+  const userId =
+    selectedUserId.value ??
+    userDetail.value?.info?.samaccountname ??
+    userDetail.value?.userid;
+  if (!ref || !userId) return;
+  pendingAddAgentRef.value = null;
   try {
-    const res = await userControlClient.setUserAgent(ref.target, userId);
+    const res = await userControlClient.setUserAgent(ref.target, userId, {
+      password: options.password,
+      passwordNotRequired: options.passwordNotRequired,
+      userCannotChangePassword: options.userCannotChangePassword,
+      smartcardLogonRequired: options.smartcardLogonRequired,
+    });
     if (res.status === 0) {
-      $q.notify({ type: "positive", message: "Agent linked to user" });
+      $q.notify({ type: "positive", message: "User linked to target" });
       await loadUserAgents();
     } else {
       $q.notify({
         type: "negative",
-        message: res.errorMessage ?? "Failed to link agent",
+        message: res.errorMessage ?? "Failed to link user to target",
       });
     }
   } catch (err) {
     $q.notify({
       type: "negative",
-      message: err instanceof Error ? err.message : "Failed to link agent",
+      message:
+        err instanceof Error ? err.message : "Failed to link user to target",
     });
   }
 }
