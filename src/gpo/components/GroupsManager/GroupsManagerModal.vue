@@ -469,31 +469,79 @@
                     :disable="!selectedGroupId"
                     @click="showApplyCollectionDialog = true"
                   />
+                  <q-btn
+                    flat
+                    dense
+                    color="negative"
+                    icon="remove_circle_outline"
+                    label="Remove collection"
+                    :disable="!canRemoveGroupCollection"
+                    title="Remove an applied collection from this group"
+                    @click="showRemoveCollectionDialog = true"
+                  />
                 </div>
-                <div v-if="!selectedGroupId" class="text-grey-6 text-caption">
-                  Select a group to apply policy collections.
-                </div>
-                <template v-else>
-                  <div v-if="groupAppliedCollectionsLoading" class="column items-center q-py-lg">
-                    <q-spinner color="primary" size="2em" />
-                    <div class="text-caption text-grey-7 q-mt-sm">Loading applied collections...</div>
+                <div class="collections-tab-scroll">
+                  <div
+                    v-if="!selectedGroupId"
+                    class="text-grey-6 text-caption"
+                  >
+                    Select a group to apply policy collections.
                   </div>
-                  <template v-else-if="groupAppliedCollections.length">
-                    <div class="text-caption text-grey-7 q-mb-sm">Applied collections:</div>
-                    <q-list bordered separator>
-                      <q-item v-for="c in groupAppliedCollections" :key="c.id">
-                        <q-item-section>
-                          <q-item-label>{{ c.name || c.id }}</q-item-label>
-                        </q-item-section>
-                      </q-item>
-                    </q-list>
+                  <template v-else>
+                    <div
+                      v-if="groupAppliedCollectionsLoading"
+                      class="column items-center q-py-lg"
+                    >
+                      <q-spinner color="primary" size="2em" />
+                      <div class="text-caption text-grey-7 q-mt-sm">
+                        Loading applied collections...
+                      </div>
+                    </div>
+                    <template v-else-if="groupAppliedCollections.length">
+                      <div class="text-caption text-grey-7 q-mb-sm">
+                        Applied collections:
+                      </div>
+                      <div class="applied-collections-list">
+                        <div
+                          v-for="c in groupAppliedCollections"
+                          :key="c.id"
+                          class="applied-collection-block"
+                        >
+                          <div class="text-weight-medium">
+                            {{ c.name || c.id }}
+                          </div>
+                          <div
+                            v-if="c.explainText"
+                            class="text-caption text-grey-7 q-mt-xs"
+                          >
+                            {{ c.explainText }}
+                          </div>
+                          <template v-if="c.policies?.length">
+                            <div class="text-caption text-grey-7 q-mt-sm">
+                              Policies in collection:
+                            </div>
+                            <ul
+                              class="q-pl-md q-mt-xs q-mb-none text-caption text-grey-8"
+                            >
+                              <li
+                                v-for="p in c.policies"
+                                :key="p.id"
+                                class="q-py-xs"
+                              >
+                                {{ p.name }}
+                              </li>
+                            </ul>
+                          </template>
+                        </div>
+                      </div>
+                    </template>
+                    <div v-else class="text-body2 text-grey-7">
+                      Apply a policy collection to this group so that its
+                      policies apply to all members. Use the button above to
+                      choose a collection. No collections applied yet.
+                    </div>
                   </template>
-                  <div v-else class="text-body2 text-grey-7">
-                    Apply a policy collection to this group so that its policies
-                    apply to all members. Use the button above to choose a
-                    collection. No collections applied yet.
-                  </div>
-                </template>
+                </div>
               </q-tab-panel>
             </q-tab-panels>
           </template>
@@ -671,7 +719,59 @@
             label="Apply"
             :loading="applyCollectionApplying"
             :disable="!applyCollectionSelectedId"
-            @click="doApplyCollectionToGroup"
+            @click="confirmApplyCollectionToGroup"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog
+      v-model="showRemoveCollectionDialog"
+      position="standard"
+      @show="prepareRemoveCollectionOptionsForGroup"
+    >
+      <q-card class="apply-collection-card" style="min-width: 400px">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Remove collection from group</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+        <q-separator />
+        <q-card-section>
+          <div class="text-caption text-grey-7 q-mb-sm">
+            Group: <strong>{{ selectedGroupSam }}</strong>
+          </div>
+          <q-select
+            v-model="removeCollectionSelectedId"
+            :options="removeCollectionOptions"
+            option-value="id"
+            option-label="label"
+            emit-value
+            map-options
+            label="Collection to remove *"
+            outlined
+            dense
+            :disable="removeCollectionOptions.length === 0"
+            clearable
+            options-dense
+          >
+            <template v-slot:no-option>
+              <q-item>
+                <q-item-section class="text-grey">
+                  No applied collections to remove
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-select>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn
+            color="negative"
+            label="Remove"
+            :loading="removeCollectionRemoving"
+            :disable="removeCollectionSelectedId == null"
+            @click="confirmRemoveCollectionFromGroup"
           />
         </q-card-actions>
       </q-card>
@@ -797,8 +897,26 @@ const applyCollectionApplying = ref(false);
 const applyCollectionSelectedId = ref<number | null>(null);
 const applyCollectionOptions = ref<{ id: number; label: string }[]>([]);
 
-const groupAppliedCollections = ref<{ id: number; name: string }[]>([]);
+const groupAppliedCollections = ref<
+  {
+    id: number;
+    name: string;
+    explainText?: string;
+    policies?: { id: number; name: string }[];
+  }[]
+>([]);
 const groupAppliedCollectionsLoading = ref(false);
+
+const canRemoveGroupCollection = computed(
+  () =>
+    !!selectedGroupId.value &&
+    (groupAppliedCollections.value?.length ?? 0) > 0,
+);
+
+const showRemoveCollectionDialog = ref(false);
+const removeCollectionSelectedId = ref<number | null>(null);
+const removeCollectionOptions = ref<{ id: number; label: string }[]>([]);
+const removeCollectionRemoving = ref(false);
 
 const usersColumns = [
   {
@@ -1325,6 +1443,22 @@ async function loadCollectionsForApply() {
   }
 }
 
+function confirmApplyCollectionToGroup() {
+  const collectionId = applyCollectionSelectedId.value;
+  if (collectionId == null) return;
+  const collectionLabel =
+    applyCollectionOptions.value.find((o) => o.id === collectionId)?.label ??
+    String(collectionId);
+  $q.dialog({
+    title: "Apply collections",
+    message: `Do you really want to apply the collection«${collectionLabel}»?`,
+    cancel: true,
+    persistent: true,
+  }).onOk(() => {
+    doApplyCollectionToGroup();
+  });
+}
+
 async function doApplyCollectionToGroup() {
   const groupId = selectedGroupId.value;
   const collectionId = applyCollectionSelectedId.value;
@@ -1348,6 +1482,52 @@ async function doApplyCollectionToGroup() {
   }
 }
 
+function prepareRemoveCollectionOptionsForGroup() {
+  removeCollectionSelectedId.value = null;
+  removeCollectionOptions.value = (groupAppliedCollections.value ?? []).map(
+    (c) => ({ id: c.id, label: c.name || String(c.id) }),
+  );
+}
+
+function confirmRemoveCollectionFromGroup() {
+  const collectionId = removeCollectionSelectedId.value;
+  if (collectionId == null) return;
+  const collectionLabel =
+    removeCollectionOptions.value.find((o) => o.id === collectionId)?.label ??
+    String(collectionId);
+  $q.dialog({
+    title: "Remove collections",
+    message: `Do you really want to delete the collection «${collectionLabel}»?`,
+    cancel: true,
+    persistent: true,
+    color: "negative",
+  }).onOk(() => {
+    doRemoveCollectionFromGroup();
+  });
+}
+
+async function doRemoveCollectionFromGroup() {
+  const groupId = selectedGroupId.value;
+  const collectionId = removeCollectionSelectedId.value;
+  const groupLabel = selectedGroupSam.value ?? groupId;
+  if (!groupId || collectionId == null) return;
+  removeCollectionRemoving.value = true;
+  try {
+    await policyAssignmentClient.removePolicyCollection(collectionId, "group", {
+      groupId,
+    });
+    notifySuccess(`Collection removed from group "${groupLabel}"`);
+    showRemoveCollectionDialog.value = false;
+    await loadGroupAppliedCollections();
+  } catch (err) {
+    notifyError(
+      err instanceof Error ? err.message : "Failed to remove collection",
+    );
+  } finally {
+    removeCollectionRemoving.value = false;
+  }
+}
+
 async function loadGroupAppliedCollections() {
   const groupId = selectedGroupId.value;
   if (!groupId) {
@@ -1361,22 +1541,41 @@ async function loadGroupAppliedCollections() {
       groupId,
       "en-US",
     );
+    type CollectionItem = {
+      id?: number;
+      name?: string;
+      explainText?: string;
+      explain_text?: string;
+      policiesList?: Array<{
+        id?: number;
+        name?: string;
+        displayName?: string;
+        display_name?: string;
+      }>;
+      policies?: Array<{
+        id?: number;
+        name?: string;
+        displayName?: string;
+        display_name?: string;
+      }>;
+    };
     const list =
-      (
-        response as {
-          collectionsList?: Array<{ id?: number; name?: string }>;
-        }
-      ).collectionsList ??
-      (
-        response as {
-          collections?: Array<{ id?: number; name?: string }>;
-        }
-      ).collections ??
+      (response as { collectionsList?: CollectionItem[] }).collectionsList ??
+      (response as { collections?: CollectionItem[] }).collections ??
       [];
-    groupAppliedCollections.value = list.map((c) => ({
-      id: c.id ?? 0,
-      name: c.name ?? String(c.id ?? ""),
-    }));
+    groupAppliedCollections.value = list.map((c) => {
+      const rawPolicies = c.policiesList ?? c.policies ?? [];
+      return {
+        id: c.id ?? 0,
+        name: c.name ?? String(c.id ?? ""),
+        explainText: (c.explainText ?? c.explain_text ?? "").trim() || undefined,
+        policies: rawPolicies.map((p) => ({
+          id: p.id ?? 0,
+          name:
+            p.displayName ?? p.display_name ?? p.name ?? String(p.id ?? ""),
+        })),
+      };
+    });
   } catch {
     groupAppliedCollections.value = [];
   } finally {
@@ -1467,6 +1666,21 @@ async function removeUserFromGroup(user: GroupRow) {
 .groups-tab-panels
   flex: 1
   overflow: auto
+
+.collections-tab-scroll
+  max-height: 50vh
+  overflow-y: auto
+
+.applied-collections-list
+  display: flex
+  flex-direction: column
+  gap: 12px
+
+.applied-collection-block
+  padding: 12px
+  border: 1px solid rgba(0, 0, 0, 0.12)
+  border-radius: 4px
+  background: rgba(0, 0, 0, 0.02)
 
 .groups-tree
   .q-tree__node--selected > .q-tree__node-header

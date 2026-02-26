@@ -49,54 +49,53 @@
 
     <div class="users-manager-page">
       <div class="users-manager-body">
-          <UsersListPanel
-            :users="filteredUsers"
-            :loading="usersLoading"
-            :error="usersError"
-            :selected-id="selectedUserId"
-            :search="userSearch"
-            :can-create="!!currentTarget"
-            @select="selectUser"
-            @refresh="loadUsers"
-            @create="showCreateUser = true"
-            @update:search="userSearch = $event"
-          />
+        <UsersListPanel
+          :users="filteredUsers"
+          :loading="usersLoading"
+          :error="usersError"
+          :selected-id="selectedUserId"
+          :search="userSearch"
+          :can-create="!!currentTarget"
+          @select="selectUser"
+          @refresh="loadUsers"
+          @create="showCreateUser = true"
+          @update:search="userSearch = $event"
+        />
 
-          <q-separator vertical />
+        <q-separator vertical />
 
-          <UserDetailPanel
-            :selected-id="selectedUserId"
-            :user="userDetail"
-            :loading="userDetailLoading"
-            :has-target="!!currentTarget"
-            :action-loading="actionLoading"
-            :detail-tab="detailTab"
-            :groups="userGroups"
-            :groups-loading="userGroupsLoading"
-            :agents="userAgents"
-            :agents-loading="userAgentsLoading"
-            :applied-collections="userAppliedCollections"
-            :applied-collections-loading="userAppliedCollectionsLoading"
-            @update="showUpdateUser = true"
-            @delete="confirmDeleteUser(currentTarget!)"
-            @toggle-enable="toggleEnableUser(currentTarget!)"
-            @set-password="showSetPassword = true"
-            @unlock="unlockUser(currentTarget!)"
-            @expire-password="expirePassword(currentTarget!)"
-            @set-expiration="showSetAccountExpiration = true"
-            :can-apply-collection="canApplyCollection"
-            @add-to-group="openAddToGroupDialog"
-            @add-agent="showAddAgentPanel = true"
-            @add-collection="showApplyCollectionDialog = true"
-            @update:detail-tab="(val) => detailTab = val"
-          />
-        </div>
+        <UserDetailPanel
+          :selected-id="selectedUserId"
+          :user="userDetail"
+          :loading="userDetailLoading"
+          :has-target="!!currentTarget"
+          :action-loading="actionLoading"
+          :detail-tab="detailTab"
+          :groups="userGroups"
+          :groups-loading="userGroupsLoading"
+          :agents="userAgents"
+          :agents-loading="userAgentsLoading"
+          :applied-collections="userAppliedCollections"
+          :applied-collections-loading="userAppliedCollectionsLoading"
+          @update="showUpdateUser = true"
+          @delete="confirmDeleteUser(currentTarget!)"
+          @toggle-enable="toggleEnableUser(currentTarget!)"
+          @set-password="showSetPassword = true"
+          @unlock="unlockUser(currentTarget!)"
+          @expire-password="expirePassword(currentTarget!)"
+          @set-expiration="showSetAccountExpiration = true"
+          :can-apply-collection="canApplyCollection"
+          :can-remove-collection="canRemoveCollection"
+          @add-to-group="openAddToGroupDialog"
+          @add-agent="showAddAgentPanel = true"
+          @add-collection="showApplyCollectionDialog = true"
+          @remove-collection="showRemoveCollectionDialog = true"
+          @update:detail-tab="(val) => (detailTab = val)"
+        />
+      </div>
     </div>
 
-    <CreateUserDialog
-      v-model="showCreateUser"
-      @create="handleCreateUser"
-    />
+    <CreateUserDialog v-model="showCreateUser" @create="handleCreateUser" />
 
     <UpdateUserDialog
       v-model="showUpdateUser"
@@ -122,7 +121,11 @@
       @select="handleTargetSelect"
     />
 
-    <q-dialog v-model="showAddToGroupDialog" position="standard" @show="loadAddToGroupOptions">
+    <q-dialog
+      v-model="showAddToGroupDialog"
+      position="standard"
+      @show="loadAddToGroupOptions"
+    >
       <q-card style="min-width: 360px">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">Add user to group</div>
@@ -130,7 +133,10 @@
           <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
         <q-card-section>
-          <div v-if="userDetail?.info?.samaccountname" class="text-caption text-grey-7 q-mb-sm">
+          <div
+            v-if="userDetail?.info?.samaccountname"
+            class="text-caption text-grey-7 q-mb-sm"
+          >
             User: <strong>{{ userDetail.info.samaccountname }}</strong>
           </div>
           <q-select
@@ -151,7 +157,11 @@
             <template v-slot:no-option>
               <q-item>
                 <q-item-section class="text-grey">
-                  {{ addToGroupOptionsLoading ? "Loading…" : "No groups available or user already in all" }}
+                  {{
+                    addToGroupOptionsLoading
+                      ? "Loading…"
+                      : "No groups available or user already in all"
+                  }}
                 </q-item-section>
               </q-item>
             </template>
@@ -184,7 +194,10 @@
         <q-separator />
         <q-card-section>
           <div class="text-caption text-grey-7 q-mb-sm">
-            User: <strong>{{ userDetail?.info?.samaccountname ?? selectedUserId }}</strong>
+            User:
+            <strong>{{
+              userDetail?.info?.samaccountname ?? selectedUserId
+            }}</strong>
           </div>
           <q-select
             v-model="applyCollectionSelectedId"
@@ -221,7 +234,62 @@
             label="Apply"
             :loading="applyCollectionApplying"
             :disable="!applyCollectionSelectedId"
-            @click="doApplyCollectionToUser"
+            @click="confirmApplyCollectionToUser"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog
+      v-model="showRemoveCollectionDialog"
+      position="standard"
+      @show="prepareRemoveCollectionOptions"
+    >
+      <q-card class="apply-collection-card" style="min-width: 400px">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Remove collection from user</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+        <q-separator />
+        <q-card-section>
+          <div class="text-caption text-grey-7 q-mb-sm">
+            User:
+            <strong>{{
+              userDetail?.info?.samaccountname ?? selectedUserId
+            }}</strong>
+          </div>
+          <q-select
+            v-model="removeCollectionSelectedId"
+            :options="removeCollectionOptions"
+            option-value="id"
+            option-label="label"
+            emit-value
+            map-options
+            label="Collection to remove *"
+            outlined
+            dense
+            :disable="removeCollectionOptions.length === 0"
+            clearable
+            options-dense
+          >
+            <template v-slot:no-option>
+              <q-item>
+                <q-item-section class="text-grey">
+                  No applied collections to remove
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-select>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn
+            color="negative"
+            label="Remove"
+            :loading="removeCollectionRemoving"
+            :disable="removeCollectionSelectedId == null"
+            @click="confirmRemoveCollectionFromUser"
           />
         </q-card-actions>
       </q-card>
@@ -229,8 +297,13 @@
 
     <TargetSelectionDialog
       v-model="showAddAgentPanel"
-      agents-only
       @select="handleAddAgentTargetSelect"
+    />
+
+    <SetUserAgentOptionsDialog
+      v-model="showSetUserAgentOptions"
+      :target-label="pendingAddAgentRef?.label"
+      @confirm="handleSetUserAgentOptionsConfirm"
     />
   </div>
 </template>
@@ -259,6 +332,8 @@ import CreateUserDialog from "./dialogs/CreateUserDialog.vue";
 import UpdateUserDialog from "./dialogs/UpdateUserDialog.vue";
 import SetPasswordDialog from "./dialogs/SetPasswordDialog.vue";
 import SetAccountExpirationDialog from "./dialogs/SetAccountExpirationDialog.vue";
+import SetUserAgentOptionsDialog from "./dialogs/SetUserAgentOptionsDialog.vue";
+import type { SetUserAgentOptions } from "./dialogs/SetUserAgentOptionsDialog.vue";
 import TargetSelectionDialog from "@/gpo/components/shared/TargetSelectionDialog.vue";
 
 const props = withDefaults(
@@ -284,6 +359,8 @@ const showSetPassword = ref(false);
 const showSetAccountExpiration = ref(false);
 const showAddToGroupDialog = ref(false);
 const showAddAgentPanel = ref(false);
+const showSetUserAgentOptions = ref(false);
+const pendingAddAgentRef = ref<TargetRef | null>(null);
 const showApplyCollectionDialog = ref(false);
 
 const addToGroupOptions = ref<{ sam: string; label: string }[]>([]);
@@ -301,6 +378,17 @@ const canApplyCollection = computed(
     !!(userDetail.value?.info?.samaccountname ?? selectedUserId.value) &&
     !!getSingleAgentIdFromTarget(currentTarget.value),
 );
+
+const canRemoveCollection = computed(
+  () =>
+    canApplyCollection.value &&
+    (userAppliedCollections.value?.length ?? 0) > 0,
+);
+
+const showRemoveCollectionDialog = ref(false);
+const removeCollectionSelectedId = ref<number | null>(null);
+const removeCollectionOptions = ref<{ id: number; label: string }[]>([]);
+const removeCollectionRemoving = ref(false);
 const addToGroupSelectedSam = ref<string | null>(null);
 const addToGroupOptionsLoading = ref(false);
 const addToGroupLoading = ref(false);
@@ -357,7 +445,11 @@ async function handleCreateUser(params: CreateUserParams) {
 
 async function handleUpdateUser(params: Partial<CreateUserParams>) {
   if (!currentTarget.value || !selectedUserId.value) return;
-  const success = await updateUser(currentTarget.value, selectedUserId.value, params);
+  const success = await updateUser(
+    currentTarget.value,
+    selectedUserId.value,
+    params,
+  );
   if (success) {
     showUpdateUser.value = false;
   }
@@ -399,8 +491,7 @@ async function loadAddToGroupOptions() {
       const info = rec.info ?? {};
       const sam = (info.samaccountname ?? rec.groupId ?? "").trim();
       if (!sam || alreadyIn.has(sam.toLowerCase())) continue;
-      const label =
-        info.displayname ?? info.name ?? info.samaccountname ?? sam;
+      const label = info.displayname ?? info.name ?? info.samaccountname ?? sam;
       options.push({ sam, label });
     }
     addToGroupOptions.value = options;
@@ -414,7 +505,8 @@ async function loadAddToGroupOptions() {
 async function doAddUserToGroup() {
   const target = currentTarget.value;
   const sam = addToGroupSelectedSam.value?.trim();
-  const userSam = userDetail.value?.info?.samaccountname ?? selectedUserId.value;
+  const userSam =
+    userDetail.value?.info?.samaccountname ?? selectedUserId.value;
   if (!target || !sam || !userSam) return;
   addToGroupLoading.value = true;
   try {
@@ -433,32 +525,54 @@ async function doAddUserToGroup() {
   } catch (err) {
     $q.notify({
       type: "negative",
-      message: err instanceof Error ? err.message : "Failed to add user to group",
+      message:
+        err instanceof Error ? err.message : "Failed to add user to group",
     });
   } finally {
     addToGroupLoading.value = false;
   }
 }
 
-async function handleAddAgentTargetSelect(ref: TargetRef) {
-  const userId = selectedUserId.value ?? userDetail.value?.info?.samaccountname ?? userDetail.value?.userid;
+function handleAddAgentTargetSelect(ref: TargetRef) {
+  const userId =
+    selectedUserId.value ??
+    userDetail.value?.info?.samaccountname ??
+    userDetail.value?.userid;
   if (!userId) return;
   showAddAgentPanel.value = false;
+  pendingAddAgentRef.value = ref;
+  showSetUserAgentOptions.value = true;
+}
+
+async function handleSetUserAgentOptionsConfirm(options: SetUserAgentOptions) {
+  const ref = pendingAddAgentRef.value;
+  const userId =
+    selectedUserId.value ??
+    userDetail.value?.info?.samaccountname ??
+    userDetail.value?.userid;
+  if (!ref || !userId) return;
+  pendingAddAgentRef.value = null;
   try {
-    const res = await userControlClient.setUserAgent(ref.target, userId);
+    const res = await userControlClient.setUserAgent(ref.target, userId, {
+      password: options.password,
+      passwordNotRequired: options.passwordNotRequired,
+      userCannotChangePassword: options.userCannotChangePassword,
+      smartcardLogonRequired: options.smartcardLogonRequired,
+    });
     if (res.status === 0) {
-      $q.notify({ type: "positive", message: "Agent linked to user" });
+      $q.notify({ type: "positive", message: "User linked to target" });
       await loadUserAgents();
     } else {
       $q.notify({
         type: "negative",
-        message: res.errorMessage ?? "Failed to link agent",
+        message: res.errorMessage ?? "Failed to link user to target",
       });
     }
   } catch (err) {
     $q.notify({
       type: "negative",
-      message: err instanceof Error ? err.message : "Failed to link agent",
+      message:
+        err instanceof Error ? err.message : "Failed to link user to target",
     });
   }
 }
@@ -529,6 +643,22 @@ async function loadCollectionsForApply() {
   }
 }
 
+function confirmApplyCollectionToUser() {
+  const collectionId = applyCollectionSelectedId.value;
+  if (collectionId == null) return;
+  const collectionLabel =
+    applyCollectionOptions.value.find((o) => o.id === collectionId)?.label ??
+    String(collectionId);
+  $q.dialog({
+    title: "Apply collection",
+    message: `Do you really want to apply the collection«${collectionLabel}»?`,
+    cancel: true,
+    persistent: true,
+  }).onOk(() => {
+    doApplyCollectionToUser();
+  });
+}
+
 async function doApplyCollectionToUser() {
   const agentId = getSingleAgentIdFromTarget(currentTarget.value);
   const userId = selectedUserId.value ?? userDetail.value?.userid;
@@ -541,9 +671,7 @@ async function doApplyCollectionToUser() {
       agentId,
       userId,
     });
-    notifySuccess(
-      `Collection applied to user "${userLabel}" on agent`,
-    );
+    notifySuccess(`Collection applied to user "${userLabel}" on agent`);
     showApplyCollectionDialog.value = false;
     await loadUserAppliedCollections();
   } catch (err) {
@@ -552,6 +680,54 @@ async function doApplyCollectionToUser() {
     );
   } finally {
     applyCollectionApplying.value = false;
+  }
+}
+
+function prepareRemoveCollectionOptions() {
+  removeCollectionSelectedId.value = null;
+  removeCollectionOptions.value = (userAppliedCollections.value ?? []).map(
+    (c) => ({ id: c.id, label: c.name || String(c.id) }),
+  );
+}
+
+function confirmRemoveCollectionFromUser() {
+  const collectionId = removeCollectionSelectedId.value;
+  if (collectionId == null) return;
+  const collectionLabel =
+    removeCollectionOptions.value.find((o) => o.id === collectionId)?.label ??
+    String(collectionId);
+  $q.dialog({
+    title: "Remove collection",
+    message: `Do you really want to delete the collection«${collectionLabel}»?`,
+    cancel: true,
+    persistent: true,
+    color: "negative",
+  }).onOk(() => {
+    doRemoveCollectionFromUser();
+  });
+}
+
+async function doRemoveCollectionFromUser() {
+  const agentId = getSingleAgentIdFromTarget(currentTarget.value);
+  const userId = selectedUserId.value ?? userDetail.value?.userid;
+  const userLabel = userDetail.value?.info?.samaccountname ?? userId;
+  const collectionId = removeCollectionSelectedId.value;
+  if (!agentId || !userId || collectionId == null) return;
+  removeCollectionRemoving.value = true;
+  try {
+    await policyAssignmentClient.removePolicyCollection(collectionId, "user", {
+      agentId,
+      userId,
+    });
+    notifySuccess(`Collection removed from user "${userLabel}" on agent`);
+    showRemoveCollectionDialog.value = false;
+    await loadUserAppliedCollections();
+  } catch (err) {
+    notifyError(
+      err instanceof Error ? err.message : "Failed to remove collection",
+    );
+  } finally {
+    removeCollectionRemoving.value = false;
   }
 }
 
@@ -568,22 +744,41 @@ async function loadUserAppliedCollections() {
       userId,
       "en-US",
     );
+    type CollectionItem = {
+      id?: number;
+      name?: string;
+      explainText?: string;
+      explain_text?: string;
+      policiesList?: Array<{
+        id?: number;
+        name?: string;
+        displayName?: string;
+        display_name?: string;
+      }>;
+      policies?: Array<{
+        id?: number;
+        name?: string;
+        displayName?: string;
+        display_name?: string;
+      }>;
+    };
     const list =
-      (
-        response as {
-          collectionsList?: Array<{ id?: number; name?: string }>;
-        }
-      ).collectionsList ??
-      (
-        response as {
-          collections?: Array<{ id?: number; name?: string }>;
-        }
-      ).collections ??
+      (response as { collectionsList?: CollectionItem[] }).collectionsList ??
+      (response as { collections?: CollectionItem[] }).collections ??
       [];
-    userAppliedCollections.value = list.map((c) => ({
-      id: c.id ?? 0,
-      name: c.name ?? String(c.id ?? ""),
-    }));
+    userAppliedCollections.value = list.map((c) => {
+      const rawPolicies = c.policiesList ?? c.policies ?? [];
+      return {
+        id: c.id ?? 0,
+        name: c.name ?? String(c.id ?? ""),
+        explainText: (c.explainText ?? c.explain_text ?? "").trim() || undefined,
+        policies: rawPolicies.map((p) => ({
+          id: p.id ?? 0,
+          name:
+            p.displayName ?? p.display_name ?? p.name ?? String(p.id ?? ""),
+        })),
+      };
+    });
   } catch {
     userAppliedCollections.value = [];
   } finally {
