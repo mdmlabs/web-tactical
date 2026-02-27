@@ -1640,7 +1640,7 @@ async function removeUserFromGroup(user: GroupRow) {
   overflow: hidden
 
 .groups-left-panel
-  width: 300px
+  width: 350px
   min-width: 240px
   max-width: 360px
   display: flex

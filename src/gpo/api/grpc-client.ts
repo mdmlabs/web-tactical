@@ -9,6 +9,7 @@ import {
   PolicyStateServiceClient,
 } from "@/generated/OperatorServiceClientPb";
 import { OperatorUserControlServiceClient } from "@/generated/User_serviceServiceClientPb";
+import { OperatorAgentCategoryServiceClient } from "@/generated/Agent_category_serviceServiceClientPb";
 
 import operator_pb from "@/generated/operator_pb";
 import {
@@ -35,6 +36,8 @@ import type * as operator_pb_types from "@/generated/operator_pb";
 import type * as user_service_pb_types from "@/generated/user_service_pb";
 import * as wrappers_pb from "google-protobuf/google/protobuf/wrappers_pb";
 import * as empty_pb from "google-protobuf/google/protobuf/empty_pb";
+import * as agent_category_service_pb from "@/generated/agent_category_service_pb";
+import type * as agent_category_service_pb_types from "@/generated/agent_category_service_pb";
 import { useAuthStore } from "@/stores/auth";
 import {
   GroupInfo,
@@ -112,6 +115,7 @@ const policyAssignmentServiceClient = createClient(
   PolicyAssignmentServiceClient,
 );
 const policyStateServiceClient = createClient(PolicyStateServiceClient);
+const agentCategoryServiceClient = createClient(OperatorAgentCategoryServiceClient);
 
 export const policyCatalogClient = {
   async listPoliciesGroupedByScope(
@@ -275,6 +279,214 @@ export const agentServiceClientWrapper = {
       console.error("getAgent error:", err);
       throw err;
     }
+  },
+};
+
+export const agentCategoryClient = {
+  async createCategory(params: {
+    name: string;
+    description?: string;
+    parentId?: number;
+  }): Promise<agent_category_service_pb_types.AgentCategoryControlResponse.AsObject> {
+    const request = new agent_category_service_pb.CreateAgentCategoryRequest();
+    request.setName(params.name);
+
+    if (params.description != null && params.description !== "") {
+      const descWrapper = new wrappers_pb.StringValue();
+      descWrapper.setValue(params.description);
+      request.setDescription(descWrapper);
+    }
+
+    if (params.parentId != null) {
+      request.setParentId(params.parentId);
+    }
+
+    const response = await agentCategoryServiceClient.createCategory(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async updateCategory(params: {
+    categoryId: number;
+    name: string;
+    description?: string;
+  }): Promise<agent_category_service_pb_types.AgentCategoryControlResponse.AsObject> {
+    const request = new agent_category_service_pb.UpdateAgentCategoryRequest();
+    request.setCategoryId(params.categoryId);
+    request.setName(params.name);
+
+    if (params.description != null && params.description != "") {
+      const descWrapper = new wrappers_pb.StringValue();
+      descWrapper.setValue(params.description);
+      request.setDescription(descWrapper);
+    }
+    const response = await agentCategoryServiceClient.updateCategory(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async deleteCategory(
+    categoryId: number,
+  ): Promise<agent_category_service_pb_types.AgentCategoryControlResponse.AsObject> {
+    const request = new agent_category_service_pb.AgentCategoryIdRequest();
+    request.setCategoryId(categoryId);
+
+    const response = await agentCategoryServiceClient.deleteCategory(
+      request,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+  async setCategoryParent(params: {
+    categoryId: number;
+    parentId?: number | null;
+  }): Promise<agent_category_service_pb_types.AgentCategoryControlResponse.AsObject> {
+    const request = new agent_category_service_pb.SetCategoryParentRequest();
+    request.setCategoryId(params.categoryId);
+
+    if (params.parentId != null) {
+      request.setParentId(params.parentId);
+    }
+
+    const response = await agentCategoryServiceClient.setCategoryParent(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async setCategoryAgents(params: {
+    categoryId: number;
+    agentIds: string[];
+  }): Promise<agent_category_service_pb_types.AgentCategoryControlResponse.AsObject> {
+    const request = new agent_category_service_pb.SetCategoryAgentsRequest();
+    request.setCategoryId(params.categoryId);
+    request.setAgentIdsList(params.agentIds);
+
+    const response = await agentCategoryServiceClient.setCategoryAgents(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async addAgentToCategory(params: {
+    categoryId: number;
+    agentId: string;
+  }): Promise<agent_category_service_pb_types.AgentCategoryControlResponse.AsObject> {
+    const request = new agent_category_service_pb.AddAgentToCategoryRequest();
+    request.setCategoryId(params.categoryId);
+    request.setAgentId(params.agentId);
+
+    const response = await agentCategoryServiceClient.addAgentToCategory(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async removeAgentFromCategory(params: {
+    categoryId: number;
+    agentId: string;
+  }): Promise<agent_category_service_pb_types.AgentCategoryControlResponse.AsObject> {
+    const request =
+      new agent_category_service_pb.RemoveAgentFromCategoryRequest();
+    request.setCategoryId(params.categoryId);
+    request.setAgentId(params.agentId);
+
+    const response = await agentCategoryServiceClient.removeAgentFromCategory(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async getCategory(
+    categoryId: number,
+  ): Promise<agent_category_service_pb_types.AgentCategoryResponse.AsObject> {
+    const request = new agent_category_service_pb.AgentCategoryIdRequest();
+    request.setCategoryId(categoryId);
+
+    const response = await agentCategoryServiceClient.getCategory(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async getAllCategories(): Promise<agent_category_service_pb_types.AgentCategoriesResponse.AsObject> {
+    const request = new empty_pb.Empty();
+
+    const response = await agentCategoryServiceClient.getAllCategories(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async getCategoryTree(): Promise<agent_category_service_pb_types.AgentCategoryTreeResponse.AsObject> {
+    const request = new empty_pb.Empty();
+
+    const response = await agentCategoryServiceClient.getCategoryTree(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async getCategoryChildren(
+    categoryId: number,
+  ): Promise<agent_category_service_pb_types.AgentCategoriesResponse.AsObject> {
+    const request = new agent_category_service_pb.AgentCategoryIdRequest();
+    request.setCategoryId(categoryId);
+
+    const response = await agentCategoryServiceClient.getCategoryChildren(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async getCategoryAgents(
+    categoryId: number,
+  ): Promise<agent_category_service_pb_types.AgentsListResponse.AsObject> {
+    const request = new agent_category_service_pb.AgentCategoryIdRequest();
+    request.setCategoryId(categoryId);
+
+    const response = await agentCategoryServiceClient.getCategoryAgents(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async getAgentsInSubtree(
+    categoryId: number,
+  ): Promise<agent_category_service_pb_types.AgentsListResponse.AsObject> {
+    const request = new agent_category_service_pb.AgentCategoryIdRequest();
+    request.setCategoryId(categoryId);
+
+    const response = await agentCategoryServiceClient.getAgentsInSubtree(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
   },
 };
 
@@ -1875,6 +2087,7 @@ export {
   policyCatalogServiceClient,
   policyAssignmentServiceClient,
   policyStateServiceClient,
+  agentCategoryServiceClient,
 };
 
 export { default as operator_pb } from "@/generated/operator_pb";
