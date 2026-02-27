@@ -2079,6 +2079,13 @@ npm<template>
             >
               <GroupsManagerModal standalone-page />
             </div>
+            <div
+              v-else-if="mainTab === 'groupsMachines'"
+              key="groupsMachines"
+              class="gpo-content-panels gpo-standalone-page-wrap"
+            >
+              <GroupsMachinesModal standalone-page />
+            </div>
           </div>
 
           <div
@@ -3318,6 +3325,7 @@ import ApplyPolicyDialog from "../components/ApplyPolicyDialog.vue";
 import GPOCollectionsTable from "../components/CollectionsPolicies/GPOCollectionsTable.vue";
 import UsersManagerModal from "../components/UsersManager/UsersManagerModal.vue";
 import GroupsManagerModal from "../components/GroupsManager/GroupsManagerModal.vue";
+import GroupsMachinesModal from "../components/GroupsMachines/GroupsMachinesModal.vue";
 import MultiTextBox from "@/components/ui/MultiTextBox.vue";
 import type {
   GPOPolicy,
@@ -5621,6 +5629,7 @@ watch(
         "devices",
         "users",
         "groups",
+        "groupsMachines",
       ].includes(newTab)
     ) {
       mainTab.value = newTab;
@@ -6394,6 +6403,7 @@ onMounted(async () => {
       "devices",
       "users",
       "groups",
+      "groupsMachines",
     ].includes(tabFromQuery)
   ) {
     mainTab.value = tabFromQuery;
@@ -6516,7 +6526,8 @@ onMounted(async () => {
   padding: 0
 
 .gpo-standalone-page-wrap :deep(.users-manager-layout),
-.gpo-standalone-page-wrap :deep(.groups-manager-layout)
+.gpo-standalone-page-wrap :deep(.groups-manager-layout),
+.gpo-standalone-page-wrap :deep(.groups-machines-layout)
   height: 100%
   min-height: 0
   flex: 1
