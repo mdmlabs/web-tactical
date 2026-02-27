@@ -784,7 +784,6 @@
 
     <TargetSelectionDialog
       v-model="showAddAgentPanel"
-      agents-only
       @select="handleAddAgentToGroupSelect"
     />
   </div>

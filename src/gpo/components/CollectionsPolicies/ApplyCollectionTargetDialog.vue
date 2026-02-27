@@ -85,6 +85,7 @@ import {
   collectionsClient,
   policyCatalogClient,
   userClient,
+  userControlClient,
 } from "@/gpo/api/grpc-client";
 import type {
   PolicyTargetType,
@@ -143,6 +144,8 @@ const treeNodes = ref<TreeNode[]>([]);
 const agentsBySiteKey = ref<
   Map<string, Array<{ agent_id: string; hostname: string }>>
 >(new Map());
+
+const sidToUserIdMap = ref<Map<string, string>>(new Map());
 
 const selectedTarget = computed((): TargetSelection | null => {
   const id = selectedNodeId.value;
@@ -232,15 +235,20 @@ function onLazyLoad(details: {
   userClient
     .listUsersForAgent(node.agentId)
     .then((users) => {
+      const map = sidToUserIdMap.value;
       const userNodes: TreeNode[] = (users ?? [])
         .filter((u) => u.sid)
-        .map((u) => ({
-          id: `user-${node.agentId}-${String(u.sid)}`,
-          label: u.name ?? u.sid ?? "—",
-          targetType: "user" as const,
-          agentId: node.agentId!,
-          userId: String(u.sid),
-        }));
+        .map((u) => {
+          const sid = String(u.sid);
+          const userId = map.get(sid) ?? sid;
+          return {
+            id: `user-${node.agentId}-${sid}`,
+            label: u.name ?? u.sid ?? "—",
+            targetType: "user" as const,
+            agentId: node.agentId!,
+            userId,
+          };
+        });
       done(userNodes);
     })
     .catch(() => fail());
@@ -250,11 +258,26 @@ async function loadTree() {
   treeLoading.value = true;
   treeNodes.value = [];
   agentsBySiteKey.value = new Map();
+  sidToUserIdMap.value = new Map();
   try {
-    const [clientsData, agentsData] = await Promise.all([
+    const [clientsData, agentsData, allUsersRes] = await Promise.all([
       fetchClients(),
       fetchAgents({ detail: false }).catch(() => null),
+      userControlClient.getAllUsers().catch(() => ({ usersList: [] })),
     ]);
+    const allUsersList =
+      allUsersRes?.usersList ??
+      (allUsersRes as { users?: Array<{ userid?: string; info?: { sid?: string } }> })
+        ?.users ??
+      [];
+    const map = new Map<string, string>();
+    for (const u of allUsersList) {
+      const rec = u as { userid?: string; userId?: string; info?: { sid?: string } };
+      const uid = rec.userid ?? rec.userId ?? "";
+      const sid = rec.info?.sid ?? "";
+      if (sid && uid) map.set(sid, uid);
+    }
+    sidToUserIdMap.value = map;
     const clients = Array.isArray(clientsData) ? clientsData : [];
     const rawAgents = agentsData ?? [];
     let agents: Array<Record<string, unknown>> = [];

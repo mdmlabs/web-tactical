@@ -322,6 +322,18 @@
                     </q-item-section>
                     <q-item-section>Groups</q-item-section>
                   </q-item>
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('groupsMachines')"
+                    :class="['filebar-popup-item', { 'active-menu-item': isActiveGPOTab('groupsMachines') }]"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="dns" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Groups of Machines</q-item-section>
+                  </q-item>
                 </q-list>
               </q-menu>
             </q-item>
@@ -439,6 +451,17 @@
                   <q-icon name="group" />
                 </q-item-section>
                 <q-item-section>Groups</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                @click="handleMenuAction('groupsMachines')"
+                :class="['filebar-menu-item', { 'active-menu-item': isActiveGPOTab('groupsMachines') }]"
+              >
+                <q-item-section avatar>
+                  <q-icon name="dns" />
+                </q-item-section>
+                <q-item-section>Groups of Machines</q-item-section>
               </q-item>
             </q-list>
           </q-expansion-item>
@@ -1298,6 +1321,9 @@ export default {
           break;
         case "groups":
           this.navigateToGPO("groups");
+          break;
+        case "groupsMachines":
+          this.navigateToGPO("groupsMachines");
           break;
         case "installAgent":
           this.showInstallAgent = true;
