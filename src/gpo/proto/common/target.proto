@@ -15,6 +15,7 @@ message Target {
     CombinedTarget combined = 9;
     GroupTarget group = 10;
     GroupsTarget groups = 11;
+    AgentCategoryTarget agentCategory = 12;
   }
 }
 
@@ -64,4 +65,8 @@ message AgentTarget {
 message UserTarget {
   string agent_id = 1;
   string user_id = 2;
+}
+
+message AgentCategoryTarget {
+    int64 category_id = 1;
 }

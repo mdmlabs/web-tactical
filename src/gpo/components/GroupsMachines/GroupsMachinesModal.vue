@@ -224,7 +224,11 @@
                   rounded
                 />
               </q-tab>
-              <q-tab name="children" icon="account_tree" label="Child Categories">
+              <q-tab
+                name="children"
+                icon="account_tree"
+                label="Child Categories"
+              >
                 <q-badge
                   v-if="categoryChildren.length"
                   color="primary"
@@ -233,11 +237,35 @@
                   rounded
                 />
               </q-tab>
-              <q-tab name="subtreeAgents" icon="account_tree" label="Agents in subtree">
+              <q-tab
+                name="subtreeAgents"
+                icon="account_tree"
+                label="Agents in subtree"
+              >
                 <q-badge
                   v-if="subtreeAgents.length"
                   color="primary"
                   :label="subtreeAgents.length"
+                  floating
+                  rounded
+                />
+              </q-tab>
+              <q-tab
+                name="collections"
+                icon="collections_bookmark"
+                label="Policy collections"
+              >
+                <q-badge
+                  v-if="categoryAppliedCollectionsLoading"
+                  color="grey"
+                  label="..."
+                  floating
+                  rounded
+                />
+                <q-badge
+                  v-else-if="categoryAppliedCollections.length > 0"
+                  color="primary"
+                  :label="categoryAppliedCollections.length"
                   floating
                   rounded
                 />
@@ -365,6 +393,102 @@
                     </q-item-section>
                   </q-item>
                 </q-list>
+              </q-tab-panel>
+
+              <q-tab-panel name="collections" class="q-pa-md">
+                <div class="row items-center q-mb-md">
+                  <div class="text-subtitle2">
+                    Policy collections for this category (machine scope)
+                  </div>
+                  <q-space />
+                  <q-btn
+                    flat
+                    dense
+                    color="primary"
+                    icon="add_circle_outline"
+                    label="Apply collection"
+                    :disable="selectedCategoryId == null"
+                    @click="showApplyCollectionDialog = true"
+                  />
+                  <q-btn
+                    flat
+                    dense
+                    color="negative"
+                    icon="remove_circle_outline"
+                    label="Remove collection"
+                    :disable="!canRemoveCategoryCollection"
+                    title="Remove an applied collection from this category"
+                    @click="showRemoveCollectionDialog = true"
+                  />
+                </div>
+                <div class="collections-tab-scroll">
+                  <div
+                    v-if="selectedCategoryId == null"
+                    class="text-grey-6 text-caption"
+                  >
+                    Select a category to apply policy collections.
+                  </div>
+                  <template v-else>
+                    <div
+                      v-if="categoryAppliedCollectionsLoading"
+                      class="column items-center q-py-lg"
+                    >
+                      <q-spinner color="primary" size="2em" />
+                      <div class="text-caption text-grey-7 q-mt-sm">
+                        Loading applied collections...
+                      </div>
+                    </div>
+                    <div
+                      v-else-if="!hasAgentsInCategoryForCollections"
+                      class="text-body2 text-grey-7"
+                    >
+                      Add agents to this category to see applied collections.
+                      Use the «Agents» tab to add agents.
+                    </div>
+                    <template v-else-if="categoryAppliedCollections.length">
+                      <div class="text-caption text-grey-7 q-mb-sm">
+                        Applied collections (via first agent in category):
+                      </div>
+                      <div class="applied-collections-list">
+                        <div
+                          v-for="c in categoryAppliedCollections"
+                          :key="c.id"
+                          class="applied-collection-block"
+                        >
+                          <div class="text-weight-medium">
+                            {{ c.name || c.id }}
+                          </div>
+                          <div
+                            v-if="c.explainText"
+                            class="text-caption text-grey-7 q-mt-xs"
+                          >
+                            {{ c.explainText }}
+                          </div>
+                          <template v-if="c.policies?.length">
+                            <div class="text-caption text-grey-7 q-mt-sm">
+                              Policies in collection:
+                            </div>
+                            <ul
+                              class="q-pl-md q-mt-xs q-mb-none text-caption text-grey-8"
+                            >
+                              <li
+                                v-for="p in c.policies"
+                                :key="p.id"
+                                class="q-py-xs"
+                              >
+                                {{ p.name }}
+                              </li>
+                            </ul>
+                          </template>
+                        </div>
+                      </div>
+                    </template>
+                    <div v-else class="text-body2 text-grey-7">
+                      No policy collections applied to this category yet. Use
+                      «Apply collection» to assign a collection (machine scope).
+                    </div>
+                  </template>
+                </div>
               </q-tab-panel>
             </q-tab-panels>
           </template>
@@ -545,6 +669,116 @@
       </q-card>
     </q-dialog>
 
+    <q-dialog
+      v-model="showApplyCollectionDialog"
+      position="standard"
+      @show="loadCollectionsForApply"
+    >
+      <q-card class="apply-collection-card" style="min-width: 400px">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Apply collection to category</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+        <q-separator />
+        <q-card-section>
+          <div class="text-caption text-grey-7 q-mb-sm">
+            Category: <strong>{{ selectedCategory?.name ?? selectedCategoryId }}</strong>
+          </div>
+          <q-select
+            v-model="applyCollectionSelectedId"
+            :options="applyCollectionOptions"
+            option-value="id"
+            option-label="label"
+            emit-value
+            map-options
+            label="Collection *"
+            outlined
+            dense
+            :loading="applyCollectionLoading"
+            :disable="applyCollectionLoading"
+            clearable
+            options-dense
+          >
+            <template v-slot:no-option>
+              <q-item>
+                <q-item-section class="text-grey">
+                  {{
+                    applyCollectionLoading
+                      ? "Loading..."
+                      : "No collections available"
+                  }}
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-select>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn
+            color="primary"
+            label="Apply"
+            :loading="applyCollectionApplying"
+            :disable="!applyCollectionSelectedId"
+            @click="confirmApplyCollectionToCategory"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog
+      v-model="showRemoveCollectionDialog"
+      position="standard"
+      @show="prepareRemoveCollectionOptionsForCategory"
+    >
+      <q-card class="apply-collection-card" style="min-width: 400px">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Remove collection from category</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+        <q-separator />
+        <q-card-section>
+          <div class="text-caption text-grey-7 q-mb-sm">
+            Category: <strong>{{ selectedCategory?.name ?? selectedCategoryId }}</strong>
+          </div>
+          <q-select
+            v-model="removeCollectionSelectedId"
+            :options="removeCollectionOptions"
+            option-value="id"
+            option-label="label"
+            emit-value
+            map-options
+            label="Collection to remove *"
+            outlined
+            dense
+            :loading="removeCollectionOptionsLoading"
+            :disable="removeCollectionOptions.length === 0"
+            clearable
+            options-dense
+          >
+            <template v-slot:no-option>
+              <q-item>
+                <q-item-section class="text-grey">
+                  No collections to remove
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-select>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn
+            color="negative"
+            label="Remove"
+            :loading="removeCollectionRemoving"
+            :disable="removeCollectionSelectedId == null"
+            @click="confirmRemoveCollectionFromCategory"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <TargetSelectionDialog
       v-model="showAddAgentPanel"
       @select="handleAddAgentSelect"
@@ -556,7 +790,13 @@
 import { ref, computed, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useQuasar } from "quasar";
-import { agentCategoryClient, getSingleAgentIdFromTarget } from "@/gpo/api/grpc-client";
+import {
+  agentCategoryClient,
+  getSingleAgentIdFromTarget,
+  policyAssignmentClient,
+  collectionsClient,
+} from "@/gpo/api/grpc-client";
+import operator_pb from "@/generated/operator_pb";
 import type { TargetRef } from "@/gpo/composables/useTargetSelection";
 import TargetSelectionDialog from "@/gpo/components/shared/TargetSelectionDialog.vue";
 import { notifyError, notifySuccess } from "@/utils/notify";
@@ -593,7 +833,9 @@ const allCategoriesFlat = ref<CategoryRow[]>([]);
 
 const selectedCategoryId = ref<number | null>(null);
 const selectedCategoryIdKey = ref<string | null>(null);
-const selectedCategory = ref<{ name: string; description?: string } | null>(null);
+const selectedCategory = ref<{ name: string; description?: string } | null>(
+  null,
+);
 const detailTab = ref("agents");
 const detailLoading = ref(false);
 
@@ -680,19 +922,56 @@ const moveParentOptions = computed(() => {
   collectCategoriesFromTree(categoryTreeNodes.value, list);
   const currentId = selectedCategoryId.value;
   if (currentId == null) {
-    return list.map((c) => ({ categoryId: c.categoryId, label: c.name || String(c.categoryId) }));
+    return list.map((c) => ({
+      categoryId: c.categoryId,
+      label: c.name || String(c.categoryId),
+    }));
   }
   const exclude = new Set<number>([currentId]);
   collectCategoryIdAndDescendants(currentId, categoryTreeNodes.value, exclude);
   return list
     .filter((c) => !exclude.has(c.categoryId))
-    .map((c) => ({ categoryId: c.categoryId, label: c.name || String(c.categoryId) }));
+    .map((c) => ({
+      categoryId: c.categoryId,
+      label: c.name || String(c.categoryId),
+    }));
 });
 
 const showAddAgentPanel = ref(false);
 const showSetAgents = ref(false);
 const setAgentsLoading = ref(false);
 const setAgentsForm = ref<{ agentIdsText: string }>({ agentIdsText: "" });
+
+const showApplyCollectionDialog = ref(false);
+const applyCollectionLoading = ref(false);
+const applyCollectionApplying = ref(false);
+const applyCollectionSelectedId = ref<number | null>(null);
+const applyCollectionOptions = ref<{ id: number; label: string }[]>([]);
+
+const categoryAppliedCollections = ref<
+  {
+    id: number;
+    name: string;
+    explainText?: string;
+    policies?: { id: number; name: string }[];
+  }[]
+>([]);
+const categoryAppliedCollectionsLoading = ref(false);
+
+const canRemoveCategoryCollection = computed(
+  () => selectedCategoryId.value != null,
+);
+
+const hasAgentsInCategoryForCollections = computed(
+  () =>
+    categoryAgents.value.length > 0 || subtreeAgents.value.length > 0,
+);
+
+const showRemoveCollectionDialog = ref(false);
+const removeCollectionSelectedId = ref<number | null>(null);
+const removeCollectionOptions = ref<{ id: number; label: string }[]>([]);
+const removeCollectionOptionsLoading = ref(false);
+const removeCollectionRemoving = ref(false);
 
 const childrenColumns = [
   {
@@ -794,9 +1073,292 @@ watch(
   { immediate: true },
 );
 
+watch(
+  () => [detailTab.value, selectedCategoryId.value] as const,
+  ([tab, categoryId]) => {
+    if (tab === "collections" && categoryId != null) {
+      loadCategoryAppliedCollections();
+    }
+  },
+);
+
 onMounted(() => {
   if (props.standalonePage) loadCategories();
 });
+
+function isMachineScope(raw: unknown): boolean {
+  if (raw === undefined || raw === null) return false;
+  if (typeof raw === "number") {
+    const n = Math.floor(raw);
+    return (
+      n === operator_pb.PolicyScope.POLICY_SCOPE_MACHINE ||
+      n === operator_pb.PolicyScope.POLICY_SCOPE_BOTH
+    );
+  }
+  const s = String(raw).toUpperCase();
+  return s === "MACHINE" || s === "BOTH" || s === "2" || s === "3";
+}
+
+async function loadCollectionsForApply() {
+  applyCollectionLoading.value = true;
+  applyCollectionSelectedId.value = null;
+  applyCollectionOptions.value = [];
+  try {
+    const response = await collectionsClient.getAllCollections("en-US");
+    const list =
+      (
+        response as {
+          collectionsList?: Array<{
+            id?: number | string;
+            name?: string;
+            scope?: number | string;
+          }>;
+        }
+      ).collectionsList ??
+      (
+        response as {
+          collections?: Array<{
+            id?: number | string;
+            name?: string;
+            scope?: number | string;
+          }>;
+        }
+      ).collections ??
+      [];
+    applyCollectionOptions.value = list
+      .map((c) => {
+        const rawId = c.id;
+        let id = 0;
+        if (rawId !== undefined && rawId !== null) {
+          id =
+            typeof rawId === "string"
+              ? Number.parseInt(rawId, 10) || 0
+              : Number(rawId);
+        }
+        return {
+          id,
+          label: (c.name as string) || String(rawId ?? ""),
+          scope: c.scope,
+        };
+      })
+      .filter(
+        (o) =>
+          o.id > 0 && isMachineScope(o.scope as number | string | undefined),
+      )
+      .map((o) => ({ id: o.id, label: o.label }));
+  } catch {
+    applyCollectionOptions.value = [];
+  } finally {
+    applyCollectionLoading.value = false;
+  }
+}
+
+function confirmApplyCollectionToCategory() {
+  const collectionId = applyCollectionSelectedId.value;
+  if (collectionId == null) return;
+  const collectionLabel =
+    applyCollectionOptions.value.find((o) => o.id === collectionId)?.label ??
+    String(collectionId);
+  $q.dialog({
+    title: "Apply collection",
+    message: `Do you really want to apply the collection «${collectionLabel}» to this category?`,
+    cancel: true,
+    persistent: true,
+  }).onOk(() => {
+    doApplyCollectionToCategory();
+  });
+}
+
+async function doApplyCollectionToCategory() {
+  const categoryId = selectedCategoryId.value;
+  const collectionId = applyCollectionSelectedId.value;
+  if (categoryId == null || collectionId == null) return;
+  applyCollectionApplying.value = true;
+  try {
+    await policyAssignmentClient.assignPolicyCollection(
+      collectionId,
+      "agentCategory",
+      { categoryId },
+    );
+    notifySuccess(
+      `Collection applied to category "${selectedCategory.value?.name ?? categoryId}"`,
+    );
+    showApplyCollectionDialog.value = false;
+    await loadCategoryAppliedCollections();
+  } catch (err) {
+    notifyError(
+      err instanceof Error ? err.message : "Failed to apply collection",
+    );
+  } finally {
+    applyCollectionApplying.value = false;
+  }
+}
+
+function prepareRemoveCollectionOptionsForCategory() {
+  removeCollectionSelectedId.value = null;
+  removeCollectionOptionsLoading.value = true;
+  removeCollectionOptions.value = [];
+  collectionsClient
+    .getAllCollections("en-US")
+    .then((response) => {
+      const list =
+        (
+          response as {
+            collectionsList?: Array<{
+              id?: number | string;
+              name?: string;
+              scope?: number | string;
+            }>;
+          }
+        ).collectionsList ??
+        (
+          response as {
+            collections?: Array<{
+              id?: number | string;
+              name?: string;
+              scope?: number | string;
+            }>;
+          }
+        ).collections ??
+        [];
+      removeCollectionOptions.value = list
+        .map((c) => {
+          const rawId = c.id;
+          let id = 0;
+          if (rawId !== undefined && rawId !== null) {
+            id =
+              typeof rawId === "string"
+                ? Number.parseInt(rawId, 10) || 0
+                : Number(rawId);
+          }
+          return {
+            id,
+            label: (c.name as string) || String(rawId ?? ""),
+            scope: c.scope,
+          };
+        })
+        .filter(
+          (o) =>
+            o.id > 0 && isMachineScope(o.scope as number | string | undefined),
+        )
+        .map((o) => ({ id: o.id, label: o.label }));
+    })
+    .catch(() => {
+      removeCollectionOptions.value = [];
+    })
+    .finally(() => {
+      removeCollectionOptionsLoading.value = false;
+    });
+}
+
+function confirmRemoveCollectionFromCategory() {
+  const collectionId = removeCollectionSelectedId.value;
+  if (collectionId == null) return;
+  const collectionLabel =
+    removeCollectionOptions.value.find((o) => o.id === collectionId)?.label ??
+    String(collectionId);
+  $q.dialog({
+    title: "Remove collection",
+    message: `Do you really want to remove the collection «${collectionLabel}» from this category?`,
+    cancel: true,
+    persistent: true,
+    color: "negative",
+  }).onOk(() => {
+    doRemoveCollectionFromCategory();
+  });
+}
+
+async function doRemoveCollectionFromCategory() {
+  const categoryId = selectedCategoryId.value;
+  const collectionId = removeCollectionSelectedId.value;
+  const categoryLabel = selectedCategory.value?.name ?? categoryId;
+  if (categoryId == null || collectionId == null) return;
+  removeCollectionRemoving.value = true;
+  try {
+    await policyAssignmentClient.removePolicyCollection(
+      collectionId,
+      "agentCategory",
+      { categoryId },
+    );
+    notifySuccess(
+      `Collection removed from category "${categoryLabel}"`,
+    );
+    showRemoveCollectionDialog.value = false;
+    await loadCategoryAppliedCollections();
+  } catch (err) {
+    notifyError(
+      err instanceof Error ? err.message : "Failed to remove collection",
+    );
+  } finally {
+    removeCollectionRemoving.value = false;
+  }
+}
+
+async function loadCategoryAppliedCollections() {
+  const categoryId = selectedCategoryId.value;
+  if (categoryId == null) {
+    categoryAppliedCollections.value = [];
+    return;
+  }
+  const agentId =
+    categoryAgents.value[0] ?? subtreeAgents.value[0] ?? null;
+  if (!agentId) {
+    categoryAppliedCollections.value = [];
+    categoryAppliedCollectionsLoading.value = false;
+    return;
+  }
+  categoryAppliedCollectionsLoading.value = true;
+  categoryAppliedCollections.value = [];
+  try {
+    const response = await collectionsClient.getAppliedCollectionsByAgent(
+      agentId,
+      "en-US",
+    );
+    type CollectionItem = {
+      id?: number;
+      name?: string;
+      explainText?: string;
+      explain_text?: string;
+      policiesList?: Array<{
+        id?: number;
+        name?: string;
+        displayName?: string;
+        display_name?: string;
+      }>;
+      policies?: Array<{
+        id?: number;
+        name?: string;
+        displayName?: string;
+        display_name?: string;
+      }>;
+    };
+    const raw =
+      (response as { collectionsList?: CollectionItem[] }).collectionsList ??
+      (response as { collections?: CollectionItem[] }).collections;
+    const list = Array.isArray(raw) ? raw : [];
+    categoryAppliedCollections.value = list.map((c) => {
+      const rawPolicies = c.policiesList ?? c.policies ?? [];
+      return {
+        id: c.id ?? 0,
+        name: c.name ?? String(c.id ?? ""),
+        explainText:
+          (c.explainText ?? c.explain_text ?? "").trim() || undefined,
+        policies: rawPolicies.map((p) => ({
+          id: p.id ?? 0,
+          name:
+            p.displayName ??
+            p.display_name ??
+            p.name ??
+            String(p.id ?? ""),
+        })),
+      };
+    });
+  } catch {
+    categoryAppliedCollections.value = [];
+  } finally {
+    categoryAppliedCollectionsLoading.value = false;
+  }
+}
 
 function selectCategory(nodeId: string | null) {
   if (!nodeId) return;
@@ -868,6 +1430,9 @@ async function loadCategoryDetails(categoryId: number) {
     }
   } finally {
     detailLoading.value = false;
+    if (detailTab.value === "collections") {
+      loadCategoryAppliedCollections();
+    }
   }
 }
 
@@ -923,7 +1488,8 @@ async function loadCategoryForEdit() {
       const info = res.category.info;
       editCategoryForm.value = {
         name: info.name ?? selectedCategory.value?.name ?? "",
-        description: info.description?.value ?? selectedCategory.value?.description ?? "",
+        description:
+          info.description?.value ?? selectedCategory.value?.description ?? "",
       };
     }
   } finally {
@@ -1066,9 +1632,7 @@ async function removeAgentFromCategory(agentId: string) {
       notifyError(res.errorMessage ?? "Failed to remove agent");
     }
   } catch (err) {
-    notifyError(
-      err instanceof Error ? err.message : "Failed to remove agent",
-    );
+    notifyError(err instanceof Error ? err.message : "Failed to remove agent");
   }
 }
 
@@ -1155,4 +1719,19 @@ async function doSetCategoryAgents() {
 
 .groups-tree-item
   padding: 1px 0
+
+.collections-tab-scroll
+  max-height: 50vh
+  overflow-y: auto
+
+.applied-collections-list
+  display: flex
+  flex-direction: column
+  gap: 12px
+
+.applied-collection-block
+  padding: 12px
+  border: 1px solid rgba(0, 0, 0, 0.12)
+  border-radius: 4px
+  background: rgba(0, 0, 0, 0.02)
 </style>

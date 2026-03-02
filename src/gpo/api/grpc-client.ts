@@ -45,10 +45,6 @@ import {
   UserRequest as CommonUserRequest,
 } from "@/generated/common/user_pb";
 
-
-
-
-
 // interface WindowWithEnv extends Window {
 //   _env_?: {
 //     GRPC_URL?: string;
@@ -115,7 +111,9 @@ const policyAssignmentServiceClient = createClient(
   PolicyAssignmentServiceClient,
 );
 const policyStateServiceClient = createClient(PolicyStateServiceClient);
-const agentCategoryServiceClient = createClient(OperatorAgentCategoryServiceClient);
+const agentCategoryServiceClient = createClient(
+  OperatorAgentCategoryServiceClient,
+);
 
 export const policyCatalogClient = {
   async listPoliciesGroupedByScope(
@@ -614,7 +612,6 @@ function fillUserRequest(
   setStringWrapper(userReq, userReq.setEmployeeId, data.employeeId);
 }
 
-
 function setUserIdentifier(
   uid: UserIdentifier,
   target: Target,
@@ -905,11 +902,10 @@ export const userControlClient = {
     gr.setGroupid(groupId);
     req.setGroup(gr);
     req.setChildGroupIdsList(childGroupIds);
-    const response =
-      await operatorUserControlServiceClient.setGroupChildGroups(
-        req,
-        createGrpcMetadata(),
-      );
+    const response = await operatorUserControlServiceClient.setGroupChildGroups(
+      req,
+      createGrpcMetadata(),
+    );
     return response.toObject();
   },
 
@@ -1020,11 +1016,10 @@ export const userControlClient = {
   ): Promise<user_service_pb_types.GroupListResponse.AsObject> {
     const req = new GroupIdRequest();
     req.setGroupid(groupId);
-    const response =
-      await operatorUserControlServiceClient.getGroupChildGroups(
-        req,
-        createGrpcMetadata(),
-      );
+    const response = await operatorUserControlServiceClient.getGroupChildGroups(
+      req,
+      createGrpcMetadata(),
+    );
     return response.toObject();
   },
 
@@ -1251,10 +1246,7 @@ export function createUserGroupTargetFromParams(
   }
 }
 
-export function createUserTarget(
-  agentId: string,
-  userId: string,
-): Target {
+export function createUserTarget(agentId: string, userId: string): Target {
   const t = new target_pb.Target();
   const userTarget = new target_pb.UserTarget();
   userTarget.setAgentId(agentId);
@@ -1263,12 +1255,17 @@ export function createUserTarget(
   return t;
 }
 
-
-export function getSingleAgentIdFromTarget(target: Target | null): string | null {
+export function getSingleAgentIdFromTarget(
+  target: Target | null,
+): string | null {
   if (!target) return null;
-  const agentTarget = (target as { getAgent?: () => { getAgentId?: () => string } }).getAgent?.();
+  const agentTarget = (
+    target as { getAgent?: () => { getAgentId?: () => string } }
+  ).getAgent?.();
   if (agentTarget?.getAgentId) return agentTarget.getAgentId() || null;
-  const o = (target as { toObject?: () => { agent?: { agentId?: string } } }).toObject?.();
+  const o = (
+    target as { toObject?: () => { agent?: { agentId?: string } } }
+  ).toObject?.();
   return o?.agent?.agentId ?? null;
 }
 
@@ -1301,6 +1298,14 @@ export function createGroupsTarget(groupIds: string[]): Target {
   const groupsTarget = new target_pb.GroupsTarget();
   groupsTarget.setGroupidsList(groupIds);
   t.setGroups(groupsTarget);
+  return t;
+}
+
+export function createAgentCategoryTarget(categoryId: number): Target {
+  const t = new target_pb.Target();
+  const categoryTarget = new target_pb.AgentCategoryTarget();
+  categoryTarget.setCategoryId(Number(categoryId));
+  t.setAgentcategory(categoryTarget);
   return t;
 }
 
@@ -1355,6 +1360,7 @@ export type PolicyTargetType =
   | "site"
   | "group"
   | "groups"
+  | "agentCategory"
   | "combined";
 
 export type PolicyTargetParams = {
@@ -1364,6 +1370,7 @@ export type PolicyTargetParams = {
   siteId?: string;
   groupId?: string;
   groupIds?: string[];
+  categoryId?: number;
   clientIds?: string[];
   siteIds?: string[];
   agentIds?: string[];
@@ -1403,6 +1410,14 @@ export function createPolicyTargetFromParams(
       return createGroupTarget(targetParams.groupId);
     case "groups":
       return createGroupsTarget(targetParams.groupIds ?? []);
+    case "agentCategory":
+      if (
+        targetParams.categoryId === undefined ||
+        targetParams.categoryId === null
+      ) {
+        throw new Error("categoryId обязателен для типа 'agentCategory'");
+      }
+      return createAgentCategoryTarget(targetParams.categoryId);
     case "combined":
       return createCombinedTarget({
         clientIds: targetParams.clientIds,
@@ -1648,7 +1663,10 @@ export const policyAssignmentClient = {
     request.setSelection(policySelection);
 
     const requestObj = request.toObject();
-    console.log("[assignPolicyCollection]request:", JSON.stringify(requestObj, null, 2));
+    console.log(
+      "[assignPolicyCollection]request:",
+      JSON.stringify(requestObj, null, 2),
+    );
 
     const response = await policyAssignmentServiceClient.assignPolicyCollection(
       request,
@@ -2044,6 +2062,23 @@ export const collectionsClient = {
 
     const response =
       await collectionsControlServiceClient.getPoliciesInCollection(
+        request,
+        createGrpcMetadata(),
+      );
+
+    return response.toObject();
+  },
+
+  async getAppliedCollectionsByAgent(
+    agentId: string,
+    langCode: string = "en-US",
+  ): Promise<operator_pb_types.GetAppliedCollectionsResponse.AsObject> {
+    const request = new operator_pb.GetAppliedCollectionsByAgentRequest();
+    request.setAgentId(agentId);
+    request.setLangCode(langCode);
+
+    const response =
+      await collectionsControlServiceClient.getAppliedCollectionsByAgent(
         request,
         createGrpcMetadata(),
       );
