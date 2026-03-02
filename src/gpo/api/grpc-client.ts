@@ -619,9 +619,10 @@ function setUserIdentifier(
   uid: UserIdentifier,
   target: Target,
   samId: string,
+  userId?: string,
 ): void {
   uid.setTarget(target);
-  uid.setUserId(samId);
+  uid.setUserId(userId != null && userId !== "" ? userId : samId);
   uid.setSamId(samId);
 }
 
@@ -646,10 +647,11 @@ export const userControlClient = {
     target: Target,
     samId: string,
     data: Partial<CreateUserParams>,
+    userId?: string,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
     const req = new UpdateUserRequest();
     const uid = new UserIdentifier();
-    setUserIdentifier(uid, target, samId);
+    setUserIdentifier(uid, target, samId, userId);
     req.setUser(uid);
     const dataReq = new CommonUserRequest();
     fillUserRequest(dataReq, { samAccountName: samId, ...data });
@@ -664,9 +666,10 @@ export const userControlClient = {
   async deleteUser(
     target: Target,
     samId: string,
+    userId?: string,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
     const req = new UserIdentifier();
-    setUserIdentifier(req, target, samId);
+    setUserIdentifier(req, target, samId, userId);
     const response = await operatorUserControlServiceClient.deleteUser(
       req,
       createGrpcMetadata(),
@@ -678,10 +681,11 @@ export const userControlClient = {
     target: Target,
     samId: string,
     enable: boolean,
+    userId?: string,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
     const req = new EnableUserRequest();
     const uid = new UserIdentifier();
-    setUserIdentifier(uid, target, samId);
+    setUserIdentifier(uid, target, samId, userId);
     req.setUser(uid);
     req.setEnable(enable);
     const response = await operatorUserControlServiceClient.enableUser(
@@ -695,10 +699,11 @@ export const userControlClient = {
     target: Target,
     samId: string,
     newPassword: string,
+    userId?: string,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
     const req = new SetUserPasswordRequest();
     const uid = new UserIdentifier();
-    setUserIdentifier(uid, target, samId);
+    setUserIdentifier(uid, target, samId, userId);
     req.setUser(uid);
     req.setNewPassword(newPassword);
     const response = await operatorUserControlServiceClient.setUserPassword(
@@ -711,9 +716,10 @@ export const userControlClient = {
   async unlockUser(
     target: Target,
     samId: string,
+    userId?: string,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
     const req = new UserIdentifier();
-    setUserIdentifier(req, target, samId);
+    setUserIdentifier(req, target, samId, userId);
     const response = await operatorUserControlServiceClient.unlockUser(
       req,
       createGrpcMetadata(),
@@ -724,9 +730,10 @@ export const userControlClient = {
   async expireUserPassword(
     target: Target,
     samId: string,
+    userId?: string,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
     const req = new UserIdentifier();
-    setUserIdentifier(req, target, samId);
+    setUserIdentifier(req, target, samId, userId);
     const response = await operatorUserControlServiceClient.expireUserPassword(
       req,
       createGrpcMetadata(),
@@ -738,10 +745,11 @@ export const userControlClient = {
     target: Target,
     samId: string,
     accountExpirationDate: string | undefined,
+    userId?: string,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
     const req = new SetUserAccountExpirationRequest();
     const uid = new UserIdentifier();
-    setUserIdentifier(uid, target, samId);
+    setUserIdentifier(uid, target, samId, userId);
     req.setUser(uid);
     if (accountExpirationDate != null) {
       const w = new wrappers_pb.StringValue();

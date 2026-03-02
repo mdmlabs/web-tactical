@@ -237,8 +237,15 @@ export function useUserActions() {
       telephoneNumber: params.telephoneNumber?.trim() || "",
       employeeId: params.employeeId?.trim() || "",
     };
+    const samId =
+      userDetail.value?.info?.samaccountname ?? userId;
     try {
-      const res = await userControlClient.updateUser(target, userId, payload);
+      const res = await userControlClient.updateUser(
+        target,
+        samId,
+        payload,
+        userId,
+      );
       if (res.status === 0) {
         $q.notify({ type: "positive", message: "User updated" });
         loadUserDetail();
@@ -262,10 +269,13 @@ export function useUserActions() {
 
   async function deleteUser(target: Target): Promise<boolean> {
     if (!selectedUserId.value) return false;
+    const samId =
+      userDetail.value?.info?.samaccountname ?? selectedUserId.value;
     actionLoading.value = true;
     try {
       const res = await userControlClient.deleteUser(
         target,
+        samId,
         selectedUserId.value,
       );
       if (res.status === 0) {
@@ -301,14 +311,17 @@ export function useUserActions() {
       return false;
     }
     if (!selectedUserId.value) return false;
+    const samId =
+      userDetail.value?.info?.samaccountname ?? selectedUserId.value;
     const wasEnabled = userDetail.value?.info?.isenabled !== false;
     const newEnabled = !wasEnabled;
     actionLoading.value = true;
     try {
       const res = await userControlClient.enableUser(
         target,
-        selectedUserId.value,
+        samId,
         newEnabled,
+        selectedUserId.value,
       );
       if (res.status === 0) {
         $q.notify({
@@ -342,11 +355,14 @@ export function useUserActions() {
     password: string,
   ): Promise<boolean> {
     if (!selectedUserId.value) return false;
+    const samId =
+      userDetail.value?.info?.samaccountname ?? selectedUserId.value;
     try {
       const res = await userControlClient.setUserPassword(
         target,
-        selectedUserId.value,
+        samId,
         password.trim(),
+        selectedUserId.value,
       );
       if (res.status === 0) {
         $q.notify({ type: "positive", message: "Password set" });
@@ -366,10 +382,13 @@ export function useUserActions() {
 
   async function unlockUser(target: Target): Promise<boolean> {
     if (!selectedUserId.value) return false;
+    const samId =
+      userDetail.value?.info?.samaccountname ?? selectedUserId.value;
     actionLoading.value = true;
     try {
       const res = await userControlClient.unlockUser(
         target,
+        samId,
         selectedUserId.value,
       );
       if (res.status === 0) {
@@ -393,10 +412,13 @@ export function useUserActions() {
 
   async function expirePassword(target: Target): Promise<boolean> {
     if (!selectedUserId.value) return false;
+    const samId =
+      userDetail.value?.info?.samaccountname ?? selectedUserId.value;
     actionLoading.value = true;
     try {
       const res = await userControlClient.expireUserPassword(
         target,
+        samId,
         selectedUserId.value,
       );
       if (res.status === 0) {
@@ -423,11 +445,14 @@ export function useUserActions() {
     expirationValue: string | undefined,
   ): Promise<boolean> {
     if (!selectedUserId.value) return false;
+    const samId =
+      userDetail.value?.info?.samaccountname ?? selectedUserId.value;
     try {
       const res = await userControlClient.setUserAccountExpiration(
         target,
-        selectedUserId.value,
+        samId,
         expirationValue,
+        selectedUserId.value,
       );
       if (res.status === 0) {
         $q.notify({ type: "positive", message: "Account expiration set" });
