@@ -28,6 +28,9 @@ jobs:
           echo "🌐 Pulling latest changes..."
           git pull
           
+          echo "Just in case"
+          mkdir -p dist
+          
           echo "📦 Installing dependencies..."
           npm install --legacy-peer-deps
 
