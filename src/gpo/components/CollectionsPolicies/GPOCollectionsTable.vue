@@ -55,6 +55,7 @@
         <template v-slot:body-cell-actions="props">
           <q-td :props="props">
             <div class="no-wrap justify-center q-gutter-xs">
+              <!--
               <q-btn
                 icon="play_arrow"
                 size="s"
@@ -77,6 +78,7 @@
               >
                 <q-tooltip>Remove collection from target</q-tooltip>
               </q-btn>
+              -->
               <q-btn
                 icon="edit"
                 size="s"
@@ -537,23 +539,23 @@ async function submitEditCollection() {
   }
 }
 
-function onApplyCollection(row: CollectionRow) {
-  const payload = { mode: "apply" as const, collectionId: row.id, collectionName: row.name ?? "" };
-  console.log("[GPOCollectionsTable] Open target dialog — apply collection:", payload);
-  applyTargetMode.value = "apply";
-  applyTargetCollectionId.value = row.id;
-  applyTargetCollectionName.value = row.name ?? "";
-  applyTargetDialogVisible.value = true;
-}
+// function onApplyCollection(row: CollectionRow) {
+//   const payload = { mode: "apply" as const, collectionId: row.id, collectionName: row.name ?? "" };
+//   console.log("[GPOCollectionsTable] Open target dialog — apply collection:", payload);
+//   applyTargetMode.value = "apply";
+//   applyTargetCollectionId.value = row.id;
+//   applyTargetCollectionName.value = row.name ?? "";
+//   applyTargetDialogVisible.value = true;
+// }
 
-function onRemoveCollection(row: CollectionRow) {
-  const payload = { mode: "remove" as const, collectionId: row.id, collectionName: row.name ?? "" };
-  console.log("[GPOCollectionsTable] Open target dialog — remove collection:", payload);
-  applyTargetMode.value = "remove";
-  applyTargetCollectionId.value = row.id;
-  applyTargetCollectionName.value = row.name ?? "";
-  applyTargetDialogVisible.value = true;
-}
+// function onRemoveCollection(row: CollectionRow) {
+//   const payload = { mode: "remove" as const, collectionId: row.id, collectionName: row.name ?? "" };
+//   console.log("[GPOCollectionsTable] Open target dialog — remove collection:", payload);
+//   applyTargetMode.value = "remove";
+//   applyTargetCollectionId.value = row.id;
+//   applyTargetCollectionName.value = row.name ?? "";
+//   applyTargetDialogVisible.value = true;
+// }
 
 function openCreateCollection() {
   createName.value = "";
