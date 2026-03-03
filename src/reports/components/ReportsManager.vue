@@ -43,7 +43,23 @@
             @click="showReportForm"
           />
         </template>
-
+        <template v-slot:body-cell-filters_agent_ids="props">
+          <q-td :props="props">
+            <q-tooltip v-if="props.row.filters?.agent_ids?.length > 0">
+              {{ props.row.filters?.agent_ids?.join(", ") || "—" }}
+            </q-tooltip>
+            <div
+              style="
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                max-width: 250px;
+              "
+            >
+              {{ getAgentIdsDisplay(props.row.filters?.agent_ids) }}
+            </div>
+          </q-td>
+        </template>
         <template v-slot:body-cell-actions="props">
           <q-td :props="props" class="q-gutter-x-sm">
             <q-btn
@@ -152,6 +168,36 @@ export default defineComponent({
         name: "status",
         label: "Status",
         field: "status",
+        align: "left",
+      },
+      {
+        name: "filters_client_id",
+        label: "Client ID",
+        field: (row) => row.filters?.client_id || "—",
+        align: "left",
+      },
+      {
+        name: "filters_site_id",
+        label: "Site ID",
+        field: (row) => row.filters?.site_id || "—",
+        align: "left",
+      },
+      {
+        name: "filters_agent_ids",
+        label: "Agent IDs",
+        align: "left",
+        sortable: false,
+      },
+      {
+        name: "filters_date_from",
+        label: "Date From",
+        field: (row) => row.filters?.date_from || "—",
+        align: "left",
+      },
+      {
+        name: "filters_date_to",
+        label: "Date To",
+        field: (row) => row.filters?.date_to || "—",
         align: "left",
       },
       {
@@ -285,6 +331,12 @@ export default defineComponent({
       await loadReports();
     }
 
+    const getAgentIdsDisplay = (agentIds) => {
+      if (!Array.isArray(agentIds) || agentIds.length === 0) return "—";
+      if (agentIds.length <= 2) return agentIds.join(", ");
+      return `${agentIds.slice(0, 2).join(", ")} ...`;
+    };
+
     return {
       loading,
       searchId,
@@ -296,6 +348,7 @@ export default defineComponent({
       downloadReport,
       closeReport,
       deleteReport,
+      getAgentIdsDisplay,
 
       dialogRef,
       onDialogHide,
