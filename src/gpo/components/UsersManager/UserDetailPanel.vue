@@ -238,7 +238,9 @@
               :agents="agents"
               :loading="agentsLoading"
               :has-target="hasTarget"
+              :removing-agent-id="removingAgentId"
               @add-agent="$emit('add-agent')"
+              @remove-agent="$emit('remove-agent', $event)"
             />
           </q-tab-panel>
           <q-tab-panel name="collections" class="q-pa-md">
@@ -357,6 +359,7 @@ withDefaults(
     groupsLoading: boolean;
     agents: string[];
     agentsLoading: boolean;
+    removingAgentId?: string | null;
     appliedCollections?: {
       id: number;
       name: string;
@@ -384,6 +387,7 @@ defineEmits<{
   "set-expiration": [];
   "add-to-group": [];
   "add-agent": [];
+  "remove-agent": [agentId: string];
   "add-collection": [];
   "remove-collection": [];
   "update:detailTab": [value: string];

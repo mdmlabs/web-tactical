@@ -1,21 +1,28 @@
-import { ref, computed } from "vue";
-import { fetchClients } from "@/api/clients";
+import { ref, computed, watch } from "vue";
 import { fetchAgents } from "@/api/agents";
 import {
+  agentCategoryClient,
   createUserGroupTargetFromParams,
   type Target,
 } from "@/gpo/api/grpc-client";
 
+export interface AgentPanelItem {
+  agentId: string;
+  label: string;
+}
+
 export const GLOBAL_TARGET_NODE_ID = "target-global";
+export const UNGROUPED_AGENTS_NODE_ID = "target-ungrouped-agents";
 
 export interface TargetTreeNode {
   id: string;
   label: string;
   children?: TargetTreeNode[];
-  targetType?: "global" | "client" | "site" | "agent";
+  targetType?: "global" | "agent" | "agentCategory" | "ungroupedAgents";
   clientId?: string;
   siteId?: string;
   agentId?: string;
+  categoryId?: number;
 }
 
 export interface TargetRef {
@@ -32,8 +39,8 @@ function getStringValue(val: unknown): string {
 
 function getTargetNodeIcon(node: TargetTreeNode): string {
   if (node.targetType === "global") return "public";
-  if (node.targetType === "client") return "business";
-  if (node.targetType === "site") return "location_on";
+  if (node.targetType === "agentCategory") return "category";
+  if (node.targetType === "ungroupedAgents") return "person_off";
   if (node.targetType === "agent") return "computer";
   return "folder";
 }
@@ -61,63 +68,27 @@ function collectAgentNodes(nodes: TargetTreeNode[]): TargetTreeNode[] {
   return result;
 }
 
-function buildAgentsBySiteMap(agents: Array<Record<string, unknown>>) {
-  const agentsBySite = new Map<string, Array<{ agent_id: string; hostname: string }>>();
-  for (const a of agents) {
-    const clientVal = getStringValue(a.client) || getStringValue(a.client_name);
-    const siteVal = getStringValue(a.site) || getStringValue(a.site_name);
-    const key = `${clientVal}::${siteVal}`;
-    if (!agentsBySite.has(key)) agentsBySite.set(key, []);
-    const agentId = getStringValue(a.agent_id) || getStringValue(a.id);
-    const hostname = getStringValue(a.hostname) || "—";
-    agentsBySite.get(key)!.push({ agent_id: agentId, hostname });
-  }
-  return agentsBySite;
-}
+type AgentCategoryTreeNode = {
+  categoryId: number;
+  name: string;
+  description?: string;
+  childrenList?: AgentCategoryTreeNode[];
+};
 
-function buildSiteNode(
-  site: { id: number; name: string },
-  clientId: string,
-  clientName: string,
-  agentsBySite: Map<string, Array<{ agent_id: string; hostname: string }>>,
-): TargetTreeNode {
-  const siteId = String(site.id);
-  const siteKey = `${clientName}::${site.name}`;
-  const siteAgents = agentsBySite.get(siteKey) ?? [];
-  const agentNodes: TargetTreeNode[] = siteAgents.map((ag) => ({
-    id: `agent-${ag.agent_id}`,
-    label: ag.hostname,
-    targetType: "agent" as const,
-    clientId,
-    siteId,
-    agentId: ag.agent_id,
-    children: [],
-  }));
-  return {
-    id: `site-${siteId}`,
-    label: site.name + (siteAgents.length ? ` (${siteAgents.length})` : ""),
-    targetType: "site" as const,
-    clientId,
-    siteId,
-    children: agentNodes.length > 0 ? agentNodes : undefined,
-  };
-}
 
-function buildClientNode(
-  client: { id: number; name: string; sites?: Array<{ id: number; name: string }> },
-  agentsBySite: Map<string, Array<{ agent_id: string; hostname: string }>>,
+function mapAgentCategoryTreeNodeToTargetNode(
+  node: AgentCategoryTreeNode,
 ): TargetTreeNode {
-  const clientId = String(client.id);
-  const sites = client.sites ?? [];
-  const siteNodes = sites.map((site) =>
-    buildSiteNode(site, clientId, client.name, agentsBySite),
+  const id = node.categoryId;
+  const subCategoryNodes = (node.childrenList ?? []).map((child) =>
+    mapAgentCategoryTreeNodeToTargetNode(child),
   );
   return {
-    id: `client-${clientId}`,
-    label: client.name,
-    targetType: "client" as const,
-    clientId,
-    children: siteNodes.length > 0 ? siteNodes : undefined,
+    id: `agent-category-${id}`,
+    label: node.name || String(id),
+    targetType: "agentCategory",
+    categoryId: id,
+    children: subCategoryNodes.length > 0 ? subCategoryNodes : undefined,
   };
 }
 
@@ -128,29 +99,134 @@ export function useTargetSelection() {
   const targetTickedIds = ref<string[]>([]);
   const currentTargetRef = ref<TargetRef | null>(null);
 
+
+  const agentIdToHostnameMap = ref<Map<string, string>>(new Map());
+  const agentsPanelList = ref<AgentPanelItem[]>([]);
+  const agentsPanelLoading = ref(false);
+  const agentsInCategoryIds = ref<Set<string>>(new Set());
+  const selectedAgentInPanel = ref<string | null>(null);
+
   const currentTarget = computed(() => currentTargetRef.value?.target ?? null);
   const targetLabel = computed(
     () => currentTargetRef.value?.label ?? "Select target",
   );
 
+  const selectedCategoryId = computed(() => {
+    const id = targetSelectedId.value;
+    if (!id) return null;
+    const node = findTargetNodeById(targetTreeNodes.value, id);
+    return node?.targetType === "agentCategory" && node.categoryId != null
+      ? node.categoryId
+      : null;
+  });
+
+  const selectedUngroupedAgents = computed(
+    () => targetSelectedId.value === UNGROUPED_AGENTS_NODE_ID,
+  );
+
   const canApplyTarget = computed(() => {
-    if (targetTickedIds.value.length > 0) return true;
-    return targetSelectedId.value != null;
+    if (selectedAgentInPanel.value != null) return true;
+    const id = targetSelectedId.value;
+    if (id == null) return false;
+    if (id === UNGROUPED_AGENTS_NODE_ID) return false;
+    return true;
   });
 
   const agentNodesOnly = computed(() =>
     collectAgentNodes(targetTreeNodes.value),
   );
 
+  async function loadAgentsForCategory(categoryId: number) {
+    agentsPanelLoading.value = true;
+    selectedAgentInPanel.value = null;
+    agentsPanelList.value = [];
+    try {
+      const r = await agentCategoryClient.getAgentsInSubtree(categoryId);
+      const agentIds = r.agentIdsList ?? [];
+      const hostnameMap = agentIdToHostnameMap.value;
+
+      if (agentIds.length > 0) {
+        agentsPanelList.value = agentIds.map((agentId) => ({
+          agentId,
+          label: hostnameMap.get(agentId) || agentId,
+        }));
+        agentsInCategoryIds.value = new Set(agentIds);
+      } else {
+        agentsInCategoryIds.value = new Set();
+      }
+    } finally {
+      agentsPanelLoading.value = false;
+    }
+  }
+
+  function loadAgentsNotInAnyGroup() {
+    loadAllAgents(false);
+  }
+
+  function loadAgentsForSelectedCategory() {
+    if (selectedUngroupedAgents.value) {
+      loadAgentsNotInAnyGroup();
+      return;
+    }
+    const catId = selectedCategoryId.value;
+    if (catId == null) {
+      agentsPanelList.value = [];
+      selectedAgentInPanel.value = null;
+      agentsInCategoryIds.value = new Set();
+    } else {
+      loadAgentsForCategory(catId);
+    }
+  }
+
+  async function loadAllAgents(mergeWithCurrent = false) {
+    agentsPanelLoading.value = true;
+    if (!mergeWithCurrent) {
+      selectedAgentInPanel.value = null;
+      agentsPanelList.value = [];
+      agentsInCategoryIds.value = new Set();
+    }
+    try {
+      const raw = await fetchAgents({ detail: false }).catch(() => null);
+      let list: Array<Record<string, unknown>> = [];
+      if (Array.isArray(raw)) {
+        list = raw;
+      } else if (raw && typeof raw === "object" && "results" in raw) {
+        list = ((raw as { results: unknown[] }).results || []) as Array<Record<string, unknown>>;
+      }
+      const newItems: AgentPanelItem[] = list.map((a) => {
+        const agentId = getStringValue(a.agent_id) || getStringValue(a.id);
+        const label = getStringValue(a.hostname) || agentId;
+        return { agentId, label };
+      });
+
+      if (mergeWithCurrent && agentsPanelList.value.length > 0) {
+        const existingIds = new Set(agentsPanelList.value.map((a) => a.agentId));
+        const toAdd = newItems.filter((a) => !existingIds.has(a.agentId));
+        agentsPanelList.value = [...agentsPanelList.value, ...toAdd];
+      } else {
+        agentsPanelList.value = newItems;
+      }
+    } finally {
+      agentsPanelLoading.value = false;
+    }
+  }
+
+  watch(targetSelectedId, () => {
+    loadAgentsForSelectedCategory();
+  });
+
+  function selectAgentInPanel(agentId: string | null) {
+    selectedAgentInPanel.value = agentId;
+  }
+
   async function loadTargetTree() {
     targetTreeLoading.value = true;
     targetTreeNodes.value = [];
     try {
-      const [clientsData, agentsData] = await Promise.all([
-        fetchClients(),
+      const [agentsData, categoriesData] = await Promise.all([
         fetchAgents({ detail: false }).catch(() => null),
+        agentCategoryClient.getCategoryTree().catch(() => null),
       ]);
-      const clients = Array.isArray(clientsData) ? clientsData : [];
       const rawAgents = agentsData ?? [];
       let agents: Array<Record<string, unknown>> = [];
       if (Array.isArray(rawAgents)) {
@@ -158,16 +234,46 @@ export function useTargetSelection() {
       } else if (rawAgents && typeof rawAgents === "object" && "results" in rawAgents) {
         agents = ((rawAgents as { results: unknown[] }).results || []) as Array<Record<string, unknown>>;
       }
-      const agentsBySite = buildAgentsBySiteMap(agents);
-      const clientNodes = clients.map((client) =>
-        buildClientNode(client, agentsBySite),
-      );
+
+      const map = new Map<string, string>();
+      for (const a of agents) {
+        const agentId = getStringValue(a.agent_id) || getStringValue(a.id);
+        const hostname = getStringValue(a.hostname);
+        if (agentId && hostname) map.set(agentId, hostname);
+      }
+      agentIdToHostnameMap.value = map;
+
+      let categoryRootNode: TargetTreeNode | null = null;
+      if (categoriesData && typeof categoriesData === "object") {
+        const roots =
+          (categoriesData as { rootsList?: AgentCategoryTreeNode[] })
+            .rootsList ?? [];
+        if (Array.isArray(roots) && roots.length > 0) {
+          const categoryChildren = roots.map((r) =>
+            mapAgentCategoryTreeNodeToTargetNode(r),
+          );
+          categoryRootNode = {
+            id: "agent-categories-root",
+            label: "Agent categories",
+            children: categoryChildren,
+          };
+        }
+      }
       const globalNode: TargetTreeNode = {
         id: GLOBAL_TARGET_NODE_ID,
         label: "Global",
         targetType: "global",
       };
-      targetTreeNodes.value = [globalNode, ...clientNodes];
+      const ungroupedNode: TargetTreeNode = {
+        id: UNGROUPED_AGENTS_NODE_ID,
+        label: "All agents",
+        targetType: "ungroupedAgents",
+      };
+      targetTreeNodes.value = [
+        globalNode,
+        ...(categoryRootNode ? [categoryRootNode] : []),
+        ungroupedNode,
+      ];
     } catch (e) {
       console.error("Load target tree failed:", e);
     } finally {
@@ -187,24 +293,23 @@ export function useTargetSelection() {
         target: createUserGroupTargetFromParams("global"),
         label: "Global",
       };
-    } else if (node.targetType === "client" && node.clientId) {
-      result = {
-        target: createUserGroupTargetFromParams("client", {
-          clientId: node.clientId,
-        }),
-        label: `Client: ${node.label}`,
-      };
-    } else if (node.targetType === "site" && node.siteId) {
-      result = {
-        target: createUserGroupTargetFromParams("site", { siteId: node.siteId }),
-        label: `Site: ${node.label}`,
-      };
     } else if (node.targetType === "agent" && node.agentId) {
       result = {
         target: createUserGroupTargetFromParams("agent", {
           agentId: node.agentId,
         }),
         label: `Agent: ${node.label}`,
+      };
+    } else if (
+      node.targetType === "agentCategory" &&
+      node.categoryId !== undefined &&
+      node.categoryId !== null
+    ) {
+      result = {
+        target: createUserGroupTargetFromParams("agentCategory", {
+          categoryId: node.categoryId,
+        }),
+        label: `Agent category: ${node.label}`,
       };
     }
     if (result) {
@@ -217,6 +322,32 @@ export function useTargetSelection() {
     return result;
   }
 
+  function collectCombinedParts(ids: string[]): {
+    clientIds: string[];
+    siteIds: string[];
+    agentIds: string[];
+    labels: string[];
+    hasAgentCategory: boolean;
+  } {
+    const clientIds: string[] = [];
+    const siteIds: string[] = [];
+    const agentIds: string[] = [];
+    const labels: string[] = [];
+    let hasAgentCategory = false;
+    for (const id of ids) {
+      if (id === GLOBAL_TARGET_NODE_ID) continue;
+      const node = findTargetNodeById(targetTreeNodes.value, id);
+      if (!node?.targetType) continue;
+      if (node.targetType === "agent" && node.agentId) {
+        agentIds.push(node.agentId);
+        labels.push(node.label);
+      } else if (node.targetType === "agentCategory") {
+        hasAgentCategory = true;
+      }
+    }
+    return { clientIds, siteIds, agentIds, labels, hasAgentCategory };
+  }
+
   function buildCombinedTargetFromTicked(): TargetRef | null {
     const ids = targetTickedIds.value;
     console.log("[TargetSelection] buildCombinedTargetFromTicked - tickedIds:", ids);
@@ -227,24 +358,12 @@ export function useTargetSelection() {
         label: "Global",
       };
     }
-    const clientIds: string[] = [];
-    const siteIds: string[] = [];
-    const agentIds: string[] = [];
-    const labels: string[] = [];
-    for (const id of ids) {
-      if (id === GLOBAL_TARGET_NODE_ID) continue;
-      const node = findTargetNodeById(targetTreeNodes.value, id);
-      if (!node?.targetType) continue;
-      if (node.targetType === "client" && node.clientId) {
-        clientIds.push(node.clientId);
-        labels.push(node.label);
-      } else if (node.targetType === "site" && node.siteId) {
-        siteIds.push(node.siteId);
-        labels.push(node.label);
-      } else if (node.targetType === "agent" && node.agentId) {
-        agentIds.push(node.agentId);
-        labels.push(node.label);
-      }
+    const { clientIds, siteIds, agentIds, labels, hasAgentCategory } =
+      collectCombinedParts(ids);
+    if (hasAgentCategory) {
+      console.warn(
+        "[TargetSelection] agentCategory nodes в комбинированной цели сейчас не поддерживаются и будут проигнорированы",
+      );
     }
     if (clientIds.length === 0 && siteIds.length === 0 && agentIds.length === 0)
       return null;
@@ -265,27 +384,33 @@ export function useTargetSelection() {
     };
   }
 
+  function buildTargetForApply(): TargetRef | null {
+    const agentId = selectedAgentInPanel.value;
+    if (agentId) {
+      const item = agentsPanelList.value.find((a) => a.agentId === agentId);
+      return {
+        target: createUserGroupTargetFromParams("agent", { agentId }),
+        label: item ? `Agent: ${item.label}` : `Agent: ${agentId}`,
+      };
+    }
+    return buildTargetFromSingleNode();
+  }
+
   function applyTargetSelection(): boolean {
-    console.log("[TargetSelection] applyTargetSelection called");
-    const combined = buildCombinedTargetFromTicked();
-    if (combined) {
-      console.log("[TargetSelection] Applied COMBINED target:", combined.label);
-      currentTargetRef.value = combined;
+    const ref = buildTargetForApply();
+    if (ref) {
+      currentTargetRef.value = ref;
       return true;
     }
-    const single = buildTargetFromSingleNode();
-    if (single) {
-      console.log("[TargetSelection] Applied SINGLE target:", single.label);
-      currentTargetRef.value = single;
-      return true;
-    }
-    console.log("[TargetSelection] No target applied");
     return false;
   }
 
   function resetSelection() {
     targetSelectedId.value = null;
     targetTickedIds.value = [];
+    selectedAgentInPanel.value = null;
+    agentsPanelList.value = [];
+    agentsInCategoryIds.value = new Set();
   }
 
   function onDialogShow() {
@@ -307,9 +432,22 @@ export function useTargetSelection() {
     findTargetNodeById,
     loadTargetTree,
     buildTargetFromSingleNode,
+    buildTargetForApply,
     buildCombinedTargetFromTicked,
     applyTargetSelection,
     resetSelection,
     onDialogShow,
+    agentIdToHostnameMap,
+    agentsPanelList,
+    agentsPanelLoading,
+    agentsInCategoryIds,
+    selectedAgentInPanel,
+    selectedCategoryId,
+    selectedUngroupedAgents,
+    loadAgentsForCategory,
+    loadAgentsForSelectedCategory,
+    loadAgentsNotInAnyGroup,
+    loadAllAgents,
+    selectAgentInPanel,
   };
 }

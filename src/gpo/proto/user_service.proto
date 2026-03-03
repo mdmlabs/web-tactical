@@ -27,6 +27,8 @@ service OperatorUserControlService {
     rpc SetGroupChildGroups(SetGroupChildGroupsRequest) returns (UserControlResponse);
     rpc SetUserAgent(SetUserAgentRequest) returns (UserControlResponse);
     rpc SetGroupAgent(SetGroupAgentRequest) returns (UserControlResponse);
+    rpc RemoveUserAgent(SetUserAgentRequest) returns (UserControlResponse);
+    rpc RemoveGroupAgent(SetGroupAgentRequest) returns (UserControlResponse);
 
     // USER READ
     rpc GetUser(UserIdRequest) returns (UserResponse);
