@@ -96,6 +96,13 @@ service CollectionsControlService {
       returns (GetAppliedCollectionsResponse);
   rpc GetAppliedCollectionsByGroup (GetAppliedCollectionsByGroupRequest)
      returns (GetAppliedCollectionsResponse);
+  rpc GetAppliedCollectionsByAgentCategory(GetAppliedCollectionsByAgentCategoryRequest)
+     returns (GetAppliedCollectionsResponse);
+}
+
+message GetAppliedCollectionsByAgentCategoryRequest {
+    int64 category_id = 1;
+    string lang_code = 2;
 }
 
 message GetAppliedCollectionsByAgentRequest {

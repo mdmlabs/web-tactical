@@ -74,6 +74,7 @@
           :group-children="groupChildren"
           :group-parents="groupParents"
           :group-agents="groupAgents"
+          :removing-agent-id="removingAgentId"
           :group-applied-collections="groupAppliedCollections"
           :group-applied-collections-loading="groupAppliedCollectionsLoading"
           :can-remove-collection="canRemoveGroupCollection"
@@ -83,6 +84,7 @@
           @remove-user="removeUserFromGroup"
           @navigate-to-group="navigateToGroup"
           @add-agent="showAddAgentPanel = true"
+          @remove-agent="handleRemoveGroupAgent"
           @apply-collection="showApplyCollectionDialog = true"
           @remove-collection="showRemoveCollectionDialog = true"
         />
@@ -141,6 +143,7 @@ import { useRouter } from "vue-router";
 import { useQuasar } from "quasar";
 import operator_pb from "@/generated/operator_pb";
 import {
+  createAgentTarget,
   userControlClient,
   createGlobalTarget,
   policyAssignmentClient,
@@ -213,6 +216,7 @@ const groupUsers = ref<GroupRow[]>([]);
 const groupChildren = ref<GroupRow[]>([]);
 const groupParents = ref<GroupRow[]>([]);
 const groupAgents = ref<string[]>([]);
+const removingAgentId = ref<string | null>(null);
 
 const deleteLoading = ref(false);
 
@@ -353,15 +357,37 @@ async function handleAddAgentToGroupSelect(ref: TargetRef) {
   try {
     const res = await userControlClient.setGroupAgent(ref.target, groupId);
     if (res.status === 0) {
-      notifySuccess("Agent linked to group");
+      notifySuccess("Target linked to group");
       await loadGroupDetails(groupId);
     } else {
-      notifyError(res.errorMessage ?? "Failed to link agent to group");
+      notifyError(res.errorMessage ?? "Failed to link target to group");
     }
   } catch (err) {
     notifyError(
-      err instanceof Error ? err.message : "Failed to link agent to group",
+      err instanceof Error ? err.message : "Failed to link target to group",
     );
+  }
+}
+
+async function handleRemoveGroupAgent(agentId: string) {
+  const groupId = selectedGroupId.value;
+  if (!groupId) return;
+  removingAgentId.value = agentId;
+  try {
+    const target = createAgentTarget(agentId);
+    const res = await userControlClient.removeGroupAgent(target, groupId);
+    if (res.status === 0) {
+      notifySuccess("Agent unlinked from group");
+      await loadGroupDetails(groupId);
+    } else {
+      notifyError(res.errorMessage ?? "Failed to unlink agent from group");
+    }
+  } catch (err) {
+    notifyError(
+      err instanceof Error ? err.message : "Failed to unlink agent from group",
+    );
+  } finally {
+    removingAgentId.value = null;
   }
 }
 

@@ -75,6 +75,7 @@
           :groups-loading="userGroupsLoading"
           :agents="userAgents"
           :agents-loading="userAgentsLoading"
+          :removing-agent-id="removingAgentId"
           :applied-collections="userAppliedCollections"
           :applied-collections-loading="userAppliedCollectionsLoading"
           @update="showUpdateUser = true"
@@ -88,6 +89,7 @@
           :can-remove-collection="canRemoveCollection"
           @add-to-group="openAddToGroupDialog"
           @add-agent="showAddAgentPanel = true"
+          @remove-agent="handleRemoveUserAgent"
           @add-collection="showApplyCollectionDialog = true"
           @remove-collection="showRemoveCollectionDialog = true"
           @update:detail-tab="(val) => (detailTab = val)"
@@ -316,6 +318,7 @@ import { useUserActions } from "@/gpo/composables/useUserActions";
 import type { CreateUserParams } from "@/gpo/composables/useUserActions";
 import type { TargetRef } from "@/gpo/composables/useTargetSelection";
 import {
+  createAgentTarget,
   createGlobalTarget,
   userControlClient,
   getSingleAgentIdFromTarget,
@@ -360,6 +363,7 @@ const showSetAccountExpiration = ref(false);
 const showAddToGroupDialog = ref(false);
 const showAddAgentPanel = ref(false);
 const showSetUserAgentOptions = ref(false);
+const removingAgentId = ref<string | null>(null);
 const pendingAddAgentRef = ref<TargetRef | null>(null);
 const showApplyCollectionDialog = ref(false);
 
@@ -574,6 +578,36 @@ async function handleSetUserAgentOptionsConfirm(options: SetUserAgentOptions) {
       message:
         err instanceof Error ? err.message : "Failed to link user to target",
     });
+  }
+}
+
+async function handleRemoveUserAgent(agentId: string) {
+  const userId =
+    selectedUserId.value ??
+    userDetail.value?.info?.samaccountname ??
+    userDetail.value?.userid;
+  if (!userId) return;
+  removingAgentId.value = agentId;
+  try {
+    const target = createAgentTarget(agentId);
+    const res = await userControlClient.removeUserAgent(target, userId);
+    if (res.status === 0) {
+      $q.notify({ type: "positive", message: "Agent unlinked from user" });
+      await loadUserAgents();
+    } else {
+      $q.notify({
+        type: "negative",
+        message: res.errorMessage ?? "Failed to unlink agent from user",
+      });
+    }
+  } catch (err) {
+    $q.notify({
+      type: "negative",
+      message:
+        err instanceof Error ? err.message : "Failed to unlink agent from user",
+    });
+  } finally {
+    removingAgentId.value = null;
   }
 }
 

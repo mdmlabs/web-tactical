@@ -893,6 +893,40 @@ export const userControlClient = {
     return response.toObject();
   },
 
+  async removeUserAgent(
+    target: Target,
+    userId: string,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new SetUserAgentRequest();
+    req.setTarget(target);
+    req.setUserId(userId);
+    req.setPassword("");
+    req.setPasswordNotRequired(false);
+    req.setUserCannotChangePassword(false);
+    req.setSmartcardLogonRequired(false);
+    const response =
+      await operatorUserControlServiceClient.removeUserAgent(
+        req,
+        createGrpcMetadata(),
+      );
+    return response.toObject();
+  },
+
+  async removeGroupAgent(
+    target: Target,
+    groupId: string,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new SetGroupAgentRequest();
+    req.setTarget(target);
+    req.setGroupId(groupId);
+    const response =
+      await operatorUserControlServiceClient.removeGroupAgent(
+        req,
+        createGrpcMetadata(),
+      );
+    return response.toObject();
+  },
+
   async setGroupChildGroups(
     groupId: string,
     childGroupIds: string[],
@@ -1187,7 +1221,8 @@ export type UserGroupTargetType =
   | "clients"
   | "sites"
   | "agents"
-  | "combined";
+  | "combined"
+  | "agentCategory";
 
 export type UserGroupTargetParams = {
   agentId?: string;
@@ -1197,6 +1232,7 @@ export type UserGroupTargetParams = {
   clientIds?: string[];
   siteIds?: string[];
   agentIds?: string[];
+  categoryId?: number;
 };
 
 export function createUserGroupTargetFromParams(
@@ -1241,6 +1277,14 @@ export function createUserGroupTargetFromParams(
         siteIds: targetParams.siteIds,
         agentIds: targetParams.agentIds,
       });
+    case "agentCategory":
+      if (
+        targetParams.categoryId === undefined ||
+        targetParams.categoryId === null
+      ) {
+        throw new Error("categoryId обязателен для типа 'agentCategory'");
+      }
+      return createAgentCategoryTarget(targetParams.categoryId);
     default:
       throw new Error(`Неизвестный тип цели: ${targetType}`);
   }
@@ -2062,6 +2106,24 @@ export const collectionsClient = {
 
     const response =
       await collectionsControlServiceClient.getPoliciesInCollection(
+        request,
+        createGrpcMetadata(),
+      );
+
+    return response.toObject();
+  },
+
+  async getAppliedCollectionsByAgentCategory(
+    categoryId: number,
+    langCode: string = "en-US",
+  ): Promise<operator_pb_types.GetAppliedCollectionsResponse.AsObject> {
+    const request =
+      new operator_pb.GetAppliedCollectionsByAgentCategoryRequest();
+    request.setCategoryId(categoryId);
+    request.setLangCode(langCode);
+
+    const response =
+      await collectionsControlServiceClient.getAppliedCollectionsByAgentCategory(
         request,
         createGrpcMetadata(),
       );

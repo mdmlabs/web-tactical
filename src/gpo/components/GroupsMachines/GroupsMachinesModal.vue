@@ -438,16 +438,9 @@
                         Loading applied collections...
                       </div>
                     </div>
-                    <div
-                      v-else-if="!hasAgentsInCategoryForCollections"
-                      class="text-body2 text-grey-7"
-                    >
-                      Add agents to this category to see applied collections.
-                      Use the «Agents» tab to add agents.
-                    </div>
                     <template v-else-if="categoryAppliedCollections.length">
                       <div class="text-caption text-grey-7 q-mb-sm">
-                        Applied collections (via first agent in category):
+                        Applied collections:
                       </div>
                       <div class="applied-collections-list">
                         <div
@@ -683,7 +676,8 @@
         <q-separator />
         <q-card-section>
           <div class="text-caption text-grey-7 q-mb-sm">
-            Category: <strong>{{ selectedCategory?.name ?? selectedCategoryId }}</strong>
+            Category:
+            <strong>{{ selectedCategory?.name ?? selectedCategoryId }}</strong>
           </div>
           <q-select
             v-model="applyCollectionSelectedId"
@@ -740,7 +734,8 @@
         <q-separator />
         <q-card-section>
           <div class="text-caption text-grey-7 q-mb-sm">
-            Category: <strong>{{ selectedCategory?.name ?? selectedCategoryId }}</strong>
+            Category:
+            <strong>{{ selectedCategory?.name ?? selectedCategoryId }}</strong>
           </div>
           <q-select
             v-model="removeCollectionSelectedId"
@@ -959,12 +954,9 @@ const categoryAppliedCollections = ref<
 const categoryAppliedCollectionsLoading = ref(false);
 
 const canRemoveCategoryCollection = computed(
-  () => selectedCategoryId.value != null,
-);
-
-const hasAgentsInCategoryForCollections = computed(
   () =>
-    categoryAgents.value.length > 0 || subtreeAgents.value.length > 0,
+    !!selectedCategoryId.value &&
+    (categoryAppliedCollections.value?.length ?? 0) > 0,
 );
 
 const showRemoveCollectionDialog = ref(false);
@@ -1071,15 +1063,6 @@ watch(
     if (!props.standalonePage && isOpen) loadCategories();
   },
   { immediate: true },
-);
-
-watch(
-  () => [detailTab.value, selectedCategoryId.value] as const,
-  ([tab, categoryId]) => {
-    if (tab === "collections" && categoryId != null) {
-      loadCategoryAppliedCollections();
-    }
-  },
 );
 
 onMounted(() => {
@@ -1196,59 +1179,13 @@ async function doApplyCollectionToCategory() {
 
 function prepareRemoveCollectionOptionsForCategory() {
   removeCollectionSelectedId.value = null;
-  removeCollectionOptionsLoading.value = true;
-  removeCollectionOptions.value = [];
-  collectionsClient
-    .getAllCollections("en-US")
-    .then((response) => {
-      const list =
-        (
-          response as {
-            collectionsList?: Array<{
-              id?: number | string;
-              name?: string;
-              scope?: number | string;
-            }>;
-          }
-        ).collectionsList ??
-        (
-          response as {
-            collections?: Array<{
-              id?: number | string;
-              name?: string;
-              scope?: number | string;
-            }>;
-          }
-        ).collections ??
-        [];
-      removeCollectionOptions.value = list
-        .map((c) => {
-          const rawId = c.id;
-          let id = 0;
-          if (rawId !== undefined && rawId !== null) {
-            id =
-              typeof rawId === "string"
-                ? Number.parseInt(rawId, 10) || 0
-                : Number(rawId);
-          }
-          return {
-            id,
-            label: (c.name as string) || String(rawId ?? ""),
-            scope: c.scope,
-          };
-        })
-        .filter(
-          (o) =>
-            o.id > 0 && isMachineScope(o.scope as number | string | undefined),
-        )
-        .map((o) => ({ id: o.id, label: o.label }));
-    })
-    .catch(() => {
-      removeCollectionOptions.value = [];
-    })
-    .finally(() => {
-      removeCollectionOptionsLoading.value = false;
-    });
+  removeCollectionOptionsLoading.value = false;
+  removeCollectionOptions.value = (categoryAppliedCollections.value ?? []).map(
+    (c) => ({
+      id: c.id,
+      label: c.name || String(c.id),
+    }),
+  );
 }
 
 function confirmRemoveCollectionFromCategory() {
@@ -1280,9 +1217,7 @@ async function doRemoveCollectionFromCategory() {
       "agentCategory",
       { categoryId },
     );
-    notifySuccess(
-      `Collection removed from category "${categoryLabel}"`,
-    );
+    notifySuccess(`Collection removed from category "${categoryLabel}"`);
     showRemoveCollectionDialog.value = false;
     await loadCategoryAppliedCollections();
   } catch (err) {
@@ -1300,20 +1235,14 @@ async function loadCategoryAppliedCollections() {
     categoryAppliedCollections.value = [];
     return;
   }
-  const agentId =
-    categoryAgents.value[0] ?? subtreeAgents.value[0] ?? null;
-  if (!agentId) {
-    categoryAppliedCollections.value = [];
-    categoryAppliedCollectionsLoading.value = false;
-    return;
-  }
   categoryAppliedCollectionsLoading.value = true;
   categoryAppliedCollections.value = [];
   try {
-    const response = await collectionsClient.getAppliedCollectionsByAgent(
-      agentId,
-      "en-US",
-    );
+    const response =
+      await collectionsClient.getAppliedCollectionsByAgentCategory(
+        categoryId,
+        "en-US",
+      );
     type CollectionItem = {
       id?: number;
       name?: string;
@@ -1345,11 +1274,7 @@ async function loadCategoryAppliedCollections() {
           (c.explainText ?? c.explain_text ?? "").trim() || undefined,
         policies: rawPolicies.map((p) => ({
           id: p.id ?? 0,
-          name:
-            p.displayName ??
-            p.display_name ??
-            p.name ??
-            String(p.id ?? ""),
+          name: p.displayName ?? p.display_name ?? p.name ?? String(p.id ?? ""),
         })),
       };
     });
@@ -1430,9 +1355,7 @@ async function loadCategoryDetails(categoryId: number) {
     }
   } finally {
     detailLoading.value = false;
-    if (detailTab.value === "collections") {
-      loadCategoryAppliedCollections();
-    }
+    loadCategoryAppliedCollections();
   }
 }
 

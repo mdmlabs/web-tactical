@@ -21,12 +21,25 @@
       No agents
     </div>
     <q-list v-else bordered separator>
-      <q-item v-for="agentId in agents" :key="agentId">
+      <q-item v-for="agentId in agents" :key="agentId" class="row items-center">
         <q-item-section avatar>
           <q-icon name="dns" color="primary" />
         </q-item-section>
         <q-item-section>
           <q-item-label>{{ agentId }}</q-item-label>
+        </q-item-section>
+        <q-item-section side>
+          <q-btn
+            flat
+            round
+            dense
+            icon="remove_circle_outline"
+            size="sm"
+            color="negative"
+            :loading="removingAgentId === agentId"
+            title="Remove agent"
+            @click="$emit('remove-agent', agentId)"
+          />
         </q-item-section>
       </q-item>
     </q-list>
@@ -38,7 +51,8 @@ defineProps<{
   agents: string[];
   loading: boolean;
   hasTarget: boolean;
+  removingAgentId?: string | null;
 }>();
 
-defineEmits<{ "add-agent": [] }>();
+defineEmits<{ "add-agent": []; "remove-agent": [agentId: string] }>();
 </script>

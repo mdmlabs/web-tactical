@@ -13,8 +13,7 @@
       </q-card-section>
       <q-card-section class="q-pt-none">
         <div v-if="!agentsOnly" class="text-caption text-grey-7 q-mb-sm">
-          Choose one node for a single target, or tick several for a combined
-          target.
+          Choose Global or a category; optionally pick an agent on the right.
         </div>
         <div v-else class="text-caption text-grey-7 q-mb-sm">
           Choose an agent.
@@ -22,74 +21,180 @@
         <div v-if="targetTreeLoading" class="flex flex-center q-pa-lg">
           <q-spinner color="primary" size="2em" />
         </div>
-        <q-scroll-area
-          v-else-if="agentsOnly && agentNodesOnly.length > 0"
-          style="height: min(400px, 55vh)"
-          class="rounded-borders"
-        >
-          <q-list bordered separator>
-            <q-item
-              v-for="node in agentNodesOnly"
-              :key="node.id"
-              v-ripple
-              clickable
-              :active="targetSelectedId === node.id"
-              active-class="bg-primary-1"
-              @click="selectAgent(node.id)"
-            >
-              <q-item-section avatar>
-                <q-icon name="dns" color="primary" size="sm" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>{{ node.label }}</q-item-label>
-                <q-item-label v-if="node.agentId" caption>{{ node.agentId }}</q-item-label>
-              </q-item-section>
-            </q-item>
-          </q-list>
-        </q-scroll-area>
-        <q-scroll-area
-          v-else-if="!agentsOnly && targetTreeNodes.length > 0"
-          style="height: min(400px, 55vh)"
-          class="rounded-borders"
-        >
-          <q-tree
-            v-model:selected="targetSelectedId"
-            v-model:ticked="targetTickedIds"
-            :nodes="targetTreeNodes"
-            node-key="id"
-            tick-strategy="strict"
-            selected-color="primary"
-            class="target-tree"
-          >
-            <template v-slot:default-header="prop">
-              <div class="row items-center full-width">
-                <q-icon
-                  :name="getTargetNodeIcon(prop.node)"
-                  class="q-mr-sm"
-                  size="sm"
-                />
-                <span>{{ prop.node.label }}</span>
+        <template v-else-if="!agentsOnly && targetTreeNodes.length > 0">
+          <div class="target-dialog-columns row">
+            <q-scroll-area class="target-dialog-tree col" style="height: min(400px, 55vh)">
+              <q-tree
+                v-model:selected="targetSelectedId"
+                :nodes="targetTreeNodes"
+                node-key="id"
+                selected-color="primary"
+                class="target-tree"
+              >
+                <template v-slot:default-header="prop">
+                  <div class="row items-center full-width">
+                    <q-icon
+                      :name="getTargetNodeIcon(prop.node)"
+                      class="q-mr-sm"
+                      size="sm"
+                    />
+                    <span>{{ prop.node.label }}</span>
+                  </div>
+                </template>
+              </q-tree>
+            </q-scroll-area>
+            <div class="target-dialog-agents col">
+              <div v-if="selectedCategoryId != null || selectedUngroupedAgents" class="column full-height">
+                <div class="text-subtitle2 q-mb-sm">
+                  {{ selectedUngroupedAgents ? "All agents" : "Agents" }}
+                </div>
+                <div v-if="agentsPanelLoading" class="flex flex-center q-pa-md">
+                  <q-spinner color="primary" size="1.5em" />
+                </div>
+                <template v-else-if="agentsPanelList.length > 0">
+                  <q-scroll-area style="height: min(360px, 50vh)" class="rounded-borders">
+                    <template v-if="!selectedUngroupedAgents && agentsOthers.length > 0">
+                      <div v-if="agentsInCategory.length > 0" class="q-px-sm q-pt-sm">
+                        <div class="text-caption text-grey-7 q-mb-xs">In category</div>
+                        <q-list bordered separator dense>
+                          <q-item
+                            v-for="item in agentsInCategory"
+                            :key="item.agentId"
+                            v-ripple
+                            clickable
+                            :active="selectedAgentInPanel === item.agentId"
+                            active-class="bg-primary-1"
+                            @click="selectAgentInPanel(selectedAgentInPanel === item.agentId ? null : item.agentId)"
+                          >
+                            <q-item-section avatar>
+                              <q-icon name="computer" color="primary" size="sm" />
+                            </q-item-section>
+                            <q-item-section>
+                              <q-item-label>{{ item.label }}</q-item-label>
+                              <q-item-label caption>{{ item.agentId }}</q-item-label>
+                            </q-item-section>
+                          </q-item>
+                        </q-list>
+                      </div>
+                      <div class="q-px-sm q-pt-sm">
+                        <div class="text-caption text-grey-7 q-mb-xs">Other agents</div>
+                        <q-list bordered separator dense>
+                          <q-item
+                            v-for="item in agentsOthers"
+                            :key="item.agentId"
+                            v-ripple
+                            clickable
+                            :active="selectedAgentInPanel === item.agentId"
+                            active-class="bg-primary-1"
+                            @click="selectAgentInPanel(selectedAgentInPanel === item.agentId ? null : item.agentId)"
+                          >
+                            <q-item-section avatar>
+                              <q-icon name="computer" color="primary" size="sm" />
+                            </q-item-section>
+                            <q-item-section>
+                              <q-item-label>{{ item.label }}</q-item-label>
+                              <q-item-label caption>{{ item.agentId }}</q-item-label>
+                            </q-item-section>
+                          </q-item>
+                        </q-list>
+                      </div>
+                    </template>
+                    <q-list v-else bordered separator dense>
+                      <q-item
+                        v-for="item in agentsPanelList"
+                        :key="item.agentId"
+                        v-ripple
+                        clickable
+                        :active="selectedAgentInPanel === item.agentId"
+                        active-class="bg-primary-1"
+                        @click="selectAgentInPanel(selectedAgentInPanel === item.agentId ? null : item.agentId)"
+                      >
+                        <q-item-section avatar>
+                          <q-icon name="computer" color="primary" size="sm" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>{{ item.label }}</q-item-label>
+                          <q-item-label caption>{{ item.agentId }}</q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-scroll-area>
+                  <div v-if="!selectedUngroupedAgents" class="q-pt-xs">
+                    <q-btn
+                      flat
+                      dense
+                      color="primary"
+                      icon="add_circle_outline"
+                      label="Show all agents to add"
+                      @click="loadAllAgents(true)"
+                    />
+                  </div>
+                </template>
+                <div
+                  v-else
+                  class="column items-center q-pa-md"
+                >
+                  <span class="text-grey-7 text-body2 q-mb-sm">
+                    {{ selectedUngroupedAgents ? "No agents loaded." : "No agents in this category." }}
+                  </span>
+                  <q-btn
+                    v-if="!selectedUngroupedAgents"
+                    flat
+                    dense
+                    color="primary"
+                    icon="add_circle_outline"
+                    label="Show all agents to add"
+                    @click="loadAllAgents(true)"
+                  />
+                </div>
               </div>
-            </template>
-          </q-tree>
-        </q-scroll-area>
+              <div v-else class="text-grey-7 text-body2 q-pa-md">
+                Select a category or "All agents" to see agents.
+              </div>
+            </div>
+          </div>
+        </template>
+        <template v-else-if="agentsOnly">
+          <div v-if="agentsPanelLoading" class="flex flex-center q-pa-lg">
+            <q-spinner color="primary" size="2em" />
+          </div>
+          <q-scroll-area
+            v-else-if="agentsPanelList.length > 0"
+            style="height: min(400px, 55vh)"
+            class="rounded-borders"
+          >
+            <q-list bordered separator>
+              <q-item
+                v-for="item in agentsPanelList"
+                :key="item.agentId"
+                v-ripple
+                clickable
+                :active="selectedAgentInPanel === item.agentId"
+                active-class="bg-primary-1"
+                @click="selectAgentInPanel(selectedAgentInPanel === item.agentId ? null : item.agentId)"
+              >
+                <q-item-section avatar>
+                  <q-icon name="computer" color="primary" size="sm" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>{{ item.label }}</q-item-label>
+                  <q-item-label caption>{{ item.agentId }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-scroll-area>
+          <div
+            v-else
+            class="text-grey-7 text-body2 q-pa-md"
+          >
+            No agents loaded.
+          </div>
+        </template>
         <div
-          v-else-if="agentsOnly && !targetTreeLoading"
+          v-else-if="!agentsOnly && !targetTreeLoading"
           class="text-grey-7 text-body2 q-pa-md"
         >
-          No agents loaded.
-        </div>
-        <div
-          v-else-if="!agentsOnly"
-          class="text-grey-7 text-body2 q-pa-md"
-        >
-          No clients/sites loaded.
-        </div>
-        <div
-          v-if="!agentsOnly && targetTickedIds.length > 0"
-          class="q-mt-sm text-caption text-grey-7"
-        >
-          Combined: {{ targetTickedIds.length }} item(s) selected
+          No categories loaded.
         </div>
       </q-card-section>
       <q-card-actions align="right">
@@ -98,7 +203,7 @@
           unelevated
           color="primary"
           label="OK"
-          :disable="!canApplyTarget"
+          :disable="!canApplyInDialog"
           @click="handleApply"
         />
       </q-card-actions>
@@ -107,6 +212,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { useTargetSelection } from "@/gpo/composables/useTargetSelection";
 import type { TargetRef } from "@/gpo/composables/useTargetSelection";
 
@@ -124,30 +230,43 @@ const {
   targetTreeNodes,
   targetTreeLoading,
   targetSelectedId,
-  targetTickedIds,
   canApplyTarget,
-  agentNodesOnly,
   getTargetNodeIcon,
   onDialogShow,
   applyTargetSelection,
-  buildTargetFromSingleNode,
+  buildTargetForApply,
   currentTargetRef,
+  selectedCategoryId,
+  selectedUngroupedAgents,
+  agentsPanelList,
+  agentsPanelLoading,
+  agentsInCategoryIds,
+  selectedAgentInPanel,
+  loadAllAgents,
+  selectAgentInPanel,
 } = useTargetSelection();
+
+const agentsInCategory = computed(() =>
+  agentsPanelList.value.filter((a) => agentsInCategoryIds.value.has(a.agentId)),
+);
+const agentsOthers = computed(() =>
+  agentsPanelList.value.filter((a) => !agentsInCategoryIds.value.has(a.agentId)),
+);
+
+const canApplyInDialog = computed(() =>
+  props.agentsOnly ? selectedAgentInPanel.value != null : canApplyTarget.value,
+);
 
 function onShow() {
   onDialogShow();
   if (props.agentsOnly) {
-    targetTickedIds.value = [];
+    loadAllAgents();
   }
-}
-
-function selectAgent(id: string) {
-  targetSelectedId.value = id;
 }
 
 function handleApply() {
   if (props.agentsOnly) {
-    const ref = buildTargetFromSingleNode();
+    const ref = buildTargetForApply();
     if (ref && ref.target) {
       currentTargetRef.value = ref;
       emit("select", ref);
@@ -164,8 +283,20 @@ function handleApply() {
 
 <style scoped lang="sass">
 .target-dialog-card
-  min-width: 500px
+  min-width: 960px
   max-width: 90vw
+
+.target-dialog-columns
+  gap: 16px
+
+.target-dialog-tree
+  min-width: 220px
+  max-width: 50%
+
+.target-dialog-agents
+  min-width: 240px
+  border-left: 1px solid rgba(0, 0, 0, 0.12)
+  padding-left: 12px
 
 .target-tree
   :deep(.q-tree__node-header)
