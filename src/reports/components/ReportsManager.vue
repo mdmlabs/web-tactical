@@ -209,7 +209,7 @@ export default defineComponent({
       {
         name: "closed_at",
         label: "Closed At",
-        field: "closed_at",
+        field: (row) => row?.closed_at || "—",
         align: "left",
       },
       {

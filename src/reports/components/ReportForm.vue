@@ -287,8 +287,8 @@ export default defineComponent({
 
     const cleanFilters = computed(() => {
       const clean = {};
+
       Object.entries(filters).forEach(([key, value]) => {
-        console.log("filtes entry ", key, value);
         if (
           value !== null &&
           value !== undefined &&
@@ -297,7 +297,7 @@ export default defineComponent({
           clean[key] = value;
         }
       });
-      console.log("Clean filters");
+
       return clean;
     });
 
@@ -346,7 +346,6 @@ export default defineComponent({
               : undefined,
           filters: cleanFilters.value,
         };
-        console.log("On submit payload ", payload);
         let data;
         if (isEdit.value) {
           data = await patchReportById(props.report.id, payload);
@@ -407,21 +406,16 @@ export default defineComponent({
 
     async function loadRoles() {
       if (accessModeOption.value !== "RESTRICTED_ROLES") return;
-
-      console.log("Loading roles.");
       loading.value = true;
 
       try {
         const data = await fetchRoles();
-        console.log("Roles Loaded ", data);
 
         systemRolesList.value = data || [];
 
         data.forEach((role) => {
           localRolesList.value[role.id] = true;
         });
-
-        console.log("system roles list is ", systemRolesList.value);
       } catch (e) {
         console.error("Error while fetching roles", e);
 
@@ -432,11 +426,9 @@ export default defineComponent({
     }
 
     async function getClients() {
-      console.log("Fetching clients list");
       loading.value = true;
       try {
         const data = await fetchClients();
-        console.log("clients are ", data);
         clientsList.value = data || [];
       } catch (e) {
         console.error(e);
@@ -447,12 +439,10 @@ export default defineComponent({
     }
 
     async function fetchAgentsBySiteId(siteId) {
-      console.log("fethching agents by site id ", siteId);
       loading.value = true;
       try {
         const data = await fetchAgents({ site: siteId });
         agentsBySite.value = data || [];
-        console.log("agents by site ", data);
       } catch (e) {
         notifyError("Error while fetching agents by site");
         console.error(e);
@@ -510,14 +500,11 @@ export default defineComponent({
         if (newVal) {
           const client = clientsList.value.find((c) => c.id == newVal);
           if (client) {
-            console.log("Client found ", client);
-            console.log("Client sites ", client.sites);
             sitesListByClient.value = client.sites;
           }
         } else {
           sitesListByClient.value = [];
         }
-        console.log("sites list by client", sitesListByClient.value);
       },
     );
 
@@ -525,19 +512,10 @@ export default defineComponent({
       () => filters.site_id,
       (newVal) => {
         filters.agent_ids = [];
-        console.log("Filters site id changed to ", filters.site_id);
         if (newVal) {
           fetchAgentsBySiteId(newVal);
         }
-        console.log("sites list by client", sitesListByClient.value);
       },
-    );
-    watch(
-      filters,
-      () => {
-        console.log(filters);
-      },
-      { deep: true },
     );
 
     onMounted(async () => {
