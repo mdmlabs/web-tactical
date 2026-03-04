@@ -318,8 +318,10 @@ import { useUserActions } from "@/gpo/composables/useUserActions";
 import type { CreateUserParams } from "@/gpo/composables/useUserActions";
 import type { TargetRef } from "@/gpo/composables/useTargetSelection";
 import {
+  agentServiceClientWrapper,
   createAgentTarget,
   createGlobalTarget,
+  createUserGroupTargetForAgent,
   userControlClient,
   getSingleAgentIdFromTarget,
   policyAssignmentClient,
@@ -827,6 +829,44 @@ watch(
     else userAppliedCollections.value = [];
   },
   { immediate: true },
+);
+
+watch(
+  [userAgentsLoading, userAgents, selectedUserId],
+  ([loading, agents, userId]) => {
+    if (!userId || loading || !Array.isArray(agents)) return;
+    if (agents.length >= 1) {
+      const agentId = agents[0];
+      currentTargetRef.value = null;
+      currentTarget.value = createUserGroupTargetForAgent(agentId);
+      targetLabel.value = agentId;
+      agentServiceClientWrapper
+        .getAgent(agentId)
+        .then((agent) => {
+          const hostname =
+            (agent as { hostName?: string; host_name?: string }).hostName ??
+            (agent as { hostName?: string; host_name?: string }).host_name;
+          if (
+            getSingleAgentIdFromTarget(currentTarget.value) === agentId &&
+            selectedUserId.value === userId
+          ) {
+            targetLabel.value = hostname?.trim() || agentId;
+          }
+        })
+        .catch(() => {
+          if (
+            getSingleAgentIdFromTarget(currentTarget.value) === agentId &&
+            selectedUserId.value === userId
+          ) {
+            targetLabel.value = agentId;
+          }
+        });
+    } else {
+      currentTargetRef.value = null;
+      currentTarget.value = createGlobalTarget();
+      targetLabel.value = "Global";
+    }
+  },
 );
 
 watch(

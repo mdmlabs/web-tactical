@@ -144,6 +144,7 @@ import { useQuasar } from "quasar";
 import operator_pb from "@/generated/operator_pb";
 import {
   createAgentTarget,
+  createGroupTarget,
   userControlClient,
   createGlobalTarget,
   policyAssignmentClient,
@@ -656,8 +657,11 @@ function openAddUserToGroupDialog() {
 }
 
 async function handleAddUserToGroup(samAccountName: string) {
-  const target = currentUserGroupTarget.value;
-  if (!target || !selectedGroupSam.value) return;
+  if (!selectedGroupSam.value) return;
+  const target = selectedGroupId.value
+    ? createGroupTarget(selectedGroupId.value)
+    : currentUserGroupTarget.value;
+  if (!target) return;
   addUserLoading.value = true;
   try {
     const res = await userControlClient.addUserToGroup(
