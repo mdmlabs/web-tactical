@@ -1313,6 +1313,27 @@ export function getSingleAgentIdFromTarget(
   return o?.agent?.agentId ?? null;
 }
 
+export function getAgentIdsFromTarget(target: Target | null): string[] {
+  if (!target) return [];
+  const t = target as {
+    getAgent?: () => { getAgentId?: () => string };
+    getAgents?: () => { getAgentsList?: () => Array<{ getAgentId?: () => string }> };
+    toObject?: () => {
+      agent?: { agentId?: string };
+      agents?: { agentsList?: Array<{ agentId?: string }> };
+    };
+  };
+  const single = t.getAgent?.();
+  if (single?.getAgentId) return [single.getAgentId()].filter(Boolean);
+  const agents = t.getAgents?.();
+  const list = agents?.getAgentsList?.();
+  if (list?.length) return list.map((a) => a.getAgentId?.() ?? "").filter(Boolean);
+  const o = t.toObject?.();
+  if (o?.agent?.agentId) return [o.agent.agentId];
+  const ids = o?.agents?.agentsList?.map((a) => a.agentId ?? "").filter(Boolean) ?? [];
+  return ids;
+}
+
 export function createTacticalClientTarget(clientId: string): Target {
   const t = new target_pb.Target();
   const clientTarget = new target_pb.TacticalClientTarget();

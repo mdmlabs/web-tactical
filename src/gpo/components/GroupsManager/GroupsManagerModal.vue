@@ -896,18 +896,28 @@ async function loadGroupAppliedCollections() {
 }
 
 async function removeUserFromGroup(user: GroupRow) {
-  const target = currentUserGroupTarget.value;
-  if (!target || !selectedGroupSam.value) return;
+  if (!selectedGroupSam.value) return;
+  const target = selectedGroupId.value
+    ? createGroupTarget(selectedGroupId.value)
+    : currentUserGroupTarget.value;
+  if (!target) return;
   $q.dialog({
     title: "Remove User",
     message: `Remove "${user.displayname || user.samaccountname}" from group "${selectedGroupSam.value}"?`,
     cancel: true,
   }).onOk(async () => {
     try {
+      const samAccountName = user.samaccountname || "";
+      // console.log("[removeUserFromGroup]", {
+      //   target: (target as { toObject?: () => unknown }).toObject?.(),
+      //   groupId: selectedGroupId.value,
+      //   samGroupName: selectedGroupSam.value,
+      //   samAccountName,
+      // });
       const res = await userControlClient.removeUserFromGroup(
         target,
         selectedGroupSam.value!,
-        user.samaccountname || "",
+        samAccountName,
       );
       if (res.status === 0 && selectedGroupId.value) {
         $q.notify({ type: "positive", message: "User removed from group" });
