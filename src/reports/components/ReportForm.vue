@@ -238,6 +238,7 @@ export default defineComponent({
   },
   setup(props) {
     const isEdit = computed(() => !!props.report?.id);
+    const initializing = ref(true);
 
     const { dialogRef, onDialogOK, onDialogHide } = useDialogPluginComponent();
 
@@ -502,6 +503,9 @@ export default defineComponent({
     watch(
       () => filters.client_id,
       (newVal) => {
+        if (initializing.value) {
+          return;
+        }
         filters.site_id = null;
         if (newVal) {
           const client = clientsList.value.find((c) => c.id == newVal);
@@ -536,9 +540,37 @@ export default defineComponent({
       { deep: true },
     );
 
-    onMounted(() => {
+    onMounted(async () => {
+      await getClients();
       loadFieldsByType(sourceTypeOption.value);
       loadRoles();
+
+      if (isEdit.value && props.report?.filters) {
+        const savedFilters = props.report.filters;
+
+        filters.client_id = savedFilters.client_id || null;
+
+        if (filters.client_id) {
+          const client = clientsList.value.find(
+            (c) => c.id === filters.client_id,
+          );
+
+          if (client) {
+            sitesListByClient.value = client.sites || [];
+          }
+
+          filters.site_id = savedFilters.site_id || null;
+
+          if (filters.site_id) {
+            await fetchAgentsBySiteId(filters.site_id);
+            filters.agent_ids = savedFilters.agent_ids || [];
+          }
+        }
+
+        filters.date_from = savedFilters.date_from || null;
+        filters.date_to = savedFilters.date_to || null;
+      }
+      initializing.value = false;
     });
 
     return {
