@@ -1603,25 +1603,36 @@ async function doSetCategoryAgents() {
   display: flex
   flex-direction: column
 
+.groups-manager-page
+  flex: 1
+  min-height: 0
+  display: flex
+  flex-direction: column
+  overflow: hidden
+
 .groups-manager-body
   flex: 1
+  min-height: 0
   display: flex
   overflow: hidden
 
 .groups-left-panel
-  height: 100vh
+  height: 100%
+  min-height: 0
   width: 380px
   min-width: 280px
   display: flex
   flex-direction: column
   border-right: 1px solid rgba(0, 0, 0, 0.08)
+  overflow: hidden
 
 .groups-left-header
   flex-shrink: 0
 
 .groups-tree-scroll
   flex: 1 1 0
-  height: 0
+  min-height: 0
+  overflow: hidden
 
 .groups-right-panel
   flex: 1

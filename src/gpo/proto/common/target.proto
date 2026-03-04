@@ -16,6 +16,7 @@ message Target {
     GroupTarget group = 10;
     GroupsTarget groups = 11;
     AgentCategoryTarget agentCategory = 12;
+    UserOnAgentTArget user_on_agent = 13;
   }
 }
 
@@ -65,6 +66,11 @@ message AgentTarget {
 message UserTarget {
   string agent_id = 1;
   string user_id = 2;
+}
+
+message UserOnAgentTArget {
+  string agent_id = 1;
+  string user_sid = 2;
 }
 
 message AgentCategoryTarget {

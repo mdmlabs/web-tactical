@@ -1892,8 +1892,11 @@ async function applySelectedPolicy() {
       applyPromises.push(
         policyAssignmentClient.assignPolicy(
           policyHash,
-          "user",
-          { agentId: String(props.agent.id), userId: String(user.sid) },
+          "user_on_agent",
+          {
+            agentId: String(props.agent.id),
+            userSid: String(user.sid),
+          },
           processedSettings,
         ),
       );
@@ -1971,9 +1974,9 @@ async function removePolicy() {
 
     for (const user of usersToRemove) {
       removePromises.push(
-        policyAssignmentClient.removePolicy(policyHash, "user", {
+        policyAssignmentClient.removePolicy(policyHash, "user_on_agent", {
           agentId: String(props.agent.id),
-          userId: String(user.sid),
+          userSid: String(user.sid),
         }),
       );
     }

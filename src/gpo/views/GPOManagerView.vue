@@ -454,6 +454,15 @@ npm<template>
                         flat
                         dense
                         color="primary"
+                        icon="link"
+                        label="Add User"
+                        class="q-mr-sm"
+                        @click="openAddUserDialog"
+                      />
+                      <q-btn
+                        flat
+                        dense
+                        color="primary"
                         icon="person_add"
                         label="Create User"
                         @click="openCreateUserDialog"
@@ -2707,6 +2716,70 @@ npm<template>
         @refresh="refreshAppliedPoliciesDialog"
       />
 
+      <q-dialog v-model="showAddUserDialog" persistent>
+        <q-card style="min-width: 420px; max-width: 90vw">
+          <q-card-section>
+            <div class="text-h6">Add User</div>
+            <div
+              v-if="selectedAgent"
+              class="text-caption text-grey-7 q-mt-xs"
+            >
+              Link existing user to device: {{ selectedAgent.hostname }}
+            </div>
+          </q-card-section>
+          <q-card-section class="q-pt-none q-gutter-sm">
+            <q-select
+              v-model="addUserForm.userId"
+              :options="addUserOptions"
+              option-value="value"
+              option-label="label"
+              emit-value
+              map-options
+              label="User *"
+              dense
+              outlined
+              use-input
+              input-debounce="200"
+              :loading="addUserLoading && addUserOptions.length === 0"
+              :disable="addUserLoading"
+              clearable
+              class="q-mb-sm"
+            />
+            <q-input
+              v-model="addUserForm.password"
+              type="password"
+              label="Password (optional)"
+              outlined
+              dense
+              class="q-mb-sm"
+            />
+            <q-checkbox
+              v-model="addUserForm.passwordNotRequired"
+              label="Password not required"
+            />
+            <q-checkbox
+              v-model="addUserForm.userCannotChangePassword"
+              label="User cannot change password"
+            />
+            <q-checkbox
+              v-model="addUserForm.smartcardLogonRequired"
+              label="Smartcard logon required"
+            />
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" v-close-popup />
+            <q-btn
+              unelevated
+              color="primary"
+              label="Add"
+              :loading="addUserLoading"
+              :disable="!addUserForm.userId?.trim()"
+              @click="addUserSubmit"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
       <q-dialog v-model="showCreateUserDialog" persistent>
         <q-card style="min-width: 480px; max-width: 90vw">
           <q-card-section>
@@ -3307,6 +3380,7 @@ import {
   userClient,
   userControlClient,
   createUserGroupTargetForAgent,
+  createAgentTarget,
   // userServiceClient,
   createGrpcMetadata,
   operator_pb,
@@ -3483,6 +3557,16 @@ const initialUserSid = ref<string>("");
 const showAppliedPoliciesDialog = ref(false);
 
 const showCreateUserDialog = ref(false);
+const showAddUserDialog = ref(false);
+const addUserOptions = ref<Array<{ value: string; label: string }>>([]);
+const addUserForm = ref({
+  userId: "",
+  password: "",
+  passwordNotRequired: false,
+  userCannotChangePassword: false,
+  smartcardLogonRequired: false,
+});
+const addUserLoading = ref(false);
 const createUserForm = ref({
   target: { agentId: "" as string },
   samAccountName: "",
@@ -5667,6 +5751,70 @@ async function refreshUsersAndGroups() {
   if (id) {
     await loadUsersForAgent(id);
     await loadGroupsForAgent(id);
+  }
+}
+
+async function openAddUserDialog() {
+  if (!selectedAgent.value) return;
+  addUserForm.value = {
+    userId: "",
+    password: "",
+    passwordNotRequired: false,
+    userCannotChangePassword: false,
+    smartcardLogonRequired: false,
+  };
+  addUserOptions.value = [];
+  showAddUserDialog.value = true;
+  addUserLoading.value = true;
+  try {
+    const res = await userControlClient.getAllUsers();
+    const list =
+      res?.usersList ??
+      (res as { users?: Array<{ userid?: string; info?: { samaccountname?: string } }> })
+        ?.users ??
+      [];
+    addUserOptions.value = list
+      .map((u: { userid?: string; userId?: string; info?: { samaccountname?: string } }) => {
+        const uid = u.userid ?? u.userId ?? "";
+        const label = (u.info?.samaccountname ?? uid) || "—";
+        return { value: uid, label };
+      })
+      .filter((o) => o.value);
+  } catch {
+    notifyError("Failed to load users list");
+  } finally {
+    addUserLoading.value = false;
+  }
+}
+
+async function addUserSubmit() {
+  const agentId = selectedAgent.value?.id;
+  const userId = addUserForm.value.userId?.trim();
+  if (!agentId || !userId) {
+    notifyError("Select a user");
+    return;
+  }
+  addUserLoading.value = true;
+  try {
+    const target = createAgentTarget(agentId);
+    const res = await userControlClient.setUserAgent(target, userId, {
+      password: addUserForm.value.password?.trim() || undefined,
+      passwordNotRequired: addUserForm.value.passwordNotRequired,
+      userCannotChangePassword: addUserForm.value.userCannotChangePassword,
+      smartcardLogonRequired: addUserForm.value.smartcardLogonRequired,
+    });
+    if (res.status === 0) {
+      notifySuccess("User linked to device");
+      showAddUserDialog.value = false;
+      await refreshUsersAndGroups();
+    } else {
+      notifyError(res.errorMessage ?? "Failed to link user to device");
+    }
+  } catch (e) {
+    const msg = (e as { message?: string })?.message ?? String(e);
+    notifyError(msg);
+  } finally {
+    addUserLoading.value = false;
   }
 }
 

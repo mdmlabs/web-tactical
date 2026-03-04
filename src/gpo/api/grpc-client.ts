@@ -1299,6 +1299,18 @@ export function createUserTarget(agentId: string, userId: string): Target {
   return t;
 }
 
+export function createUserOnAgentTarget(
+  agentId: string,
+  userSid: string,
+): Target {
+  const t = new target_pb.Target();
+  const userOnAgentTarget = new target_pb.UserOnAgentTArget();
+  userOnAgentTarget.setAgentId(agentId);
+  userOnAgentTarget.setUserSid(userSid);
+  t.setUserOnAgent(userOnAgentTarget);
+  return t;
+}
+
 export function getSingleAgentIdFromTarget(
   target: Target | null,
 ): string | null {
@@ -1420,7 +1432,9 @@ export function createCombinedTarget(params: {
 export type PolicyTargetType =
   | "global"
   | "agent"
+  | "agents"
   | "user"
+  | "user_on_agent"
   | "client"
   | "site"
   | "group"
@@ -1431,6 +1445,7 @@ export type PolicyTargetType =
 export type PolicyTargetParams = {
   agentId?: string;
   userId?: string;
+  userSid?: string;
   clientId?: string;
   siteId?: string;
   groupId?: string;
@@ -1453,11 +1468,20 @@ export function createPolicyTargetFromParams(
         throw new Error("agentId обязателен для типа 'agent'");
       }
       return createAgentTarget(targetParams.agentId);
+    case "agents":
+      return createUserGroupTargetForAgents(targetParams.agentIds ?? []);
     case "user":
       if (!targetParams.agentId || !targetParams.userId) {
         throw new Error("agentId и userId обязательны для типа 'user'");
       }
       return createUserTarget(targetParams.agentId, targetParams.userId);
+    case "user_on_agent":
+      if (!targetParams.agentId || !targetParams.userSid) {
+        throw new Error(
+          "agentId и userSid обязательны для типа 'user_on_agent'",
+        );
+      }
+      return createUserOnAgentTarget(targetParams.agentId, targetParams.userSid);
     case "client":
       if (!targetParams.clientId) {
         throw new Error("clientId обязателен для типа 'client'");

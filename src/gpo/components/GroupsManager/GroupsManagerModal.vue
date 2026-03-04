@@ -554,8 +554,11 @@ function confirmDeleteGroup() {
 }
 
 async function doDeleteGroup() {
-  const target = currentUserGroupTarget.value;
-  if (!target || !selectedGroupSam.value) return;
+  if (!selectedGroupSam.value) return;
+  const target = selectedGroupId.value
+    ? createGroupTarget(selectedGroupId.value)
+    : currentUserGroupTarget.value;
+  if (!target) return;
   deleteLoading.value = true;
   try {
     await userControlClient.deleteGroup(target, selectedGroupSam.value);
@@ -778,9 +781,11 @@ async function doApplyCollectionToGroup() {
   if (!groupId || collectionId == null) return;
   applyCollectionApplying.value = true;
   try {
-    await policyAssignmentClient.assignPolicyCollection(collectionId, "group", {
-      groupId,
-    });
+    await policyAssignmentClient.assignPolicyCollection(
+      collectionId,
+      "group",
+      { groupId },
+    );
     notifySuccess(
       `Collection applied to group "${selectedGroupSam.value ?? groupId}"`,
     );
@@ -825,9 +830,11 @@ async function doRemoveCollectionFromGroup() {
   if (!groupId || collectionId == null) return;
   removeCollectionRemoving.value = true;
   try {
-    await policyAssignmentClient.removePolicyCollection(collectionId, "group", {
-      groupId,
-    });
+    await policyAssignmentClient.removePolicyCollection(
+      collectionId,
+      "group",
+      { groupId },
+    );
     notifySuccess(`Collection removed from group "${groupLabel}"`);
     showRemoveCollectionDialog.value = false;
     await loadGroupAppliedCollections();
@@ -907,17 +914,10 @@ async function removeUserFromGroup(user: GroupRow) {
     cancel: true,
   }).onOk(async () => {
     try {
-      const samAccountName = user.samaccountname || "";
-      // console.log("[removeUserFromGroup]", {
-      //   target: (target as { toObject?: () => unknown }).toObject?.(),
-      //   groupId: selectedGroupId.value,
-      //   samGroupName: selectedGroupSam.value,
-      //   samAccountName,
-      // });
       const res = await userControlClient.removeUserFromGroup(
         target,
         selectedGroupSam.value!,
-        samAccountName,
+        user.samaccountname || "",
       );
       if (res.status === 0 && selectedGroupId.value) {
         $q.notify({ type: "positive", message: "User removed from group" });
