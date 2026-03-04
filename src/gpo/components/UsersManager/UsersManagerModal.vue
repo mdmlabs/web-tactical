@@ -321,9 +321,9 @@ import {
   agentServiceClientWrapper,
   createAgentTarget,
   createGlobalTarget,
-  createUserGroupTargetForAgent,
+  createUserGroupTargetForAgents,
   userControlClient,
-  getSingleAgentIdFromTarget,
+  getAgentIdsFromTarget,
   policyAssignmentClient,
   collectionsClient,
   type Target,
@@ -382,7 +382,7 @@ const canApplyCollection = computed(
   () =>
     !!selectedUserId.value &&
     !!(userDetail.value?.info?.samaccountname ?? selectedUserId.value) &&
-    !!getSingleAgentIdFromTarget(currentTarget.value),
+    getAgentIdsFromTarget(currentTarget.value).length > 0,
 );
 
 const canRemoveCollection = computed(
@@ -696,18 +696,22 @@ function confirmApplyCollectionToUser() {
 }
 
 async function doApplyCollectionToUser() {
-  const agentId = getSingleAgentIdFromTarget(currentTarget.value);
+  const agentIds = getAgentIdsFromTarget(currentTarget.value);
   const userId = selectedUserId.value ?? userDetail.value?.userid;
   const userLabel = userDetail.value?.info?.samaccountname ?? userId;
   const collectionId = applyCollectionSelectedId.value;
-  if (!agentId || !userId || collectionId == null) return;
+  if (agentIds.length === 0 || !userId || collectionId == null) return;
   applyCollectionApplying.value = true;
   try {
-    await policyAssignmentClient.assignPolicyCollection(collectionId, "user", {
-      agentId,
-      userId,
-    });
-    notifySuccess(`Collection applied to user "${userLabel}" on agent`);
+    for (const agentId of agentIds) {
+      await policyAssignmentClient.assignPolicyCollection(collectionId, "user", {
+        agentId,
+        userId,
+      });
+    }
+    notifySuccess(
+      `Collection applied to user "${userLabel}" on ${agentIds.length} agent(s)`,
+    );
     showApplyCollectionDialog.value = false;
     await loadUserAppliedCollections();
   } catch (err) {
@@ -744,18 +748,23 @@ function confirmRemoveCollectionFromUser() {
 }
 
 async function doRemoveCollectionFromUser() {
-  const agentId = getSingleAgentIdFromTarget(currentTarget.value);
+  const agentIds = getAgentIdsFromTarget(currentTarget.value);
   const userId = selectedUserId.value ?? userDetail.value?.userid;
   const userLabel = userDetail.value?.info?.samaccountname ?? userId;
   const collectionId = removeCollectionSelectedId.value;
-  if (!agentId || !userId || collectionId == null) return;
+  if (agentIds.length === 0 || !userId || collectionId == null) return;
   removeCollectionRemoving.value = true;
   try {
-    await policyAssignmentClient.removePolicyCollection(collectionId, "user", {
-      agentId,
-      userId,
-    });
-    notifySuccess(`Collection removed from user "${userLabel}" on agent`);
+    for (const agentId of agentIds) {
+      await policyAssignmentClient.removePolicyCollection(
+        collectionId,
+        "user",
+        { agentId, userId },
+      );
+    }
+    notifySuccess(
+      `Collection removed from user "${userLabel}" on ${agentIds.length} agent(s)`,
+    );
     showRemoveCollectionDialog.value = false;
     await loadUserAppliedCollections();
   } catch (err) {
@@ -836,31 +845,30 @@ watch(
   ([loading, agents, userId]) => {
     if (!userId || loading || !Array.isArray(agents)) return;
     if (agents.length >= 1) {
-      const agentId = agents[0];
+      const agentIds = [...agents];
       currentTargetRef.value = null;
-      currentTarget.value = createUserGroupTargetForAgent(agentId);
-      targetLabel.value = agentId;
-      agentServiceClientWrapper
-        .getAgent(agentId)
-        .then((agent) => {
-          const hostname =
-            (agent as { hostName?: string; host_name?: string }).hostName ??
-            (agent as { hostName?: string; host_name?: string }).host_name;
-          if (
-            getSingleAgentIdFromTarget(currentTarget.value) === agentId &&
-            selectedUserId.value === userId
-          ) {
-            targetLabel.value = hostname?.trim() || agentId;
-          }
-        })
-        .catch(() => {
-          if (
-            getSingleAgentIdFromTarget(currentTarget.value) === agentId &&
-            selectedUserId.value === userId
-          ) {
-            targetLabel.value = agentId;
-          }
-        });
+      currentTarget.value = createUserGroupTargetForAgents(agentIds);
+      targetLabel.value = agentIds.join(", ");
+      Promise.all(
+        agentIds.map((id) =>
+          agentServiceClientWrapper.getAgent(id).then(
+            (agent) =>
+              (agent as { hostName?: string; host_name?: string }).hostName ??
+              (agent as { hostName?: string; host_name?: string }).host_name ??
+              id,
+            () => id,
+          ),
+        ),
+      ).then((hostnames) => {
+        const currentIds = getAgentIdsFromTarget(currentTarget.value);
+        if (
+          selectedUserId.value === userId &&
+          currentIds.length === agentIds.length &&
+          currentIds.every((id, i) => id === agentIds[i])
+        ) {
+          targetLabel.value = hostnames.map((h) => h?.trim() || "").join(", ");
+        }
+      });
     } else {
       currentTargetRef.value = null;
       currentTarget.value = createGlobalTarget();
