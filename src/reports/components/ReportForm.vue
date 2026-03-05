@@ -340,9 +340,9 @@ export default defineComponent({
           ...localReport.value,
           allowed_roles:
             accessModeOption.value === "RESTRICTED_ROLES"
-              ? Object.keys(localRolesList.value).filter(
-                  (id) => localRolesList.value[id],
-                )
+              ? Object.keys(localRolesList.value)
+                  .filter((id) => localRolesList.value[id])
+                  .map(Number)
               : undefined,
           filters: cleanFilters.value,
         };
@@ -413,8 +413,14 @@ export default defineComponent({
 
         systemRolesList.value = data || [];
 
+        const allowedRolesIds = isEdit.value
+          ? new Set(props.report?.allowed_roles || [])
+          : new Set();
+
         data.forEach((role) => {
-          localRolesList.value[role.id] = true;
+          localRolesList.value[role.id] = isEdit.value
+            ? allowedRolesIds.has(role.id)
+            : true;
         });
       } catch (e) {
         console.error("Error while fetching roles", e);
