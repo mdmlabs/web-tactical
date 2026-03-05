@@ -56,7 +56,24 @@
                 max-width: 250px;
               "
             >
-              {{ getAgentIdsDisplay(props.row.filters?.agent_ids) }}
+              {{ getArrayFieldDisplay(props.row.filters?.agent_ids) }}
+            </div>
+          </q-td>
+        </template>
+        <template v-slot:body-cell-allowed_roles="props">
+          <q-td :props="props">
+            <q-tooltip v-if="props.row.allowed_roles?.length > 0">
+              {{ props.row.allowed_roles.join(", ") || "—" }}
+            </q-tooltip>
+            <div
+              style="
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                max-width: 250px;
+              "
+            >
+              {{ getArrayFieldDisplay(props.row.allowed_roles) }}
             </div>
           </q-td>
         </template>
@@ -168,6 +185,11 @@ export default defineComponent({
         name: "status",
         label: "Status",
         field: "status",
+        align: "left",
+      },
+      {
+        name: "allowed_roles",
+        label: "Allowed Roles",
         align: "left",
       },
       {
@@ -331,10 +353,10 @@ export default defineComponent({
       await loadReports();
     }
 
-    const getAgentIdsDisplay = (agentIds) => {
-      if (!Array.isArray(agentIds) || agentIds.length === 0) return "—";
-      if (agentIds.length <= 2) return agentIds.join(", ");
-      return `${agentIds.slice(0, 2).join(", ")} ...`;
+    const getArrayFieldDisplay = (array) => {
+      if (!Array.isArray(array) || array.length === 0) return "—";
+      if (array.length <= 2) return array.join(", ");
+      return `${array.slice(0, 2).join(", ")} ...`;
     };
 
     return {
@@ -348,7 +370,7 @@ export default defineComponent({
       downloadReport,
       closeReport,
       deleteReport,
-      getAgentIdsDisplay,
+      getArrayFieldDisplay,
 
       dialogRef,
       onDialogHide,
