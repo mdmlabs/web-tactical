@@ -241,6 +241,7 @@
               :removing-agent-id="removingAgentId"
               @add-agent="$emit('add-agent')"
               @remove-agent="$emit('remove-agent', $event)"
+              @open-agent-dashboard="$emit('open-agent-dashboard', $event)"
             />
           </q-tab-panel>
           <q-tab-panel name="collections" class="q-pa-md">
@@ -391,6 +392,7 @@ defineEmits<{
   "add-collection": [];
   "remove-collection": [];
   "update:detailTab": [value: string];
+  "open-agent-dashboard": [agentId: string];
 }>();
 </script>
 

@@ -21,7 +21,13 @@
       No agents
     </div>
     <q-list v-else bordered separator>
-      <q-item v-for="agentId in agents" :key="agentId" class="row items-center">
+      <q-item
+        v-for="agentId in agents"
+        :key="agentId"
+        class="row items-center cursor-pointer"
+        clickable
+        @click="$emit('open-agent-dashboard', agentId)"
+      >
         <q-item-section avatar>
           <q-icon name="dns" color="primary" />
         </q-item-section>
@@ -38,7 +44,7 @@
             color="negative"
             :loading="removingAgentId === agentId"
             title="Remove agent"
-            @click="$emit('remove-agent', agentId)"
+            @click.stop="$emit('remove-agent', agentId)"
           />
         </q-item-section>
       </q-item>
@@ -54,5 +60,9 @@ defineProps<{
   removingAgentId?: string | null;
 }>();
 
-defineEmits<{ "add-agent": []; "remove-agent": [agentId: string] }>();
+defineEmits<{
+  "add-agent": [];
+  "remove-agent": [agentId: string];
+  "open-agent-dashboard": [agentId: string];
+}>();
 </script>
