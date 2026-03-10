@@ -301,7 +301,10 @@
                     clickable
                     v-ripple
                     @click="handleMenuAction('users')"
-                    :class="['filebar-popup-item', { 'active-menu-item': isActiveGPOTab('users') }]"
+                    :class="[
+                      'filebar-popup-item',
+                      { 'active-menu-item': isActiveGPOTab('users') },
+                    ]"
                     v-close-popup
                   >
                     <q-item-section avatar>
@@ -314,7 +317,10 @@
                     clickable
                     v-ripple
                     @click="handleMenuAction('groups')"
-                    :class="['filebar-popup-item', { 'active-menu-item': isActiveGPOTab('groups') }]"
+                    :class="[
+                      'filebar-popup-item',
+                      { 'active-menu-item': isActiveGPOTab('groups') },
+                    ]"
                     v-close-popup
                   >
                     <q-item-section avatar>
@@ -434,7 +440,10 @@
                 clickable
                 v-ripple
                 @click="handleMenuAction('users')"
-                :class="['filebar-menu-item', { 'active-menu-item': isActiveGPOTab('users') }]"
+                :class="[
+                  'filebar-menu-item',
+                  { 'active-menu-item': isActiveGPOTab('users') },
+                ]"
               >
                 <q-item-section avatar>
                   <q-icon name="person" />
@@ -445,7 +454,10 @@
                 clickable
                 v-ripple
                 @click="handleMenuAction('groups')"
-                :class="['filebar-menu-item', { 'active-menu-item': isActiveGPOTab('groups') }]"
+                :class="[
+                  'filebar-menu-item',
+                  { 'active-menu-item': isActiveGPOTab('groups') },
+                ]"
               >
                 <q-item-section avatar>
                   <q-icon name="group" />
@@ -897,7 +909,6 @@
                   <q-item-label header class="text-weight-bold"
                     >Tools</q-item-label
                   >
-
                   <q-item
                     clickable
                     v-ripple
@@ -1001,6 +1012,19 @@
                     </q-item-section>
                     <q-item-section>Recover All Agents</q-item-section>
                   </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('reportsManager')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="report" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Reports Manager</q-item-section>
+                  </q-item>
                 </q-list>
               </q-menu>
             </q-item>
@@ -1100,6 +1124,18 @@
                   <q-icon name="restart_alt" />
                 </q-item-section>
                 <q-item-section>Recover All Agents</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                @click="handleMenuAction('reportsManager')"
+                class="filebar-menu-item"
+                v-close-popup
+              >
+                <q-item-section avatar>
+                  <q-icon name="report" />
+                </q-item-section>
+                <q-item-section>Reports Manager</q-item-section>
               </q-item>
             </q-list>
           </q-expansion-item>
@@ -1220,7 +1256,7 @@ import ServerMaintenance from "@/components/modals/core/ServerMaintenance.vue";
 import CodeSign from "@/components/modals/coresettings/CodeSign.vue";
 import PermissionsManager from "@/components/accounts/PermissionsManager.vue";
 import TemplateManager from "@/components/tasks/TemplateManager.vue";
-
+import ReportsManager from "@/reports/components/ReportsManager.vue";
 
 export default {
   name: "FileBar",
@@ -1381,6 +1417,9 @@ export default {
           break;
         case "recoverAgents":
           this.bulkRecoverAgents();
+          break;
+        case "reportsManager":
+          this.showReportsManager();
           break;
         case "helpDocs":
           this.openHelp("docs");
