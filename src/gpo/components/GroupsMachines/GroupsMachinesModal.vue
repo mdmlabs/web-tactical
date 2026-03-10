@@ -314,7 +314,9 @@
                   <q-item
                     v-for="agentId in categoryAgents"
                     :key="agentId"
-                    class="row items-center"
+                    class="row items-center cursor-pointer"
+                    clickable
+                    @click="goToAgentDashboard(agentId)"
                   >
                     <q-item-section avatar>
                       <q-icon name="dns" color="primary" />
@@ -331,7 +333,7 @@
                         size="xs"
                         color="negative"
                         title="Remove from category"
-                        @click="removeAgentFromCategory(agentId)"
+                        @click.stop="removeAgentFromCategory(agentId)"
                       />
                     </q-item-section>
                   </q-item>
@@ -818,6 +820,17 @@ const $q = useQuasar();
 
 function goBack() {
   router.push({ path: "/gpo", query: { tab: "dashboard" } });
+}
+
+function goToAgentDashboard(agentId: string) {
+  if (!agentId) return;
+  router.push({
+    name: "GPOManager",
+    query: {
+      tab: "dashboard",
+      agent_id: agentId,
+    },
+  });
 }
 
 const categoriesLoading = ref(false);

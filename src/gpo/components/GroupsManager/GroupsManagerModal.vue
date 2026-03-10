@@ -87,6 +87,7 @@
           @remove-agent="handleRemoveGroupAgent"
           @apply-collection="showApplyCollectionDialog = true"
           @remove-collection="showRemoveCollectionDialog = true"
+          @open-agent-dashboard="goToAgentDashboard"
         />
       </div>
     </div>
@@ -193,6 +194,17 @@ const $q = useQuasar();
 
 function goBack() {
   router.push({ path: "/gpo", query: { tab: "dashboard" } });
+}
+
+function goToAgentDashboard(agentId: string) {
+  if (!agentId) return;
+  router.push({
+    name: "GPOManager",
+    query: {
+      tab: "dashboard",
+      agent_id: agentId,
+    },
+  });
 }
 
 const showTargetPanel = ref(false);

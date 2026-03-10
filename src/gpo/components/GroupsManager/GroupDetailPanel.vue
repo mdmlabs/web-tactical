@@ -278,7 +278,9 @@
             <q-item
               v-for="agentId in groupAgents"
               :key="agentId"
-              class="row items-center"
+              class="row items-center cursor-pointer"
+              clickable
+              @click="$emit('open-agent-dashboard', agentId)"
             >
               <q-item-section avatar>
                 <q-icon name="dns" color="primary" />
@@ -296,7 +298,7 @@
                   color="negative"
                   :loading="removingAgentId === agentId"
                   title="Remove agent"
-                  @click="$emit('remove-agent', agentId)"
+                  @click.stop="$emit('remove-agent', agentId)"
                 />
               </q-item-section>
             </q-item>
@@ -488,6 +490,7 @@ defineEmits<{
   "remove-agent": [agentId: string];
   "apply-collection": [];
   "remove-collection": [];
+  "open-agent-dashboard": [agentId: string];
 }>();
 </script>
 

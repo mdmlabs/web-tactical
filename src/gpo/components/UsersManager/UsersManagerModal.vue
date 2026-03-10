@@ -93,6 +93,7 @@
           @add-collection="showApplyCollectionDialog = true"
           @remove-collection="showRemoveCollectionDialog = true"
           @update:detail-tab="(val) => (detailTab = val)"
+          @open-agent-dashboard="goToAgentDashboard"
         />
       </div>
     </div>
@@ -351,6 +352,17 @@ const $q = useQuasar();
 
 function goBack() {
   router.push({ path: "/gpo", query: { tab: "dashboard" } });
+}
+
+function goToAgentDashboard(agentId: string) {
+  if (!agentId) return;
+  router.push({
+    name: "GPOManager",
+    query: {
+      tab: "dashboard",
+      agent_id: agentId,
+    },
+  });
 }
 
 const currentTargetRef = ref<TargetRef | null>(null);
