@@ -279,6 +279,7 @@ export async function fetchAgentVersions() {
 
 // update agents with optional version and downgrade parameters
 export async function updateAgents(payload) {
+  console.log('=== API updateAgents payload ===', payload);
   try {
     const { data } = await axios.post(`${baseUrl}/update/`, payload);
     return data;
