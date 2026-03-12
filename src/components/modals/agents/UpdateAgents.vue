@@ -538,6 +538,8 @@ export default {
         allow_downgrade: true,
       };
 
+      console.log('=== UpdateAgents payload ===', payload);
+
       this.$q.loading.show();
       try {
         const response = await updateAgents(payload);

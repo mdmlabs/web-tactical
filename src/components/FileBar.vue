@@ -541,6 +541,74 @@
             </q-list>
           </q-expansion-item>
 
+          <!-- File Management -->
+          <template v-if="isMiniMode && !isMobile">
+            <q-item
+              clickable
+              class="filebar-menu-section-mini"
+              @click="handleMenuAction('fileManagement')"
+            >
+              <q-item-section avatar>
+                <q-icon name="cloud_upload" size="24px">
+                  <q-tooltip
+                    anchor="center right"
+                    self="center left"
+                    :offset="[10, 0]"
+                  >
+                    File Delivery
+                  </q-tooltip>
+                </q-icon>
+              </q-item-section>
+            </q-item>
+          </template>
+
+          <q-item
+            v-else
+            clickable
+            v-ripple
+            @click="handleMenuAction('fileManagement')"
+            class="filebar-menu-section"
+          >
+            <q-item-section avatar>
+              <q-icon name="cloud_upload" />
+            </q-item-section>
+            <q-item-section>File Delivery</q-item-section>
+          </q-item>
+
+          <!-- Resources -->
+          <template v-if="isMiniMode && !isMobile">
+            <q-item
+              clickable
+              class="filebar-menu-section-mini"
+              @click="navigateToResources"
+            >
+              <q-item-section avatar>
+                <q-icon name="folder_open" size="24px">
+                  <q-tooltip
+                    anchor="center right"
+                    self="center left"
+                    :offset="[10, 0]"
+                  >
+                    Resources
+                  </q-tooltip>
+                </q-icon>
+              </q-item-section>
+            </q-item>
+          </template>
+
+          <q-item
+            v-else
+            clickable
+            v-ripple
+            @click="navigateToResources"
+            :class="['filebar-menu-section', { 'active-menu-item': isResourcesActive }]"
+          >
+            <q-item-section avatar>
+              <q-icon name="folder_open" />
+            </q-item-section>
+            <q-item-section>Resources</q-item-section>
+          </q-item>
+
           <!-- агент часть -->
           <template v-if="isMiniMode && !isMobile">
             <q-item clickable class="filebar-menu-section-mini">
@@ -1325,6 +1393,9 @@ export default {
     isActiveGPOTab(tab) {
       return this.currentPath === "/gpo" && this.$route.query.tab === tab;
     },
+    isResourcesActive() {
+      return this.currentPath.startsWith("/resources");
+    },
     closeDrawer() {
       if (this.isMobile) {
         this.$store.commit("SET_FILEBAR_DRAWER", false);
@@ -1436,6 +1507,9 @@ export default {
         case "helpDiscord":
           this.openHelp("discord");
           break;
+        case "fileManagement":
+          this.$router.push({ name: "FileManagement" });
+          break;
       }
     },
     navigateToGPO(tab = "dashboard") {
@@ -1447,6 +1521,12 @@ export default {
         path: "/gpo",
         query: { tab },
       });
+    },
+    navigateToResources() {
+      if (this.isMobile) {
+        this.closeDrawer();
+      }
+      this.$router.push({ name: "Resources" });
     },
     clearCache() {
       this.$axios

@@ -30,6 +30,78 @@ const routes = [
           requireAuth: true,
         },
       },
+      {
+        path: "/files",
+        name: "FileManagement",
+        component: () => import("@/views/FileManagementView.vue"),
+        meta: {
+          requireAuth: true,
+        },
+      },
+      {
+        path: "/resources",
+        name: "Resources",
+        component: () => import("@/resources/views/ResourcesView.vue"),
+        meta: {
+          requireAuth: true,
+        },
+      },
+      {
+        path: "/resources/scripts/new",
+        name: "CreateScript",
+        component: () => import("@/resources/views/CreateScriptView.vue"),
+        meta: {
+          requireAuth: true,
+        },
+      },
+      {
+        path: "/resources/apps/new",
+        name: "CreateApp",
+        component: () => import("@/resources/views/CreateAppView.vue"),
+        meta: {
+          requireAuth: true,
+        },
+      },
+      {
+        path: "/resources/books/new",
+        name: "CreateBook",
+        component: () => import("@/resources/views/CreateBookView.vue"),
+        meta: {
+          requireAuth: true,
+        },
+      },
+      {
+        path: "/resources/images/new",
+        name: "CreateImage",
+        component: () => import("@/resources/views/CreateImageView.vue"),
+        meta: {
+          requireAuth: true,
+        },
+      },
+      {
+        path: "/resources/certificates/new",
+        name: "CreateCertificate",
+        component: () => import("@/resources/views/CreateCertificateView.vue"),
+        meta: {
+          requireAuth: true,
+        },
+      },
+      {
+        path: "/policies",
+        name: "Policies",
+        component: () => import("@/policies/views/PoliciesView.vue"),
+        meta: {
+          requireAuth: true,
+        },
+      },
+      {
+        path: "/policies/:id",
+        name: "PolicyDetail",
+        component: () => import("@/policies/views/PolicyDetailView.vue"),
+        meta: {
+          requireAuth: true,
+        },
+      },
     ],
   },
   {
