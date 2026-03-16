@@ -78,7 +78,7 @@ function mapPolicyToApi(policy: Partial<Policy>): Record<string, unknown> {
   if (policy.segment !== undefined) mapped.segment = policy.segment;
   if (policy.apps !== undefined) {
     mapped.apps = policy.apps.map((app) => ({
-      id: app.id,
+      id: app.id.startsWith('app-') ? undefined : app.id,
       resource_id: app.resourceId,
       name: app.name,
       version: app.version,
@@ -91,7 +91,7 @@ function mapPolicyToApi(policy: Partial<Policy>): Record<string, unknown> {
   }
   if (policy.scripts !== undefined) {
     mapped.scripts = policy.scripts.map((script) => ({
-      id: script.id,
+      id: script.id.startsWith('script-') ? undefined : script.id,
       resource_id: script.resourceId,
       name: script.name,
       timeout: script.timeout,
@@ -100,7 +100,7 @@ function mapPolicyToApi(policy: Partial<Policy>): Record<string, unknown> {
   }
   if (policy.resources !== undefined) {
     mapped.resources = policy.resources.map((res) => ({
-      id: res.id,
+      id: res.id.startsWith('resource-') ? undefined : res.id,
       resource_id: res.resourceId,
       name: res.name,
       type: res.type,
