@@ -1,6 +1,6 @@
 import { ref, computed, watch } from "vue";
 import { useQuasar } from "quasar";
-import { userControlClient } from "@/gpo/api/grpc-client";
+import { userControlClient, agentServiceClientWrapper } from "@/gpo/api/grpc-client";
 import type { Target } from "@/gpo/api/grpc-client";
 import type { UserWithIdInfo } from "@/generated/user_service_pb";
 import type { GroupInfo } from "@/generated/common/user_pb";
@@ -32,6 +32,11 @@ export interface GroupRow {
   description?: string;
 }
 
+export interface AgentRow {
+  id: string;
+  name: string;
+}
+
 export function useUserActions() {
   const $q = useQuasar();
 
@@ -47,7 +52,7 @@ export function useUserActions() {
 
   const userGroups = ref<GroupRow[]>([]);
   const userGroupsLoading = ref(false);
-  const userAgents = ref<string[]>([]);
+  const userAgents = ref<AgentRow[]>([]);
   const userAgentsLoading = ref(false);
 
   const actionLoading = ref(false);
@@ -153,7 +158,24 @@ export function useUserActions() {
         null as unknown as Target,
         selectedUserId.value,
       );
-      userAgents.value = res.agentIdsList ?? [];
+      const agentIds = res.agentIdsList ?? [];
+      
+      const agentsWithNames = await Promise.all(
+        agentIds.map(async (id) => {
+          try {
+            const agent = await agentServiceClientWrapper.getAgent(id);
+            const name = 
+              (agent as { hostName?: string; host_name?: string }).hostName ??
+              (agent as { hostName?: string; host_name?: string }).host_name ??
+              id;
+            return { id, name };
+          } catch {
+            return { id, name: id };
+          }
+        })
+      );
+      
+      userAgents.value = agentsWithNames;
     } catch {
       // игнор
     } finally {

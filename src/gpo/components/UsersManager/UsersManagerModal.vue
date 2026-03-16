@@ -92,6 +92,7 @@
           @remove-agent="handleRemoveUserAgent"
           @add-collection="showApplyCollectionDialog = true"
           @remove-collection="showRemoveCollectionDialog = true"
+          @remove-collection-by-id="handleRemoveCollectionById"
           @update:detail-tab="(val) => (detailTab = val)"
           @open-agent-dashboard="goToAgentDashboard"
         />
@@ -319,7 +320,6 @@ import { useUserActions } from "@/gpo/composables/useUserActions";
 import type { CreateUserParams } from "@/gpo/composables/useUserActions";
 import type { TargetRef } from "@/gpo/composables/useTargetSelection";
 import {
-  agentServiceClientWrapper,
   createAgentTarget,
   createGlobalTarget,
   createUserGroupTargetForAgents,
@@ -788,6 +788,46 @@ async function doRemoveCollectionFromUser() {
   }
 }
 
+function handleRemoveCollectionById(collectionId: number) {
+  const collection = userAppliedCollections.value.find((c) => c.id === collectionId);
+  const collectionLabel = collection?.name ?? String(collectionId);
+  
+  $q.dialog({
+    title: "Remove collection",
+    message: `Do you really want to remove the collection «${collectionLabel}» from this user?`,
+    cancel: true,
+    persistent: true,
+    color: "negative",
+  }).onOk(async () => {
+    const agentIds = getAgentIdsFromTarget(currentTarget.value);
+    const userId = selectedUserId.value ?? userDetail.value?.userid;
+    const userLabel = userDetail.value?.info?.samaccountname ?? userId;
+    
+    if (agentIds.length === 0 || !userId) return;
+    
+    actionLoading.value = true;
+    try {
+      for (const agentId of agentIds) {
+        await policyAssignmentClient.removePolicyCollection(
+          collectionId,
+          "user",
+          { agentId, userId },
+        );
+      }
+      notifySuccess(
+        `Collection removed from user "${userLabel}" on ${agentIds.length} agent(s)`,
+      );
+      await loadUserAppliedCollections();
+    } catch (err) {
+      notifyError(
+        err instanceof Error ? err.message : "Failed to remove collection",
+      );
+    } finally {
+      actionLoading.value = false;
+    }
+  });
+}
+
 async function loadUserAppliedCollections() {
   const userId = selectedUserId.value;
   if (!userId) {
@@ -857,30 +897,11 @@ watch(
   ([loading, agents, userId]) => {
     if (!userId || loading || !Array.isArray(agents)) return;
     if (agents.length >= 1) {
-      const agentIds = [...agents];
+      const agentIds = agents.map((a) => a.id);
+      const agentNames = agents.map((a) => a.name);
       currentTargetRef.value = null;
       currentTarget.value = createUserGroupTargetForAgents(agentIds);
-      targetLabel.value = agentIds.join(", ");
-      Promise.all(
-        agentIds.map((id) =>
-          agentServiceClientWrapper.getAgent(id).then(
-            (agent) =>
-              (agent as { hostName?: string; host_name?: string }).hostName ??
-              (agent as { hostName?: string; host_name?: string }).host_name ??
-              id,
-            () => id,
-          ),
-        ),
-      ).then((hostnames) => {
-        const currentIds = getAgentIdsFromTarget(currentTarget.value);
-        if (
-          selectedUserId.value === userId &&
-          currentIds.length === agentIds.length &&
-          currentIds.every((id, i) => id === agentIds[i])
-        ) {
-          targetLabel.value = hostnames.map((h) => h?.trim() || "").join(", ");
-        }
-      });
+      targetLabel.value = agentNames.join(", ");
     } else {
       currentTargetRef.value = null;
       currentTarget.value = createGlobalTarget();

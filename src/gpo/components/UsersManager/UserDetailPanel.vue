@@ -32,83 +32,113 @@
           </div>
         </div>
         <q-space />
-        <div class="row q-gutter-xs">
-          <q-btn
-            flat
-            dense
-            color="primary"
-            icon="edit"
-            label="Update"
-            :loading="actionLoading"
-            :disable="!hasTarget"
-            :title="!hasTarget ? 'Select target first' : ''"
-            @click="$emit('update')"
-          />
-          <q-btn
-            flat
-            dense
-            :color="user?.info?.isenabled !== false ? 'orange' : 'positive'"
-            :icon="user?.info?.isenabled !== false ? 'block' : 'check_circle'"
-            :label="user?.info?.isenabled !== false ? 'Disable' : 'Enable'"
-            :loading="actionLoading"
-            :disable="!hasTarget"
-            :title="
-              !hasTarget ? 'Select target first (click badge in header)' : ''
-            "
-            @click="$emit('toggle-enable')"
-          />
-          <q-btn
-            flat
-            dense
-            icon="lock"
-            label="Set Password"
-            :loading="actionLoading"
-            :disable="!hasTarget"
-            :title="!hasTarget ? 'Select target first' : ''"
-            @click="$emit('set-password')"
-          />
-          <q-btn
-            flat
-            dense
-            icon="lock_open"
-            label="Unlock"
-            :loading="actionLoading"
-            :disable="!hasTarget"
-            :title="!hasTarget ? 'Select target first' : ''"
-            @click="$emit('unlock')"
-          />
-          <q-btn
-            flat
-            dense
-            icon="password"
-            label="Expire Password"
-            :loading="actionLoading"
-            :disable="!hasTarget"
-            :title="!hasTarget ? 'Select target first' : ''"
-            @click="$emit('expire-password')"
-          />
-          <q-btn
-            flat
-            dense
-            icon="event"
-            label="Account Expiration"
-            :loading="actionLoading"
-            :disable="!hasTarget"
-            :title="!hasTarget ? 'Select target first' : ''"
-            @click="$emit('set-expiration')"
-          />
-          <q-btn
-            flat
-            dense
-            color="negative"
-            icon="delete"
-            label="Delete"
-            :loading="actionLoading"
-            :disable="!hasTarget"
-            :title="!hasTarget ? 'Select target first' : ''"
-            @click="$emit('delete')"
-          />
-        </div>
+        <q-btn
+          flat
+          round
+          dense
+          icon="more_vert"
+          color="primary"
+          :loading="actionLoading"
+          :disable="!hasTarget"
+          :title="!hasTarget ? 'Select target first' : ''"
+        >
+          <q-menu>
+            <q-list dense style="min-width: 200px">
+              <q-item
+                clickable
+                v-close-popup
+                :disable="!hasTarget"
+                @click="$emit('update')"
+              >
+                <q-item-section avatar>
+                  <q-icon name="edit" color="primary" />
+                </q-item-section>
+                <q-item-section>Update</q-item-section>
+              </q-item>
+
+              <q-item
+                clickable
+                v-close-popup
+                :disable="!hasTarget"
+                @click="$emit('toggle-enable')"
+              >
+                <q-item-section avatar>
+                  <q-icon
+                    :name="user?.info?.isenabled !== false ? 'block' : 'check_circle'"
+                    :color="user?.info?.isenabled !== false ? 'orange' : 'positive'"
+                  />
+                </q-item-section>
+                <q-item-section>
+                  {{ user?.info?.isenabled !== false ? 'Disable' : 'Enable' }}
+                </q-item-section>
+              </q-item>
+
+              <q-separator />
+
+              <q-item
+                clickable
+                v-close-popup
+                :disable="!hasTarget"
+                @click="$emit('set-password')"
+              >
+                <q-item-section avatar>
+                  <q-icon name="lock" />
+                </q-item-section>
+                <q-item-section>Set Password</q-item-section>
+              </q-item>
+
+              <q-item
+                clickable
+                v-close-popup
+                :disable="!hasTarget"
+                @click="$emit('unlock')"
+              >
+                <q-item-section avatar>
+                  <q-icon name="lock_open" />
+                </q-item-section>
+                <q-item-section>Unlock</q-item-section>
+              </q-item>
+
+              <q-item
+                clickable
+                v-close-popup
+                :disable="!hasTarget"
+                @click="$emit('expire-password')"
+              >
+                <q-item-section avatar>
+                  <q-icon name="password" />
+                </q-item-section>
+                <q-item-section>Expire Password</q-item-section>
+              </q-item>
+
+              <q-item
+                clickable
+                v-close-popup
+                :disable="!hasTarget"
+                @click="$emit('set-expiration')"
+              >
+                <q-item-section avatar>
+                  <q-icon name="event" />
+                </q-item-section>
+                <q-item-section>Account Expiration</q-item-section>
+              </q-item>
+
+              <q-separator />
+
+              <q-item
+                clickable
+                v-close-popup
+                :disable="!hasTarget"
+                @click="$emit('delete')"
+              >
+                <q-item-section avatar>
+                  <q-icon name="delete" color="negative" />
+                </q-item-section>
+                <q-item-section class="text-negative">Delete</q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
+        </q-btn>
       </div>
 
       <q-separator />
@@ -253,7 +283,7 @@
                 dense
                 color="primary"
                 icon="add_circle_outline"
-                label="Apply collection"
+                label=""
                 :disable="!canApplyCollection"
                 :title="
                   canApplyCollection
@@ -261,20 +291,6 @@
                     : 'Select a single agent as target in the header'
                 "
                 @click="$emit('add-collection')"
-              />
-              <q-btn
-                flat
-                dense
-                color="negative"
-                icon="remove_circle_outline"
-                label="Remove collection"
-                :disable="!canRemoveCollection"
-                :title="
-                  canRemoveCollection
-                    ? 'Remove an applied collection from the selected agent'
-                    : 'Select a single agent and ensure user has applied collections'
-                "
-                @click="$emit('remove-collection')"
               />
             </div>
             <div class="collections-tab-scroll">
@@ -288,38 +304,59 @@
                 </div>
               </div>
               <template v-else-if="appliedCollections.length">
-                <div class="text-caption text-grey-7 q-mb-sm">
-                  Applied collections:
-                </div>
-                <div class="applied-collections-list">
-                  <div
-                    v-for="c in appliedCollections"
-                    :key="c.id"
-                    class="applied-collection-block"
-                  >
-                    <div class="text-weight-medium">{{ c.name || c.id }}</div>
-                    <div
-                      v-if="c.explainText"
-                      class="text-caption text-grey-7 q-mt-xs"
-                    >
-                      {{ c.explainText }}
-                    </div>
-                    <template v-if="c.policies?.length">
-                      <div class="text-caption text-grey-7 q-mt-sm">
-                        Policies in collection:
-                      </div>
-                      <ul class="q-pl-md q-mt-xs q-mb-none text-caption text-grey-8">
-                        <li
-                          v-for="p in c.policies"
-                          :key="p.id"
-                          class="q-py-xs"
+                <q-table
+                  :rows="appliedCollections"
+                  :columns="collectionsColumns"
+                  row-key="id"
+                  flat
+                  bordered
+                  :rows-per-page-options="[0]"
+                  hide-pagination
+                  class="collections-table"
+                >
+                  <template v-slot:body="props">
+                    <q-tr :props="props">
+                      <q-td key="name" :props="props">
+                        <div
+                          class="cursor-pointer text-primary row items-center no-wrap"
+                          @click="openCollectionDetailsDialog(props.row)"
                         >
-                          {{ p.name }}
-                        </li>
-                      </ul>
-                    </template>
-                  </div>
-                </div>
+                          <q-icon
+                            name="visibility"
+                            size="xs"
+                            class="q-mr-xs"
+                          />
+                          <span class="text-weight-medium">{{ props.row.name || props.row.id }}</span>
+                        </div>
+                      </q-td>
+                      <q-td key="explainText" :props="props">
+                        <div class="text-caption text-grey-7">
+                          {{ props.row.explainText || '—' }}
+                        </div>
+                      </q-td>
+                      <q-td key="policiesCount" :props="props">
+                        <q-badge
+                          v-if="props.row.policies?.length"
+                          color="primary"
+                          :label="props.row.policies.length"
+                        />
+                        <span v-else class="text-grey-5">0</span>
+                      </q-td>
+                      <q-td key="actions" :props="props">
+                        <q-btn
+                          flat
+                          round
+                          dense
+                          icon="delete"
+                          color="negative"
+                          size="sm"
+                          :title="`Remove collection ${props.row.name || props.row.id}`"
+                          @click="$emit('remove-collection-by-id', props.row.id)"
+                        />
+                      </q-td>
+                    </q-tr>
+                  </template>
+                </q-table>
               </template>
               <div
                 v-else-if="!canApplyCollection"
@@ -338,12 +375,86 @@
         </q-tab-panels>
       </template>
     </template>
+
+    <q-dialog v-model="showCollectionDetailsDialog" position="standard">
+      <q-card style="min-width: 600px; max-width: 800px">
+        <q-card-section class="row items-center q-pb-sm">
+          <q-icon name="collections_bookmark" color="primary" size="sm" class="q-mr-sm" />
+          <div class="text-h6">{{ selectedCollection?.name || selectedCollection?.id }}</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-section v-if="selectedCollection?.explainText" class="q-pt-sm q-pb-sm">
+          <div class="text-caption text-grey-7">{{ selectedCollection.explainText }}</div>
+        </q-card-section>
+
+        <q-separator v-if="selectedCollection?.explainText" />
+
+        <q-card-section class="q-pt-sm">
+          <div class="row items-center q-mb-sm">
+            <q-space />
+            <q-input
+              v-model="policySearchQuery"
+              dense
+              outlined
+              placeholder="Search policies..."
+              style="max-width: 250px"
+              clearable
+            >
+              <template v-slot:prepend>
+                <q-icon name="search" />
+              </template>
+            </q-input>
+          </div>
+
+          <div class="policies-list-container">
+            <template v-if="filteredPolicies.length">
+              <q-list bordered separator class="rounded-borders">
+                <q-item
+                  v-for="(p, index) in filteredPolicies"
+                  :key="p.id"
+                  class="policy-item"
+                >
+                  <q-item-section avatar>
+                    <div class="text-caption text-grey-6">{{ index + 1 }}</div>
+                  </q-item-section>
+                  <q-item-section avatar>
+                    <q-icon name="policy" color="primary" size="sm" />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>{{ p.name }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </template>
+            <div v-else-if="policySearchQuery" class="text-center text-grey-6 q-pa-md">
+              <q-icon name="search_off" size="md" class="q-mb-sm" />
+              <div>No policies found matching "{{ policySearchQuery }}"</div>
+            </div>
+            <div v-else class="text-center text-grey-6 q-pa-md">
+              <q-icon name="info" size="md" class="q-mb-sm" />
+              <div>No policies in this collection</div>
+            </div>
+          </div>
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-actions align="right">
+          <q-btn flat label="Close" color="primary" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, computed } from "vue";
 import type { UserWithIdInfo } from "@/generated/user_service_pb";
-import type { GroupRow } from "@/gpo/composables/useUserActions";
+import type { GroupRow, AgentRow } from "@/gpo/composables/useUserActions";
 import UserInfoTab from "./UserInfoTab.vue";
 import UserGroupsTab from "./UserGroupsTab.vue";
 import UserAgentsTab from "./UserAgentsTab.vue";
@@ -358,7 +469,7 @@ withDefaults(
     detailTab: string;
     groups: GroupRow[];
     groupsLoading: boolean;
-    agents: string[];
+    agents: AgentRow[];
     agentsLoading: boolean;
     removingAgentId?: string | null;
     appliedCollections?: {
@@ -391,9 +502,68 @@ defineEmits<{
   "remove-agent": [agentId: string];
   "add-collection": [];
   "remove-collection": [];
+  "remove-collection-by-id": [collectionId: number];
   "update:detailTab": [value: string];
   "open-agent-dashboard": [agentId: string];
 }>();
+
+const collectionsColumns = [
+  {
+    name: "name",
+    label: "Collection Name",
+    field: "name",
+    align: "left" as const,
+    sortable: true,
+  },
+  {
+    name: "explainText",
+    label: "Description",
+    field: "explainText",
+    align: "left" as const,
+    sortable: false,
+  },
+  {
+    name: "policiesCount",
+    label: "Policies",
+    field: (row: { policies?: unknown[] }) => row.policies?.length || 0,
+    align: "center" as const,
+    sortable: true,
+  },
+  {
+    name: "actions",
+    label: "Actions",
+    field: "actions",
+    align: "center" as const,
+    sortable: false,
+  },
+];
+
+type CollectionType = {
+  id: number;
+  name: string;
+  explainText?: string;
+  policies?: { id: number; name: string }[];
+};
+
+const showCollectionDetailsDialog = ref(false);
+const selectedCollection = ref<CollectionType | null>(null);
+const policySearchQuery = ref("");
+
+const filteredPolicies = computed(() => {
+  if (!selectedCollection.value?.policies) return [];
+  if (!policySearchQuery.value) return selectedCollection.value.policies;
+
+  const query = policySearchQuery.value.toLowerCase();
+  return selectedCollection.value.policies.filter((p) =>
+    p.name.toLowerCase().includes(query)
+  );
+});
+
+function openCollectionDetailsDialog(collection: CollectionType) {
+  selectedCollection.value = collection;
+  policySearchQuery.value = "";
+  showCollectionDetailsDialog.value = true;
+}
 </script>
 
 <style scoped lang="sass">
@@ -414,16 +584,27 @@ defineEmits<{
   max-height: 50vh
   overflow-y: auto
 
-.applied-collections-list
-  display: flex
-  flex-direction: column
-  gap: 12px
+.collections-table
+  :deep(.q-table__top)
+    padding: 0
 
-.applied-collection-block
-  padding: 12px
+  :deep(.q-table tbody td)
+    font-size: 13px
+
+  :deep(.q-table thead th)
+    font-weight: 600
+
+.policies-list-container
+  max-height: 60vh
+  overflow-y: auto
   border: 1px solid rgba(0, 0, 0, 0.12)
   border-radius: 4px
-  background: rgba(0, 0, 0, 0.02)
+
+.policy-item
+  transition: background-color 0.2s
+
+  &:hover
+    background-color: rgba(0, 0, 0, 0.02)
 
 .text-mono
   font-family: monospace

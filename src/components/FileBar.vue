@@ -236,22 +236,6 @@
                   <q-item
                     clickable
                     v-ripple
-                    @click="navigateToGPO('network')"
-                    :class="[
-                      'filebar-popup-item',
-                      { 'active-menu-item': isActiveGPOTab('network') },
-                    ]"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="router" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Network</q-item-section>
-                  </q-item>
-
-                  <q-item
-                    clickable
-                    v-ripple
                     @click="navigateToGPO('library')"
                     :class="[
                       'filebar-popup-item',
@@ -276,25 +260,9 @@
                     v-close-popup
                   >
                     <q-item-section avatar>
-                      <q-icon name="laptop_windows" size="sm" />
+                      <q-icon name="dns" size="sm" />
                     </q-item-section>
                     <q-item-section>Windows Policies</q-item-section>
-                  </q-item>
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="navigateToGPO('devices')"
-                    :class="[
-                      'filebar-popup-item',
-                      { 'active-menu-item': isActiveGPOTab('devices') },
-                    ]"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="devices" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Device Policies</q-item-section>
                   </q-item>
 
                   <q-item
@@ -326,7 +294,7 @@
                     <q-item-section avatar>
                       <q-icon name="group" size="sm" />
                     </q-item-section>
-                    <q-item-section>Groups</q-item-section>
+                    <q-item-section>Users Groups</q-item-section>
                   </q-item>
                   <q-item
                     clickable
@@ -336,7 +304,7 @@
                     v-close-popup
                   >
                     <q-item-section avatar>
-                      <q-icon name="dns" size="sm" />
+                      <q-icon name="laptop_windows" size="sm" />
                     </q-item-section>
                     <q-item-section>Groups of Machines</q-item-section>
                   </q-item>
@@ -383,20 +351,6 @@
               <q-item
                 clickable
                 v-ripple
-                @click="navigateToGPO('network')"
-                :class="[
-                  'filebar-menu-item',
-                  { 'active-menu-item': isActiveGPOTab('network') },
-                ]"
-              >
-                <q-item-section avatar>
-                  <q-icon name="router" />
-                </q-item-section>
-                <q-item-section>Network</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
                 @click="navigateToGPO('library')"
                 :class="[
                   'filebar-menu-item',
@@ -425,20 +379,6 @@
               <q-item
                 clickable
                 v-ripple
-                @click="navigateToGPO('devices')"
-                :class="[
-                  'filebar-menu-item',
-                  { 'active-menu-item': isActiveGPOTab('devices') },
-                ]"
-              >
-                <q-item-section avatar>
-                  <q-icon name="devices" />
-                </q-item-section>
-                <q-item-section>Device Policies</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
                 @click="handleMenuAction('users')"
                 :class="[
                   'filebar-menu-item',
@@ -462,7 +402,7 @@
                 <q-item-section avatar>
                   <q-icon name="group" />
                 </q-item-section>
-                <q-item-section>Groups</q-item-section>
+                <q-item-section>Users Groups</q-item-section>
               </q-item>
               <q-item
                 clickable
