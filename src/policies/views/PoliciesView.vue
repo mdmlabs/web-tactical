@@ -168,7 +168,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import PoliciesSidebar from '../components/PoliciesSidebar.vue';
@@ -238,6 +238,13 @@ function debounceSearch(value: string | null) {
 // Watch segment changes
 watch(selectedSegmentLocal, (newVal) => {
   setSegment(newVal);
+});
+
+// Load policies on mount
+onMounted(() => {
+  // Sync segment from local state to composable
+  setSegment(selectedSegmentLocal.value);
+  void refreshPolicies();
 });
 
 // Navigate to policy detail
