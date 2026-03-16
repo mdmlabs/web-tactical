@@ -122,7 +122,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
+import { useQuasar } from 'quasar';
 import type { Device, DeviceGroup } from '../../types/policies';
 import { fetchDevices, fetchDeviceGroups } from '@/api/policies';
 
@@ -135,6 +136,8 @@ const emit = defineEmits<{
   (e: 'assign', deviceIds: number[]): void;
 }>();
 
+const $q = useQuasar();
+
 // Form state
 const activeTab = ref('devices');
 const selectedDevices = ref<number[]>([]);
@@ -143,7 +146,8 @@ const availableDevices = ref<Device[]>([]);
 const deviceGroups = ref<DeviceGroup[]>([]);
 const loadingDevices = ref(false);
 
-onMounted(async () => {
+// Load devices and groups from API
+async function loadDevicesAndGroups() {
   loadingDevices.value = true;
   try {
     const [devs, groups] = await Promise.all([fetchDevices(), fetchDeviceGroups()]);
@@ -151,10 +155,15 @@ onMounted(async () => {
     deviceGroups.value = groups;
   } catch (err) {
     console.error('[AssignDeviceDialog] failed to load devices:', err);
+    $q.notify({
+      message: 'Failed to load devices and groups',
+      color: 'negative',
+      position: 'top',
+    });
   } finally {
     loadingDevices.value = false;
   }
-});
+}
 
 const canAssign = computed(() => {
   if (activeTab.value === 'devices') {
@@ -163,10 +172,11 @@ const canAssign = computed(() => {
   return selectedGroups.value.length > 0;
 });
 
-// Reset form when dialog opens
+// Reset form and load data when dialog opens
 watch(() => props.modelValue, (isOpen) => {
   if (isOpen) {
     resetForm();
+    loadDevicesAndGroups();
   }
 });
 

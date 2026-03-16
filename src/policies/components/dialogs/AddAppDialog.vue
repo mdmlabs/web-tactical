@@ -193,8 +193,9 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
+import { useQuasar } from 'quasar';
 import type { PolicyApp, VerificationMethod } from '../../types/policies';
-import { mockAppResources, mockScriptResources } from '../../mocks/policiesMockData';
+import { fetchResourceList } from '@/api/resources';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -204,6 +205,8 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void;
   (e: 'add', app: PolicyApp): void;
 }>();
+
+const $q = useQuasar();
 
 // Form state
 const activeTab = ref('resource');
@@ -218,8 +221,10 @@ const registryKey = ref('');
 const filePath = ref('');
 const verificationScript = ref<string | null>(null);
 
-const appResources = mockAppResources;
-const scriptResources = mockScriptResources;
+// API data
+const appResources = ref<Array<{ id: string; name: string; version: string; extension?: string }>>([]);
+const scriptResources = ref<Array<{ id: string; name: string; language?: string }>>([]);
+const loading = ref(false);
 
 const verificationOptions = [
   { value: 'registry', label: 'Registry' },
@@ -230,13 +235,36 @@ const verificationOptions = [
 const canAdd = computed(() => selectedResource.value !== null);
 
 const selectedResourceData = computed(() => 
-  appResources.find(r => r.id === selectedResource.value)
+  appResources.value.find(r => r.id === selectedResource.value)
 );
+
+// Load resources from API
+async function loadResources() {
+  loading.value = true;
+  try {
+    const [appsData, scriptsData] = await Promise.all([
+      fetchResourceList('app'),
+      fetchResourceList('script'),
+    ]);
+    appResources.value = Array.isArray(appsData) ? appsData : (appsData?.results ?? []);
+    scriptResources.value = Array.isArray(scriptsData) ? scriptsData : (scriptsData?.results ?? []);
+  } catch (error) {
+    console.error('Failed to load resources:', error);
+    $q.notify({
+      message: 'Failed to load resources',
+      color: 'negative',
+      position: 'top',
+    });
+  } finally {
+    loading.value = false;
+  }
+}
 
 // Reset form when dialog opens
 watch(() => props.modelValue, (isOpen) => {
   if (isOpen) {
     resetForm();
+    loadResources();
   }
 });
 

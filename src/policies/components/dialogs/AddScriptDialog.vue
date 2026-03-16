@@ -100,9 +100,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
+import { useQuasar } from 'quasar';
 import type { PolicyScript } from '../../types/policies';
-import { mockScriptResources } from '../../mocks/policiesMockData';
+import { fetchResourceList } from '@/api/resources';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -113,23 +114,46 @@ const emit = defineEmits<{
   (e: 'add', script: PolicyScript): void;
 }>();
 
+const $q = useQuasar();
+
 // Form state
 const selectedScript = ref<string | null>(null);
 const timeout = ref(300);
 const runAsUser = ref(false);
 
-const scriptResources = mockScriptResources;
+// API data
+const scriptResources = ref<Array<{ id: string; name: string; language?: string }>>([]);
+const loading = ref(false);
 
 const canAdd = computed(() => selectedScript.value !== null);
 
 const selectedScriptData = computed(() => 
-  scriptResources.find(s => s.id === selectedScript.value)
+  scriptResources.value.find(s => s.id === selectedScript.value)
 );
+
+// Load scripts from API
+async function loadScripts() {
+  loading.value = true;
+  try {
+    const data = await fetchResourceList('script');
+    scriptResources.value = Array.isArray(data) ? data : (data?.results ?? []);
+  } catch (error) {
+    console.error('Failed to load scripts:', error);
+    $q.notify({
+      message: 'Failed to load scripts',
+      color: 'negative',
+      position: 'top',
+    });
+  } finally {
+    loading.value = false;
+  }
+}
 
 // Reset form when dialog opens
 watch(() => props.modelValue, (isOpen) => {
   if (isOpen) {
     resetForm();
+    loadScripts();
   }
 });
 
