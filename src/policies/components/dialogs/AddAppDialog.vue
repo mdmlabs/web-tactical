@@ -210,7 +210,7 @@ const $q = useQuasar();
 
 // Form state
 const activeTab = ref('resource');
-const selectedResource = ref<string | null>(null);
+const selectedResource = ref<number | null>(null);
 const silentInstall = ref(true);
 const runAsUser = ref(false);
 const installArguments = ref('');
@@ -219,11 +219,11 @@ const verificationMethod = ref<VerificationMethod>('registry');
 const registryPath = ref('');
 const registryKey = ref('');
 const filePath = ref('');
-const verificationScript = ref<string | null>(null);
+const verificationScript = ref<number | null>(null);
 
 // API data
-const appResources = ref<Array<{ id: string; name: string; version: string; extension?: string }>>([]);
-const scriptResources = ref<Array<{ id: string; name: string; language?: string }>>([]);
+const appResources = ref<Array<{ id: number; name: string; version: string; extension?: string }>>([]);
+const scriptResources = ref<Array<{ id: number; name: string; language?: string }>>([]); 
 const loading = ref(false);
 
 const verificationOptions = [

@@ -117,12 +117,12 @@ const emit = defineEmits<{
 const $q = useQuasar();
 
 // Form state
-const selectedScript = ref<string | null>(null);
+const selectedScript = ref<number | null>(null);
 const timeout = ref(300);
 const runAsUser = ref(false);
 
 // API data
-const scriptResources = ref<Array<{ id: string; name: string; language?: string }>>([]);
+const scriptResources = ref<Array<{ id: number; name: string; language?: string }>>([]);
 const loading = ref(false);
 
 const canAdd = computed(() => selectedScript.value !== null);

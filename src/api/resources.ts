@@ -130,7 +130,7 @@ export async function downloadResource(
 
 export async function fetchResourceList(type: string) {
   try {
-    const { data } = await axios.get(`/resources/${type}s/list/`);
+    const { data } = await axios.get(`${baseUrl}/${type}s/list/`);
     return data;
   } catch (e) {
     console.error(e);

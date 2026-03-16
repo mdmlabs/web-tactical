@@ -8,12 +8,12 @@ export interface VerificationConfig {
   registryPath?: string;
   registryKey?: string;
   filePath?: string;
-  scriptId?: string;
+  scriptId?: number;
 }
 
 export interface PolicyApp {
   id: string;
-  resourceId: string;
+  resourceId: number;
   name: string;
   version: string;
   silentInstall: boolean;
@@ -25,7 +25,7 @@ export interface PolicyApp {
 
 export interface PolicyScript {
   id: string;
-  resourceId: string;
+  resourceId: number;
   name: string;
   timeout: number;
   runAsUser: boolean;
@@ -33,7 +33,7 @@ export interface PolicyScript {
 
 export interface PolicyResource {
   id: string;
-  resourceId: string;
+  resourceId: number;
   name: string;
   type: ResourceType;
   scope: Scope;

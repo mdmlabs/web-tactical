@@ -27,7 +27,7 @@ function mapPolicyFromApi(data: Record<string, unknown>): Policy {
     apps: Array.isArray(data.apps)
       ? data.apps.map((app: Record<string, unknown>) => ({
           id: String(app.id),
-          resourceId: String(app.resource_id),
+          resourceId: Number(app.resource_id),
           name: String(app.name),
           version: String(app.version),
           silentInstall: Boolean(app.silent_install),
@@ -40,7 +40,7 @@ function mapPolicyFromApi(data: Record<string, unknown>): Policy {
     scripts: Array.isArray(data.scripts)
       ? data.scripts.map((script: Record<string, unknown>) => ({
           id: String(script.id),
-          resourceId: String(script.resource_id),
+          resourceId: Number(script.resource_id),
           name: String(script.name),
           timeout: Number(script.timeout),
           runAsUser: Boolean(script.run_as_user),
@@ -49,7 +49,7 @@ function mapPolicyFromApi(data: Record<string, unknown>): Policy {
     resources: Array.isArray(data.resources)
       ? data.resources.map((res: Record<string, unknown>) => ({
           id: String(res.id),
-          resourceId: String(res.resource_id),
+          resourceId: Number(res.resource_id),
           name: String(res.name),
           type: res.type as "book" | "certificate" | "image",
           scope: res.scope as "primary_user" | "all_users" | "system",
@@ -169,7 +169,7 @@ export async function deletePolicy(id: string): Promise<void> {
 export async function addPolicyApp(
   policyId: string,
   payload: {
-    resourceId: string;
+    resourceId: number;
     silentInstall?: boolean;
     arguments?: string;
     timeout?: number;
@@ -188,7 +188,7 @@ export async function addPolicyApp(
   const { data } = await axios.post(`${baseUrl}/${policyId}/apps/`, apiPayload);
   return {
     id: String(data.id),
-    resourceId: String(data.resource_id),
+    resourceId: Number(data.resource_id),
     name: String(data.name),
     version: String(data.version),
     silentInstall: Boolean(data.silent_install),
@@ -211,7 +211,7 @@ export async function removePolicyApp(
 export async function addPolicyScript(
   policyId: string,
   payload: {
-    resourceId: string;
+    resourceId: number;
     timeout?: number;
     runAsUser?: boolean;
   },
@@ -227,7 +227,7 @@ export async function addPolicyScript(
   );
   return {
     id: String(data.id),
-    resourceId: String(data.resource_id),
+    resourceId: Number(data.resource_id),
     name: String(data.name),
     timeout: Number(data.timeout),
     runAsUser: Boolean(data.run_as_user),
@@ -246,7 +246,7 @@ export async function removePolicyScript(
 export async function addPolicyResource(
   policyId: string,
   payload: {
-    resourceId: string;
+    resourceId: number;
     type: "book" | "certificate" | "image";
     scope: "primary_user" | "all_users" | "system";
     locations: string[];
@@ -264,7 +264,7 @@ export async function addPolicyResource(
   );
   return {
     id: String(data.id),
-    resourceId: String(data.resource_id),
+    resourceId: Number(data.resource_id),
     name: String(data.name),
     type: data.type as "book" | "certificate" | "image",
     scope: data.scope as "primary_user" | "all_users" | "system",

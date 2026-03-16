@@ -139,14 +139,14 @@ const $q = useQuasar();
 
 // Form state
 const resourceType = ref<ResourceType>('book');
-const selectedResource = ref<string | null>(null);
+const selectedResource = ref<number | null>(null);
 const scope = ref<Scope>('primary_user');
 const location = ref('');
 
 // API data
-const bookResources = ref<Array<{ id: string; name: string }>>([]);
-const imageResources = ref<Array<{ id: string; name: string }>>([]);
-const certificateResources = ref<Array<{ id: string; name: string }>>([]);
+const bookResources = ref<Array<{ id: number; name: string }>>([]);
+const imageResources = ref<Array<{ id: number; name: string }>>([]);
+const certificateResources = ref<Array<{ id: number; name: string }>>([]); 
 const loading = ref(false);
 
 const scopeOptions = [
