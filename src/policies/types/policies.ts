@@ -61,6 +61,35 @@ export interface Policy {
   assignedDevices: string[];
 }
 
+export interface PolicyListResponse {
+  count: number;
+  results: Policy[];
+}
+
+export interface CreatePolicyRequest {
+  name: string;
+  platform: string;
+}
+
+export interface UpdatePolicyRequest {
+  name?: string;
+  platform?: string;
+  segment?: string;
+  apps?: PolicyApp[];
+  scripts?: PolicyScript[];
+  resources?: PolicyResource[];
+  applicationControl?: ApplicationControlConfig;
+  assignedDevices?: string[];
+}
+
+export interface AssignDevicesRequest {
+  deviceIds: string[];
+}
+
+export interface UnassignDeviceRequest {
+  deviceId: string;
+}
+
 export interface Device {
   id: string;
   name: string;

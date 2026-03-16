@@ -1,15 +1,22 @@
 import { ref, computed } from "vue";
-import type { Policy, Platform } from "../types/policies";
-import { mockPolicies, generatePolicyId } from "../mocks/policiesMockData";
+import type { Policy, Platform, PolicyListResponse } from "../types/policies";
+import {
+  fetchPolicies as fetchPoliciesApi,
+  createPolicy as createPolicyApi,
+  deletePolicy as deletePolicyApi,
+  updatePolicy as updatePolicyApi,
+} from "@/api/policies";
 
-const policies = ref<Policy[]>([...mockPolicies]);
+const policies = ref<Policy[]>([]);
 const loading = ref(false);
 const searchQuery = ref("");
 const selectedSegment = ref<string | null>(null);
 const selectedPlatform = ref<Platform>("windows");
+const totalCount = ref(0);
 
 export function usePolicies() {
   const filteredPolicies = computed(() => {
+    // Backend already filters, but we do client-side for reactive updates
     let result = policies.value;
 
     // Filter by platform
@@ -50,31 +57,19 @@ export function usePolicies() {
     selectedPlatform.value = platform;
   }
 
-  function createPolicy(name: string, platform: Platform = "windows"): Policy {
-    const now = new Date().toISOString();
-    const newPolicy: Policy = {
-      id: generatePolicyId(),
-      name,
-      platform,
-      version: 1,
-      segment: "Global",
-      deviceCount: 0,
-      summary: "Empty",
-      created: now,
-      updated: now,
-      apps: [],
-      scripts: [],
-      resources: [],
-      assignedDevices: [],
-    };
+  async function createPolicy(name: string, platform: Platform = "windows"): Promise<Policy> {
+    const newPolicy = await createPolicyApi({ name, platform });
     policies.value.unshift(newPolicy);
+    totalCount.value++;
     return newPolicy;
   }
 
-  function deletePolicy(id: string) {
+  async function deletePolicy(id: string): Promise<void> {
+    await deletePolicyApi(id);
     const index = policies.value.findIndex(p => p.id === id);
     if (index !== -1) {
       policies.value.splice(index, 1);
+      totalCount.value--;
     }
   }
 
@@ -82,23 +77,37 @@ export function usePolicies() {
     return policies.value.find(p => p.id === id);
   }
 
-  function updatePolicy(id: string, updates: Partial<Policy>) {
+  async function updatePolicy(id: string, updates: Partial<Policy>): Promise<void> {
+    const updatedPolicy = await updatePolicyApi(id, updates);
     const index = policies.value.findIndex(p => p.id === id);
     if (index !== -1) {
-      policies.value[index] = {
-        ...policies.value[index],
-        ...updates,
-        updated: new Date().toISOString(),
-      };
+      policies.value[index] = updatedPolicy;
     }
   }
 
-  function refreshPolicies() {
+  async function refreshPolicies(params: {
+    platform?: string;
+    segment?: string;
+    search?: string;
+    page?: number;
+    per_page?: number;
+  } = {}): Promise<void> {
     loading.value = true;
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const response: PolicyListResponse = await fetchPoliciesApi({
+        platform: selectedPlatform.value,
+        segment: selectedSegment.value || undefined,
+        search: searchQuery.value || undefined,
+        ...params,
+      });
+      policies.value = response.results;
+      totalCount.value = response.count;
+    } catch (error) {
+      console.error("[usePolicies] Failed to fetch policies:", error);
+      throw error;
+    } finally {
       loading.value = false;
-    }, 500);
+    }
   }
 
   return {
@@ -109,6 +118,7 @@ export function usePolicies() {
     selectedSegment,
     selectedPlatform,
     platformCounts,
+    totalCount,
     setSearch,
     setSegment,
     setPlatform,
