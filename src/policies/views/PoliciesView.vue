@@ -47,7 +47,7 @@
               placeholder="Search"
               class="search-input"
               clearable
-              @update:model-value="debounceSearch"
+              @update:model-value="(v) => debounceSearch(typeof v === 'number' ? String(v) : v)"
             >
               <template v-slot:prepend>
                 <q-icon name="search" />
@@ -68,7 +68,7 @@
 
           <div class="header-right">
             <!-- Refresh Button -->
-            <q-btn flat dense class="action-btn" @click="refreshPolicies">
+            <q-btn flat dense class="action-btn" @click="() => refreshPolicies()">
               <q-icon name="refresh" size="18px" class="q-mr-xs" />
               Refresh
             </q-btn>
@@ -245,16 +245,29 @@ function navigateToPolicy(policy: Policy) {
   router.push({ name: 'PolicyDetail', params: { id: policy.id } });
 }
 
-// Handle create policy
-function handleCreatePolicy(data: { name: string; platform: Platform }) {
-  const newPolicy = createPolicy(data.name, data.platform);
-  $q.notify({
-    message: `Policy "${newPolicy.name}" created successfully`,
-    color: 'positive',
-    position: 'top',
-    icon: 'check_circle',
-  });
-  router.push({ name: 'PolicyDetail', params: { id: newPolicy.id } });
+async function handleCreatePolicy(data: { name: string; platform: Platform }) {
+  try {
+    const newPolicy: Policy = await createPolicy(data.name, data.platform);
+    if (!newPolicy?.id) {
+      throw new Error('Policy created but no id returned from server');
+    }
+    showCreateDialog.value = false;
+    $q.notify({
+      message: `Policy "${newPolicy.name}" created successfully`,
+      color: 'positive',
+      position: 'top',
+      icon: 'check_circle',
+    });
+    void router.push({ name: 'PolicyDetail', params: { id: newPolicy.id } });
+  } catch (err) {
+    console.error('[handleCreatePolicy] error:', err);
+    $q.notify({
+      message: 'Failed to create policy. Please try again.',
+      color: 'negative',
+      position: 'top',
+      icon: 'error',
+    });
+  }
 }
 
 // Handle delete
@@ -264,26 +277,44 @@ function handleDelete(policy: Policy) {
     message: `Are you sure you want to delete "${policy.name}"? This action cannot be undone.`,
     cancel: true,
     persistent: true,
-  }).onOk(() => {
-    deletePolicy(policy.id);
-    $q.notify({
-      message: `Policy "${policy.name}" has been deleted`,
-      color: 'positive',
-      position: 'top',
-      icon: 'check_circle',
-    });
+  }).onOk(async () => {
+    try {
+      await deletePolicy(policy.id);
+      $q.notify({
+        message: `Policy "${policy.name}" has been deleted`,
+        color: 'positive',
+        position: 'top',
+        icon: 'check_circle',
+      });
+    } catch {
+      $q.notify({
+        message: 'Failed to delete policy. Please try again.',
+        color: 'negative',
+        position: 'top',
+        icon: 'error',
+      });
+    }
   });
 }
 
 // Handle duplicate
-function handleDuplicate(policy: Policy) {
-  const duplicated = createPolicy(`${policy.name} (Copy)`, policy.platform);
-  $q.notify({
-    message: `Policy duplicated as "${duplicated.name}"`,
-    color: 'positive',
-    position: 'top',
-    icon: 'check_circle',
-  });
+async function handleDuplicate(policy: Policy) {
+  try {
+    const duplicated: Policy = await createPolicy(`${policy.name} (Copy)`, policy.platform);
+    $q.notify({
+      message: `Policy duplicated as "${duplicated.name}"`,
+      color: 'positive',
+      position: 'top',
+      icon: 'check_circle',
+    });
+  } catch {
+    $q.notify({
+      message: 'Failed to duplicate policy. Please try again.',
+      color: 'negative',
+      position: 'top',
+      icon: 'error',
+    });
+  }
 }
 
 // Filter functions
