@@ -33,8 +33,12 @@
 
       <!-- Content -->
       <q-card-section class="dialog-content">
-        <!-- Devices Tab -->
-        <template v-if="activeTab === 'devices'">
+        <div v-if="loadingDevices" class="flex flex-center q-pa-md">
+          <q-spinner color="primary" size="32px" />
+        </div>
+        <template v-else>
+          <!-- Devices Tab -->
+          <template v-if="activeTab === 'devices'">
           <label class="input-label">Device</label>
           <q-select
             v-model="selectedDevices"
@@ -65,10 +69,10 @@
               </q-item>
             </template>
           </q-select>
-        </template>
+          </template>
 
-        <!-- Groups Tab -->
-        <template v-if="activeTab === 'groups'">
+          <!-- Groups Tab -->
+          <template v-if="activeTab === 'groups'">
           <label class="input-label">Device Group</label>
           <q-list class="groups-list">
             <q-item
@@ -92,6 +96,7 @@
               </q-item-section>
             </q-item>
           </q-list>
+          </template>
         </template>
       </q-card-section>
 
@@ -117,8 +122,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import { mockDevices, mockDeviceGroups } from '../../mocks/policiesMockData';
+import { ref, computed, watch, onMounted } from 'vue';
+import type { Device, DeviceGroup } from '../../types/policies';
+import { fetchDevices, fetchDeviceGroups } from '@/api/policies';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -126,16 +132,29 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void;
-  (e: 'assign', deviceIds: string[]): void;
+  (e: 'assign', deviceIds: number[]): void;
 }>();
 
 // Form state
 const activeTab = ref('devices');
-const selectedDevices = ref<string[]>([]);
+const selectedDevices = ref<number[]>([]);
 const selectedGroups = ref<string[]>([]);
+const availableDevices = ref<Device[]>([]);
+const deviceGroups = ref<DeviceGroup[]>([]);
+const loadingDevices = ref(false);
 
-const availableDevices = mockDevices;
-const deviceGroups = mockDeviceGroups;
+onMounted(async () => {
+  loadingDevices.value = true;
+  try {
+    const [devs, groups] = await Promise.all([fetchDevices(), fetchDeviceGroups()]);
+    availableDevices.value = devs;
+    deviceGroups.value = groups;
+  } catch (err) {
+    console.error('[AssignDeviceDialog] failed to load devices:', err);
+  } finally {
+    loadingDevices.value = false;
+  }
+});
 
 const canAssign = computed(() => {
   if (activeTab.value === 'devices') {
@@ -173,15 +192,14 @@ function close() {
 function assign() {
   if (!canAssign.value) return;
 
-  let deviceIds: string[] = [];
+  let deviceIds: number[] = [];
 
   if (activeTab.value === 'devices') {
     deviceIds = [...selectedDevices.value];
   } else {
-    // For groups, we'd normally fetch the device IDs from the backend
-    // For mock data, we'll just assign all devices for selected groups
+    // For groups - assign all devices from selected groups
     if (selectedGroups.value.length > 0) {
-      deviceIds = availableDevices.map(device => device.id);
+      deviceIds = availableDevices.value.map(device => device.id);
     }
   }
 

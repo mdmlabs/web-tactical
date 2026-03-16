@@ -59,6 +59,9 @@ export function usePolicies() {
 
   async function createPolicy(name: string, platform: Platform = "windows"): Promise<Policy> {
     const newPolicy = await createPolicyApi({ name, platform });
+    if (!newPolicy?.id || newPolicy.id === "undefined") {
+      throw new Error(`Server returned invalid policy: missing id`);
+    }
     policies.value.unshift(newPolicy);
     totalCount.value++;
     return newPolicy;

@@ -58,7 +58,7 @@ export interface Policy {
   scripts: PolicyScript[];
   resources: PolicyResource[];
   applicationControl?: ApplicationControlConfig;
-  assignedDevices: string[];
+  assignedDevices: number[];
 }
 
 export interface PolicyListResponse {
@@ -79,19 +79,19 @@ export interface UpdatePolicyRequest {
   scripts?: PolicyScript[];
   resources?: PolicyResource[];
   applicationControl?: ApplicationControlConfig;
-  assignedDevices?: string[];
+  assignedDevices?: number[];
 }
 
 export interface AssignDevicesRequest {
-  deviceIds: string[];
+  deviceIds: number[];
 }
 
 export interface UnassignDeviceRequest {
-  deviceId: string;
+  deviceId: number;
 }
 
 export interface Device {
-  id: string;
+  id: number;
   name: string;
   segment: string;
   battery: number;

@@ -4,6 +4,8 @@ import type {
   PolicyApp,
   PolicyScript,
   PolicyResource,
+  Device,
+  DeviceGroup,
   CreatePolicyRequest,
   PolicyListResponse,
 } from "@/policies/types/policies";
@@ -62,7 +64,7 @@ function mapPolicyFromApi(data: Record<string, unknown>): Policy {
         }
       : { tokens: [] },
     assignedDevices: Array.isArray(data.assigned_devices)
-      ? data.assigned_devices.map(String)
+      ? data.assigned_devices.map(Number)
       : [],
   };
 }
@@ -144,6 +146,7 @@ export async function createPolicy(
   payload: CreatePolicyRequest,
 ): Promise<Policy> {
   const { data } = await axios.post(`${baseUrl}/`, payload);
+  console.log('[policies.ts] createPolicy response:', data);
   return mapPolicyFromApi(data);
 }
 
@@ -280,30 +283,56 @@ export async function removePolicyResource(
 // Assign devices to policy
 export async function assignDevices(
   policyId: string,
-  deviceIds: string[],
-): Promise<{ assignedDevices: string[]; deviceCount: number }> {
+  deviceIds: number[],
+): Promise<{ assignedDevices: number[]; deviceCount: number }> {
   const { data } = await axios.post(`${baseUrl}/${policyId}/assign/`, {
     device_ids: deviceIds,
   });
   return {
     assignedDevices: Array.isArray(data.assigned_devices)
-      ? data.assigned_devices.map(String)
+      ? data.assigned_devices.map(Number)
       : [],
     deviceCount: Number(data.device_count),
   };
 }
 
+// List devices available for assignment
+export async function fetchDevices(): Promise<Device[]> {
+  const { data } = await axios.get("/devices/");
+  const list = Array.isArray(data) ? data : (data.results ?? []);
+  return list.map((d: Record<string, unknown>) => ({
+    id: Number(d.id),
+    name: String(d.name),
+    segment: String(d.segment),
+    battery: Number(d.battery),
+    employee: String(d.employee),
+    policiesCount: Number(d.policies_count),
+    updated: String(d.updated),
+  }));
+}
+
+// List device groups
+export async function fetchDeviceGroups(): Promise<DeviceGroup[]> {
+  const { data } = await axios.get("/device-groups/");
+  const list = Array.isArray(data) ? data : (data.results ?? []);
+  return list.map((g: Record<string, unknown>) => ({
+    id: String(g.id),
+    name: String(g.name),
+    deviceCount: Number(g.device_count),
+  }));
+}
+
 // Unassign device from policy
 export async function unassignDevice(
   policyId: string,
-  deviceId: string,
-): Promise<{ assignedDevices: string[]; deviceCount: number }> {
+  deviceId: number,
+): Promise<{ assignedDevices: number[]; deviceCount: number }> {
   const { data } = await axios.post(`${baseUrl}/${policyId}/unassign/`, {
     device_id: deviceId,
   });
   return {
     assignedDevices: Array.isArray(data.assigned_devices)
-      ? data.assigned_devices.map(String)
+      ? data.assigned_devices.map(Number)
       : [],
     deviceCount: Number(data.device_count),
   };
