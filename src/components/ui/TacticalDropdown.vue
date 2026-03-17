@@ -2,6 +2,9 @@
   <q-select
     dense
     options-dense
+    :virtual-scroll-item-size="28"
+    :virtual-scroll-slice-size="5"
+    popup-content-class="tactical-dropdown-popup"
     @update:model-value="(value) => $emit('update:modelValue', value)"
     :options="filtered ? filteredOptions : options"
     :model-value="modelValue"

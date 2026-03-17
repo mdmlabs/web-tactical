@@ -2,9 +2,11 @@ import { ref, computed, watch } from "vue";
 import type { Policy, PolicyApp, PolicyScript, PolicyResource, Device } from "../types/policies";
 import {
   fetchPolicy as fetchPolicyApi,
-  assignDevices as assignDevicesApi,
+  // assignDevices as assignDevicesApi,  // TODO: will be re-enabled later
   unassignDevice as unassignDeviceApi,
   updatePolicy as updatePolicyApi,
+  fetchDevices,
+  deployPolicy as deployPolicyApi,
 } from "@/api/policies";
 
 export function usePolicyDetail(policyId: string) {
@@ -14,6 +16,9 @@ export function usePolicyDetail(policyId: string) {
   const hasChanges = ref(false);
   const activeSection = ref("summary");
   const assignedDeviceObjects = ref<Device[]>([]);
+  const lastDeliveryJobs = ref<number[]>([]);
+  const deployLoading = ref(false);
+  const deployError = ref<string | null>(null);
 
   // Assigned devices (Device objects, not just IDs)
   const assignedDevices = computed(() => assignedDeviceObjects.value);
@@ -24,13 +29,31 @@ export function usePolicyDetail(policyId: string) {
   const resourceCount = computed(() => policy.value?.resources.length ?? 0);
   const applicationControlCount = computed(() => policy.value?.applicationControl?.tokens.length ?? 0);
 
+  // Load all agents once and keep for lookup
+  const allAgents = ref<Device[]>([]);
+
+  async function loadAllAgents() {
+    if (allAgents.value.length === 0) {
+      allAgents.value = await fetchDevices();
+    }
+  }
+
+  // Build Device objects from assigned IDs
+  function syncAssignedDeviceObjects(ids: number[]) {
+    assignedDeviceObjects.value = ids
+      .map(id => allAgents.value.find(a => a.id === id))
+      .filter((d): d is Device => d !== undefined);
+  }
+
   // Load policy from API
   async function loadPolicy() {
     loading.value = true;
     try {
+      await loadAllAgents();
       const found = await fetchPolicyApi(policyId);
       originalPolicy.value = JSON.parse(JSON.stringify(found));
       policy.value = JSON.parse(JSON.stringify(found));
+      syncAssignedDeviceObjects(found.assignedDevices);
     } catch (err) {
       console.error('[usePolicyDetail] loadPolicy error:', err);
     } finally {
@@ -134,16 +157,42 @@ export function usePolicyDetail(policyId: string) {
     }
   }
 
-  // Assign devices via API
-  async function assignDevices(deviceIds: number[]) {
+  // TODO: assignDevices - will be re-enabled later
+  // async function assignDevices(deviceIds: number[]) {
+  //   if (policy.value) {
+  //     try {
+  //       const result = await assignDevicesApi(policy.value.id, deviceIds);
+  //       policy.value.assignedDevices = result.assignedDevices;
+  //       policy.value.deviceCount = result.deviceCount;
+  //       syncAssignedDeviceObjects(result.assignedDevices);
+  //       return result;
+  //     } catch (err) {
+  //       console.error('[usePolicyDetail] assignDevices error:', err);
+  //       throw err;
+  //     }
+  //   }
+  // }
+
+  // Deploy policy to devices - assigns devices AND creates delivery jobs for all resources
+  async function deployToDevices(deviceIds: number[]) {
     if (policy.value) {
       try {
-        const result = await assignDevicesApi(policy.value.id, deviceIds);
+        deployLoading.value = true;
+        deployError.value = null;
+
+        const result = await deployPolicyApi(policy.value.id, deviceIds);
         policy.value.assignedDevices = result.assignedDevices;
         policy.value.deviceCount = result.deviceCount;
+        syncAssignedDeviceObjects(result.assignedDevices);
+        lastDeliveryJobs.value = result.deliveryJobsCreated;
+
+        return result;
       } catch (err) {
-        console.error('[usePolicyDetail] assignDevices error:', err);
+        console.error('[usePolicyDetail] deployToDevices error:', err);
+        deployError.value = 'Failed to deploy policy';
         throw err;
+      } finally {
+        deployLoading.value = false;
       }
     }
   }
@@ -155,6 +204,7 @@ export function usePolicyDetail(policyId: string) {
         const result = await unassignDeviceApi(policy.value.id, deviceId);
         policy.value.assignedDevices = result.assignedDevices;
         policy.value.deviceCount = result.deviceCount;
+        syncAssignedDeviceObjects(result.assignedDevices);
       } catch (err) {
         console.error('[usePolicyDetail] unassignDevice error:', err);
         throw err;
@@ -207,6 +257,9 @@ export function usePolicyDetail(policyId: string) {
     scriptCount,
     resourceCount,
     applicationControlCount,
+    lastDeliveryJobs,
+    deployLoading,
+    deployError,
     saveChanges,
     discardChanges,
     updateName,
@@ -217,7 +270,8 @@ export function usePolicyDetail(policyId: string) {
     removeScript,
     addResource,
     removeResource,
-    assignDevices,
+    // assignDevices,  // TODO: will be re-enabled later
+    deployToDevices,
     unassignDevice,
     updateApplicationControl,
     setActiveSection,

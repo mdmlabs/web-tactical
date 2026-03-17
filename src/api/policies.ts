@@ -298,16 +298,16 @@ export async function assignDevices(
 
 // List devices available for assignment
 export async function fetchDevices(): Promise<Device[]> {
-  const { data } = await axios.get("/devices/");
+  const { data } = await axios.get("/agents/", { params: { detail: false } });
   const list = Array.isArray(data) ? data : (data.results ?? []);
   return list.map((d: Record<string, unknown>) => ({
     id: Number(d.id),
-    name: String(d.name),
-    segment: String(d.segment),
-    battery: Number(d.battery),
-    employee: String(d.employee),
-    policiesCount: Number(d.policies_count),
-    updated: String(d.updated),
+    name: String(d.hostname),
+    segment: String(d.client),
+    battery: 0,
+    employee: String(d.agent_id ?? ''),
+    policiesCount: 0,
+    updated: '',
   }));
 }
 
@@ -335,5 +335,28 @@ export async function unassignDevice(
       ? data.assigned_devices.map(Number)
       : [],
     deviceCount: Number(data.device_count),
+  };
+}
+
+// Deploy policy to devices - assigns devices and creates delivery jobs for all resources
+export async function deployPolicy(
+  policyId: string,
+  deviceIds: number[],
+): Promise<{
+  assignedDevices: number[];
+  deviceCount: number;
+  deliveryJobsCreated: number[];
+}> {
+  const { data } = await axios.post(`${baseUrl}/${policyId}/deploy/`, {
+    device_ids: deviceIds,
+  });
+  return {
+    assignedDevices: Array.isArray(data.assigned_devices)
+      ? data.assigned_devices.map(Number)
+      : [],
+    deviceCount: Number(data.device_count),
+    deliveryJobsCreated: Array.isArray(data.delivery_jobs_created)
+      ? data.delivery_jobs_created.map(Number)
+      : [],
   };
 }
