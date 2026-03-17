@@ -185,7 +185,7 @@ npm
                     <div class="text-h6 q-mb-md">System information</div>
                     <q-card v-if="agentDetails?.nodeInfo">
                       <q-card-section>
-                        <q-scroll-area style="height: 600px">
+                        <q-scroll-area style="height: 800px">
                           <q-list>
                             <q-item>
                               <q-item-section>
@@ -424,6 +424,7 @@ npm
                         :rows="usersList"
                         :columns="usersColumns"
                         row-key="sid"
+                        :pagination="{ rowsPerPage: 20 }"
                         :loading="usersLoading"
                         flat
                         bordered
@@ -607,6 +608,19 @@ npm
                                   :label="props.row.type"
                                 />
                               </template>
+                              <template v-else-if="col.name === 'description'">
+                                <q-tooltip v-if="col.value">
+                                  {{ col.value }}
+                                </q-tooltip>
+                                <span>
+                                  {{
+                                    typeof col.value === "string" &&
+                                    col.value.length > 80
+                                      ? col.value.slice(0, 80) + "..."
+                                      : col.value ?? ""
+                                  }}
+                                </span>
+                              </template>
                               <template v-else>
                                 {{ col.value }}
                               </template>
@@ -637,6 +651,7 @@ npm
                         :rows="groupsList"
                         :columns="groupsColumns"
                         row-key="sid"
+                        :pagination="{ rowsPerPage: 20 }"
                         :loading="groupsLoading"
                         flat
                         bordered
@@ -702,7 +717,22 @@ npm
                               :key="col.name"
                               :props="props"
                             >
-                              {{ col.value }}
+                              <template v-if="col.name === 'description'">
+                                <q-tooltip v-if="col.value">
+                                  {{ col.value }}
+                                </q-tooltip>
+                                <span>
+                                  {{
+                                    typeof col.value === "string" &&
+                                    col.value.length > 80
+                                      ? col.value.slice(0, 80) + "..."
+                                      : col.value ?? ""
+                                  }}
+                                </span>
+                              </template>
+                              <template v-else>
+                                {{ col.value }}
+                              </template>
                             </q-td>
                           </q-tr>
                         </template>
@@ -731,9 +761,6 @@ npm
                   no-caps
                 >
                   <q-tab name="status" icon="info" label="General status" />
-                  <q-tab name="errors" icon="error" label="Policy errors" />
-                  <q-tab name="overview" icon="visibility" label="Review" />
-                  <q-tab name="metrics" icon="bar_chart" label="Metrics" />
                 </q-tabs>
                 <q-separator />
               </div>
@@ -797,115 +824,8 @@ npm
                     </q-card-section>
                   </q-card>
                 </q-tab-panel>
-
-                <!-- tabs "events" and "agents" were removed -->
-
-                <q-tab-panel name="errors" class="q-pa-md">
-                  <div class="text-h6 q-mb-md">Policy errors</div>
-                  <q-card>
-                    <q-card-section>
-                      <div class="text-center q-pa-lg text-grey-6">
-                        <q-icon
-                          name="check_circle"
-                          size="3em"
-                          class="q-mb-md"
-                        />
-                        <div>No errors were found</div>
-                        <div class="text-caption q-mt-sm">
-                          All policies are applied correctly
-                        </div>
-                      </div>
-                    </q-card-section>
-                  </q-card>
-                </q-tab-panel>
-
-                <q-tab-panel name="overview" class="q-pa-md">
-                  <div class="text-h6 q-mb-md">Review</div>
-                  <div class="row q-gutter-md">
-                    <q-card class="col-6">
-                      <q-card-section>
-                        <div class="text-subtitle1 q-mb-sm">Devices</div>
-                        <div class="text-h4">{{ agentsList.length }}</div>
-                        <div class="text-caption text-grey-7">
-                          Total devices in the system
-                        </div>
-                      </q-card-section>
-                    </q-card>
-                    <q-card class="col-6">
-                      <q-card-section>
-                        <div class="text-subtitle1 q-mb-sm">Policies</div>
-                        <div class="text-h4">
-                          {{ policiesStore.policies.value.length }}
-                        </div>
-                        <div class="text-caption text-grey-7">
-                          Available policies
-                        </div>
-                      </q-card-section>
-                    </q-card>
-                  </div>
-                  <q-card class="q-mt-md">
-                    <q-card-section>
-                      <div class="text-subtitle1 q-mb-md">Quick access</div>
-                      <div class="row q-gutter-sm">
-                        <q-btn
-                          color="primary"
-                          label="Policy Library"
-                          icon="library_books"
-                          @click="mainTab = 'library'"
-                        />
-                        <q-btn
-                          color="secondary"
-                          label="Windows Policies"
-                          icon="windows"
-                          @click="mainTab = 'windows'"
-                        />
-                      </div>
-                    </q-card-section>
-                  </q-card>
-                </q-tab-panel>
-
-                <q-tab-panel name="metrics" class="q-pa-md">
-                  <div class="text-h6 q-mb-md">Metrics</div>
-                  <div class="row q-gutter-md">
-                    <q-card class="col-12">
-                      <q-card-section>
-                        <div class="text-subtitle1 q-mb-md">
-                          Policy application statistics
-                        </div>
-                        <q-list>
-                          <q-item>
-                            <q-item-section>
-                              <q-item-label>Policy applied</q-item-label>
-                              <q-item-label caption
-                                >Uploading data...</q-item-label
-                              >
-                            </q-item-section>
-                          </q-item>
-                          <q-item>
-                            <q-item-section>
-                              <q-item-label
-                                >Successful applications</q-item-label
-                              >
-                              <q-item-label caption
-                                >Uploading data...</q-item-label
-                              >
-                            </q-item-section>
-                          </q-item>
-                          <q-item>
-                            <q-item-section>
-                              <q-item-label>Application errors</q-item-label>
-                              <q-item-label caption>0</q-item-label>
-                            </q-item-section>
-                          </q-item>
-                        </q-list>
-                      </q-card-section>
-                    </q-card>
-                  </div>
-                </q-tab-panel>
               </q-tab-panels>
             </div>
-
-            <!-- network tab removed -->
 
             <div
               v-else-if="mainTab === 'collections'"
@@ -3382,13 +3302,6 @@ const usersColumns: QTableColumn[] = [
     sortable: true,
   },
   {
-    name: "accountExpirationDate",
-    label: "Account Expires",
-    align: "left",
-    field: "accountExpirationDate",
-    sortable: true,
-  },
-  {
     name: "lastLogon",
     label: "Last Logon",
     align: "left",
@@ -3403,75 +3316,13 @@ const usersColumns: QTableColumn[] = [
     sortable: true,
   },
   {
-    name: "displayName",
-    label: "Display Name",
-    align: "left",
-    field: "displayName",
-    sortable: true,
-  },
-  {
     name: "description",
     label: "Description",
     align: "left",
     field: "description",
     sortable: true,
   },
-  {
-    name: "givenName",
-    label: "Name",
-    align: "left",
-    field: "givenName",
-    sortable: true,
-  },
-  {
-    name: "middleName",
-    label: "Middle Name",
-    align: "left",
-    field: "middleName",
-    sortable: true,
-  },
-  {
-    name: "surname",
-    label: "Surname",
-    align: "left",
-    field: "surname",
-    sortable: true,
-  },
-  {
-    name: "email",
-    label: "Email",
-    align: "left",
-    field: "email",
-    sortable: true,
-  },
-  {
-    name: "telephoneNumber",
-    label: "Phone",
-    align: "left",
-    field: "telephoneNumber",
-    sortable: true,
-  },
-  {
-    name: "homeDirectory",
-    label: "Home Dir",
-    align: "left",
-    field: "homeDirectory",
-    sortable: true,
-  },
-  {
-    name: "scriptPath",
-    label: "Script Path",
-    align: "left",
-    field: "scriptPath",
-    sortable: true,
-  },
-  {
-    name: "employeeId",
-    label: "Employee ID",
-    align: "left",
-    field: "employeeId",
-    sortable: true,
-  },
+
 ];
 
 const policyColumns: QTableColumn[] = [

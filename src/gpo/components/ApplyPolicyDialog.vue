@@ -41,16 +41,30 @@
                 <q-card flat bordered style="height: calc(100vh - 250px)">
                   <q-card-section>
                     <div class="text-subtitle2 q-mb-md">Categories</div>
+                    <q-input
+                      v-model="categorySearch"
+                      dense
+                      outlined
+                      clearable
+                      placeholder="Search categories..."
+                      :input-style="{ paddingLeft: '6px' }"
+                      @clear="categorySearch = ''"
+                      class="q-mb-sm"
+                    >
+                      <template v-slot:prepend>
+                        <q-icon name="search" size="xs" />
+                      </template>
+                    </q-input>
                     <div v-if="loadingCategories" class="text-center q-pa-lg">
                       <q-spinner color="primary" size="2em" />
                       <div class="q-mt-sm">Loading categories...</div>
                     </div>
                     <q-scroll-area
-                      v-else-if="categories.length > 0"
+                      v-else-if="filteredCategories.length > 0"
                       :style="{ height: 'calc(100vh - 330px)' }"
                     >
                       <q-tree
-                        :nodes="categories"
+                        :nodes="filteredCategories"
                         node-key="id"
                         v-model:selected="selectedCategoryId"
                         @update:selected="onCategorySelected"
@@ -83,19 +97,21 @@
               <div class="col-3">
                 <q-card flat bordered style="height: calc(100vh - 250px)">
                   <q-card-section class="policy-list-section">
-                    <div class="text-subtitle2 q-mb-md">Policies</div>
+                    <div class="row items-center q-mb-sm">
+                      <div class="text-subtitle2">Policies</div>
+                    </div>
                     <div v-if="loadingPolicies" class="text-center q-pa-lg">
                       <q-spinner color="primary" size="2em" />
                       <div class="q-mt-sm">Loading policies...</div>
                     </div>
                     <q-scroll-area
-                      v-else-if="selectedCategoryPolicies.length > 0"
+                      v-else-if="filteredSelectedCategoryPolicies.length > 0"
                       class="policy-list-scroll"
                       :style="{ height: 'calc(100vh - 320px)' }"
                     >
                       <q-list separator>
                         <q-item
-                          v-for="policy in selectedCategoryPolicies"
+                          v-for="policy in filteredSelectedCategoryPolicies"
                           :key="policy.id"
                           clickable
                           v-ripple
@@ -103,17 +119,6 @@
                           @click="selectPolicy(policy)"
                           class="policy-item"
                         >
-                          <q-item-section avatar>
-                            <q-checkbox
-                              :model-value="
-                                selectedPolicies[policy.id] || false
-                              "
-                              @update:model-value="
-                                togglePolicySelection(policy.id)
-                              "
-                              @click.stop
-                            />
-                          </q-item-section>
                           <q-item-section>
                             <q-item-label>{{
                               policy.displayName || policy.name
@@ -121,24 +126,6 @@
                           </q-item-section>
                         </q-item>
                       </q-list>
-                      <div
-                        v-if="
-                          Object.keys(selectedPolicies).filter(
-                            (id) => selectedPolicies[id],
-                          ).length > 0
-                        "
-                        class="q-pa-sm q-mt-sm bg-primary text-white rounded-borders"
-                      >
-                        <div class="text-caption">
-                          Selected:
-                          {{
-                            Object.keys(selectedPolicies).filter(
-                              (id) => selectedPolicies[id],
-                            ).length
-                          }}
-                          policy(ies)
-                        </div>
-                      </div>
                     </q-scroll-area>
                     <div
                       v-else-if="selectedCategory"
@@ -668,7 +655,7 @@
           <q-btn
             flat
             icon="check_circle"
-            label="Apply Selected Policy"
+            label=""
             color="primary"
             @click="applySelectedPolicy"
             :loading="applying"
@@ -677,7 +664,7 @@
           <q-btn
             flat
             icon="remove_circle_outline"
-            label="Remove Policy"
+            label=""
             color="negative"
             @click="removePolicy"
             :loading="applying"
@@ -712,6 +699,8 @@ interface User {
   sid: string;
   type: string;
 }
+
+type PolicyRow = GPOPolicy & { scope?: number | string | null | undefined };
 
 interface CategoryNode {
   id: string;
@@ -786,12 +775,11 @@ const categories = ref<CategoryNode[]>([]);
 const selectedCategoryId = ref<string | null>(null);
 const selectedCategory = ref<{ id: string; categoryName: string } | null>(null);
 const loadingPolicies = ref(false);
-const selectedCategoryPolicies = ref<GPOPolicy[]>([]);
-const selectedPolicy = ref<GPOPolicy | null>(null);
+const selectedCategoryPolicies = ref<PolicyRow[]>([]);
+const selectedPolicy = ref<PolicyRow | null>(null);
 const loadingPolicyDetails = ref(false);
 const policyDetailsElements = ref<PolicyDetailsElement[]>([]);
 const policySettingsValues = ref<Record<string, unknown>>({});
-const selectedPolicies = ref<Record<string, boolean>>({});
 const policyDetails = ref<Record<string, PolicyDetail>>({});
 const policyDetailsElementsMap = ref<Record<string, PolicyDetailsElement[]>>(
   {},
@@ -800,6 +788,59 @@ const selectedUsers = ref<string[]>([]);
 const applying = ref(false);
 const settingsTab = ref("settings");
 const presentationElements = ref<PolicyPresentationElement[]>([]);
+const categorySearch = ref("");
+
+function normalizeScope(raw: unknown): number | null {
+  if (raw === undefined || raw === null) return null;
+  if (typeof raw === "number") return Number.isFinite(raw) ? Math.floor(raw) : null;
+  const s = String(raw).trim().toUpperCase();
+  if (!s) return null;
+  if (s === "POLICY_SCOPE_USER" || s === "USER" || s === "1") return 1;
+  if (s === "POLICY_SCOPE_MACHINE" || s === "MACHINE" || s === "COMPUTER" || s === "2") return 2;
+  const n = Number.parseInt(s, 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+const filteredSelectedCategoryPolicies = computed(() => {
+  const list = selectedCategoryPolicies.value.filter((p) => {
+    const scope = normalizeScope(p.scope);
+    return (
+      scope === null || scope === operator_pb.PolicyScope.POLICY_SCOPE_USER
+    );
+  });
+  return list;
+});
+
+function filterCategoryTree(nodes: CategoryNode[], query: string): CategoryNode[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return nodes;
+
+  const walk = (list: CategoryNode[]): CategoryNode[] => {
+    const out: CategoryNode[] = [];
+    for (const n of list) {
+      const label = (n.label || "").toLowerCase();
+      const name = (n.categoryName || "").toLowerCase();
+      const selfMatch = label.includes(q) || name.includes(q);
+      const children = Array.isArray(n.children) ? n.children : [];
+      const filteredChildren = walk(children);
+
+      if (selfMatch) {
+        out.push({ ...n, children });
+        continue;
+      }
+      if (filteredChildren.length > 0) {
+        out.push({ ...n, children: filteredChildren });
+      }
+    }
+    return out;
+  };
+
+  return walk(nodes);
+}
+
+const filteredCategories = computed(() =>
+  filterCategoryTree(categories.value, categorySearch.value),
+);
 watch(dialogVisible, (newVal) => {
   if (newVal && props.agent) {
     loadCategories();
@@ -810,7 +851,6 @@ watch(dialogVisible, (newVal) => {
       dialogTab.value = "users";
     }
   } else {
-    selectedPolicies.value = {};
     policyDetails.value = {};
     policyDetailsElementsMap.value = {};
     selectedUsers.value = [];
@@ -964,7 +1004,7 @@ async function loadPoliciesByCategory(categoryName: string) {
     const policiesList =
       (responseObj as { policiesList?: unknown[] }).policiesList || [];
 
-    const policies: GPOPolicy[] = [];
+    const policies: PolicyRow[] = [];
     for (const policy of policiesList) {
       if (policy && typeof policy === "object") {
         const p = policy as {
@@ -974,6 +1014,7 @@ async function loadPoliciesByCategory(categoryName: string) {
           displayName?: string;
           explain_text?: string;
           explainText?: string;
+          scope?: number | string;
         };
 
         const explainText = p.explain_text || p.explainText;
@@ -998,6 +1039,7 @@ async function loadPoliciesByCategory(categoryName: string) {
           path: `CN={${p.id}},CN=Policies,CN=System`,
           enabled: true,
           description: description,
+          scope: p.scope,
         });
       }
     }
@@ -1010,26 +1052,12 @@ async function loadPoliciesByCategory(categoryName: string) {
   }
 }
 
-function selectPolicy(policy: GPOPolicy) {
+function selectPolicy(policy: PolicyRow) {
   selectedPolicy.value = policy;
   loadPolicyDetails(policy);
 }
 
-function togglePolicySelection(policyId: string) {
-  if (!selectedPolicies.value[policyId]) {
-    selectedPolicies.value[policyId] = true;
-    const policy = selectedCategoryPolicies.value.find(
-      (p) => p.id === policyId,
-    );
-    if (policy && !policyDetails.value[policyId]) {
-      loadPolicyDetails(policy);
-    }
-  } else {
-    selectedPolicies.value[policyId] = false;
-  }
-}
-
-async function loadPolicyDetails(policy: GPOPolicy) {
+async function loadPolicyDetails(policy: PolicyRow) {
   loadingPolicyDetails.value = true;
   policyDetailsElements.value = [];
   policySettingsValues.value = {};
@@ -1457,11 +1485,6 @@ async function loadPolicyDetails(policy: GPOPolicy) {
           policyDetails.value[policyId].hash = policyHash;
         }
 
-        if (selectedPolicy.value && selectedPolicy.value.id === policyId) {
-          if (!selectedPolicies.value[policyId]) {
-            selectedPolicies.value[policyId] = true;
-          }
-        }
       }
     }
 
@@ -1735,11 +1758,6 @@ async function loadPolicyDetails(policy: GPOPolicy) {
             policyDetails.value[policyId].hash = policyHash;
           }
 
-          if (selectedPolicy.value && selectedPolicy.value.id === policyId) {
-            if (!selectedPolicies.value[policyId]) {
-              selectedPolicies.value[policyId] = true;
-            }
-          }
         }
       }
     }

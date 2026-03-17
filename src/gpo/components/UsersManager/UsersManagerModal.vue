@@ -601,28 +601,42 @@ async function handleRemoveUserAgent(agentId: string) {
     userDetail.value?.info?.samaccountname ??
     userDetail.value?.userid;
   if (!userId) return;
-  removingAgentId.value = agentId;
-  try {
-    const target = createAgentTarget(agentId);
-    const res = await userControlClient.removeUserAgent(target, userId);
-    if (res.status === 0) {
-      $q.notify({ type: "positive", message: "Agent unlinked from user" });
-      await loadUserAgents();
-    } else {
+
+  const agent = (userAgents.value ?? []).find((a) => a.id === agentId);
+  const agentLabel = agent?.name && agent.name !== agentId
+    ? `${agent.name} (${agentId})`
+    : agentId;
+
+  $q.dialog({
+    title: "Remove agent",
+    message: `Do you really want to unlink agent «${agentLabel}» from this user?`,
+    cancel: true,
+    persistent: true,
+    color: "negative",
+  }).onOk(async () => {
+    removingAgentId.value = agentId;
+    try {
+      const target = createAgentTarget(agentId);
+      const res = await userControlClient.removeUserAgent(target, userId);
+      if (res.status === 0) {
+        $q.notify({ type: "positive", message: "Agent unlinked from user" });
+        await loadUserAgents();
+      } else {
+        $q.notify({
+          type: "negative",
+          message: res.errorMessage ?? "Failed to unlink agent from user",
+        });
+      }
+    } catch (err) {
       $q.notify({
         type: "negative",
-        message: res.errorMessage ?? "Failed to unlink agent from user",
+        message:
+          err instanceof Error ? err.message : "Failed to unlink agent from user",
       });
+    } finally {
+      removingAgentId.value = null;
     }
-  } catch (err) {
-    $q.notify({
-      type: "negative",
-      message:
-        err instanceof Error ? err.message : "Failed to unlink agent from user",
-    });
-  } finally {
-    removingAgentId.value = null;
-  }
+  });
 }
 
 function isUserScope(raw: unknown): boolean {

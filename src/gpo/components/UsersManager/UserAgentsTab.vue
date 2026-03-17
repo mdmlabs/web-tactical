@@ -29,7 +29,7 @@
         @click="$emit('open-agent-dashboard', agent.id)"
       >
         <q-item-section avatar>
-          <q-icon name="dns" color="primary" />
+          <q-icon name="laptop" color="primary" />
         </q-item-section>
         <q-item-section>
           <q-item-label>{{ agent.name }}</q-item-label>
