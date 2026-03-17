@@ -45,7 +45,7 @@
 
     <div v-if="loading" class="column items-center justify-center q-pa-xl">
       <q-spinner color="primary" size="2em" />
-      <div class="q-mt-sm text-caption">Loading categories...</div>
+      <div class="q-mt-sm text-caption">Loading categories....</div>
     </div>
 
     <div
