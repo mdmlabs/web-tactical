@@ -4,6 +4,8 @@ import type {
   PolicyApp,
   PolicyScript,
   PolicyResource,
+  Device,
+  DeviceGroup,
   CreatePolicyRequest,
   PolicyListResponse,
 } from "@/policies/types/policies";
@@ -25,7 +27,7 @@ function mapPolicyFromApi(data: Record<string, unknown>): Policy {
     apps: Array.isArray(data.apps)
       ? data.apps.map((app: Record<string, unknown>) => ({
           id: String(app.id),
-          resourceId: String(app.resource_id),
+          resourceId: Number(app.resource_id),
           name: String(app.name),
           version: String(app.version),
           silentInstall: Boolean(app.silent_install),
@@ -38,7 +40,7 @@ function mapPolicyFromApi(data: Record<string, unknown>): Policy {
     scripts: Array.isArray(data.scripts)
       ? data.scripts.map((script: Record<string, unknown>) => ({
           id: String(script.id),
-          resourceId: String(script.resource_id),
+          resourceId: Number(script.resource_id),
           name: String(script.name),
           timeout: Number(script.timeout),
           runAsUser: Boolean(script.run_as_user),
@@ -47,7 +49,7 @@ function mapPolicyFromApi(data: Record<string, unknown>): Policy {
     resources: Array.isArray(data.resources)
       ? data.resources.map((res: Record<string, unknown>) => ({
           id: String(res.id),
-          resourceId: String(res.resource_id),
+          resourceId: Number(res.resource_id),
           name: String(res.name),
           type: res.type as "book" | "certificate" | "image",
           scope: res.scope as "primary_user" | "all_users" | "system",
@@ -65,7 +67,7 @@ function mapPolicyFromApi(data: Record<string, unknown>): Policy {
         }
       : { tokens: [] },
     assignedDevices: Array.isArray(data.assigned_devices)
-      ? data.assigned_devices.map(String)
+      ? data.assigned_devices.map(Number)
       : [],
   };
 }
@@ -79,7 +81,7 @@ function mapPolicyToApi(policy: Partial<Policy>): Record<string, unknown> {
   if (policy.segment !== undefined) mapped.segment = policy.segment;
   if (policy.apps !== undefined) {
     mapped.apps = policy.apps.map((app) => ({
-      id: app.id,
+      id: app.id.startsWith('app-') ? undefined : app.id,
       resource_id: app.resourceId,
       name: app.name,
       version: app.version,
@@ -92,7 +94,7 @@ function mapPolicyToApi(policy: Partial<Policy>): Record<string, unknown> {
   }
   if (policy.scripts !== undefined) {
     mapped.scripts = policy.scripts.map((script) => ({
-      id: script.id,
+      id: script.id.startsWith('script-') ? undefined : script.id,
       resource_id: script.resourceId,
       name: script.name,
       timeout: script.timeout,
@@ -101,7 +103,7 @@ function mapPolicyToApi(policy: Partial<Policy>): Record<string, unknown> {
   }
   if (policy.resources !== undefined) {
     mapped.resources = policy.resources.map((res) => ({
-      id: res.id,
+      id: res.id.startsWith('resource-') ? undefined : res.id,
       resource_id: res.resourceId,
       name: res.name,
       type: res.type,
@@ -149,6 +151,7 @@ export async function createPolicy(
   payload: CreatePolicyRequest,
 ): Promise<Policy> {
   const { data } = await axios.post(`${baseUrl}/`, payload);
+  console.log('[policies.ts] createPolicy response:', data);
   return mapPolicyFromApi(data);
 }
 
@@ -171,7 +174,7 @@ export async function deletePolicy(id: string): Promise<void> {
 export async function addPolicyApp(
   policyId: string,
   payload: {
-    resourceId: string;
+    resourceId: number;
     silentInstall?: boolean;
     arguments?: string;
     timeout?: number;
@@ -190,7 +193,7 @@ export async function addPolicyApp(
   const { data } = await axios.post(`${baseUrl}/${policyId}/apps/`, apiPayload);
   return {
     id: String(data.id),
-    resourceId: String(data.resource_id),
+    resourceId: Number(data.resource_id),
     name: String(data.name),
     version: String(data.version),
     silentInstall: Boolean(data.silent_install),
@@ -213,7 +216,7 @@ export async function removePolicyApp(
 export async function addPolicyScript(
   policyId: string,
   payload: {
-    resourceId: string;
+    resourceId: number;
     timeout?: number;
     runAsUser?: boolean;
   },
@@ -229,7 +232,7 @@ export async function addPolicyScript(
   );
   return {
     id: String(data.id),
-    resourceId: String(data.resource_id),
+    resourceId: Number(data.resource_id),
     name: String(data.name),
     timeout: Number(data.timeout),
     runAsUser: Boolean(data.run_as_user),
@@ -248,7 +251,7 @@ export async function removePolicyScript(
 export async function addPolicyResource(
   policyId: string,
   payload: {
-    resourceId: string;
+    resourceId: number;
     type: "book" | "certificate" | "image";
     scope: "primary_user" | "all_users" | "system";
     locations: string[];
@@ -266,7 +269,7 @@ export async function addPolicyResource(
   );
   return {
     id: String(data.id),
-    resourceId: String(data.resource_id),
+    resourceId: Number(data.resource_id),
     name: String(data.name),
     type: data.type as "book" | "certificate" | "image",
     scope: data.scope as "primary_user" | "all_users" | "system",
@@ -285,31 +288,80 @@ export async function removePolicyResource(
 // Assign devices to policy
 export async function assignDevices(
   policyId: string,
-  deviceIds: string[],
-): Promise<{ assignedDevices: string[]; deviceCount: number }> {
+  deviceIds: number[],
+): Promise<{ assignedDevices: number[]; deviceCount: number }> {
   const { data } = await axios.post(`${baseUrl}/${policyId}/assign/`, {
     device_ids: deviceIds,
   });
   return {
     assignedDevices: Array.isArray(data.assigned_devices)
-      ? data.assigned_devices.map(String)
+      ? data.assigned_devices.map(Number)
       : [],
     deviceCount: Number(data.device_count),
   };
 }
 
+// List devices available for assignment
+export async function fetchDevices(): Promise<Device[]> {
+  const { data } = await axios.get("/agents/", { params: { detail: false } });
+  const list = Array.isArray(data) ? data : (data.results ?? []);
+  return list.map((d: Record<string, unknown>) => ({
+    id: Number(d.id),
+    name: String(d.hostname),
+    segment: String(d.client),
+    battery: 0,
+    employee: String(d.agent_id ?? ''),
+    policiesCount: 0,
+    updated: '',
+  }));
+}
+
+// List device groups
+export async function fetchDeviceGroups(): Promise<DeviceGroup[]> {
+  const { data } = await axios.get("/device-groups/");
+  const list = Array.isArray(data) ? data : (data.results ?? []);
+  return list.map((g: Record<string, unknown>) => ({
+    id: String(g.id),
+    name: String(g.name),
+    deviceCount: Number(g.device_count),
+  }));
+}
+
 // Unassign device from policy
 export async function unassignDevice(
   policyId: string,
-  deviceId: string,
-): Promise<{ assignedDevices: string[]; deviceCount: number }> {
+  deviceId: number,
+): Promise<{ assignedDevices: number[]; deviceCount: number }> {
   const { data } = await axios.post(`${baseUrl}/${policyId}/unassign/`, {
     device_id: deviceId,
   });
   return {
     assignedDevices: Array.isArray(data.assigned_devices)
-      ? data.assigned_devices.map(String)
+      ? data.assigned_devices.map(Number)
       : [],
     deviceCount: Number(data.device_count),
+  };
+}
+
+// Deploy policy to devices - assigns devices and creates delivery jobs for all resources
+export async function deployPolicy(
+  policyId: string,
+  deviceIds: number[],
+): Promise<{
+  assignedDevices: number[];
+  deviceCount: number;
+  deliveryJobsCreated: number[];
+}> {
+  const { data } = await axios.post(`${baseUrl}/${policyId}/deploy/`, {
+    device_ids: deviceIds,
+  });
+  return {
+    assignedDevices: Array.isArray(data.assigned_devices)
+      ? data.assigned_devices.map(Number)
+      : [],
+    deviceCount: Number(data.device_count),
+    deliveryJobsCreated: Array.isArray(data.delivery_jobs_created)
+      ? data.delivery_jobs_created.map(Number)
+      : [],
   };
 }

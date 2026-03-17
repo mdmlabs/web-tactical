@@ -116,13 +116,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
-import type { PolicyResource, ResourceType, Scope } from "../../types/policies";
-import {
-  mockBookResources,
-  mockImageResources,
-  mockCertificateResources,
-} from "../../mocks/policiesMockData";
+import { ref, computed, watch } from 'vue';
+import { useQuasar } from 'quasar';
+import type { PolicyResource, ResourceType, Scope } from '../../types/policies';
+import { fetchResourceList } from '@/api/resources';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -133,11 +130,19 @@ const emit = defineEmits<{
   (e: "add", resource: PolicyResource): void;
 }>();
 
+const $q = useQuasar();
+
 // Form state
-const resourceType = ref<ResourceType>("book");
-const selectedResource = ref<string | null>(null);
-const scope = ref<Scope>("primary_user");
-const location = ref("");
+const resourceType = ref<ResourceType>('book');
+const selectedResource = ref<number | null>(null);
+const scope = ref<Scope>('primary_user');
+const location = ref('');
+
+// API data
+const bookResources = ref<Array<{ id: number; name: string }>>([]);
+const imageResources = ref<Array<{ id: number; name: string }>>([]);
+const certificateResources = ref<Array<{ id: number; name: string }>>([]); 
+const loading = ref(false);
 
 const scopeOptions = [
   { value: "primary_user", label: "Primary user" },
@@ -155,12 +160,12 @@ const typeDescription = computed(() => typeDescriptions[resourceType.value]);
 
 const currentResources = computed(() => {
   switch (resourceType.value) {
-    case "book":
-      return mockBookResources;
-    case "certificate":
-      return mockCertificateResources;
-    case "image":
-      return mockImageResources;
+    case 'book':
+      return bookResources.value;
+    case 'certificate':
+      return certificateResources.value;
+    case 'image':
+      return imageResources.value;
     default:
       return [];
   }
@@ -172,20 +177,42 @@ const selectedResourceData = computed(() =>
 
 const canAdd = computed(() => selectedResource.value !== null);
 
+// Load resources from API
+async function loadResources() {
+  loading.value = true;
+  try {
+    const [booksData, imagesData, certificatesData] = await Promise.all([
+      fetchResourceList('book'),
+      fetchResourceList('image'),
+      fetchResourceList('certificate'),
+    ]);
+    bookResources.value = Array.isArray(booksData) ? booksData : (booksData?.results ?? []);
+    imageResources.value = Array.isArray(imagesData) ? imagesData : (imagesData?.results ?? []);
+    certificateResources.value = Array.isArray(certificatesData) ? certificatesData : (certificatesData?.results ?? []);
+  } catch (error) {
+    console.error('Failed to load resources:', error);
+    $q.notify({
+      message: 'Failed to load resources',
+      color: 'negative',
+      position: 'top',
+    });
+  } finally {
+    loading.value = false;
+  }
+}
+
 // Reset resource selection when type changes
 watch(resourceType, () => {
   selectedResource.value = null;
 });
 
 // Reset form when dialog opens
-watch(
-  () => props.modelValue,
-  (isOpen) => {
-    if (isOpen) {
-      resetForm();
-    }
-  },
-);
+watch(() => props.modelValue, (isOpen) => {
+  if (isOpen) {
+    resetForm();
+    loadResources();
+  }
+});
 
 function resetForm() {
   resourceType.value = "book";

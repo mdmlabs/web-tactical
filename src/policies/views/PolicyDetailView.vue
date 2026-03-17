@@ -211,6 +211,7 @@
             @assign="showAssignDeviceDialog = true"
             @unassign="unassignDevice"
             @refresh="loadPolicy"
+            @view-jobs="showDeliveryJobsDialog = true"
           />
         </template>
 
@@ -430,13 +431,8 @@
               <template v-slot:body-cell-locations="props">
                 <q-td :props="props">
                   <div class="locations-cell">
-                    <span
-                      v-for="(loc, i) in props.row.locations"
-                      :key="i"
-                      class="location-path"
-                    >
-                      {{ loc
-                      }}{{ i < props.row.locations.length - 1 ? ", " : "" }}
+                    <span v-for="(loc, i) in (props.row.locations as string[])" :key="i" class="location-path">
+                      {{ loc }}{{ i < (props.row.locations as string[]).length - 1 ? ', ' : '' }}
                     </span>
                   </div>
                 </q-td>
@@ -535,8 +531,11 @@
 
     <AssignDeviceDialog
       v-model="showAssignDeviceDialog"
-      @assign="handleAssignDevices"
+      @deploy="handleDeployDevices"
     />
+
+    <!-- Delivery Jobs Dialog -->
+    <DeliveryJobsDialog v-model="showDeliveryJobsDialog" />
   </div>
 </template>
 
@@ -550,6 +549,7 @@ import AddAppDialog from "../components/dialogs/AddAppDialog.vue";
 import AddScriptDialog from "../components/dialogs/AddScriptDialog.vue";
 import AddResourceDialog from "../components/dialogs/AddResourceDialog.vue";
 import AssignDeviceDialog from "../components/dialogs/AssignDeviceDialog.vue";
+import DeliveryJobsDialog from "../components/dialogs/DeliveryJobsDialog.vue";
 import { usePolicyDetail } from "../composables/usePolicyDetail";
 import { SEGMENTS } from "../types/policies";
 import type {
@@ -581,7 +581,8 @@ const {
   removeScript,
   addResource,
   removeResource,
-  assignDevices,
+  // assignDevices,  // TODO: will be re-enabled later
+  deployToDevices,
   unassignDevice: removeDevice,
   setActiveSection,
   loadPolicy,
@@ -595,6 +596,7 @@ const showAddAppDialog = ref(false);
 const showAddScriptDialog = ref(false);
 const showAddResourceDialog = ref(false);
 const showAssignDeviceDialog = ref(false);
+const showDeliveryJobsDialog = ref(false);
 const applicationControlToken = ref("");
 
 const segments = SEGMENTS;
@@ -817,16 +819,59 @@ function handleAddResource(resource: PolicyResource) {
   });
 }
 
-function handleAssignDevices(deviceIds: string[]) {
-  assignDevices(deviceIds);
-  $q.notify({
-    message: `${deviceIds.length} device(s) assigned to policy`,
-    color: "positive",
-    position: "top",
-  });
+// TODO: handleAssignDevices - will be re-enabled later
+// async function handleAssignDevices(deviceIds: number[]) {
+//   try {
+//     await assignDevices(deviceIds);
+//     $q.notify({
+//       message: `${deviceIds.length} device(s) assigned to policy`,
+//       color: "positive",
+//       position: "top",
+//     });
+//   } catch (err) {
+//     $q.notify({
+//       message: "Failed to assign devices",
+//       color: "negative",
+//       position: "top",
+//     });
+//   }
+// }
+
+async function handleDeployDevices(deviceIds: number[]) {
+  try {
+    const result = await deployToDevices(deviceIds);
+
+    if (result) {
+      // Show success notification with delivery jobs count
+      $q.notify({
+        message: `Deployed to ${result.deviceCount} devices, ${result.deliveryJobsCreated.length} delivery jobs created`,
+        color: "positive",
+        position: "top",
+        icon: "send",
+        actions: result.deliveryJobsCreated.length > 0
+          ? [
+              {
+                label: "View Jobs",
+                color: "white",
+                handler: () => {
+                  // Navigate to delivery jobs page
+                  // router.push('/files/delivery');
+                },
+              },
+            ]
+          : [],
+      });
+    }
+  } catch (err) {
+    $q.notify({
+      message: "Failed to deploy policy",
+      color: "negative",
+      position: "top",
+    });
+  }
 }
 
-function unassignDevice(deviceId: string) {
+function unassignDevice(deviceId: number) {
   removeDevice(deviceId);
   $q.notify({
     message: "Device removed from policy",

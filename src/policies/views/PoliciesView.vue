@@ -180,15 +180,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
-import { useRouter } from "vue-router";
-import { useQuasar } from "quasar";
-import PoliciesSidebar from "../components/PoliciesSidebar.vue";
-import PoliciesTable from "../components/PoliciesTable.vue";
-import CreatePolicyDialog from "../components/dialogs/CreatePolicyDialog.vue";
-import { usePolicies } from "../composables/usePolicies";
-import { SEGMENTS } from "../types/policies";
-import type { Policy, Platform } from "../types/policies";
+import { ref, computed, watch, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useQuasar } from 'quasar';
+import PoliciesSidebar from '../components/PoliciesSidebar.vue';
+import PoliciesTable from '../components/PoliciesTable.vue';
+import CreatePolicyDialog from '../components/dialogs/CreatePolicyDialog.vue';
+import { usePolicies } from '../composables/usePolicies';
+import { SEGMENTS } from '../types/policies';
+import type { Policy, Platform } from '../types/policies';
 
 const router = useRouter();
 const $q = useQuasar();
@@ -268,6 +268,13 @@ function debounceSearch(value: string | null) {
 // Watch segment changes
 watch(selectedSegmentLocal, (newVal) => {
   setSegment(newVal);
+});
+
+// Load policies on mount
+onMounted(() => {
+  // Sync segment from local state to composable
+  setSegment(selectedSegmentLocal.value);
+  void refreshPolicies();
 });
 
 // Navigate to policy detail

@@ -2,14 +2,24 @@
   <div class="assigned-devices">
     <div class="section-header">
       <h3 class="section-title">Assigned devices</h3>
-      <q-btn
-        flat
-        dense
-        color="primary"
-        label="View"
-        class="view-btn"
-        @click="$emit('view-all')"
-      />
+      <div class="header-actions">
+        <q-btn
+          flat
+          dense
+          color="primary"
+          label="View Jobs"
+          class="view-btn"
+          @click="$emit('view-jobs')"
+        />
+        <q-btn
+          flat
+          dense
+          color="primary"
+          label="View"
+          class="view-btn"
+          @click="$emit('view-all')"
+        />
+      </div>
     </div>
 
     <!-- Toolbar -->
@@ -89,8 +99,8 @@
         </q-td>
       </template>
 
-      <!-- Battery -->
-      <template v-slot:body-cell-battery="props">
+      <!-- Battery (hidden until API provides data) -->
+      <!-- <template v-slot:body-cell-battery="props">
         <q-td :props="props">
           <div class="battery-cell">
             <q-icon
@@ -101,7 +111,7 @@
             <span>{{ props.row.battery }}%</span>
           </div>
         </q-td>
-      </template>
+      </template> -->
 
       <!-- Actions -->
       <template v-slot:body-cell-actions="props">
@@ -142,19 +152,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import type { Device } from "../types/policies";
-import { formatRelativeTime } from "../mocks/policiesMockData";
+import { ref, computed } from 'vue';
+import type { Device } from '../types/policies';
+// import { formatRelativeTime } from '../mocks/policiesMockData';
 
 const props = defineProps<{
   devices: Device[];
 }>();
 
 defineEmits<{
-  (e: "assign"): void;
-  (e: "unassign", deviceId: string): void;
-  (e: "refresh"): void;
-  (e: "view-all"): void;
+  (e: 'assign'): void;
+  (e: 'unassign', deviceId: number): void;
+  (e: 'refresh'): void;
+  (e: 'view-all'): void;
+  (e: 'view-jobs'): void;
 }>();
 
 const searchQuery = ref("");
@@ -170,54 +181,28 @@ const filteredDevices = computed(() => {
 });
 
 const columns = [
-  { name: "name", label: "DEVICE", field: "name", align: "left" as const },
-  {
-    name: "segment",
-    label: "SEGMENT",
-    field: "segment",
-    align: "left" as const,
-  },
-  {
-    name: "battery",
-    label: "BATTERY",
-    field: "battery",
-    align: "left" as const,
-  },
-  {
-    name: "employee",
-    label: "DEVICE EMPLOYEE",
-    field: "employee",
-    align: "left" as const,
-  },
-  {
-    name: "policiesCount",
-    label: "POLICIES",
-    field: "policiesCount",
-    align: "left" as const,
-  },
-  {
-    name: "updated",
-    label: "UPDATED",
-    field: "updated",
-    align: "left" as const,
-    format: (val: string) => formatRelativeTime(val),
-  },
-  { name: "actions", label: "", field: "actions", align: "right" as const },
+  { name: 'name', label: 'DEVICE', field: 'name', align: 'left' as const },
+  { name: 'segment', label: 'CLIENT', field: 'segment', align: 'left' as const },
+  // { name: 'battery', label: 'BATTERY', field: 'battery', align: 'left' as const },
+  // { name: 'employee', label: 'DEVICE EMPLOYEE', field: 'employee', align: 'left' as const },
+  // { name: 'policiesCount', label: 'POLICIES', field: 'policiesCount', align: 'left' as const },
+  // { name: 'updated', label: 'UPDATED', field: 'updated', align: 'left' as const, format: (val: string) => formatRelativeTime(val) },
+  { name: 'actions', label: '', field: 'actions', align: 'right' as const },
 ];
 
-function getBatteryIcon(level: number): string {
-  if (level > 80) return "mdi-battery";
-  if (level > 60) return "mdi-battery-70";
-  if (level > 40) return "mdi-battery-50";
-  if (level > 20) return "mdi-battery-30";
-  return "mdi-battery-10";
-}
+// function getBatteryIcon(level: number): string {
+//   if (level > 80) return 'mdi-battery';
+//   if (level > 60) return 'mdi-battery-70';
+//   if (level > 40) return 'mdi-battery-50';
+//   if (level > 20) return 'mdi-battery-30';
+//   return 'mdi-battery-10';
+// }
 
-function getBatteryColor(level: number): string {
-  if (level > 50) return "positive";
-  if (level > 20) return "warning";
-  return "negative";
-}
+// function getBatteryColor(level: number): string {
+//   if (level > 50) return 'positive';
+//   if (level > 20) return 'warning';
+//   return 'negative';
+// }
 </script>
 
 <style scoped>
@@ -241,6 +226,12 @@ function getBatteryColor(level: number): string {
   font-weight: 600;
   color: var(--text-primary, #1a1a2e);
   margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .view-btn {

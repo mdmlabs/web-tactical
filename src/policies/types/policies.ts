@@ -8,12 +8,12 @@ export interface VerificationConfig {
   registryPath?: string;
   registryKey?: string;
   filePath?: string;
-  scriptId?: string;
+  scriptId?: number;
 }
 
 export interface PolicyApp {
   id: string;
-  resourceId: string;
+  resourceId: number;
   name: string;
   version: string;
   silentInstall: boolean;
@@ -25,7 +25,7 @@ export interface PolicyApp {
 
 export interface PolicyScript {
   id: string;
-  resourceId: string;
+  resourceId: number;
   name: string;
   timeout: number;
   runAsUser: boolean;
@@ -33,7 +33,7 @@ export interface PolicyScript {
 
 export interface PolicyResource {
   id: string;
-  resourceId: string;
+  resourceId: number;
   name: string;
   type: ResourceType;
   scope: Scope;
@@ -58,7 +58,7 @@ export interface Policy {
   scripts: PolicyScript[];
   resources: PolicyResource[];
   applicationControl?: ApplicationControlConfig;
-  assignedDevices: string[];
+  assignedDevices: number[];
 }
 
 export interface PolicyListResponse {
@@ -79,19 +79,19 @@ export interface UpdatePolicyRequest {
   scripts?: PolicyScript[];
   resources?: PolicyResource[];
   applicationControl?: ApplicationControlConfig;
-  assignedDevices?: string[];
+  assignedDevices?: number[];
 }
 
 export interface AssignDevicesRequest {
-  deviceIds: string[];
+  deviceIds: number[];
 }
 
 export interface UnassignDeviceRequest {
-  deviceId: string;
+  deviceId: number;
 }
 
 export interface Device {
-  id: string;
+  id: number;
   name: string;
   segment: string;
   battery: number;
