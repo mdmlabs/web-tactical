@@ -34,7 +34,7 @@ defineProps<{
 }>();
 
 defineEmits<{
-  (e: 'view'): void;
+  (e: "view"): void;
 }>();
 </script>
 

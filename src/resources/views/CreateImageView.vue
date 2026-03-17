@@ -12,7 +12,9 @@
         <q-form @submit.prevent="handleSubmit" class="create-form">
           <!-- File Upload -->
           <div class="form-section">
-            <label class="form-label">Image File <span class="required">*</span></label>
+            <label class="form-label"
+              >Image File <span class="required">*</span></label
+            >
             <ResourceFileUpload
               v-model="formData.file"
               resource-type="image"
@@ -31,13 +33,15 @@
 
           <!-- Name -->
           <div class="form-section">
-            <label class="form-label">Name <span class="required">*</span></label>
+            <label class="form-label"
+              >Name <span class="required">*</span></label
+            >
             <q-input
               v-model="formData.name"
               outlined
               dense
               placeholder="Enter image name"
-              :rules="[val => !!val || 'Name is required']"
+              :rules="[(val) => !!val || 'Name is required']"
             />
           </div>
 
@@ -56,7 +60,9 @@
 
           <!-- Segment -->
           <div class="form-section">
-            <label class="form-label">Segment <span class="required">*</span></label>
+            <label class="form-label"
+              >Segment <span class="required">*</span></label
+            >
             <q-select
               v-model="formData.segment"
               :options="segmentOptions"
@@ -76,14 +82,29 @@
               dense
               placeholder="Alternative text for accessibility (optional)"
             />
-            <div class="form-hint">Used for screen readers and when image cannot be displayed</div>
+            <div class="form-hint">
+              Used for screen readers and when image cannot be displayed
+            </div>
           </div>
 
           <!-- Actions -->
           <div v-if="uploading" class="upload-progress-section">
-            <q-linear-progress :value="uploadProgress / 100" color="primary" rounded size="8px" />
+            <q-linear-progress
+              :value="uploadProgress / 100"
+              color="primary"
+              rounded
+              size="8px"
+            />
             <div class="upload-phase-text">
-              {{ uploadPhase === 'hashing' ? 'Computing file hash...' : uploadPhase === 'uploading' ? `Uploading... ${uploadProgress}%` : uploadPhase === 'confirming' ? 'Finalizing...' : '' }}
+              {{
+                uploadPhase === "hashing"
+                  ? "Computing file hash..."
+                  : uploadPhase === "uploading"
+                    ? `Uploading... ${uploadProgress}%`
+                    : uploadPhase === "confirming"
+                      ? "Finalizing..."
+                      : ""
+              }}
             </div>
           </div>
 
@@ -104,30 +125,31 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
-import { useQuasar } from 'quasar';
-import ResourceFileUpload from '../components/ResourceFileUpload.vue';
-import { SEGMENTS } from '../types/resources';
-import { useResourceUpload } from '../composables/useResourceUpload';
+import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
+import { useQuasar } from "quasar";
+import ResourceFileUpload from "../components/ResourceFileUpload.vue";
+import { SEGMENTS } from "../types/resources";
+import { useResourceUpload } from "../composables/useResourceUpload";
 
 const router = useRouter();
 const $q = useQuasar();
 
 const submitting = ref(false);
 const imagePreview = ref<string | null>(null);
-const { uploading, uploadProgress, uploadPhase, uploadResource } = useResourceUpload();
+const { uploading, uploadProgress, uploadPhase, uploadResource } =
+  useResourceUpload();
 
 const formData = ref({
   file: null as File | null,
-  name: '',
-  description: '',
-  segment: 'Global',
-  altText: '',
-  dimensions: '',
+  name: "",
+  description: "",
+  segment: "Global",
+  altText: "",
+  dimensions: "",
 });
 
-const segmentOptions = SEGMENTS.map(s => ({ label: s, value: s }));
+const segmentOptions = SEGMENTS.map((s) => ({ label: s, value: s }));
 
 const isFormValid = computed(() => {
   return formData.value.file && formData.value.name && formData.value.segment;
@@ -135,7 +157,7 @@ const isFormValid = computed(() => {
 
 function onFileSelected(file: File) {
   if (!formData.value.name) {
-    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
     formData.value.name = nameWithoutExt;
   }
 
@@ -143,7 +165,7 @@ function onFileSelected(file: File) {
   const reader = new FileReader();
   reader.onload = (e) => {
     imagePreview.value = e.target?.result as string;
-    
+
     // Get dimensions
     const img = new window.Image();
     img.onload = () => {
@@ -162,7 +184,7 @@ async function handleSubmit() {
   try {
     await uploadResource(formData.value.file!, {
       name: formData.value.name,
-      resource_type: 'image',
+      resource_type: "image",
       segment: formData.value.segment,
       description: formData.value.description,
       alt_text: formData.value.altText || undefined,
@@ -170,19 +192,20 @@ async function handleSubmit() {
 
     $q.notify({
       message: `Image "${formData.value.name}" uploaded successfully`,
-      color: 'positive',
-      position: 'top',
-      icon: 'check_circle',
+      color: "positive",
+      position: "top",
+      icon: "check_circle",
     });
 
-    router.push({ name: 'Resources' });
+    router.push({ name: "Resources" });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Failed to upload image';
+    const msg =
+      error instanceof Error ? error.message : "Failed to upload image";
     $q.notify({
       message: msg,
-      color: 'negative',
-      position: 'top',
-      icon: 'error',
+      color: "negative",
+      position: "top",
+      icon: "error",
     });
   } finally {
     submitting.value = false;
@@ -190,7 +213,7 @@ async function handleSubmit() {
 }
 
 function goBack() {
-  router.push({ name: 'Resources' });
+  router.push({ name: "Resources" });
 }
 </script>
 

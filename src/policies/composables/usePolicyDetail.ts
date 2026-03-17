@@ -1,5 +1,10 @@
 import { ref, computed, watch } from "vue";
-import type { Policy, PolicyApp, PolicyScript, PolicyResource } from "../types/policies";
+import type {
+  Policy,
+  PolicyApp,
+  PolicyScript,
+  PolicyResource,
+} from "../types/policies";
 import { mockDevices } from "../mocks/policiesMockData";
 import { usePolicies } from "./usePolicies";
 
@@ -15,14 +20,18 @@ export function usePolicyDetail(policyId: string) {
   // Assigned devices for this policy
   const assignedDevices = computed(() => {
     if (!policy.value) return [];
-    return mockDevices.filter(d => policy.value?.assignedDevices.includes(d.id));
+    return mockDevices.filter((d) =>
+      policy.value?.assignedDevices.includes(d.id),
+    );
   });
 
   // Summary counts
   const appCount = computed(() => policy.value?.apps.length ?? 0);
   const scriptCount = computed(() => policy.value?.scripts.length ?? 0);
   const resourceCount = computed(() => policy.value?.resources.length ?? 0);
-  const applicationControlCount = computed(() => policy.value?.applicationControl?.tokens.length ?? 0);
+  const applicationControlCount = computed(
+    () => policy.value?.applicationControl?.tokens.length ?? 0,
+  );
 
   // Load policy
   function loadPolicy() {
@@ -40,10 +49,11 @@ export function usePolicyDetail(policyId: string) {
     policy,
     () => {
       if (originalPolicy.value && policy.value) {
-        hasChanges.value = JSON.stringify(originalPolicy.value) !== JSON.stringify(policy.value);
+        hasChanges.value =
+          JSON.stringify(originalPolicy.value) !== JSON.stringify(policy.value);
       }
     },
-    { deep: true }
+    { deep: true },
   );
 
   // Save changes
@@ -89,7 +99,7 @@ export function usePolicyDetail(policyId: string) {
   // Remove app
   function removeApp(appId: string) {
     if (policy.value) {
-      policy.value.apps = policy.value.apps.filter(a => a.id !== appId);
+      policy.value.apps = policy.value.apps.filter((a) => a.id !== appId);
       updateSummary();
     }
   }
@@ -105,7 +115,9 @@ export function usePolicyDetail(policyId: string) {
   // Remove script
   function removeScript(scriptId: string) {
     if (policy.value) {
-      policy.value.scripts = policy.value.scripts.filter(s => s.id !== scriptId);
+      policy.value.scripts = policy.value.scripts.filter(
+        (s) => s.id !== scriptId,
+      );
       updateSummary();
     }
   }
@@ -121,7 +133,9 @@ export function usePolicyDetail(policyId: string) {
   // Remove resource
   function removeResource(resourceId: string) {
     if (policy.value) {
-      policy.value.resources = policy.value.resources.filter(r => r.id !== resourceId);
+      policy.value.resources = policy.value.resources.filter(
+        (r) => r.id !== resourceId,
+      );
       updateSummary();
     }
   }
@@ -130,7 +144,7 @@ export function usePolicyDetail(policyId: string) {
   function assignDevices(deviceIds: string[]) {
     if (policy.value) {
       const existingIds = new Set(policy.value.assignedDevices);
-      deviceIds.forEach(id => existingIds.add(id));
+      deviceIds.forEach((id) => existingIds.add(id));
       policy.value.assignedDevices = Array.from(existingIds);
       policy.value.deviceCount = policy.value.assignedDevices.length;
     }
@@ -139,7 +153,9 @@ export function usePolicyDetail(policyId: string) {
   // Unassign device
   function unassignDevice(deviceId: string) {
     if (policy.value) {
-      policy.value.assignedDevices = policy.value.assignedDevices.filter(id => id !== deviceId);
+      policy.value.assignedDevices = policy.value.assignedDevices.filter(
+        (id) => id !== deviceId,
+      );
       policy.value.deviceCount = policy.value.assignedDevices.length;
     }
   }
@@ -159,13 +175,19 @@ export function usePolicyDetail(policyId: string) {
     if (policy.value) {
       const parts: string[] = [];
       if (policy.value.apps.length > 0) {
-        parts.push(`${policy.value.apps.length} app${policy.value.apps.length > 1 ? "s" : ""}`);
+        parts.push(
+          `${policy.value.apps.length} app${policy.value.apps.length > 1 ? "s" : ""}`,
+        );
       }
       if (policy.value.scripts.length > 0) {
-        parts.push(`${policy.value.scripts.length} script${policy.value.scripts.length > 1 ? "s" : ""}`);
+        parts.push(
+          `${policy.value.scripts.length} script${policy.value.scripts.length > 1 ? "s" : ""}`,
+        );
       }
       if (policy.value.resources.length > 0) {
-        parts.push(`${policy.value.resources.length} resource${policy.value.resources.length > 1 ? "s" : ""}`);
+        parts.push(
+          `${policy.value.resources.length} resource${policy.value.resources.length > 1 ? "s" : ""}`,
+        );
       }
       policy.value.summary = parts.length > 0 ? parts.join(", ") : "Empty";
     }

@@ -1,19 +1,19 @@
-import { ref, computed } from 'vue';
-import type { ResourceType, Resource } from '../types/resources';
-import { RESOURCE_CATEGORIES } from '../types/resources';
+import { ref, computed } from "vue";
+import type { ResourceType, Resource } from "../types/resources";
+import { RESOURCE_CATEGORIES } from "../types/resources";
 import {
   fetchResources as apiFetchResources,
   fetchResourceCounts as apiFetchResourceCounts,
   deleteResource as apiDeleteResource,
   downloadResource as apiDownloadResource,
-} from '@/api/resources';
+} from "@/api/resources";
 
 const resources = ref<Resource[]>([]);
 const totalCount = ref(0);
 const categoryCounts = ref<Record<string, number>>({});
 
-const currentCategory = ref<ResourceType>('script');
-const searchQuery = ref('');
+const currentCategory = ref<ResourceType>("script");
+const searchQuery = ref("");
 const selectedSegment = ref<string | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
@@ -26,7 +26,7 @@ const pagination = ref({
 
 export function useResources() {
   const categories = computed(() => {
-    return RESOURCE_CATEGORIES.map(cat => ({
+    return RESOURCE_CATEGORIES.map((cat) => ({
       ...cat,
       count: categoryCounts.value[cat.id] ?? 0,
     }));
@@ -37,7 +37,7 @@ export function useResources() {
   });
 
   const currentCategoryInfo = computed(() => {
-    return RESOURCE_CATEGORIES.find(c => c.id === currentCategory.value);
+    return RESOURCE_CATEGORIES.find((c) => c.id === currentCategory.value);
   });
 
   async function refreshResources() {
@@ -66,7 +66,7 @@ export function useResources() {
         pagination.value.rowsNumber = result.count;
       }
     } catch (e) {
-      error.value = 'Failed to load resources';
+      error.value = "Failed to load resources";
       console.error(e);
     } finally {
       loading.value = false;
@@ -86,7 +86,7 @@ export function useResources() {
 
   function setCategory(type: ResourceType) {
     currentCategory.value = type;
-    searchQuery.value = '';
+    searchQuery.value = "";
     pagination.value.page = 1;
     refreshResources();
   }
@@ -110,7 +110,9 @@ export function useResources() {
     } catch (e: unknown) {
       const err = e as { response?: { status?: number } };
       if (err.response?.status === 409) {
-        throw new Error('Cannot delete: this resource is referenced by one or more policies');
+        throw new Error(
+          "Cannot delete: this resource is referenced by one or more policies",
+        );
       }
       throw e;
     }
@@ -119,14 +121,14 @@ export function useResources() {
   async function handleDownload(resource: Resource) {
     try {
       const data = await apiDownloadResource(resource.id);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = data.downloadUrl;
       a.download = data.fileName || resource.fileName || resource.name;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
     } catch (e) {
-      console.error('Download failed:', e);
+      console.error("Download failed:", e);
       throw e;
     }
   }
@@ -143,13 +145,13 @@ export function useResources() {
     if (diffDay > 30) {
       return date.toLocaleDateString();
     } else if (diffDay > 0) {
-      return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
+      return `${diffDay} day${diffDay > 1 ? "s" : ""} ago`;
     } else if (diffHour > 0) {
-      return `${diffHour} hour${diffHour > 1 ? 's' : ''} ago`;
+      return `${diffHour} hour${diffHour > 1 ? "s" : ""} ago`;
     } else if (diffMin > 0) {
-      return `${diffMin} minute${diffMin > 1 ? 's' : ''} ago`;
+      return `${diffMin} minute${diffMin > 1 ? "s" : ""} ago`;
     } else {
-      return 'Just now';
+      return "Just now";
     }
   }
 

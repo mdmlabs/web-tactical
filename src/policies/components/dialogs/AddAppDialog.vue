@@ -57,7 +57,11 @@
               <q-item v-bind="scope.itemProps">
                 <q-item-section>
                   <q-item-label>{{ scope.opt.name }}</q-item-label>
-                  <q-item-label caption>{{ scope.opt.version }} (.{{ scope.opt.extension }})</q-item-label>
+                  <q-item-label caption
+                    >{{ scope.opt.version }} (.{{
+                      scope.opt.extension
+                    }})</q-item-label
+                  >
                 </q-item-section>
               </q-item>
             </template>
@@ -172,12 +176,7 @@
 
       <!-- Actions -->
       <q-card-actions align="right" class="dialog-actions">
-        <q-btn
-          flat
-          label="Cancel"
-          @click="close"
-          class="action-btn"
-        />
+        <q-btn flat label="Cancel" @click="close" class="action-btn" />
         <q-btn
           unelevated
           color="primary"
@@ -192,70 +191,76 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import type { PolicyApp, VerificationMethod } from '../../types/policies';
-import { mockAppResources, mockScriptResources } from '../../mocks/policiesMockData';
+import { ref, computed, watch } from "vue";
+import type { PolicyApp, VerificationMethod } from "../../types/policies";
+import {
+  mockAppResources,
+  mockScriptResources,
+} from "../../mocks/policiesMockData";
 
 const props = defineProps<{
   modelValue: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: boolean): void;
-  (e: 'add', app: PolicyApp): void;
+  (e: "update:modelValue", value: boolean): void;
+  (e: "add", app: PolicyApp): void;
 }>();
 
 // Form state
-const activeTab = ref('resource');
+const activeTab = ref("resource");
 const selectedResource = ref<string | null>(null);
 const silentInstall = ref(true);
 const runAsUser = ref(false);
-const installArguments = ref('');
+const installArguments = ref("");
 const timeout = ref(900);
-const verificationMethod = ref<VerificationMethod>('registry');
-const registryPath = ref('');
-const registryKey = ref('');
-const filePath = ref('');
+const verificationMethod = ref<VerificationMethod>("registry");
+const registryPath = ref("");
+const registryKey = ref("");
+const filePath = ref("");
 const verificationScript = ref<string | null>(null);
 
 const appResources = mockAppResources;
 const scriptResources = mockScriptResources;
 
 const verificationOptions = [
-  { value: 'registry', label: 'Registry' },
-  { value: 'file_exists', label: 'File exists' },
-  { value: 'script', label: 'Script' },
+  { value: "registry", label: "Registry" },
+  { value: "file_exists", label: "File exists" },
+  { value: "script", label: "Script" },
 ];
 
 const canAdd = computed(() => selectedResource.value !== null);
 
-const selectedResourceData = computed(() => 
-  appResources.find(r => r.id === selectedResource.value)
+const selectedResourceData = computed(() =>
+  appResources.find((r) => r.id === selectedResource.value),
 );
 
 // Reset form when dialog opens
-watch(() => props.modelValue, (isOpen) => {
-  if (isOpen) {
-    resetForm();
-  }
-});
+watch(
+  () => props.modelValue,
+  (isOpen) => {
+    if (isOpen) {
+      resetForm();
+    }
+  },
+);
 
 function resetForm() {
-  activeTab.value = 'resource';
+  activeTab.value = "resource";
   selectedResource.value = null;
   silentInstall.value = true;
   runAsUser.value = false;
-  installArguments.value = '';
+  installArguments.value = "";
   timeout.value = 900;
-  verificationMethod.value = 'registry';
-  registryPath.value = '';
-  registryKey.value = '';
-  filePath.value = '';
+  verificationMethod.value = "registry";
+  registryPath.value = "";
+  registryKey.value = "";
+  filePath.value = "";
   verificationScript.value = null;
 }
 
 function close() {
-  emit('update:modelValue', false);
+  emit("update:modelValue", false);
 }
 
 function addApp() {
@@ -272,14 +277,22 @@ function addApp() {
     runAsUser: runAsUser.value,
     verification: {
       method: verificationMethod.value,
-      registryPath: verificationMethod.value === 'registry' ? registryPath.value : undefined,
-      registryKey: verificationMethod.value === 'registry' ? registryKey.value : undefined,
-      filePath: verificationMethod.value === 'file_exists' ? filePath.value : undefined,
-      scriptId: verificationMethod.value === 'script' ? verificationScript.value || undefined : undefined,
+      registryPath:
+        verificationMethod.value === "registry"
+          ? registryPath.value
+          : undefined,
+      registryKey:
+        verificationMethod.value === "registry" ? registryKey.value : undefined,
+      filePath:
+        verificationMethod.value === "file_exists" ? filePath.value : undefined,
+      scriptId:
+        verificationMethod.value === "script"
+          ? verificationScript.value || undefined
+          : undefined,
     },
   };
 
-  emit('add', app);
+  emit("add", app);
   close();
 }
 </script>

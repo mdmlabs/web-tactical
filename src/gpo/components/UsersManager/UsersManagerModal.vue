@@ -14,27 +14,6 @@
         <q-icon name="person" size="sm" class="q-mr-sm" color="primary" />
         <q-toolbar-title>Users Manager</q-toolbar-title>
 
-        <q-badge
-          v-if="targetLabel"
-          :label="targetLabel"
-          class="target-badge cursor-pointer"
-          color="primary"
-          text-color="white"
-          @click="showTargetPanel = true"
-        />
-        <q-btn
-          v-if="currentTargetRef"
-          flat
-          round
-          dense
-          icon="close"
-          size="xs"
-          color="primary"
-          class="q-mr-md"
-          title="Reset to Global"
-          @click.stop="resetTarget"
-        />
-
         <q-btn
           v-if="!standalonePage"
           flat
@@ -118,11 +97,6 @@
       v-model="showSetAccountExpiration"
       :user-id="selectedUserId"
       @set="handleSetAccountExpiration"
-    />
-
-    <TargetSelectionDialog
-      v-model="showTargetPanel"
-      @select="handleTargetSelect"
     />
 
     <q-dialog
@@ -365,11 +339,8 @@ function goToAgentDashboard(agentId: string) {
   });
 }
 
-const currentTargetRef = ref<TargetRef | null>(null);
 const currentTarget = ref<Target>(createGlobalTarget());
-const targetLabel = ref("Global");
 
-const showTargetPanel = ref(false);
 const showCreateUser = ref(false);
 const showUpdateUser = ref(false);
 const showSetPassword = ref(false);
@@ -399,8 +370,7 @@ const canApplyCollection = computed(
 
 const canRemoveCollection = computed(
   () =>
-    canApplyCollection.value &&
-    (userAppliedCollections.value?.length ?? 0) > 0,
+    canApplyCollection.value && (userAppliedCollections.value?.length ?? 0) > 0,
 );
 
 const showRemoveCollectionDialog = ref(false);
@@ -438,20 +408,6 @@ const {
   loadUserGroups,
   loadUserAgents,
 } = useUserActions();
-
-function handleTargetSelect(ref: TargetRef) {
-  currentTargetRef.value = ref;
-  currentTarget.value = ref.target;
-  targetLabel.value = ref.label;
-}
-
-function resetTarget() {
-  currentTargetRef.value = null;
-  currentTarget.value = createGlobalTarget();
-  targetLabel.value = "Global";
-  selectedUserId.value = null;
-  userDetail.value = null;
-}
 
 async function handleCreateUser(params: CreateUserParams) {
   if (!currentTarget.value) return;
@@ -603,9 +559,10 @@ async function handleRemoveUserAgent(agentId: string) {
   if (!userId) return;
 
   const agent = (userAgents.value ?? []).find((a) => a.id === agentId);
-  const agentLabel = agent?.name && agent.name !== agentId
-    ? `${agent.name} (${agentId})`
-    : agentId;
+  const agentLabel =
+    agent?.name && agent.name !== agentId
+      ? `${agent.name} (${agentId})`
+      : agentId;
 
   $q.dialog({
     title: "Remove agent",
@@ -631,7 +588,9 @@ async function handleRemoveUserAgent(agentId: string) {
       $q.notify({
         type: "negative",
         message:
-          err instanceof Error ? err.message : "Failed to unlink agent from user",
+          err instanceof Error
+            ? err.message
+            : "Failed to unlink agent from user",
       });
     } finally {
       removingAgentId.value = null;
@@ -730,10 +689,14 @@ async function doApplyCollectionToUser() {
   applyCollectionApplying.value = true;
   try {
     for (const agentId of agentIds) {
-      await policyAssignmentClient.assignPolicyCollection(collectionId, "user", {
-        agentId,
-        userId,
-      });
+      await policyAssignmentClient.assignPolicyCollection(
+        collectionId,
+        "user",
+        {
+          agentId,
+          userId,
+        },
+      );
     }
     notifySuccess(
       `Collection applied to user "${userLabel}" on ${agentIds.length} agent(s)`,
@@ -803,9 +766,11 @@ async function doRemoveCollectionFromUser() {
 }
 
 function handleRemoveCollectionById(collectionId: number) {
-  const collection = userAppliedCollections.value.find((c) => c.id === collectionId);
+  const collection = userAppliedCollections.value.find(
+    (c) => c.id === collectionId,
+  );
   const collectionLabel = collection?.name ?? String(collectionId);
-  
+
   $q.dialog({
     title: "Remove collection",
     message: `Do you really want to remove the collection «${collectionLabel}» from this user?`,
@@ -816,9 +781,9 @@ function handleRemoveCollectionById(collectionId: number) {
     const agentIds = getAgentIdsFromTarget(currentTarget.value);
     const userId = selectedUserId.value ?? userDetail.value?.userid;
     const userLabel = userDetail.value?.info?.samaccountname ?? userId;
-    
+
     if (agentIds.length === 0 || !userId) return;
-    
+
     actionLoading.value = true;
     try {
       for (const agentId of agentIds) {
@@ -882,11 +847,11 @@ async function loadUserAppliedCollections() {
       return {
         id: c.id ?? 0,
         name: c.name ?? String(c.id ?? ""),
-        explainText: (c.explainText ?? c.explain_text ?? "").trim() || undefined,
+        explainText:
+          (c.explainText ?? c.explain_text ?? "").trim() || undefined,
         policies: rawPolicies.map((p) => ({
           id: p.id ?? 0,
-          name:
-            p.displayName ?? p.display_name ?? p.name ?? String(p.id ?? ""),
+          name: p.displayName ?? p.display_name ?? p.name ?? String(p.id ?? ""),
         })),
       };
     });
@@ -912,14 +877,9 @@ watch(
     if (!userId || loading || !Array.isArray(agents)) return;
     if (agents.length >= 1) {
       const agentIds = agents.map((a) => a.id);
-      const agentNames = agents.map((a) => a.name);
-      currentTargetRef.value = null;
       currentTarget.value = createUserGroupTargetForAgents(agentIds);
-      targetLabel.value = agentNames.join(", ");
     } else {
-      currentTargetRef.value = null;
       currentTarget.value = createGlobalTarget();
-      targetLabel.value = "Global";
     }
   },
 );

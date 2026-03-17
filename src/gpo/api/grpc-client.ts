@@ -904,11 +904,10 @@ export const userControlClient = {
     req.setPasswordNotRequired(false);
     req.setUserCannotChangePassword(false);
     req.setSmartcardLogonRequired(false);
-    const response =
-      await operatorUserControlServiceClient.removeUserAgent(
-        req,
-        createGrpcMetadata(),
-      );
+    const response = await operatorUserControlServiceClient.removeUserAgent(
+      req,
+      createGrpcMetadata(),
+    );
     return response.toObject();
   },
 
@@ -919,11 +918,10 @@ export const userControlClient = {
     const req = new SetGroupAgentRequest();
     req.setTarget(target);
     req.setGroupId(groupId);
-    const response =
-      await operatorUserControlServiceClient.removeGroupAgent(
-        req,
-        createGrpcMetadata(),
-      );
+    const response = await operatorUserControlServiceClient.removeGroupAgent(
+      req,
+      createGrpcMetadata(),
+    );
     return response.toObject();
   },
 
@@ -1329,7 +1327,9 @@ export function getAgentIdsFromTarget(target: Target | null): string[] {
   if (!target) return [];
   const t = target as {
     getAgent?: () => { getAgentId?: () => string };
-    getAgents?: () => { getAgentsList?: () => Array<{ getAgentId?: () => string }> };
+    getAgents?: () => {
+      getAgentsList?: () => Array<{ getAgentId?: () => string }>;
+    };
     toObject?: () => {
       agent?: { agentId?: string };
       agents?: { agentsList?: Array<{ agentId?: string }> };
@@ -1339,10 +1339,12 @@ export function getAgentIdsFromTarget(target: Target | null): string[] {
   if (single?.getAgentId) return [single.getAgentId()].filter(Boolean);
   const agents = t.getAgents?.();
   const list = agents?.getAgentsList?.();
-  if (list?.length) return list.map((a) => a.getAgentId?.() ?? "").filter(Boolean);
+  if (list?.length)
+    return list.map((a) => a.getAgentId?.() ?? "").filter(Boolean);
   const o = t.toObject?.();
   if (o?.agent?.agentId) return [o.agent.agentId];
-  const ids = o?.agents?.agentsList?.map((a) => a.agentId ?? "").filter(Boolean) ?? [];
+  const ids =
+    o?.agents?.agentsList?.map((a) => a.agentId ?? "").filter(Boolean) ?? [];
   return ids;
 }
 
@@ -1481,7 +1483,10 @@ export function createPolicyTargetFromParams(
           "agentId и userSid обязательны для типа 'user_on_agent'",
         );
       }
-      return createUserOnAgentTarget(targetParams.agentId, targetParams.userSid);
+      return createUserOnAgentTarget(
+        targetParams.agentId,
+        targetParams.userSid,
+      );
     case "client":
       if (!targetParams.clientId) {
         throw new Error("clientId обязателен для типа 'client'");

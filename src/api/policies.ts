@@ -56,8 +56,11 @@ function mapPolicyFromApi(data: Record<string, unknown>): Policy {
       : [],
     applicationControl: data.application_control
       ? {
-          tokens: Array.isArray((data.application_control as Record<string, unknown>).tokens)
-            ? (data.application_control as Record<string, unknown>).tokens as string[]
+          tokens: Array.isArray(
+            (data.application_control as Record<string, unknown>).tokens,
+          )
+            ? ((data.application_control as Record<string, unknown>)
+                .tokens as string[])
             : [],
         }
       : { tokens: [] },
@@ -119,13 +122,15 @@ function mapPolicyToApi(policy: Partial<Policy>): Record<string, unknown> {
 }
 
 // List policies with filtering
-export async function fetchPolicies(params: {
-  platform?: string;
-  segment?: string;
-  search?: string;
-  page?: number;
-  per_page?: number;
-} = {}): Promise<PolicyListResponse> {
+export async function fetchPolicies(
+  params: {
+    platform?: string;
+    segment?: string;
+    search?: string;
+    page?: number;
+    per_page?: number;
+  } = {},
+): Promise<PolicyListResponse> {
   const { data } = await axios.get(`${baseUrl}/`, { params });
   return {
     count: data.count,

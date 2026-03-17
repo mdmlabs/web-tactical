@@ -12,7 +12,9 @@
         <q-form @submit.prevent="handleSubmit" class="create-form">
           <!-- File Upload -->
           <div class="form-section">
-            <label class="form-label">Script File <span class="required">*</span></label>
+            <label class="form-label"
+              >Script File <span class="required">*</span></label
+            >
             <ResourceFileUpload
               v-model="formData.file"
               resource-type="script"
@@ -22,13 +24,15 @@
 
           <!-- Name -->
           <div class="form-section">
-            <label class="form-label">Name <span class="required">*</span></label>
+            <label class="form-label"
+              >Name <span class="required">*</span></label
+            >
             <q-input
               v-model="formData.name"
               outlined
               dense
               placeholder="Enter script name"
-              :rules="[val => !!val || 'Name is required']"
+              :rules="[(val) => !!val || 'Name is required']"
             />
           </div>
 
@@ -47,7 +51,9 @@
 
           <!-- Segment -->
           <div class="form-section">
-            <label class="form-label">Segment <span class="required">*</span></label>
+            <label class="form-label"
+              >Segment <span class="required">*</span></label
+            >
             <q-select
               v-model="formData.segment"
               :options="segmentOptions"
@@ -60,21 +66,38 @@
 
           <!-- Language -->
           <div class="form-section">
-            <label class="form-label">Language <span class="required">*</span></label>
+            <label class="form-label"
+              >Language <span class="required">*</span></label
+            >
             <q-select
               v-model="formData.language"
               :options="languageOptions"
               outlined
               dense
             />
-            <div class="form-hint">Auto-detected from file extension when available</div>
+            <div class="form-hint">
+              Auto-detected from file extension when available
+            </div>
           </div>
 
           <!-- Actions -->
           <div v-if="uploading" class="upload-progress-section">
-            <q-linear-progress :value="uploadProgress / 100" color="primary" rounded size="8px" />
+            <q-linear-progress
+              :value="uploadProgress / 100"
+              color="primary"
+              rounded
+              size="8px"
+            />
             <div class="upload-phase-text">
-              {{ uploadPhase === 'hashing' ? 'Computing file hash...' : uploadPhase === 'uploading' ? `Uploading... ${uploadProgress}%` : uploadPhase === 'confirming' ? 'Finalizing...' : '' }}
+              {{
+                uploadPhase === "hashing"
+                  ? "Computing file hash..."
+                  : uploadPhase === "uploading"
+                    ? `Uploading... ${uploadProgress}%`
+                    : uploadPhase === "confirming"
+                      ? "Finalizing..."
+                      : ""
+              }}
             </div>
           </div>
 
@@ -95,44 +118,54 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
-import { useQuasar } from 'quasar';
-import ResourceFileUpload from '../components/ResourceFileUpload.vue';
-import { SEGMENTS, SCRIPT_LANGUAGES, SCRIPT_EXTENSIONS } from '../types/resources';
-import type { ScriptLanguage } from '../types/resources';
-import { useResourceUpload } from '../composables/useResourceUpload';
+import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
+import { useQuasar } from "quasar";
+import ResourceFileUpload from "../components/ResourceFileUpload.vue";
+import {
+  SEGMENTS,
+  SCRIPT_LANGUAGES,
+  SCRIPT_EXTENSIONS,
+} from "../types/resources";
+import type { ScriptLanguage } from "../types/resources";
+import { useResourceUpload } from "../composables/useResourceUpload";
 
 const router = useRouter();
 const $q = useQuasar();
 
 const submitting = ref(false);
-const { uploading, uploadProgress, uploadPhase, uploadResource } = useResourceUpload();
+const { uploading, uploadProgress, uploadPhase, uploadResource } =
+  useResourceUpload();
 
 const formData = ref({
   file: null as File | null,
-  name: '',
-  description: '',
-  segment: 'Global',
-  language: 'PowerShell' as ScriptLanguage,
+  name: "",
+  description: "",
+  segment: "Global",
+  language: "PowerShell" as ScriptLanguage,
 });
 
-const segmentOptions = SEGMENTS.map(s => ({ label: s, value: s }));
+const segmentOptions = SEGMENTS.map((s) => ({ label: s, value: s }));
 const languageOptions = SCRIPT_LANGUAGES;
 
 const isFormValid = computed(() => {
-  return formData.value.file && formData.value.name && formData.value.segment && formData.value.language;
+  return (
+    formData.value.file &&
+    formData.value.name &&
+    formData.value.segment &&
+    formData.value.language
+  );
 });
 
 function onFileSelected(file: File) {
   // Auto-fill name from filename
   if (!formData.value.name) {
-    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
     formData.value.name = nameWithoutExt;
   }
 
   // Auto-detect language from extension
-  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+  const ext = file.name.split(".").pop()?.toLowerCase() || "";
   if (SCRIPT_EXTENSIONS[ext]) {
     formData.value.language = SCRIPT_EXTENSIONS[ext];
   }
@@ -146,7 +179,7 @@ async function handleSubmit() {
   try {
     await uploadResource(formData.value.file!, {
       name: formData.value.name,
-      resource_type: 'script',
+      resource_type: "script",
       segment: formData.value.segment,
       description: formData.value.description,
       language: formData.value.language,
@@ -154,19 +187,20 @@ async function handleSubmit() {
 
     $q.notify({
       message: `Script "${formData.value.name}" created successfully`,
-      color: 'positive',
-      position: 'top',
-      icon: 'check_circle',
+      color: "positive",
+      position: "top",
+      icon: "check_circle",
     });
 
-    router.push({ name: 'Resources' });
+    router.push({ name: "Resources" });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Failed to create script';
+    const msg =
+      error instanceof Error ? error.message : "Failed to create script";
     $q.notify({
       message: msg,
-      color: 'negative',
-      position: 'top',
-      icon: 'error',
+      color: "negative",
+      position: "top",
+      icon: "error",
     });
   } finally {
     submitting.value = false;
@@ -174,7 +208,7 @@ async function handleSubmit() {
 }
 
 function goBack() {
-  router.push({ name: 'Resources' });
+  router.push({ name: "Resources" });
 }
 </script>
 

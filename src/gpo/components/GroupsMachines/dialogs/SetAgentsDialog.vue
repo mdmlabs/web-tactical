@@ -1,36 +1,35 @@
 <template>
   <q-dialog
     :model-value="modelValue"
-    persistent
     @update:model-value="$emit('update:modelValue', $event)"
+    @show="$emit('show')"
   >
-    <q-card style="min-width: 360px">
+    <q-card style="min-width: 400px; margin-bottom: 250px">
       <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6">Set Password</div>
+        <div class="text-h6">Set all agents</div>
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
       <q-card-section>
         <div class="text-caption text-grey-7 q-mb-sm">
-          User: <strong>{{ userId }}</strong>
+          One agent ID per line. This replaces the current list.
         </div>
         <q-input
-          v-model="password"
-          type="password"
-          label="New password *"
+          v-model="agentIdsTextModel"
           outlined
           dense
-          autofocus
+          type="textarea"
+          rows="6"
+          placeholder="agent-id-1&#10;agent-id-2"
         />
       </q-card-section>
       <q-card-actions align="right">
         <q-btn flat label="Cancel" v-close-popup />
         <q-btn
           color="primary"
-          label="Set"
+          label="Set agents"
           :loading="loading"
-          :disable="!password.trim()"
-          @click="handleSet"
+          @click="$emit('set')"
         />
       </q-card-actions>
     </q-card>
@@ -38,31 +37,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed } from "vue";
 
 const props = defineProps<{
   modelValue: boolean;
-  userId: string | null;
+  loading: boolean;
+  agentIdsText: string;
 }>();
 
 const emit = defineEmits<{
   "update:modelValue": [value: boolean];
-  set: [password: string];
+  show: [];
+  set: [];
+  "update:agentIdsText": [value: string];
 }>();
 
-const loading = ref(false);
-const password = ref("");
-
-watch(
-  () => props.modelValue,
-  (isOpen) => {
-    if (isOpen) password.value = "";
-  },
-);
-
-function handleSet() {
-  emit("set", password.value);
-}
-
-defineExpose({ loading });
+const agentIdsTextModel = computed({
+  get: () => props.agentIdsText,
+  set: (v) => emit("update:agentIdsText", v),
+});
 </script>

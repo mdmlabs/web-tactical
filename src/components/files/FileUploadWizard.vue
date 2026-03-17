@@ -1,5 +1,5 @@
 <template>
-  <q-card style="width: 100%; max-width: 900px; height: 90vh;">
+  <q-card style="width: 100%; max-width: 900px; height: 90vh">
     <q-card-section class="bg-primary text-white">
       <div class="row items-center justify-between">
         <div class="text-h6">Добавление файла</div>
@@ -13,24 +13,26 @@
       animated
       flat
       header-nav
-      style="height: calc(90vh - 60px);"
+      style="height: calc(90vh - 60px)"
     >
       <!-- Step 1: Upload -->
-      <q-step
-        :name="1"
-        title="Загрузка"
-        icon="cloud_upload"
-        :done="step > 1"
-      >
+      <q-step :name="1" title="Загрузка" icon="cloud_upload" :done="step > 1">
         <div class="q-pa-md">
-          <q-card flat bordered class="upload-area" @dragover.prevent @drop.prevent="onDrop">
+          <q-card
+            flat
+            bordered
+            class="upload-area"
+            @dragover.prevent
+            @drop.prevent="onDrop"
+          >
             <q-card-section class="text-center q-pa-xl">
               <q-icon name="cloud_upload" size="80px" color="grey-5" />
               <div class="text-h6 q-mt-md q-mb-sm">
                 Перетащите файл сюда или выберите на диске
               </div>
               <div class="text-caption text-grey q-mb-md">
-                Поддерживаемые форматы: .msi, .exe, .zip, .ps1, .bat, .txt, .pdf и другие
+                Поддерживаемые форматы: .msi, .exe, .zip, .ps1, .bat, .txt, .pdf
+                и другие
               </div>
 
               <q-file
@@ -38,7 +40,7 @@
                 outlined
                 label="Выбрать файл"
                 class="q-mt-md"
-                style="max-width: 400px; margin: 0 auto;"
+                style="max-width: 400px; margin: 0 auto"
               >
                 <template v-slot:prepend>
                   <q-icon name="attach_file" />
@@ -54,7 +56,11 @@
                   class="q-mb-md"
                 >
                   <div class="absolute-full flex flex-center">
-                    <q-badge color="white" text-color="primary" :label="`${uploadProgress}%`" />
+                    <q-badge
+                      color="white"
+                      text-color="primary"
+                      :label="`${uploadProgress}%`"
+                    />
                   </div>
                 </q-linear-progress>
 
@@ -67,17 +73,31 @@
           </q-card>
 
           <!-- Smart Detection Alert -->
-          <q-card v-if="detectedMetadata" flat bordered class="q-mt-md bg-blue-1">
+          <q-card
+            v-if="detectedMetadata"
+            flat
+            bordered
+            class="q-mt-md bg-blue-1"
+          >
             <q-card-section>
               <div class="text-subtitle1 q-mb-sm">
                 <q-icon name="lightbulb" color="primary" />
                 Обнаружен {{ detectedMetadata.type }}-пакет!
               </div>
               <div class="q-ml-lg">
-                <div><strong>Название:</strong> {{ detectedMetadata.name }}</div>
-                <div><strong>Версия:</strong> {{ detectedMetadata.version }}</div>
-                <div><strong>Команда установки:</strong> {{ detectedMetadata.install_cmd }}</div>
-                <div><strong>Проверка:</strong> {{ detectedMetadata.verification }}</div>
+                <div>
+                  <strong>Название:</strong> {{ detectedMetadata.name }}
+                </div>
+                <div>
+                  <strong>Версия:</strong> {{ detectedMetadata.version }}
+                </div>
+                <div>
+                  <strong>Команда установки:</strong>
+                  {{ detectedMetadata.install_cmd }}
+                </div>
+                <div>
+                  <strong>Проверка:</strong> {{ detectedMetadata.verification }}
+                </div>
               </div>
               <div class="q-mt-md">
                 <q-btn
@@ -85,11 +105,7 @@
                   label="Применить"
                   @click="applyDetectedMetadata"
                 />
-                <q-btn
-                  flat
-                  label="Изменить"
-                  @click="step = 2"
-                />
+                <q-btn flat label="Изменить" @click="step = 2" />
               </div>
             </q-card-section>
           </q-card>
@@ -112,7 +128,10 @@
         icon="settings"
         :done="step > 2"
       >
-        <div class="q-pa-md" style="max-height: calc(90vh - 250px); overflow-y: auto;">
+        <div
+          class="q-pa-md"
+          style="max-height: calc(90vh - 250px); overflow-y: auto"
+        >
           <q-card flat bordered class="q-mb-md">
             <q-card-section>
               <div class="text-subtitle1 q-mb-md">Базовая информация</div>
@@ -239,26 +258,17 @@
         </div>
 
         <q-stepper-navigation>
-          <q-btn
-            color="primary"
-            label="Далее"
-            @click="nextStep"
-          />
-          <q-btn
-            flat
-            label="Назад"
-            @click="step = 1"
-          />
+          <q-btn color="primary" label="Далее" @click="nextStep" />
+          <q-btn flat label="Назад" @click="step = 1" />
         </q-stepper-navigation>
       </q-step>
 
       <!-- Step 3: Target Selection -->
-      <q-step
-        :name="3"
-        title="Назначение"
-        icon="send"
-      >
-        <div class="q-pa-md" style="max-height: calc(90vh - 250px); overflow-y: auto;">
+      <q-step :name="3" title="Назначение" icon="send">
+        <div
+          class="q-pa-md"
+          style="max-height: calc(90vh - 250px); overflow-y: auto"
+        >
           <q-option-group
             v-model="formData.deploy_mode"
             :options="deployModeOptions"
@@ -266,7 +276,12 @@
             class="q-mb-md"
           />
 
-          <q-card v-if="formData.deploy_mode === 'deploy_now'" flat bordered class="q-mb-md">
+          <q-card
+            v-if="formData.deploy_mode === 'deploy_now'"
+            flat
+            bordered
+            class="q-mb-md"
+          >
             <q-card-section>
               <div class="text-subtitle1 q-mb-md">Выбор целей</div>
 
@@ -335,7 +350,7 @@
                 dense
                 type="number"
                 label="Максимум дней"
-                style="max-width: 150px; margin-left: 30px;"
+                style="max-width: 150px; margin-left: 30px"
                 class="q-mb-md"
               />
 
@@ -363,7 +378,7 @@
                 outlined
                 dense
                 label="Email для уведомления"
-                style="max-width: 300px; margin-left: 30px;"
+                style="max-width: 300px; margin-left: 30px"
               />
             </q-card-section>
           </q-card>
@@ -373,14 +388,14 @@
           <q-btn
             color="primary"
             icon="rocket_launch"
-            :label="formData.deploy_mode === 'library_only' ? 'Сохранить в библиотеку' : 'Запустить установку'"
+            :label="
+              formData.deploy_mode === 'library_only'
+                ? 'Сохранить в библиотеку'
+                : 'Запустить установку'
+            "
             @click="submit"
           />
-          <q-btn
-            flat
-            label="Назад"
-            @click="step = 2"
-          />
+          <q-btn flat label="Назад" @click="step = 2" />
         </q-stepper-navigation>
       </q-step>
     </q-stepper>
@@ -388,99 +403,140 @@
 </template>
 
 <script>
-import { ref, watch } from 'vue';
+import { ref, watch } from "vue";
 
 export default {
-  name: 'FileUploadWizard',
-  emits: ['close', 'uploaded'],
+  name: "FileUploadWizard",
+  emits: ["close", "uploaded"],
   setup(props, { emit }) {
     const step = ref(1);
     const file = ref(null);
     const uploading = ref(false);
     const uploadProgress = ref(0);
     const detectedMetadata = ref(null);
-    const targetSearch = ref('');
+    const targetSearch = ref("");
     const selectedAgents = ref([]);
 
     const formData = ref({
-      name: '',
-      version: '',
-      description: '',
+      name: "",
+      version: "",
+      description: "",
       tags: [],
-      install_type: 'auto_msi',
-      install_command: '',
+      install_type: "auto_msi",
+      install_command: "",
       timeout: 900,
       run_as_user: false,
-      verification_method: 'registry',
-      registry_path: '',
-      registry_key: '',
-      file_path: '',
-      verification_script: '',
-      deploy_mode: 'library_only',
+      verification_method: "registry",
+      registry_path: "",
+      registry_key: "",
+      file_path: "",
+      verification_script: "",
+      deploy_mode: "library_only",
       allow_postpone: false,
       postpone_days: 3,
       force_install: false,
       reboot_after: false,
       notify_completion: false,
-      notification_email: '',
+      notification_email: "",
     });
 
-    const tagOptions = ['дизайн', 'графика', 'adobe', 'офис', 'безопасность', 'драйвер', 'браузер'];
+    const tagOptions = [
+      "дизайн",
+      "графика",
+      "adobe",
+      "офис",
+      "безопасность",
+      "драйвер",
+      "браузер",
+    ];
 
     const installTypeOptions = [
-      { label: 'Автоматическая (для MSI)', value: 'auto_msi' },
-      { label: 'Ручная настройка параметров', value: 'manual' },
-      { label: 'PowerShell скрипт', value: 'script' },
+      { label: "Автоматическая (для MSI)", value: "auto_msi" },
+      { label: "Ручная настройка параметров", value: "manual" },
+      { label: "PowerShell скрипт", value: "script" },
     ];
 
     const verificationOptions = [
-      { label: 'Реестр', value: 'registry' },
-      { label: 'Файл существует', value: 'file' },
-      { label: 'Скрипт', value: 'script' },
+      { label: "Реестр", value: "registry" },
+      { label: "Файл существует", value: "file" },
+      { label: "Скрипт", value: "script" },
     ];
 
     const deployModeOptions = [
-      { label: 'Сохранить в библиотеку (назначу позже)', value: 'library_only' },
-      { label: 'Установить сейчас', value: 'deploy_now' },
+      {
+        label: "Сохранить в библиотеку (назначу позже)",
+        value: "library_only",
+      },
+      { label: "Установить сейчас", value: "deploy_now" },
     ];
 
     const agentTree = ref([
       {
-        id: 'client-1',
-        label: 'Отдел разработки',
-        icon: 'business',
-        color: 'blue',
-        count: '24 агента',
+        id: "client-1",
+        label: "Отдел разработки",
+        icon: "business",
+        color: "blue",
+        count: "24 агента",
         children: [
-          { id: 'agent-1', label: 'dev-01 (Иванов П.)', icon: 'computer', status: 'Online', statusColor: 'positive' },
-          { id: 'agent-2', label: 'dev-02 (Петров В.)', icon: 'computer', status: 'Online', statusColor: 'positive' },
-          { id: 'agent-3', label: 'dev-03 (Сидоров К.)', icon: 'computer', status: 'Online', statusColor: 'positive' },
+          {
+            id: "agent-1",
+            label: "dev-01 (Иванов П.)",
+            icon: "computer",
+            status: "Online",
+            statusColor: "positive",
+          },
+          {
+            id: "agent-2",
+            label: "dev-02 (Петров В.)",
+            icon: "computer",
+            status: "Online",
+            statusColor: "positive",
+          },
+          {
+            id: "agent-3",
+            label: "dev-03 (Сидоров К.)",
+            icon: "computer",
+            status: "Online",
+            statusColor: "positive",
+          },
         ],
       },
       {
-        id: 'client-2',
-        label: 'Отдел маркетинга',
-        icon: 'business',
-        color: 'green',
-        count: '12 агентов',
+        id: "client-2",
+        label: "Отдел маркетинга",
+        icon: "business",
+        color: "green",
+        count: "12 агентов",
         children: [
-          { id: 'agent-4', label: 'mrk-01', icon: 'computer', status: 'Online', statusColor: 'positive' },
-          { id: 'agent-5', label: 'mrk-02', icon: 'computer', status: 'Offline', statusColor: 'grey' },
+          {
+            id: "agent-4",
+            label: "mrk-01",
+            icon: "computer",
+            status: "Online",
+            statusColor: "positive",
+          },
+          {
+            id: "agent-5",
+            label: "mrk-02",
+            icon: "computer",
+            status: "Offline",
+            statusColor: "grey",
+          },
         ],
       },
       {
-        id: 'group-1',
-        label: 'Все ноутбуки',
-        icon: 'laptop',
-        color: 'orange',
-        count: '156 агентов',
+        id: "group-1",
+        label: "Все ноутбуки",
+        icon: "laptop",
+        color: "orange",
+        count: "156 агентов",
       },
     ]);
 
     // Watch file change
     watch(file, (newFile) => {
       if (newFile) {
-        formData.value.name = newFile.name.replace(/\.[^/.]+$/, '');
+        formData.value.name = newFile.name.replace(/\.[^/.]+$/, "");
         simulateFileAnalysis(newFile);
       }
     });
@@ -493,28 +549,28 @@ export default {
     };
 
     const simulateFileAnalysis = (uploadedFile) => {
-      const ext = uploadedFile.name.split('.').pop().toLowerCase();
+      const ext = uploadedFile.name.split(".").pop().toLowerCase();
 
-      if (ext === 'msi') {
+      if (ext === "msi") {
         detectedMetadata.value = {
-          type: 'MSI',
-          name: 'Adobe Photoshop 2024',
-          version: '24.2.1.0',
+          type: "MSI",
+          name: "Adobe Photoshop 2024",
+          version: "24.2.1.0",
           install_cmd: 'msiexec /i "{file}" /qn',
-          verification: 'HKLM\\SOFTWARE\\Adobe\\Photoshop\\24.0',
+          verification: "HKLM\\SOFTWARE\\Adobe\\Photoshop\\24.0",
         };
 
-        formData.value.version = '24.2.1.0';
+        formData.value.version = "24.2.1.0";
         formData.value.install_command = 'msiexec /i "{file}" /qn';
-        formData.value.registry_path = 'HKLM\\SOFTWARE\\Adobe\\Photoshop';
-        formData.value.registry_key = 'Version';
-      } else if (ext === 'exe') {
+        formData.value.registry_path = "HKLM\\SOFTWARE\\Adobe\\Photoshop";
+        formData.value.registry_key = "Version";
+      } else if (ext === "exe") {
         detectedMetadata.value = {
-          type: 'EXE',
-          name: uploadedFile.name.replace(/\.[^/.]+$/, ''),
-          version: '1.0',
+          type: "EXE",
+          name: uploadedFile.name.replace(/\.[^/.]+$/, ""),
+          version: "1.0",
           install_cmd: '"{file}" /S',
-          verification: 'По умолчанию не определено',
+          verification: "По умолчанию не определено",
         };
       }
     };
@@ -527,11 +583,11 @@ export default {
     };
 
     const formatFileSize = (bytes) => {
-      if (bytes === 0) return '0 Bytes';
+      if (bytes === 0) return "0 Bytes";
       const k = 1024;
-      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const sizes = ["Bytes", "KB", "MB", "GB"];
       const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+      return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
     };
 
     const nextStep = () => {
@@ -557,9 +613,9 @@ export default {
     };
 
     const submit = () => {
-      console.log('Submitting:', formData.value);
-      emit('uploaded', { file: file.value, formData: formData.value });
-      emit('close');
+      console.log("Submitting:", formData.value);
+      emit("uploaded", { file: file.value, formData: formData.value });
+      emit("close");
     };
 
     return {

@@ -12,7 +12,9 @@
         <q-form @submit.prevent="handleSubmit" class="create-form">
           <!-- File Upload -->
           <div class="form-section">
-            <label class="form-label">Certificate File <span class="required">*</span></label>
+            <label class="form-label"
+              >Certificate File <span class="required">*</span></label
+            >
             <ResourceFileUpload
               v-model="formData.file"
               resource-type="certificate"
@@ -22,13 +24,15 @@
 
           <!-- Name -->
           <div class="form-section">
-            <label class="form-label">Name <span class="required">*</span></label>
+            <label class="form-label"
+              >Name <span class="required">*</span></label
+            >
             <q-input
               v-model="formData.name"
               outlined
               dense
               placeholder="Enter certificate name"
-              :rules="[val => !!val || 'Name is required']"
+              :rules="[(val) => !!val || 'Name is required']"
             />
           </div>
 
@@ -47,7 +51,9 @@
 
           <!-- Segment -->
           <div class="form-section">
-            <label class="form-label">Segment <span class="required">*</span></label>
+            <label class="form-label"
+              >Segment <span class="required">*</span></label
+            >
             <q-select
               v-model="formData.segment"
               :options="segmentOptions"
@@ -76,38 +82,57 @@
                 />
               </template>
             </q-input>
-            <div class="form-hint">Required for password-protected certificates (P12, PFX)</div>
+            <div class="form-hint">
+              Required for password-protected certificates (P12, PFX)
+            </div>
           </div>
 
           <!-- Issued To -->
           <div class="form-section">
-            <label class="form-label">Issued To <span class="required">*</span></label>
+            <label class="form-label"
+              >Issued To <span class="required">*</span></label
+            >
             <q-input
               v-model="formData.issuedTo"
               outlined
               dense
               placeholder="e.g., *.company.com or Internal Services"
-              :rules="[val => !!val || 'Issued To is required']"
+              :rules="[(val) => !!val || 'Issued To is required']"
             />
           </div>
 
           <!-- Expiry Date -->
           <div class="form-section">
-            <label class="form-label">Expiry Date <span class="required">*</span></label>
+            <label class="form-label"
+              >Expiry Date <span class="required">*</span></label
+            >
             <q-input
               v-model="formData.expiryDate"
               outlined
               dense
               type="date"
-              :rules="[val => !!val || 'Expiry date is required']"
+              :rules="[(val) => !!val || 'Expiry date is required']"
             />
           </div>
 
           <!-- Actions -->
           <div v-if="uploading" class="upload-progress-section">
-            <q-linear-progress :value="uploadProgress / 100" color="primary" rounded size="8px" />
+            <q-linear-progress
+              :value="uploadProgress / 100"
+              color="primary"
+              rounded
+              size="8px"
+            />
             <div class="upload-phase-text">
-              {{ uploadPhase === 'hashing' ? 'Computing file hash...' : uploadPhase === 'uploading' ? `Uploading... ${uploadProgress}%` : uploadPhase === 'confirming' ? 'Finalizing...' : '' }}
+              {{
+                uploadPhase === "hashing"
+                  ? "Computing file hash..."
+                  : uploadPhase === "uploading"
+                    ? `Uploading... ${uploadProgress}%`
+                    : uploadPhase === "confirming"
+                      ? "Finalizing..."
+                      : ""
+              }}
             </div>
           </div>
 
@@ -128,40 +153,46 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
-import { useQuasar } from 'quasar';
-import ResourceFileUpload from '../components/ResourceFileUpload.vue';
-import { SEGMENTS } from '../types/resources';
-import { useResourceUpload } from '../composables/useResourceUpload';
+import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
+import { useQuasar } from "quasar";
+import ResourceFileUpload from "../components/ResourceFileUpload.vue";
+import { SEGMENTS } from "../types/resources";
+import { useResourceUpload } from "../composables/useResourceUpload";
 
 const router = useRouter();
 const $q = useQuasar();
 
 const submitting = ref(false);
 const showPassword = ref(false);
-const { uploading, uploadProgress, uploadPhase, uploadResource } = useResourceUpload();
+const { uploading, uploadProgress, uploadPhase, uploadResource } =
+  useResourceUpload();
 
 const formData = ref({
   file: null as File | null,
-  name: '',
-  description: '',
-  segment: 'Global',
-  password: '',
-  issuedTo: '',
-  expiryDate: '',
+  name: "",
+  description: "",
+  segment: "Global",
+  password: "",
+  issuedTo: "",
+  expiryDate: "",
 });
 
-const segmentOptions = SEGMENTS.map(s => ({ label: s, value: s }));
+const segmentOptions = SEGMENTS.map((s) => ({ label: s, value: s }));
 
 const isFormValid = computed(() => {
-  return formData.value.file && formData.value.name && formData.value.segment && 
-         formData.value.issuedTo && formData.value.expiryDate;
+  return (
+    formData.value.file &&
+    formData.value.name &&
+    formData.value.segment &&
+    formData.value.issuedTo &&
+    formData.value.expiryDate
+  );
 });
 
 function onFileSelected(file: File) {
   if (!formData.value.name) {
-    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
     formData.value.name = nameWithoutExt;
   }
 }
@@ -174,7 +205,7 @@ async function handleSubmit() {
   try {
     await uploadResource(formData.value.file!, {
       name: formData.value.name,
-      resource_type: 'certificate',
+      resource_type: "certificate",
       segment: formData.value.segment,
       description: formData.value.description,
       issued_to: formData.value.issuedTo,
@@ -184,19 +215,20 @@ async function handleSubmit() {
 
     $q.notify({
       message: `Certificate "${formData.value.name}" uploaded successfully`,
-      color: 'positive',
-      position: 'top',
-      icon: 'check_circle',
+      color: "positive",
+      position: "top",
+      icon: "check_circle",
     });
 
-    router.push({ name: 'Resources' });
+    router.push({ name: "Resources" });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Failed to upload certificate';
+    const msg =
+      error instanceof Error ? error.message : "Failed to upload certificate";
     $q.notify({
       message: msg,
-      color: 'negative',
-      position: 'top',
-      icon: 'error',
+      color: "negative",
+      position: "top",
+      icon: "error",
     });
   } finally {
     submitting.value = false;
@@ -204,7 +236,7 @@ async function handleSubmit() {
 }
 
 function goBack() {
-  router.push({ name: 'Resources' });
+  router.push({ name: "Resources" });
 }
 </script>
 

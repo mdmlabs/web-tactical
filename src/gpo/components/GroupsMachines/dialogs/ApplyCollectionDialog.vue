@@ -2,19 +2,19 @@
   <q-dialog
     :model-value="modelValue"
     position="standard"
-    persistent
     @update:model-value="$emit('update:modelValue', $event)"
+    @show="$emit('show')"
   >
     <q-card class="apply-collection-card" style="min-width: 400px">
       <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6">Apply collection to group</div>
+        <div class="text-h6">Apply collection to category</div>
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
       <q-separator />
       <q-card-section>
         <div class="text-caption text-grey-7 q-mb-sm">
-          Group: <strong>{{ groupSam }}</strong>
+          Category: <strong>{{ categoryLabel }}</strong>
         </div>
         <q-select
           v-model="selectedId"
@@ -26,15 +26,15 @@
           label="Collection *"
           outlined
           dense
-          :loading="optionsLoading"
-          :disable="optionsLoading"
+          :loading="loading"
+          :disable="loading"
           clearable
           options-dense
         >
           <template v-slot:no-option>
             <q-item>
               <q-item-section class="text-grey">
-                {{ optionsLoading ? "Loading..." : "No collections available" }}
+                {{ loading ? "Loading..." : "No collections available" }}
               </q-item-section>
             </q-item>
           </template>
@@ -45,9 +45,9 @@
         <q-btn
           color="primary"
           label="Apply"
-          :loading="loading"
+          :loading="applying"
           :disable="selectedId == null"
-          @click="submit"
+          @click="$emit('apply', selectedId as number)"
         />
       </q-card-actions>
     </q-card>
@@ -55,37 +55,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed } from "vue";
 
-const props = withDefaults(
-  defineProps<{
-    modelValue: boolean;
-    groupSam: string;
-    options: { id: number; label: string }[];
-    optionsLoading: boolean;
-    loading?: boolean;
-  }>(),
-  { loading: false },
-);
+const props = defineProps<{
+  modelValue: boolean;
+  categoryLabel: string;
+  loading: boolean;
+  applying: boolean;
+  options: Array<{ id: number; label: string }>;
+  modelSelectedId: number | null;
+}>();
 
 const emit = defineEmits<{
   "update:modelValue": [value: boolean];
+  show: [];
+  "update:selectedId": [value: number | null];
   apply: [collectionId: number];
 }>();
 
-const selectedId = ref<number | null>(null);
-
-watch(
-  () => props.modelValue,
-  (open) => {
-    if (open) selectedId.value = null;
-  },
-  { immediate: true },
-);
-
-function submit() {
-  if (selectedId.value != null) {
-    emit("apply", selectedId.value);
-  }
-}
+const selectedId = computed({
+  get: () => props.modelSelectedId,
+  set: (v) => emit("update:selectedId", v),
+});
 </script>

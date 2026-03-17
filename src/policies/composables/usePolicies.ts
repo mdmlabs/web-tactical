@@ -20,19 +20,20 @@ export function usePolicies() {
     let result = policies.value;
 
     // Filter by platform
-    result = result.filter(p => p.platform === selectedPlatform.value);
+    result = result.filter((p) => p.platform === selectedPlatform.value);
 
     // Filter by segment
     if (selectedSegment.value) {
-      result = result.filter(p => p.segment === selectedSegment.value);
+      result = result.filter((p) => p.segment === selectedSegment.value);
     }
 
     // Filter by search query
     if (searchQuery.value) {
       const query = searchQuery.value.toLowerCase();
-      result = result.filter(p =>
-        p.name.toLowerCase().includes(query) ||
-        p.summary.toLowerCase().includes(query)
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(query) ||
+          p.summary.toLowerCase().includes(query),
       );
     }
 
@@ -40,9 +41,9 @@ export function usePolicies() {
   });
 
   const platformCounts = computed(() => ({
-    apple: policies.value.filter(p => p.platform === "apple").length,
-    android: policies.value.filter(p => p.platform === "android").length,
-    windows: policies.value.filter(p => p.platform === "windows").length,
+    apple: policies.value.filter((p) => p.platform === "apple").length,
+    android: policies.value.filter((p) => p.platform === "android").length,
+    windows: policies.value.filter((p) => p.platform === "windows").length,
   }));
 
   function setSearch(query: string) {
@@ -57,7 +58,10 @@ export function usePolicies() {
     selectedPlatform.value = platform;
   }
 
-  async function createPolicy(name: string, platform: Platform = "windows"): Promise<Policy> {
+  async function createPolicy(
+    name: string,
+    platform: Platform = "windows",
+  ): Promise<Policy> {
     const newPolicy = await createPolicyApi({ name, platform });
     policies.value.unshift(newPolicy);
     totalCount.value++;
@@ -66,7 +70,7 @@ export function usePolicies() {
 
   async function deletePolicy(id: string): Promise<void> {
     await deletePolicyApi(id);
-    const index = policies.value.findIndex(p => p.id === id);
+    const index = policies.value.findIndex((p) => p.id === id);
     if (index !== -1) {
       policies.value.splice(index, 1);
       totalCount.value--;
@@ -74,24 +78,29 @@ export function usePolicies() {
   }
 
   function getPolicy(id: string): Policy | undefined {
-    return policies.value.find(p => p.id === id);
+    return policies.value.find((p) => p.id === id);
   }
 
-  async function updatePolicy(id: string, updates: Partial<Policy>): Promise<void> {
+  async function updatePolicy(
+    id: string,
+    updates: Partial<Policy>,
+  ): Promise<void> {
     const updatedPolicy = await updatePolicyApi(id, updates);
-    const index = policies.value.findIndex(p => p.id === id);
+    const index = policies.value.findIndex((p) => p.id === id);
     if (index !== -1) {
       policies.value[index] = updatedPolicy;
     }
   }
 
-  async function refreshPolicies(params: {
-    platform?: string;
-    segment?: string;
-    search?: string;
-    page?: number;
-    per_page?: number;
-  } = {}): Promise<void> {
+  async function refreshPolicies(
+    params: {
+      platform?: string;
+      segment?: string;
+      search?: string;
+      page?: number;
+      per_page?: number;
+    } = {},
+  ): Promise<void> {
     loading.value = true;
     try {
       const response: PolicyListResponse = await fetchPoliciesApi({

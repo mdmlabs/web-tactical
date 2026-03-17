@@ -60,7 +60,10 @@
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>{{ scope.opt.name }}</q-item-label>
-                  <q-item-label caption>{{ scope.opt.segment }} - {{ scope.opt.employee }}</q-item-label>
+                  <q-item-label caption
+                    >{{ scope.opt.segment }} -
+                    {{ scope.opt.employee }}</q-item-label
+                  >
                 </q-item-section>
               </q-item>
             </template>
@@ -76,7 +79,10 @@
               :key="group.id"
               clickable
               @click="toggleGroup(group.id)"
-              :class="['group-item', { 'group-item--selected': selectedGroups.includes(group.id) }]"
+              :class="[
+                'group-item',
+                { 'group-item--selected': selectedGroups.includes(group.id) },
+              ]"
             >
               <q-item-section side>
                 <q-checkbox
@@ -88,7 +94,10 @@
                 <q-item-label>{{ group.name }}</q-item-label>
               </q-item-section>
               <q-item-section side>
-                <q-badge :label="`${group.deviceCount} devices`" color="grey-6" />
+                <q-badge
+                  :label="`${group.deviceCount} devices`"
+                  color="grey-6"
+                />
               </q-item-section>
             </q-item>
           </q-list>
@@ -97,12 +106,7 @@
 
       <!-- Actions -->
       <q-card-actions align="right" class="dialog-actions">
-        <q-btn
-          flat
-          label="Cancel"
-          @click="close"
-          class="action-btn"
-        />
+        <q-btn flat label="Cancel" @click="close" class="action-btn" />
         <q-btn
           unelevated
           color="primary"
@@ -117,20 +121,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import { mockDevices, mockDeviceGroups } from '../../mocks/policiesMockData';
+import { ref, computed, watch } from "vue";
+import { mockDevices, mockDeviceGroups } from "../../mocks/policiesMockData";
 
 const props = defineProps<{
   modelValue: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: boolean): void;
-  (e: 'assign', deviceIds: string[]): void;
+  (e: "update:modelValue", value: boolean): void;
+  (e: "assign", deviceIds: string[]): void;
 }>();
 
 // Form state
-const activeTab = ref('devices');
+const activeTab = ref("devices");
 const selectedDevices = ref<string[]>([]);
 const selectedGroups = ref<string[]>([]);
 
@@ -138,21 +142,24 @@ const availableDevices = mockDevices;
 const deviceGroups = mockDeviceGroups;
 
 const canAssign = computed(() => {
-  if (activeTab.value === 'devices') {
+  if (activeTab.value === "devices") {
     return selectedDevices.value.length > 0;
   }
   return selectedGroups.value.length > 0;
 });
 
 // Reset form when dialog opens
-watch(() => props.modelValue, (isOpen) => {
-  if (isOpen) {
-    resetForm();
-  }
-});
+watch(
+  () => props.modelValue,
+  (isOpen) => {
+    if (isOpen) {
+      resetForm();
+    }
+  },
+);
 
 function resetForm() {
-  activeTab.value = 'devices';
+  activeTab.value = "devices";
   selectedDevices.value = [];
   selectedGroups.value = [];
 }
@@ -167,7 +174,7 @@ function toggleGroup(groupId: string) {
 }
 
 function close() {
-  emit('update:modelValue', false);
+  emit("update:modelValue", false);
 }
 
 function assign() {
@@ -175,17 +182,17 @@ function assign() {
 
   let deviceIds: string[] = [];
 
-  if (activeTab.value === 'devices') {
+  if (activeTab.value === "devices") {
     deviceIds = [...selectedDevices.value];
   } else {
     // For groups, we'd normally fetch the device IDs from the backend
     // For mock data, we'll just assign all devices for selected groups
     if (selectedGroups.value.length > 0) {
-      deviceIds = availableDevices.map(device => device.id);
+      deviceIds = availableDevices.map((device) => device.id);
     }
   }
 
-  emit('assign', deviceIds);
+  emit("assign", deviceIds);
   close();
 }
 </script>

@@ -113,13 +113,30 @@ export interface PolicyCategory {
   count: number;
 }
 
-export const PLATFORMS: { id: Platform; label: string; icon: string; disabled: boolean }[] = [
+export const PLATFORMS: {
+  id: Platform;
+  label: string;
+  icon: string;
+  disabled: boolean;
+}[] = [
   { id: "apple", label: "Apple", icon: "mdi-apple", disabled: true },
   { id: "android", label: "Android", icon: "mdi-android", disabled: true },
-  { id: "windows", label: "Windows", icon: "mdi-microsoft-windows", disabled: false },
+  {
+    id: "windows",
+    label: "Windows",
+    icon: "mdi-microsoft-windows",
+    disabled: false,
+  },
 ];
 
-export const SEGMENTS = ["Global", "Europe", "North America", "Asia Pacific", "Development", "Production"];
+export const SEGMENTS = [
+  "Global",
+  "Europe",
+  "North America",
+  "Asia Pacific",
+  "Development",
+  "Production",
+];
 
 export const SCOPES: { value: Scope; label: string }[] = [
   { value: "primary_user", label: "Primary user" },
@@ -127,7 +144,10 @@ export const SCOPES: { value: Scope; label: string }[] = [
   { value: "system", label: "System" },
 ];
 
-export const VERIFICATION_METHODS: { value: VerificationMethod; label: string }[] = [
+export const VERIFICATION_METHODS: {
+  value: VerificationMethod;
+  label: string;
+}[] = [
   { value: "registry", label: "Registry" },
   { value: "file_exists", label: "File exists" },
   { value: "script", label: "Script" },

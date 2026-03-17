@@ -5,11 +5,11 @@
 </template>
 
 <script>
-import { defineComponent } from 'vue';
-import FileLibrary from '@/components/files/FileLibrary.vue';
+import { defineComponent } from "vue";
+import FileLibrary from "@/components/files/FileLibrary.vue";
 
 export default defineComponent({
-  name: 'FileManagementView',
+  name: "FileManagementView",
   components: {
     FileLibrary,
   },

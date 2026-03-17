@@ -101,12 +101,7 @@
 
       <!-- Actions -->
       <q-card-actions align="right" class="dialog-actions">
-        <q-btn
-          flat
-          label="Cancel"
-          @click="close"
-          class="action-btn"
-        />
+        <q-btn flat label="Cancel" @click="close" class="action-btn" />
         <q-btn
           unelevated
           color="primary"
@@ -121,50 +116,50 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import type { PolicyResource, ResourceType, Scope } from '../../types/policies';
+import { ref, computed, watch } from "vue";
+import type { PolicyResource, ResourceType, Scope } from "../../types/policies";
 import {
   mockBookResources,
   mockImageResources,
   mockCertificateResources,
-} from '../../mocks/policiesMockData';
+} from "../../mocks/policiesMockData";
 
 const props = defineProps<{
   modelValue: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: boolean): void;
-  (e: 'add', resource: PolicyResource): void;
+  (e: "update:modelValue", value: boolean): void;
+  (e: "add", resource: PolicyResource): void;
 }>();
 
 // Form state
-const resourceType = ref<ResourceType>('book');
+const resourceType = ref<ResourceType>("book");
 const selectedResource = ref<string | null>(null);
-const scope = ref<Scope>('primary_user');
-const location = ref('');
+const scope = ref<Scope>("primary_user");
+const location = ref("");
 
 const scopeOptions = [
-  { value: 'primary_user', label: 'Primary user' },
-  { value: 'all_users', label: 'All users' },
-  { value: 'system', label: 'System' },
+  { value: "primary_user", label: "Primary user" },
+  { value: "all_users", label: "All users" },
+  { value: "system", label: "System" },
 ];
 
 const typeDescriptions: Record<ResourceType, string> = {
-  book: 'Select or upload your own PDF or EPUB resources',
-  certificate: 'Select or upload your own certificate files',
-  image: 'Select or upload your own image resources',
+  book: "Select or upload your own PDF or EPUB resources",
+  certificate: "Select or upload your own certificate files",
+  image: "Select or upload your own image resources",
 };
 
 const typeDescription = computed(() => typeDescriptions[resourceType.value]);
 
 const currentResources = computed(() => {
   switch (resourceType.value) {
-    case 'book':
+    case "book":
       return mockBookResources;
-    case 'certificate':
+    case "certificate":
       return mockCertificateResources;
-    case 'image':
+    case "image":
       return mockImageResources;
     default:
       return [];
@@ -172,7 +167,7 @@ const currentResources = computed(() => {
 });
 
 const selectedResourceData = computed(() =>
-  currentResources.value.find(r => r.id === selectedResource.value)
+  currentResources.value.find((r) => r.id === selectedResource.value),
 );
 
 const canAdd = computed(() => selectedResource.value !== null);
@@ -183,21 +178,24 @@ watch(resourceType, () => {
 });
 
 // Reset form when dialog opens
-watch(() => props.modelValue, (isOpen) => {
-  if (isOpen) {
-    resetForm();
-  }
-});
+watch(
+  () => props.modelValue,
+  (isOpen) => {
+    if (isOpen) {
+      resetForm();
+    }
+  },
+);
 
 function resetForm() {
-  resourceType.value = 'book';
+  resourceType.value = "book";
   selectedResource.value = null;
-  scope.value = 'primary_user';
-  location.value = '';
+  scope.value = "primary_user";
+  location.value = "";
 }
 
 function close() {
-  emit('update:modelValue', false);
+  emit("update:modelValue", false);
 }
 
 function addResource() {
@@ -212,7 +210,7 @@ function addResource() {
     locations: location.value ? [location.value] : [],
   };
 
-  emit('add', resource);
+  emit("add", resource);
   close();
 }
 </script>

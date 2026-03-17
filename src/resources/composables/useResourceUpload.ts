@@ -110,14 +110,9 @@ export function useResourceUpload() {
 
       // 3. Upload to MinIO directly
       uploadPhase.value = "uploading";
-      await uploadToMinIO(
-        file,
-        presigned.url,
-        presigned.fields,
-        (percent) => {
-          uploadProgress.value = percent;
-        },
-      );
+      await uploadToMinIO(file, presigned.url, presigned.fields, (percent) => {
+        uploadProgress.value = percent;
+      });
 
       // 4. Confirm upload
       uploadPhase.value = "confirming";

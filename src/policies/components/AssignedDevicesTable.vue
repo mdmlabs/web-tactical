@@ -142,60 +142,81 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import type { Device } from '../types/policies';
-import { formatRelativeTime } from '../mocks/policiesMockData';
+import { ref, computed } from "vue";
+import type { Device } from "../types/policies";
+import { formatRelativeTime } from "../mocks/policiesMockData";
 
 const props = defineProps<{
   devices: Device[];
 }>();
 
 defineEmits<{
-  (e: 'assign'): void;
-  (e: 'unassign', deviceId: string): void;
-  (e: 'refresh'): void;
-  (e: 'view-all'): void;
+  (e: "assign"): void;
+  (e: "unassign", deviceId: string): void;
+  (e: "refresh"): void;
+  (e: "view-all"): void;
 }>();
 
-const searchQuery = ref('');
+const searchQuery = ref("");
 
 const filteredDevices = computed(() => {
   if (!searchQuery.value) return props.devices;
   const query = searchQuery.value.toLowerCase();
-  return props.devices.filter(d =>
-    d.name.toLowerCase().includes(query) ||
-    d.employee.toLowerCase().includes(query)
+  return props.devices.filter(
+    (d) =>
+      d.name.toLowerCase().includes(query) ||
+      d.employee.toLowerCase().includes(query),
   );
 });
 
 const columns = [
-  { name: 'name', label: 'DEVICE', field: 'name', align: 'left' as const },
-  { name: 'segment', label: 'SEGMENT', field: 'segment', align: 'left' as const },
-  { name: 'battery', label: 'BATTERY', field: 'battery', align: 'left' as const },
-  { name: 'employee', label: 'DEVICE EMPLOYEE', field: 'employee', align: 'left' as const },
-  { name: 'policiesCount', label: 'POLICIES', field: 'policiesCount', align: 'left' as const },
+  { name: "name", label: "DEVICE", field: "name", align: "left" as const },
   {
-    name: 'updated',
-    label: 'UPDATED',
-    field: 'updated',
-    align: 'left' as const,
+    name: "segment",
+    label: "SEGMENT",
+    field: "segment",
+    align: "left" as const,
+  },
+  {
+    name: "battery",
+    label: "BATTERY",
+    field: "battery",
+    align: "left" as const,
+  },
+  {
+    name: "employee",
+    label: "DEVICE EMPLOYEE",
+    field: "employee",
+    align: "left" as const,
+  },
+  {
+    name: "policiesCount",
+    label: "POLICIES",
+    field: "policiesCount",
+    align: "left" as const,
+  },
+  {
+    name: "updated",
+    label: "UPDATED",
+    field: "updated",
+    align: "left" as const,
     format: (val: string) => formatRelativeTime(val),
   },
-  { name: 'actions', label: '', field: 'actions', align: 'right' as const },
+  { name: "actions", label: "", field: "actions", align: "right" as const },
 ];
 
 function getBatteryIcon(level: number): string {
-  if (level > 80) return 'mdi-battery';
-  if (level > 60) return 'mdi-battery-70';
-  if (level > 40) return 'mdi-battery-50';
-  if (level > 20) return 'mdi-battery-30';
-  return 'mdi-battery-10';
+  if (level > 80) return "mdi-battery";
+  if (level > 60) return "mdi-battery-70";
+  if (level > 40) return "mdi-battery-50";
+  if (level > 20) return "mdi-battery-30";
+  return "mdi-battery-10";
 }
 
 function getBatteryColor(level: number): string {
-  if (level > 50) return 'positive';
-  if (level > 20) return 'warning';
-  return 'negative';
+  if (level > 50) return "positive";
+  if (level > 20) return "warning";
+  return "negative";
 }
 </script>
 

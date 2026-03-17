@@ -1,6 +1,9 @@
 import { ref, computed, watch } from "vue";
 import { useQuasar } from "quasar";
-import { userControlClient, agentServiceClientWrapper } from "@/gpo/api/grpc-client";
+import {
+  userControlClient,
+  agentServiceClientWrapper,
+} from "@/gpo/api/grpc-client";
 import type { Target } from "@/gpo/api/grpc-client";
 import type { UserWithIdInfo } from "@/generated/user_service_pb";
 import type { GroupInfo } from "@/generated/common/user_pb";
@@ -159,12 +162,12 @@ export function useUserActions() {
         selectedUserId.value,
       );
       const agentIds = res.agentIdsList ?? [];
-      
+
       const agentsWithNames = await Promise.all(
         agentIds.map(async (id) => {
           try {
             const agent = await agentServiceClientWrapper.getAgent(id);
-            const name = 
+            const name =
               (agent as { hostName?: string; host_name?: string }).hostName ??
               (agent as { hostName?: string; host_name?: string }).host_name ??
               id;
@@ -172,9 +175,9 @@ export function useUserActions() {
           } catch {
             return { id, name: id };
           }
-        })
+        }),
       );
-      
+
       userAgents.value = agentsWithNames;
     } catch {
       // игнор
@@ -259,8 +262,7 @@ export function useUserActions() {
       telephoneNumber: params.telephoneNumber?.trim() || "",
       employeeId: params.employeeId?.trim() || "",
     };
-    const samId =
-      userDetail.value?.info?.samaccountname ?? userId;
+    const samId = userDetail.value?.info?.samaccountname ?? userId;
     try {
       const res = await userControlClient.updateUser(
         target,

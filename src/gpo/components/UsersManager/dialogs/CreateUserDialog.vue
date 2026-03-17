@@ -1,15 +1,16 @@
 <template>
-  <q-dialog :model-value="modelValue" persistent @update:model-value="$emit('update:modelValue', $event)">
+  <q-dialog
+    :model-value="modelValue"
+    persistent
+    @update:model-value="$emit('update:modelValue', $event)"
+  >
     <q-card style="min-width: 480px; max-width: 90vw">
       <q-card-section class="row items-center q-pb-none">
         <div class="text-h6">Create User</div>
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
-      <q-card-section
-        class="q-pt-sm"
-        style="max-height: 70vh; overflow: auto"
-      >
+      <q-card-section class="q-pt-sm" style="max-height: 70vh; overflow: auto">
         <q-input
           v-model="form.samAccountName"
           label="SAM Account Name *"
@@ -115,12 +116,7 @@
           dense
           class="q-mb-sm"
         />
-        <q-input
-          v-model="form.employeeId"
-          label="Employee ID"
-          outlined
-          dense
-        />
+        <q-input v-model="form.employeeId" label="Employee ID" outlined dense />
       </q-card-section>
       <q-card-actions align="right">
         <q-btn flat label="Cancel" v-close-popup />

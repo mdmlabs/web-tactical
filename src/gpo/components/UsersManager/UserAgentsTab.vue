@@ -33,7 +33,11 @@
         </q-item-section>
         <q-item-section>
           <q-item-label>{{ agent.name }}</q-item-label>
-          <q-item-label v-if="agent.name !== agent.id" caption class="text-grey-6">
+          <q-item-label
+            v-if="agent.name !== agent.id"
+            caption
+            class="text-grey-6"
+          >
             {{ agent.id }}
           </q-item-label>
         </q-item-section>

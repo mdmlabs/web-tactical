@@ -80,12 +80,7 @@
 
       <!-- Actions -->
       <q-card-actions align="right" class="dialog-actions">
-        <q-btn
-          flat
-          label="Cancel"
-          @click="close"
-          class="action-btn"
-        />
+        <q-btn flat label="Cancel" @click="close" class="action-btn" />
         <q-btn
           unelevated
           color="primary"
@@ -100,17 +95,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import type { PolicyScript } from '../../types/policies';
-import { mockScriptResources } from '../../mocks/policiesMockData';
+import { ref, computed, watch } from "vue";
+import type { PolicyScript } from "../../types/policies";
+import { mockScriptResources } from "../../mocks/policiesMockData";
 
 const props = defineProps<{
   modelValue: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: boolean): void;
-  (e: 'add', script: PolicyScript): void;
+  (e: "update:modelValue", value: boolean): void;
+  (e: "add", script: PolicyScript): void;
 }>();
 
 // Form state
@@ -122,16 +117,19 @@ const scriptResources = mockScriptResources;
 
 const canAdd = computed(() => selectedScript.value !== null);
 
-const selectedScriptData = computed(() => 
-  scriptResources.find(s => s.id === selectedScript.value)
+const selectedScriptData = computed(() =>
+  scriptResources.find((s) => s.id === selectedScript.value),
 );
 
 // Reset form when dialog opens
-watch(() => props.modelValue, (isOpen) => {
-  if (isOpen) {
-    resetForm();
-  }
-});
+watch(
+  () => props.modelValue,
+  (isOpen) => {
+    if (isOpen) {
+      resetForm();
+    }
+  },
+);
 
 function resetForm() {
   selectedScript.value = null;
@@ -140,7 +138,7 @@ function resetForm() {
 }
 
 function close() {
-  emit('update:modelValue', false);
+  emit("update:modelValue", false);
 }
 
 function addScript() {
@@ -154,7 +152,7 @@ function addScript() {
     runAsUser: runAsUser.value,
   };
 
-  emit('add', script);
+  emit("add", script);
   close();
 }
 </script>

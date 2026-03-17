@@ -36,7 +36,7 @@
               @click="navigateToCreate"
             >
               <q-icon name="add" size="18px" class="q-mr-xs" />
-              {{ currentCategoryInfo?.createLabel || 'Create' }}
+              {{ currentCategoryInfo?.createLabel || "Create" }}
             </q-btn>
 
             <!-- Search -->
@@ -153,7 +153,12 @@
 
         <q-card-actions align="right">
           <q-btn flat label="Clear" @click="clearFilters" v-close-popup />
-          <q-btn color="primary" label="Apply" @click="applyFilters" v-close-popup />
+          <q-btn
+            color="primary"
+            label="Apply"
+            @click="applyFilters"
+            v-close-popup
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -161,14 +166,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { useQuasar } from 'quasar';
-import ResourcesSidebar from '../components/ResourcesSidebar.vue';
-import ResourcesTable from '../components/ResourcesTable.vue';
-import { useResources } from '../composables/useResources';
-import { SEGMENTS } from '../types/resources';
-import type { ResourceType, Resource } from '../types/resources';
+import { ref, computed, watch, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { useQuasar } from "quasar";
+import ResourcesSidebar from "../components/ResourcesSidebar.vue";
+import ResourcesTable from "../components/ResourcesTable.vue";
+import { useResources } from "../composables/useResources";
+import { SEGMENTS } from "../types/resources";
+import type { ResourceType, Resource } from "../types/resources";
 
 const router = useRouter();
 const $q = useQuasar();
@@ -190,12 +195,12 @@ const {
 } = useResources();
 
 // Local state for form inputs
-const searchQueryLocal = ref('');
-const selectedSegmentLocal = ref<string | null>('Global');
+const searchQueryLocal = ref("");
+const selectedSegmentLocal = ref<string | null>("Global");
 const showFilterDialog = ref(false);
 const filterSegment = ref<string | null>(null);
-const filterDateFrom = ref('');
-const filterDateTo = ref('');
+const filterDateFrom = ref("");
+const filterDateTo = ref("");
 
 onMounted(() => {
   refreshResources();
@@ -204,13 +209,13 @@ onMounted(() => {
 
 // Segment options
 const segmentOptions = computed(() => [
-  { label: 'All Segments', value: null },
-  ...SEGMENTS.map(s => ({ label: s, value: s })),
+  { label: "All Segments", value: null },
+  ...SEGMENTS.map((s) => ({ label: s, value: s })),
 ]);
 
 const segmentFilterOptions = computed(() => [
-  { label: 'All Segments', value: null },
-  ...SEGMENTS.map(s => ({ label: s, value: s })),
+  { label: "All Segments", value: null },
+  ...SEGMENTS.map((s) => ({ label: s, value: s })),
 ]);
 
 // Debounced search
@@ -218,7 +223,7 @@ let searchTimeout: ReturnType<typeof setTimeout>;
 function debounceSearch(value: string | null) {
   clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
-    setSearch(value || '');
+    setSearch(value || "");
   }, 300);
 }
 
@@ -230,11 +235,11 @@ watch(selectedSegmentLocal, (newVal) => {
 // Navigate to create page
 function navigateToCreate() {
   const routeMap: Record<ResourceType, string> = {
-    script: 'CreateScript',
-    app: 'CreateApp',
-    book: 'CreateBook',
-    image: 'CreateImage',
-    certificate: 'CreateCertificate',
+    script: "CreateScript",
+    app: "CreateApp",
+    book: "CreateBook",
+    image: "CreateImage",
+    certificate: "CreateCertificate",
   };
   router.push({ name: routeMap[currentCategory.value] });
 }
@@ -243,8 +248,8 @@ function navigateToCreate() {
 function handleEdit(resource: Resource) {
   $q.notify({
     message: `Edit functionality for "${resource.name}" coming soon`,
-    color: 'info',
-    position: 'top',
+    color: "info",
+    position: "top",
   });
 }
 
@@ -254,17 +259,17 @@ async function handleDelete(resource: Resource) {
     await deleteResource(resource.id);
     $q.notify({
       message: `"${resource.name}" has been deleted`,
-      color: 'positive',
-      position: 'top',
-      icon: 'check_circle',
+      color: "positive",
+      position: "top",
+      icon: "check_circle",
     });
   } catch (e: unknown) {
     const err = e as Error;
     $q.notify({
-      message: err.message || 'Failed to delete resource',
-      color: 'negative',
-      position: 'top',
-      icon: 'error',
+      message: err.message || "Failed to delete resource",
+      color: "negative",
+      position: "top",
+      icon: "error",
     });
   }
 }
@@ -276,15 +281,22 @@ async function handleDownload(resource: Resource) {
   } catch (e) {
     $q.notify({
       message: `Failed to download "${resource.name}"`,
-      color: 'negative',
-      position: 'top',
-      icon: 'error',
+      color: "negative",
+      position: "top",
+      icon: "error",
     });
   }
 }
 
 // Handle table request (server-side pagination/sorting)
-function onTableRequest(requestProps: { pagination: { page: number; rowsPerPage: number; sortBy?: string; descending?: boolean } }) {
+function onTableRequest(requestProps: {
+  pagination: {
+    page: number;
+    rowsPerPage: number;
+    sortBy?: string;
+    descending?: boolean;
+  };
+}) {
   pagination.value.page = requestProps.pagination.page;
   pagination.value.rowsPerPage = requestProps.pagination.rowsPerPage;
   refreshResources();
@@ -293,8 +305,8 @@ function onTableRequest(requestProps: { pagination: { page: number; rowsPerPage:
 // Filter functions
 function clearFilters() {
   filterSegment.value = null;
-  filterDateFrom.value = '';
-  filterDateTo.value = '';
+  filterDateFrom.value = "";
+  filterDateTo.value = "";
 }
 
 function applyFilters() {

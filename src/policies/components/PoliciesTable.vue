@@ -31,7 +31,11 @@
 
       <!-- Custom body -->
       <template v-slot:body="props">
-        <q-tr :props="props" class="table-row clickable" @click="onRowClick(props.row)">
+        <q-tr
+          :props="props"
+          class="table-row clickable"
+          @click="onRowClick(props.row)"
+        >
           <q-td auto-width @click.stop>
             <q-checkbox v-model="selectedIds" :val="props.row.id" dense />
           </q-td>
@@ -59,7 +63,7 @@
                 class="summary-icon"
               />
               <span :class="{ 'empty-summary': props.row.summary === 'Empty' }">
-                {{ props.row.summary || 'Empty' }}
+                {{ props.row.summary || "Empty" }}
               </span>
             </div>
           </q-td>
@@ -98,20 +102,33 @@
             <q-btn flat round dense icon="more_vert" size="sm">
               <q-menu>
                 <q-list dense style="min-width: 150px">
-                  <q-item clickable v-close-popup @click="$emit('edit', props.row)">
+                  <q-item
+                    clickable
+                    v-close-popup
+                    @click="$emit('edit', props.row)"
+                  >
                     <q-item-section avatar>
                       <q-icon name="edit" size="sm" />
                     </q-item-section>
                     <q-item-section>Edit</q-item-section>
                   </q-item>
-                  <q-item clickable v-close-popup @click="$emit('duplicate', props.row)">
+                  <q-item
+                    clickable
+                    v-close-popup
+                    @click="$emit('duplicate', props.row)"
+                  >
                     <q-item-section avatar>
                       <q-icon name="content_copy" size="sm" />
                     </q-item-section>
                     <q-item-section>Duplicate</q-item-section>
                   </q-item>
                   <q-separator />
-                  <q-item clickable v-close-popup @click="$emit('delete', props.row)" class="text-negative">
+                  <q-item
+                    clickable
+                    v-close-popup
+                    @click="$emit('delete', props.row)"
+                    class="text-negative"
+                  >
                     <q-item-section avatar>
                       <q-icon name="delete" size="sm" color="negative" />
                     </q-item-section>
@@ -148,15 +165,26 @@
       <template v-slot:bottom="scope">
         <div class="pagination-container">
           <span class="pagination-info">
-            Showing {{ scope.pagination.page === 1 ? 1 : ((scope.pagination.page - 1) * scope.pagination.rowsPerPage) + 1 }}
-            - {{ Math.min(scope.pagination.page * scope.pagination.rowsPerPage, policies.length) }}
+            Showing
+            {{
+              scope.pagination.page === 1
+                ? 1
+                : (scope.pagination.page - 1) * scope.pagination.rowsPerPage + 1
+            }}
+            -
+            {{
+              Math.min(
+                scope.pagination.page * scope.pagination.rowsPerPage,
+                policies.length,
+              )
+            }}
             of {{ policies.length }}
           </span>
           <div class="pagination-controls">
             <span class="pagination-label">Page</span>
             <q-input
               :model-value="scope.pagination.page"
-              @update:model-value="val => onPageChange(Number(val), scope)"
+              @update:model-value="(val) => onPageChange(Number(val), scope)"
               type="number"
               dense
               outlined
@@ -189,9 +217,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
-import type { Policy } from '../types/policies';
-import { formatRelativeTime } from '../mocks/policiesMockData';
+import { ref, watch } from "vue";
+import type { Policy } from "../types/policies";
+import { formatRelativeTime } from "../mocks/policiesMockData";
 
 interface Props {
   policies: Policy[];
@@ -208,19 +236,22 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  (e: 'select', policy: Policy): void;
-  (e: 'edit', policy: Policy): void;
-  (e: 'delete', policy: Policy): void;
-  (e: 'duplicate', policy: Policy): void;
-  (e: 'create'): void;
-  (e: 'update:pagination', pagination: { page: number; rowsPerPage: number }): void;
+  (e: "select", policy: Policy): void;
+  (e: "edit", policy: Policy): void;
+  (e: "delete", policy: Policy): void;
+  (e: "duplicate", policy: Policy): void;
+  (e: "create"): void;
+  (
+    e: "update:pagination",
+    pagination: { page: number; rowsPerPage: number },
+  ): void;
 }>();
 
 const selectAll = ref(false);
 const selectedIds = ref<string[]>([]);
 
 function onRowClick(policy: Policy) {
-  emit('select', policy);
+  emit("select", policy);
 }
 
 const internalPagination = ref({
@@ -229,55 +260,62 @@ const internalPagination = ref({
   rowsNumber: props.policies.length,
 });
 
-watch(() => props.pagination, (newVal) => {
-  internalPagination.value.page = newVal.page;
-  internalPagination.value.rowsPerPage = newVal.rowsPerPage;
-}, { deep: true });
+watch(
+  () => props.pagination,
+  (newVal) => {
+    internalPagination.value.page = newVal.page;
+    internalPagination.value.rowsPerPage = newVal.rowsPerPage;
+  },
+  { deep: true },
+);
 
-watch(() => props.policies.length, (newLen) => {
-  internalPagination.value.rowsNumber = newLen;
-});
+watch(
+  () => props.policies.length,
+  (newLen) => {
+    internalPagination.value.rowsNumber = newLen;
+  },
+);
 
 const columns = [
   {
-    name: 'name',
-    label: 'NAME',
-    field: 'name',
-    align: 'left' as const,
+    name: "name",
+    label: "NAME",
+    field: "name",
+    align: "left" as const,
     sortable: true,
   },
   {
-    name: 'summary',
-    label: 'SUMMARY',
-    field: 'summary',
-    align: 'left' as const,
+    name: "summary",
+    label: "SUMMARY",
+    field: "summary",
+    align: "left" as const,
   },
   {
-    name: 'segment',
-    label: 'SEGMENT',
-    field: 'segment',
-    align: 'left' as const,
+    name: "segment",
+    label: "SEGMENT",
+    field: "segment",
+    align: "left" as const,
     sortable: true,
   },
   {
-    name: 'deviceCount',
-    label: '# DEVICES',
-    field: 'deviceCount',
-    align: 'left' as const,
+    name: "deviceCount",
+    label: "# DEVICES",
+    field: "deviceCount",
+    align: "left" as const,
     sortable: true,
   },
   {
-    name: 'updated',
-    label: 'UPDATED',
-    field: 'updated',
-    align: 'left' as const,
+    name: "updated",
+    label: "UPDATED",
+    field: "updated",
+    align: "left" as const,
     sortable: true,
   },
   {
-    name: 'created',
-    label: 'CREATED',
-    field: 'created',
-    align: 'left' as const,
+    name: "created",
+    label: "CREATED",
+    field: "created",
+    align: "left" as const,
     sortable: true,
   },
 ];
@@ -286,21 +324,28 @@ function formatDate(dateString: string): string {
   return formatRelativeTime(dateString);
 }
 
-function onPaginationUpdate(newPagination: { page: number; rowsPerPage: number; rowsNumber: number }) {
+function onPaginationUpdate(newPagination: {
+  page: number;
+  rowsPerPage: number;
+  rowsNumber: number;
+}) {
   internalPagination.value = newPagination;
-  emit('update:pagination', {
+  emit("update:pagination", {
     page: newPagination.page,
     rowsPerPage: newPagination.rowsPerPage,
   });
 }
 
-function onPageChange(page: number, scope: { pagination: { rowsPerPage: number } }) {
+function onPageChange(
+  page: number,
+  scope: { pagination: { rowsPerPage: number } },
+) {
   const newPagination = {
     ...internalPagination.value,
     page,
   };
   internalPagination.value = newPagination;
-  emit('update:pagination', {
+  emit("update:pagination", {
     page,
     rowsPerPage: scope.pagination.rowsPerPage,
   });
@@ -309,7 +354,7 @@ function onPageChange(page: number, scope: { pagination: { rowsPerPage: number }
 // Handle select all
 watch(selectAll, (val) => {
   if (val) {
-    selectedIds.value = props.policies.map(p => p.id);
+    selectedIds.value = props.policies.map((p) => p.id);
   } else {
     selectedIds.value = [];
   }

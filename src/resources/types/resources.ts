@@ -1,8 +1,13 @@
-export type ResourceType = 'script' | 'app' | 'book' | 'image' | 'certificate';
+export type ResourceType = "script" | "app" | "book" | "image" | "certificate";
 
-export type ScriptLanguage = 'PowerShell' | 'Python' | 'Bash' | 'Batch' | 'JavaScript';
+export type ScriptLanguage =
+  | "PowerShell"
+  | "Python"
+  | "Bash"
+  | "Batch"
+  | "JavaScript";
 
-export type AppPlatform = 'Windows' | 'macOS' | 'Linux' | 'Cross-Platform';
+export type AppPlatform = "Windows" | "macOS" | "Linux" | "Cross-Platform";
 
 export interface BaseResource {
   id: string;
@@ -27,31 +32,31 @@ export interface BaseResource {
 }
 
 export interface Script extends BaseResource {
-  type: 'script';
+  type: "script";
   language: ScriptLanguage;
 }
 
 export interface App extends BaseResource {
-  type: 'app';
+  type: "app";
   version: string;
   platform: AppPlatform;
 }
 
 export interface Book extends BaseResource {
-  type: 'book';
+  type: "book";
   size: string;
   author?: string;
 }
 
 export interface Image extends BaseResource {
-  type: 'image';
+  type: "image";
   size: string;
   dimensions: string;
   altText?: string;
 }
 
 export interface Certificate extends BaseResource {
-  type: 'certificate';
+  type: "certificate";
   expiryDate: string;
   issuedTo: string;
 }
@@ -66,42 +71,70 @@ export interface ResourceCategory {
 }
 
 export const RESOURCE_CATEGORIES: ResourceCategory[] = [
-  { id: 'script', label: 'Scripts', icon: 'code', createLabel: 'Create Script' },
-  { id: 'app', label: 'Apps', icon: 'apps', createLabel: 'Create App' },
-  { id: 'book', label: 'Books', icon: 'menu_book', createLabel: 'Upload Book' },
-  { id: 'image', label: 'Images', icon: 'image', createLabel: 'Upload Image' },
-  { id: 'certificate', label: 'Certificates', icon: 'vpn_key', createLabel: 'Upload Certificate' },
+  {
+    id: "script",
+    label: "Scripts",
+    icon: "code",
+    createLabel: "Create Script",
+  },
+  { id: "app", label: "Apps", icon: "apps", createLabel: "Create App" },
+  { id: "book", label: "Books", icon: "menu_book", createLabel: "Upload Book" },
+  { id: "image", label: "Images", icon: "image", createLabel: "Upload Image" },
+  {
+    id: "certificate",
+    label: "Certificates",
+    icon: "vpn_key",
+    createLabel: "Upload Certificate",
+  },
 ];
 
-export const SCRIPT_LANGUAGES: ScriptLanguage[] = ['PowerShell', 'Python', 'Bash', 'Batch', 'JavaScript'];
+export const SCRIPT_LANGUAGES: ScriptLanguage[] = [
+  "PowerShell",
+  "Python",
+  "Bash",
+  "Batch",
+  "JavaScript",
+];
 
-export const APP_PLATFORMS: AppPlatform[] = ['Windows', 'macOS', 'Linux', 'Cross-Platform'];
+export const APP_PLATFORMS: AppPlatform[] = [
+  "Windows",
+  "macOS",
+  "Linux",
+  "Cross-Platform",
+];
 
-export const SEGMENTS = ['Global', 'Europe', 'North America', 'Asia Pacific', 'Development', 'Production'];
+export const SEGMENTS = [
+  "Global",
+  "Europe",
+  "North America",
+  "Asia Pacific",
+  "Development",
+  "Production",
+];
 
 export const SCRIPT_EXTENSIONS: Record<string, ScriptLanguage> = {
-  'ps1': 'PowerShell',
-  'py': 'Python',
-  'sh': 'Bash',
-  'bat': 'Batch',
-  'cmd': 'Batch',
-  'js': 'JavaScript',
+  ps1: "PowerShell",
+  py: "Python",
+  sh: "Bash",
+  bat: "Batch",
+  cmd: "Batch",
+  js: "JavaScript",
 };
 
 export const ALLOWED_EXTENSIONS: Record<ResourceType, string[]> = {
-  script: ['ps1', 'py', 'sh', 'bat', 'cmd', 'js'],
-  app: ['exe', 'msi', 'dmg', 'pkg', 'deb', 'rpm', 'appimage'],
-  book: ['pdf', 'epub', 'mobi', 'djvu'],
-  image: ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'ico'],
-  certificate: ['p12', 'pfx', 'cer', 'crt', 'pem', 'key'],
+  script: ["ps1", "py", "sh", "bat", "cmd", "js"],
+  app: ["exe", "msi", "dmg", "pkg", "deb", "rpm", "appimage"],
+  book: ["pdf", "epub", "mobi", "djvu"],
+  image: ["jpg", "jpeg", "png", "gif", "svg", "webp", "ico"],
+  certificate: ["p12", "pfx", "cer", "crt", "pem", "key"],
 };
 
 export const RESOURCE_SIZE_LIMITS: Record<ResourceType, number> = {
-  script: 10 * 1024 * 1024,       // 10 MB
-  app: 500 * 1024 * 1024,         // 500 MB
-  book: 100 * 1024 * 1024,        // 100 MB
-  image: 50 * 1024 * 1024,        // 50 MB
-  certificate: 5 * 1024 * 1024,   // 5 MB
+  script: 10 * 1024 * 1024, // 10 MB
+  app: 500 * 1024 * 1024, // 500 MB
+  book: 100 * 1024 * 1024, // 100 MB
+  image: 50 * 1024 * 1024, // 50 MB
+  certificate: 5 * 1024 * 1024, // 5 MB
 };
 
 export interface UploadInitRequest {

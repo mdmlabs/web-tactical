@@ -1,7 +1,10 @@
 <template>
   <div
     class="file-upload-area"
-    :class="{ 'file-upload-area--dragover': isDragOver, 'file-upload-area--has-file': file }"
+    :class="{
+      'file-upload-area--dragover': isDragOver,
+      'file-upload-area--has-file': file,
+    }"
     @dragenter.prevent="isDragOver = true"
     @dragleave.prevent="isDragOver = false"
     @dragover.prevent
@@ -22,10 +25,10 @@
         <span class="upload-primary">Drag and drop your file here</span>
         <span class="upload-secondary">or click to browse</span>
       </div>
-      <div class="upload-hint">
-        Supported formats: {{ supportedFormats }}
+      <div class="upload-hint">Supported formats: {{ supportedFormats }}</div>
+      <div v-if="validationError" class="upload-error">
+        {{ validationError }}
       </div>
-      <div v-if="validationError" class="upload-error">{{ validationError }}</div>
     </template>
 
     <template v-else>
@@ -51,9 +54,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import type { ResourceType } from '../types/resources';
-import { ALLOWED_EXTENSIONS, RESOURCE_SIZE_LIMITS } from '../types/resources';
+import { ref, computed } from "vue";
+import type { ResourceType } from "../types/resources";
+import { ALLOWED_EXTENSIONS, RESOURCE_SIZE_LIMITS } from "../types/resources";
 
 const props = defineProps<{
   resourceType: ResourceType;
@@ -61,9 +64,9 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', file: File | null): void;
-  (e: 'file-selected', file: File): void;
-  (e: 'file-invalid', message: string): void;
+  (e: "update:modelValue", file: File | null): void;
+  (e: "file-selected", file: File): void;
+  (e: "file-invalid", message: string): void;
 }>();
 
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -73,41 +76,41 @@ const file = computed(() => props.modelValue);
 
 const acceptedExtensions = computed(() => {
   const exts = ALLOWED_EXTENSIONS[props.resourceType] || [];
-  return exts.map(ext => `.${ext}`).join(',');
+  return exts.map((ext) => `.${ext}`).join(",");
 });
 
 const supportedFormats = computed(() => {
   const exts = ALLOWED_EXTENSIONS[props.resourceType] || [];
-  return exts.map(ext => ext.toUpperCase()).join(', ');
+  return exts.map((ext) => ext.toUpperCase()).join(", ");
 });
 
 const fileIcon = computed(() => {
-  if (!file.value) return 'insert_drive_file';
-  const ext = file.value.name.split('.').pop()?.toLowerCase() || '';
-  
+  if (!file.value) return "insert_drive_file";
+  const ext = file.value.name.split(".").pop()?.toLowerCase() || "";
+
   const iconMap: Record<string, string> = {
-    pdf: 'picture_as_pdf',
-    ps1: 'code',
-    py: 'code',
-    sh: 'code',
-    bat: 'code',
-    js: 'code',
-    exe: 'settings_applications',
-    msi: 'inventory_2',
-    dmg: 'inventory_2',
-    jpg: 'image',
-    jpeg: 'image',
-    png: 'image',
-    gif: 'image',
-    svg: 'image',
-    p12: 'vpn_key',
-    pfx: 'vpn_key',
-    cer: 'vpn_key',
-    crt: 'vpn_key',
-    epub: 'menu_book',
+    pdf: "picture_as_pdf",
+    ps1: "code",
+    py: "code",
+    sh: "code",
+    bat: "code",
+    js: "code",
+    exe: "settings_applications",
+    msi: "inventory_2",
+    dmg: "inventory_2",
+    jpg: "image",
+    jpeg: "image",
+    png: "image",
+    gif: "image",
+    svg: "image",
+    p12: "vpn_key",
+    pfx: "vpn_key",
+    cer: "vpn_key",
+    crt: "vpn_key",
+    epub: "menu_book",
   };
-  
-  return iconMap[ext] || 'insert_drive_file';
+
+  return iconMap[ext] || "insert_drive_file";
 });
 
 function triggerFileInput() {
@@ -132,13 +135,13 @@ function selectFile(selectedFile: File) {
   validationError.value = null;
 
   // Validate extension
-  const ext = selectedFile.name.split('.').pop()?.toLowerCase() || '';
+  const ext = selectedFile.name.split(".").pop()?.toLowerCase() || "";
   const allowedExts = ALLOWED_EXTENSIONS[props.resourceType] || [];
-  
+
   if (!allowedExts.includes(ext)) {
-    const msg = `Extension .${ext} is not allowed. Supported: ${allowedExts.map(e => `.${e}`).join(', ')}`;
+    const msg = `Extension .${ext} is not allowed. Supported: ${allowedExts.map((e) => `.${e}`).join(", ")}`;
     validationError.value = msg;
-    emit('file-invalid', msg);
+    emit("file-invalid", msg);
     return;
   }
 
@@ -147,27 +150,27 @@ function selectFile(selectedFile: File) {
   if (sizeLimit && selectedFile.size > sizeLimit) {
     const msg = `File too large. Maximum size: ${formatFileSize(sizeLimit)}`;
     validationError.value = msg;
-    emit('file-invalid', msg);
+    emit("file-invalid", msg);
     return;
   }
-  
-  emit('update:modelValue', selectedFile);
-  emit('file-selected', selectedFile);
+
+  emit("update:modelValue", selectedFile);
+  emit("file-selected", selectedFile);
 }
 
 function removeFile() {
-  emit('update:modelValue', null);
+  emit("update:modelValue", null);
   if (fileInput.value) {
-    fileInput.value.value = '';
+    fileInput.value.value = "";
   }
 }
 
 function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 Bytes';
+  if (bytes === 0) return "0 Bytes";
   const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const sizes = ["Bytes", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 </script>
 

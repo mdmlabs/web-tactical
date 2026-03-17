@@ -47,7 +47,9 @@
               placeholder="Search"
               class="search-input"
               clearable
-              @update:model-value="(v) => debounceSearch(typeof v === 'number' ? String(v) : v)"
+              @update:model-value="
+                (v) => debounceSearch(typeof v === 'number' ? String(v) : v)
+              "
             >
               <template v-slot:prepend>
                 <q-icon name="search" />
@@ -68,7 +70,12 @@
 
           <div class="header-right">
             <!-- Refresh Button -->
-            <q-btn flat dense class="action-btn" @click="() => refreshPolicies()">
+            <q-btn
+              flat
+              dense
+              class="action-btn"
+              @click="() => refreshPolicies()"
+            >
               <q-icon name="refresh" size="18px" class="q-mr-xs" />
               Refresh
             </q-btn>
@@ -160,7 +167,12 @@
 
         <q-card-actions align="right">
           <q-btn flat label="Clear" @click="clearFilters" v-close-popup />
-          <q-btn color="primary" label="Apply" @click="applyFilters" v-close-popup />
+          <q-btn
+            color="primary"
+            label="Apply"
+            @click="applyFilters"
+            v-close-popup
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -168,15 +180,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import { useRouter } from 'vue-router';
-import { useQuasar } from 'quasar';
-import PoliciesSidebar from '../components/PoliciesSidebar.vue';
-import PoliciesTable from '../components/PoliciesTable.vue';
-import CreatePolicyDialog from '../components/dialogs/CreatePolicyDialog.vue';
-import { usePolicies } from '../composables/usePolicies';
-import { SEGMENTS } from '../types/policies';
-import type { Policy, Platform } from '../types/policies';
+import { ref, computed, watch } from "vue";
+import { useRouter } from "vue-router";
+import { useQuasar } from "quasar";
+import PoliciesSidebar from "../components/PoliciesSidebar.vue";
+import PoliciesTable from "../components/PoliciesTable.vue";
+import CreatePolicyDialog from "../components/dialogs/CreatePolicyDialog.vue";
+import { usePolicies } from "../composables/usePolicies";
+import { SEGMENTS } from "../types/policies";
+import type { Policy, Platform } from "../types/policies";
 
 const router = useRouter();
 const $q = useQuasar();
@@ -195,13 +207,13 @@ const {
 } = usePolicies();
 
 // Local state for form inputs
-const searchQueryLocal = ref('');
-const selectedSegmentLocal = ref<string | null>('Global');
+const searchQueryLocal = ref("");
+const selectedSegmentLocal = ref<string | null>("Global");
 const showCreateDialog = ref(false);
 const showFilterDialog = ref(false);
 const filterSegment = ref<string | null>(null);
-const filterDateFrom = ref('');
-const filterDateTo = ref('');
+const filterDateFrom = ref("");
+const filterDateTo = ref("");
 
 const pagination = ref({
   page: 1,
@@ -210,20 +222,38 @@ const pagination = ref({
 
 // Platforms with counts
 const platformsWithCount = computed(() => [
-  { id: 'apple' as Platform, label: 'Apple', count: platformCounts.value.apple, disabled: true },
-  { id: 'android' as Platform, label: 'Android', count: platformCounts.value.android, disabled: true },
-  { id: 'windows' as Platform, label: 'Windows', count: platformCounts.value.windows, disabled: false },
+  {
+    id: "apple" as Platform,
+    label: "Apple",
+    count: platformCounts.value.apple,
+    disabled: true,
+  },
+  {
+    id: "android" as Platform,
+    label: "Android",
+    count: platformCounts.value.android,
+    disabled: true,
+  },
+  {
+    id: "windows" as Platform,
+    label: "Windows",
+    count: platformCounts.value.windows,
+    disabled: false,
+  },
 ]);
 
 // Segment options
 const segmentOptions = computed(() => [
-  { label: 'Global', value: 'Global' },
-  ...SEGMENTS.filter(s => s !== 'Global').map(s => ({ label: s, value: s })),
+  { label: "Global", value: "Global" },
+  ...SEGMENTS.filter((s) => s !== "Global").map((s) => ({
+    label: s,
+    value: s,
+  })),
 ]);
 
 const segmentFilterOptions = computed(() => [
-  { label: 'All Segments', value: null },
-  ...SEGMENTS.map(s => ({ label: s, value: s })),
+  { label: "All Segments", value: null },
+  ...SEGMENTS.map((s) => ({ label: s, value: s })),
 ]);
 
 // Debounced search
@@ -231,7 +261,7 @@ let searchTimeout: ReturnType<typeof setTimeout>;
 function debounceSearch(value: string | null) {
   clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
-    setSearch(value || '');
+    setSearch(value || "");
   }, 300);
 }
 
@@ -242,30 +272,30 @@ watch(selectedSegmentLocal, (newVal) => {
 
 // Navigate to policy detail
 function navigateToPolicy(policy: Policy) {
-  router.push({ name: 'PolicyDetail', params: { id: policy.id } });
+  router.push({ name: "PolicyDetail", params: { id: policy.id } });
 }
 
 async function handleCreatePolicy(data: { name: string; platform: Platform }) {
   try {
     const newPolicy: Policy = await createPolicy(data.name, data.platform);
     if (!newPolicy?.id) {
-      throw new Error('Policy created but no id returned from server');
+      throw new Error("Policy created but no id returned from server");
     }
     showCreateDialog.value = false;
     $q.notify({
       message: `Policy "${newPolicy.name}" created successfully`,
-      color: 'positive',
-      position: 'top',
-      icon: 'check_circle',
+      color: "positive",
+      position: "top",
+      icon: "check_circle",
     });
-    void router.push({ name: 'PolicyDetail', params: { id: newPolicy.id } });
+    void router.push({ name: "PolicyDetail", params: { id: newPolicy.id } });
   } catch (err) {
-    console.error('[handleCreatePolicy] error:', err);
+    console.error("[handleCreatePolicy] error:", err);
     $q.notify({
-      message: 'Failed to create policy. Please try again.',
-      color: 'negative',
-      position: 'top',
-      icon: 'error',
+      message: "Failed to create policy. Please try again.",
+      color: "negative",
+      position: "top",
+      icon: "error",
     });
   }
 }
@@ -273,7 +303,7 @@ async function handleCreatePolicy(data: { name: string; platform: Platform }) {
 // Handle delete
 function handleDelete(policy: Policy) {
   $q.dialog({
-    title: 'Delete Policy',
+    title: "Delete Policy",
     message: `Are you sure you want to delete "${policy.name}"? This action cannot be undone.`,
     cancel: true,
     persistent: true,
@@ -282,16 +312,16 @@ function handleDelete(policy: Policy) {
       await deletePolicy(policy.id);
       $q.notify({
         message: `Policy "${policy.name}" has been deleted`,
-        color: 'positive',
-        position: 'top',
-        icon: 'check_circle',
+        color: "positive",
+        position: "top",
+        icon: "check_circle",
       });
     } catch {
       $q.notify({
-        message: 'Failed to delete policy. Please try again.',
-        color: 'negative',
-        position: 'top',
-        icon: 'error',
+        message: "Failed to delete policy. Please try again.",
+        color: "negative",
+        position: "top",
+        icon: "error",
       });
     }
   });
@@ -300,19 +330,22 @@ function handleDelete(policy: Policy) {
 // Handle duplicate
 async function handleDuplicate(policy: Policy) {
   try {
-    const duplicated: Policy = await createPolicy(`${policy.name} (Copy)`, policy.platform);
+    const duplicated: Policy = await createPolicy(
+      `${policy.name} (Copy)`,
+      policy.platform,
+    );
     $q.notify({
       message: `Policy duplicated as "${duplicated.name}"`,
-      color: 'positive',
-      position: 'top',
-      icon: 'check_circle',
+      color: "positive",
+      position: "top",
+      icon: "check_circle",
     });
   } catch {
     $q.notify({
-      message: 'Failed to duplicate policy. Please try again.',
-      color: 'negative',
-      position: 'top',
-      icon: 'error',
+      message: "Failed to duplicate policy. Please try again.",
+      color: "negative",
+      position: "top",
+      icon: "error",
     });
   }
 }
@@ -320,8 +353,8 @@ async function handleDuplicate(policy: Policy) {
 // Filter functions
 function clearFilters() {
   filterSegment.value = null;
-  filterDateFrom.value = '';
-  filterDateTo.value = '';
+  filterDateFrom.value = "";
+  filterDateTo.value = "";
 }
 
 function applyFilters() {

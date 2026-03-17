@@ -300,7 +300,10 @@
                     clickable
                     v-ripple
                     @click="handleMenuAction('groupsMachines')"
-                    :class="['filebar-popup-item', { 'active-menu-item': isActiveGPOTab('groupsMachines') }]"
+                    :class="[
+                      'filebar-popup-item',
+                      { 'active-menu-item': isActiveGPOTab('groupsMachines') },
+                    ]"
                     v-close-popup
                   >
                     <q-item-section avatar>
@@ -408,7 +411,10 @@
                 clickable
                 v-ripple
                 @click="handleMenuAction('groupsMachines')"
-                :class="['filebar-menu-item', { 'active-menu-item': isActiveGPOTab('groupsMachines') }]"
+                :class="[
+                  'filebar-menu-item',
+                  { 'active-menu-item': isActiveGPOTab('groupsMachines') },
+                ]"
               >
                 <q-item-section avatar>
                   <q-icon name="dns" />
@@ -541,7 +547,10 @@
             clickable
             v-ripple
             @click="navigateToResources"
-            :class="['filebar-menu-section', { 'active-menu-item': isResourcesActive }]"
+            :class="[
+              'filebar-menu-section',
+              { 'active-menu-item': isResourcesActive },
+            ]"
           >
             <q-item-section avatar>
               <q-icon name="folder_open" />

@@ -9,7 +9,9 @@
     <div v-else-if="resources.length === 0" class="table-empty">
       <q-icon :name="emptyIcon" size="64px" color="grey-5" />
       <h3 class="empty-title">No {{ categoryLabel }} yet</h3>
-      <p class="empty-description">Upload your first {{ categorySingular }} to get started</p>
+      <p class="empty-description">
+        Upload your first {{ categorySingular }} to get started
+      </p>
       <q-btn
         color="primary"
         :icon="'add'"
@@ -35,10 +37,19 @@
       <template v-slot:body-cell-name="props">
         <q-td :props="props" class="name-cell">
           <div class="name-wrapper">
-            <q-icon :name="getResourceIcon(props.row)" size="20px" class="resource-icon" />
+            <q-icon
+              :name="getResourceIcon(props.row)"
+              size="20px"
+              class="resource-icon"
+            />
             <div class="name-content">
               <div class="resource-name">{{ props.row.name }}</div>
-              <div v-if="props.row.fileName && props.row.fileName !== props.row.name" class="resource-filename">
+              <div
+                v-if="
+                  props.row.fileName && props.row.fileName !== props.row.name
+                "
+                class="resource-filename"
+              >
                 {{ props.row.fileName }}
               </div>
             </div>
@@ -49,7 +60,9 @@
       <!-- Description Column -->
       <template v-slot:body-cell-description="props">
         <q-td :props="props" class="description-cell">
-          <span class="description-text">{{ props.row.description || '-' }}</span>
+          <span class="description-text">{{
+            props.row.description || "-"
+          }}</span>
         </q-td>
       </template>
 
@@ -101,7 +114,12 @@
       <!-- Expiry Date Column (Certificates) -->
       <template v-slot:body-cell-expiryDate="props">
         <q-td :props="props">
-          <span :class="['expiry-text', { 'expiry-warning': isExpiringSoon(props.row.expiryDate) }]">
+          <span
+            :class="[
+              'expiry-text',
+              { 'expiry-warning': isExpiringSoon(props.row.expiryDate) },
+            ]"
+          >
             {{ formatDate(props.row.expiryDate) }}
           </span>
         </q-td>
@@ -124,33 +142,54 @@
       <!-- Created Column -->
       <template v-slot:body-cell-created="props">
         <q-td :props="props">
-          <span class="created-text">{{ formatRelativeTime(props.row.createdTime) }}</span>
+          <span class="created-text">{{
+            formatRelativeTime(props.row.createdTime)
+          }}</span>
         </q-td>
       </template>
 
       <!-- Actions Column -->
       <template v-slot:body-cell-actions="props">
         <q-td :props="props" class="actions-cell">
-          <q-btn flat round dense icon="download" size="sm" @click="$emit('download', props.row)">
+          <q-btn
+            flat
+            round
+            dense
+            icon="download"
+            size="sm"
+            @click="$emit('download', props.row)"
+          >
             <q-tooltip>Download</q-tooltip>
           </q-btn>
           <q-btn flat round dense icon="more_vert" size="sm">
             <q-menu>
               <q-list dense style="min-width: 150px">
-                <q-item clickable v-close-popup @click="$emit('edit', props.row)">
+                <q-item
+                  clickable
+                  v-close-popup
+                  @click="$emit('edit', props.row)"
+                >
                   <q-item-section avatar>
                     <q-icon name="edit" size="sm" />
                   </q-item-section>
                   <q-item-section>Edit</q-item-section>
                 </q-item>
-                <q-item clickable v-close-popup @click="$emit('download', props.row)">
+                <q-item
+                  clickable
+                  v-close-popup
+                  @click="$emit('download', props.row)"
+                >
                   <q-item-section avatar>
                     <q-icon name="download" size="sm" />
                   </q-item-section>
                   <q-item-section>Download</q-item-section>
                 </q-item>
                 <q-separator />
-                <q-item clickable v-close-popup @click="confirmDelete(props.row)">
+                <q-item
+                  clickable
+                  v-close-popup
+                  @click="confirmDelete(props.row)"
+                >
                   <q-item-section avatar>
                     <q-icon name="delete" size="sm" color="negative" />
                   </q-item-section>
@@ -166,8 +205,20 @@
       <template v-slot:bottom="props">
         <div class="table-pagination">
           <span class="pagination-info">
-            Showing {{ props.pagination.page > 1 ? (props.pagination.page - 1) * props.pagination.rowsPerPage + 1 : 1 }} - 
-            {{ Math.min(props.pagination.page * props.pagination.rowsPerPage, props.pagination.rowsNumber || resources.length) }} of {{ props.pagination.rowsNumber || resources.length }}
+            Showing
+            {{
+              props.pagination.page > 1
+                ? (props.pagination.page - 1) * props.pagination.rowsPerPage + 1
+                : 1
+            }}
+            -
+            {{
+              Math.min(
+                props.pagination.page * props.pagination.rowsPerPage,
+                props.pagination.rowsNumber || resources.length,
+              )
+            }}
+            of {{ props.pagination.rowsNumber || resources.length }}
           </span>
           <div class="pagination-controls">
             <span class="page-label">Page</span>
@@ -206,9 +257,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useQuasar } from 'quasar';
-import type { ResourceType, Resource } from '../types/resources';
+import { computed } from "vue";
+import { useQuasar } from "quasar";
+import type { ResourceType, Resource } from "../types/resources";
 
 const $q = useQuasar();
 
@@ -224,89 +275,165 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'create'): void;
-  (e: 'edit', resource: Resource): void;
-  (e: 'delete', resource: Resource): void;
-  (e: 'download', resource: Resource): void;
-  (e: 'update:pagination', pagination: typeof props.pagination): void;
-  (e: 'request', params: { pagination: typeof props.pagination }): void;
+  (e: "create"): void;
+  (e: "edit", resource: Resource): void;
+  (e: "delete", resource: Resource): void;
+  (e: "download", resource: Resource): void;
+  (e: "update:pagination", pagination: typeof props.pagination): void;
+  (e: "request", params: { pagination: typeof props.pagination }): void;
 }>();
 
 const paginationModel = computed({
   get: () => props.pagination,
-  set: (val) => emit('update:pagination', val),
+  set: (val) => emit("update:pagination", val),
 });
 
 function onRequest(requestProps: { pagination: typeof props.pagination }) {
-  emit('request', requestProps);
+  emit("request", requestProps);
 }
 
 const categoryLabel = computed(() => {
   const labels: Record<ResourceType, string> = {
-    script: 'Scripts',
-    app: 'Apps',
-    book: 'Books',
-    image: 'Images',
-    certificate: 'Certificates',
+    script: "Scripts",
+    app: "Apps",
+    book: "Books",
+    image: "Images",
+    certificate: "Certificates",
   };
   return labels[props.resourceType];
 });
 
 const categorySingular = computed(() => {
   const labels: Record<ResourceType, string> = {
-    script: 'Script',
-    app: 'App',
-    book: 'Book',
-    image: 'Image',
-    certificate: 'Certificate',
+    script: "Script",
+    app: "App",
+    book: "Book",
+    image: "Image",
+    certificate: "Certificate",
   };
   return labels[props.resourceType];
 });
 
 const emptyIcon = computed(() => {
   const icons: Record<ResourceType, string> = {
-    script: 'code',
-    app: 'apps',
-    book: 'menu_book',
-    image: 'image',
-    certificate: 'vpn_key',
+    script: "code",
+    app: "apps",
+    book: "menu_book",
+    image: "image",
+    certificate: "vpn_key",
   };
   return icons[props.resourceType];
 });
 
 const columns = computed(() => {
   const baseColumns = [
-    { name: 'name', label: 'NAME', field: 'name', align: 'left' as const, sortable: true },
-    { name: 'description', label: 'DESCRIPTION', field: 'description', align: 'left' as const },
-    { name: 'segment', label: 'SEGMENT', field: 'segment', align: 'left' as const, sortable: true },
+    {
+      name: "name",
+      label: "NAME",
+      field: "name",
+      align: "left" as const,
+      sortable: true,
+    },
+    {
+      name: "description",
+      label: "DESCRIPTION",
+      field: "description",
+      align: "left" as const,
+    },
+    {
+      name: "segment",
+      label: "SEGMENT",
+      field: "segment",
+      align: "left" as const,
+      sortable: true,
+    },
   ];
 
   const typeSpecificColumns: Record<ResourceType, typeof baseColumns> = {
     script: [
-      { name: 'language', label: 'LANGUAGE', field: 'language', align: 'left' as const, sortable: true },
-      { name: 'extension', label: 'EXTENSION', field: 'extension', align: 'left' as const },
+      {
+        name: "language",
+        label: "LANGUAGE",
+        field: "language",
+        align: "left" as const,
+        sortable: true,
+      },
+      {
+        name: "extension",
+        label: "EXTENSION",
+        field: "extension",
+        align: "left" as const,
+      },
     ],
     app: [
-      { name: 'version', label: 'VERSION', field: 'version', align: 'left' as const },
-      { name: 'platform', label: 'PLATFORM', field: 'platform', align: 'left' as const, sortable: true },
+      {
+        name: "version",
+        label: "VERSION",
+        field: "version",
+        align: "left" as const,
+      },
+      {
+        name: "platform",
+        label: "PLATFORM",
+        field: "platform",
+        align: "left" as const,
+        sortable: true,
+      },
     ],
     book: [
-      { name: 'size', label: 'SIZE', field: 'size', align: 'left' as const },
-      { name: 'extension', label: 'EXTENSION', field: 'extension', align: 'left' as const },
+      { name: "size", label: "SIZE", field: "size", align: "left" as const },
+      {
+        name: "extension",
+        label: "EXTENSION",
+        field: "extension",
+        align: "left" as const,
+      },
     ],
     image: [
-      { name: 'size', label: 'SIZE', field: 'size', align: 'left' as const },
-      { name: 'dimensions', label: 'DIMENSIONS', field: 'dimensions', align: 'left' as const },
-      { name: 'extension', label: 'EXTENSION', field: 'extension', align: 'left' as const },
+      { name: "size", label: "SIZE", field: "size", align: "left" as const },
+      {
+        name: "dimensions",
+        label: "DIMENSIONS",
+        field: "dimensions",
+        align: "left" as const,
+      },
+      {
+        name: "extension",
+        label: "EXTENSION",
+        field: "extension",
+        align: "left" as const,
+      },
     ],
     certificate: [
-      { name: 'expiryDate', label: 'EXPIRY DATE', field: 'expiryDate', align: 'left' as const, sortable: true },
-      { name: 'issuedTo', label: 'ISSUED TO', field: 'issuedTo', align: 'left' as const },
+      {
+        name: "expiryDate",
+        label: "EXPIRY DATE",
+        field: "expiryDate",
+        align: "left" as const,
+        sortable: true,
+      },
+      {
+        name: "issuedTo",
+        label: "ISSUED TO",
+        field: "issuedTo",
+        align: "left" as const,
+      },
     ],
   };
 
-  const createdColumn = { name: 'created', label: 'CREATED', field: 'createdTime', align: 'left' as const, sortable: true };
-  const actionsColumn = { name: 'actions', label: '', field: 'actions', align: 'right' as const };
+  const createdColumn = {
+    name: "created",
+    label: "CREATED",
+    field: "createdTime",
+    align: "left" as const,
+    sortable: true,
+  };
+  const actionsColumn = {
+    name: "actions",
+    label: "",
+    field: "actions",
+    align: "right" as const,
+  };
 
   return [
     ...baseColumns,
@@ -318,11 +445,11 @@ const columns = computed(() => {
 
 function getResourceIcon(resource: Resource): string {
   const icons: Record<ResourceType, string> = {
-    script: 'code',
-    app: 'apps',
-    book: 'description',
-    image: 'image',
-    certificate: 'vpn_key',
+    script: "code",
+    app: "apps",
+    book: "description",
+    image: "image",
+    certificate: "vpn_key",
   };
   return icons[resource.type];
 }
@@ -339,13 +466,13 @@ function formatRelativeTime(dateString: string): string {
   if (diffDay > 30) {
     return date.toLocaleDateString();
   } else if (diffDay > 0) {
-    return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
+    return `${diffDay} day${diffDay > 1 ? "s" : ""} ago`;
   } else if (diffHour > 0) {
-    return `${diffHour} hour${diffHour > 1 ? 's' : ''} ago`;
+    return `${diffHour} hour${diffHour > 1 ? "s" : ""} ago`;
   } else if (diffMin > 0) {
-    return `${diffMin} minute${diffMin > 1 ? 's' : ''} ago`;
+    return `${diffMin} minute${diffMin > 1 ? "s" : ""} ago`;
   } else {
-    return 'Just now';
+    return "Just now";
   }
 }
 
@@ -356,33 +483,38 @@ function formatDate(dateString: string): string {
 function isExpiringSoon(dateString: string): boolean {
   const date = new Date(dateString);
   const now = new Date();
-  const diffDays = Math.floor((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const diffDays = Math.floor(
+    (date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+  );
   return diffDays < 30;
 }
 
 function confirmDelete(resource: Resource) {
   $q.dialog({
-    title: 'Delete Resource',
+    title: "Delete Resource",
     message: `Are you sure you want to delete "${resource.name}"? This action cannot be undone.`,
     cancel: true,
     persistent: true,
     ok: {
-      label: 'Delete',
-      color: 'negative',
+      label: "Delete",
+      color: "negative",
       flat: true,
     },
     cancel: {
-      label: 'Cancel',
+      label: "Cancel",
       flat: true,
     },
   }).onOk(() => {
-    emit('delete', resource);
+    emit("delete", resource);
   });
 }
 
-function goToPage(page: number | string | null, tableProps: { pagination: typeof props.pagination }) {
-  if (page && typeof page === 'number') {
-    emit('update:pagination', { ...tableProps.pagination, page });
+function goToPage(
+  page: number | string | null,
+  tableProps: { pagination: typeof props.pagination },
+) {
+  if (page && typeof page === "number") {
+    emit("update:pagination", { ...tableProps.pagination, page });
   }
 }
 </script>

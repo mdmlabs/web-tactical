@@ -7,7 +7,9 @@
   >
     <q-card class="target-dialog-card">
       <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6">{{ agentsOnly ? 'Select agent' : 'Select target' }}</div>
+        <div class="text-h6">
+          {{ agentsOnly ? "Select agent" : "Select target" }}
+        </div>
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
@@ -23,7 +25,10 @@
         </div>
         <template v-else-if="!agentsOnly && targetTreeNodes.length > 0">
           <div class="target-dialog-columns row">
-            <q-scroll-area class="target-dialog-tree col" style="height: min(400px, 55vh)">
+            <q-scroll-area
+              class="target-dialog-tree col"
+              style="height: min(400px, 55vh)"
+            >
               <q-tree
                 v-model:selected="targetSelectedId"
                 :nodes="targetTreeNodes"
@@ -44,7 +49,10 @@
               </q-tree>
             </q-scroll-area>
             <div class="target-dialog-agents col">
-              <div v-if="selectedCategoryId != null || selectedUngroupedAgents" class="column full-height">
+              <div
+                v-if="selectedCategoryId != null || selectedUngroupedAgents"
+                class="column full-height"
+              >
                 <div class="text-subtitle2 q-mb-sm">
                   {{ selectedUngroupedAgents ? "All agents" : "Agents" }}
                 </div>
@@ -52,10 +60,20 @@
                   <q-spinner color="primary" size="1.5em" />
                 </div>
                 <template v-else-if="agentsPanelList.length > 0">
-                  <q-scroll-area style="height: min(360px, 50vh)" class="rounded-borders">
-                    <template v-if="!selectedUngroupedAgents && agentsOthers.length > 0">
-                      <div v-if="agentsInCategory.length > 0" class="q-px-sm q-pt-sm">
-                        <div class="text-caption text-grey-7 q-mb-xs">In category</div>
+                  <q-scroll-area
+                    style="height: min(360px, 50vh)"
+                    class="rounded-borders"
+                  >
+                    <template
+                      v-if="!selectedUngroupedAgents && agentsOthers.length > 0"
+                    >
+                      <div
+                        v-if="agentsInCategory.length > 0"
+                        class="q-px-sm q-pt-sm"
+                      >
+                        <div class="text-caption text-grey-7 q-mb-xs">
+                          In category
+                        </div>
                         <q-list bordered separator dense>
                           <q-item
                             v-for="item in agentsInCategory"
@@ -64,20 +82,34 @@
                             clickable
                             :active="selectedAgentInPanel === item.agentId"
                             active-class="bg-primary-1"
-                            @click="selectAgentInPanel(selectedAgentInPanel === item.agentId ? null : item.agentId)"
+                            @click="
+                              selectAgentInPanel(
+                                selectedAgentInPanel === item.agentId
+                                  ? null
+                                  : item.agentId,
+                              )
+                            "
                           >
                             <q-item-section avatar>
-                              <q-icon name="computer" color="primary" size="sm" />
+                              <q-icon
+                                name="computer"
+                                color="primary"
+                                size="sm"
+                              />
                             </q-item-section>
                             <q-item-section>
                               <q-item-label>{{ item.label }}</q-item-label>
-                              <q-item-label caption>{{ item.agentId }}</q-item-label>
+                              <q-item-label caption>{{
+                                item.agentId
+                              }}</q-item-label>
                             </q-item-section>
                           </q-item>
                         </q-list>
                       </div>
                       <div class="q-px-sm q-pt-sm">
-                        <div class="text-caption text-grey-7 q-mb-xs">Other agents</div>
+                        <div class="text-caption text-grey-7 q-mb-xs">
+                          Other agents
+                        </div>
                         <q-list bordered separator dense>
                           <q-item
                             v-for="item in agentsOthers"
@@ -86,14 +118,26 @@
                             clickable
                             :active="selectedAgentInPanel === item.agentId"
                             active-class="bg-primary-1"
-                            @click="selectAgentInPanel(selectedAgentInPanel === item.agentId ? null : item.agentId)"
+                            @click="
+                              selectAgentInPanel(
+                                selectedAgentInPanel === item.agentId
+                                  ? null
+                                  : item.agentId,
+                              )
+                            "
                           >
                             <q-item-section avatar>
-                              <q-icon name="computer" color="primary" size="sm" />
+                              <q-icon
+                                name="computer"
+                                color="primary"
+                                size="sm"
+                              />
                             </q-item-section>
                             <q-item-section>
                               <q-item-label>{{ item.label }}</q-item-label>
-                              <q-item-label caption>{{ item.agentId }}</q-item-label>
+                              <q-item-label caption>{{
+                                item.agentId
+                              }}</q-item-label>
                             </q-item-section>
                           </q-item>
                         </q-list>
@@ -107,14 +151,22 @@
                         clickable
                         :active="selectedAgentInPanel === item.agentId"
                         active-class="bg-primary-1"
-                        @click="selectAgentInPanel(selectedAgentInPanel === item.agentId ? null : item.agentId)"
+                        @click="
+                          selectAgentInPanel(
+                            selectedAgentInPanel === item.agentId
+                              ? null
+                              : item.agentId,
+                          )
+                        "
                       >
                         <q-item-section avatar>
                           <q-icon name="computer" color="primary" size="sm" />
                         </q-item-section>
                         <q-item-section>
                           <q-item-label>{{ item.label }}</q-item-label>
-                          <q-item-label caption>{{ item.agentId }}</q-item-label>
+                          <q-item-label caption>{{
+                            item.agentId
+                          }}</q-item-label>
                         </q-item-section>
                       </q-item>
                     </q-list>
@@ -130,12 +182,13 @@
                     />
                   </div>
                 </template>
-                <div
-                  v-else
-                  class="column items-center q-pa-md"
-                >
+                <div v-else class="column items-center q-pa-md">
                   <span class="text-grey-7 text-body2 q-mb-sm">
-                    {{ selectedUngroupedAgents ? "No agents loaded." : "No agents in this category." }}
+                    {{
+                      selectedUngroupedAgents
+                        ? "No agents loaded."
+                        : "No agents in this category."
+                    }}
                   </span>
                   <q-btn
                     v-if="!selectedUngroupedAgents"
@@ -171,7 +224,11 @@
                 clickable
                 :active="selectedAgentInPanel === item.agentId"
                 active-class="bg-primary-1"
-                @click="selectAgentInPanel(selectedAgentInPanel === item.agentId ? null : item.agentId)"
+                @click="
+                  selectAgentInPanel(
+                    selectedAgentInPanel === item.agentId ? null : item.agentId,
+                  )
+                "
               >
                 <q-item-section avatar>
                   <q-icon name="computer" color="primary" size="sm" />
@@ -183,10 +240,7 @@
               </q-item>
             </q-list>
           </q-scroll-area>
-          <div
-            v-else
-            class="text-grey-7 text-body2 q-pa-md"
-          >
+          <div v-else class="text-grey-7 text-body2 q-pa-md">
             No agents loaded.
           </div>
         </template>
@@ -250,7 +304,9 @@ const agentsInCategory = computed(() =>
   agentsPanelList.value.filter((a) => agentsInCategoryIds.value.has(a.agentId)),
 );
 const agentsOthers = computed(() =>
-  agentsPanelList.value.filter((a) => !agentsInCategoryIds.value.has(a.agentId)),
+  agentsPanelList.value.filter(
+    (a) => !agentsInCategoryIds.value.has(a.agentId),
+  ),
 );
 
 const canApplyInDialog = computed(() =>

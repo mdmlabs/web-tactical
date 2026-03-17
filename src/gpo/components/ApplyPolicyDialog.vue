@@ -792,11 +792,18 @@ const categorySearch = ref("");
 
 function normalizeScope(raw: unknown): number | null {
   if (raw === undefined || raw === null) return null;
-  if (typeof raw === "number") return Number.isFinite(raw) ? Math.floor(raw) : null;
+  if (typeof raw === "number")
+    return Number.isFinite(raw) ? Math.floor(raw) : null;
   const s = String(raw).trim().toUpperCase();
   if (!s) return null;
   if (s === "POLICY_SCOPE_USER" || s === "USER" || s === "1") return 1;
-  if (s === "POLICY_SCOPE_MACHINE" || s === "MACHINE" || s === "COMPUTER" || s === "2") return 2;
+  if (
+    s === "POLICY_SCOPE_MACHINE" ||
+    s === "MACHINE" ||
+    s === "COMPUTER" ||
+    s === "2"
+  )
+    return 2;
   const n = Number.parseInt(s, 10);
   return Number.isFinite(n) ? n : null;
 }
@@ -811,7 +818,10 @@ const filteredSelectedCategoryPolicies = computed(() => {
   return list;
 });
 
-function filterCategoryTree(nodes: CategoryNode[], query: string): CategoryNode[] {
+function filterCategoryTree(
+  nodes: CategoryNode[],
+  query: string,
+): CategoryNode[] {
   const q = query.trim().toLowerCase();
   if (!q) return nodes;
 
@@ -1484,7 +1494,6 @@ async function loadPolicyDetails(policy: PolicyRow) {
           };
           policyDetails.value[policyId].hash = policyHash;
         }
-
       }
     }
 
@@ -1757,7 +1766,6 @@ async function loadPolicyDetails(policy: PolicyRow) {
             };
             policyDetails.value[policyId].hash = policyHash;
           }
-
         }
       }
     }

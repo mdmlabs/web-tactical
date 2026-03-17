@@ -30,7 +30,7 @@
               :class="[
                 'platform-option',
                 { 'platform-option--active': selectedPlatform === platform.id },
-                { 'platform-option--disabled': platform.disabled }
+                { 'platform-option--disabled': platform.disabled },
               ]"
               :disabled="platform.disabled"
               @click="!platform.disabled && (selectedPlatform = platform.id)"
@@ -50,7 +50,7 @@
             outlined
             dense
             placeholder="Enter policy name"
-            :rules="[val => !!val || 'Name is required']"
+            :rules="[(val) => !!val || 'Name is required']"
             class="name-input"
           />
         </div>
@@ -58,12 +58,7 @@
 
       <!-- Actions -->
       <q-card-actions align="right" class="dialog-actions">
-        <q-btn
-          flat
-          label="Cancel"
-          @click="close"
-          class="action-btn"
-        />
+        <q-btn flat label="Cancel" @click="close" class="action-btn" />
         <q-btn
           unelevated
           color="primary"
@@ -78,44 +73,62 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import type { Platform } from '../../types/policies';
+import { ref, computed, watch } from "vue";
+import type { Platform } from "../../types/policies";
 
 const props = defineProps<{
   modelValue: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: boolean): void;
-  (e: 'create', data: { name: string; platform: Platform }): void;
+  (e: "update:modelValue", value: boolean): void;
+  (e: "create", data: { name: string; platform: Platform }): void;
 }>();
 
-const policyName = ref('');
-const selectedPlatform = ref<Platform>('windows');
+const policyName = ref("");
+const selectedPlatform = ref<Platform>("windows");
 
 const platforms = [
-  { id: 'apple' as Platform, label: 'Apple', icon: 'mdi-apple', disabled: true },
-  { id: 'android' as Platform, label: 'Android', icon: 'mdi-android', disabled: true },
-  { id: 'windows' as Platform, label: 'Windows', icon: 'mdi-microsoft-windows', disabled: false },
+  {
+    id: "apple" as Platform,
+    label: "Apple",
+    icon: "mdi-apple",
+    disabled: true,
+  },
+  {
+    id: "android" as Platform,
+    label: "Android",
+    icon: "mdi-android",
+    disabled: true,
+  },
+  {
+    id: "windows" as Platform,
+    label: "Windows",
+    icon: "mdi-microsoft-windows",
+    disabled: false,
+  },
 ];
 
 const canCreate = computed(() => policyName.value.trim().length > 0);
 
 // Reset form when dialog opens
-watch(() => props.modelValue, (isOpen) => {
-  if (isOpen) {
-    policyName.value = '';
-    selectedPlatform.value = 'windows';
-  }
-});
+watch(
+  () => props.modelValue,
+  (isOpen) => {
+    if (isOpen) {
+      policyName.value = "";
+      selectedPlatform.value = "windows";
+    }
+  },
+);
 
 function close() {
-  emit('update:modelValue', false);
+  emit("update:modelValue", false);
 }
 
 function create() {
   if (canCreate.value) {
-    emit('create', {
+    emit("create", {
       name: policyName.value.trim(),
       platform: selectedPlatform.value,
     });

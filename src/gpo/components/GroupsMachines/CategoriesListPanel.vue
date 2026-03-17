@@ -1,7 +1,7 @@
 <template>
   <div class="groups-left-panel">
     <div class="groups-left-header row items-center q-px-md q-py-sm">
-      <div class="text-subtitle1 text-weight-medium">Groups</div>
+      <div class="text-subtitle1 text-weight-medium">Categories</div>
       <q-space />
       <q-btn
         flat
@@ -9,7 +9,7 @@
         round
         icon="add"
         color="primary"
-        title="Create group"
+        title="Create category"
         @click="$emit('create')"
       />
       <q-btn
@@ -34,7 +34,7 @@
         placeholder="Search..."
         clearable
         :input-style="{ paddingLeft: '6px' }"
-        @update:model-value="(val) => $emit('update:search', String(val ?? ''))"
+        @update:model-value="$emit('update:search', String($event ?? ''))"
         @clear="$emit('update:search', '')"
       >
         <template v-slot:prepend>
@@ -45,7 +45,7 @@
 
     <div v-if="loading" class="column items-center justify-center q-pa-xl">
       <q-spinner color="primary" size="2em" />
-      <div class="q-mt-sm text-caption">Loading groups...</div>
+      <div class="q-mt-sm text-caption">Loading categories...</div>
     </div>
 
     <div
@@ -64,20 +64,23 @@
       />
     </div>
 
-    <q-scroll-area v-else-if="treeNodes.length > 0" class="groups-tree-scroll">
+    <q-scroll-area
+      v-else-if="(nodes?.length ?? 0) > 0"
+      class="groups-tree-scroll"
+    >
       <q-tree
-        :nodes="treeNodes"
+        :nodes="nodes"
         node-key="id"
-        :selected="selectedId"
+        :selected="selectedKey"
         default-expand-all
         class="groups-tree q-pa-sm"
-        @update:selected="(id: string | null) => $emit('select', id)"
+        @update:selected="$emit('select', $event)"
       >
         <template v-slot:default-header="prop">
           <div class="row items-center full-width groups-tree-item">
             <q-icon
-              :name="prop.node.isCategory ? 'folder' : 'group'"
-              :color="prop.node.isCategory ? 'warning' : 'primary'"
+              :name="prop.node.id === '__root__' ? 'folder' : 'laptop'"
+              :color="prop.node.id === '__root__' ? 'warning' : 'primary'"
               size="xs"
               class="q-mr-xs"
             />
@@ -85,7 +88,7 @@
               {{ prop.node.label }}
             </div>
             <q-badge
-              v-if="prop.node.isCategory && prop.node.children?.length"
+              v-if="prop.node.children?.length"
               color="grey-4"
               text-color="grey-8"
               :label="prop.node.children.length"
@@ -97,59 +100,55 @@
     </q-scroll-area>
 
     <div v-else class="column items-center justify-center q-pa-xl text-grey-6">
-      <q-icon name="search_off" size="2rem" class="q-mb-sm" />
+      <q-icon name="folder_off" size="2rem" class="q-mb-sm" />
       <div class="text-caption">
-        {{ search ? "No groups match the filter" : "No groups found" }}
+        {{ search ? "No categories match the filter" : "No categories found" }}
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-export interface GroupsTreeNode {
-  id: string;
-  label: string;
-  isCategory: boolean;
-  children?: GroupsTreeNode[];
-  samAccountName?: string;
-}
+import type { QTreeNode } from "quasar";
 
 defineProps<{
-  treeNodes: GroupsTreeNode[];
+  nodes: QTreeNode[];
   loading: boolean;
   error: string | null;
-  selectedId: string | null;
+  selectedKey: string | null;
   search: string;
 }>();
 
 defineEmits<{
-  select: [nodeId: string | null];
   refresh: [];
   create: [];
+  select: [nodeId: string | null];
   "update:search": [value: string];
 }>();
 </script>
 
 <style scoped lang="sass">
 .groups-left-panel
-  width: 350px
-  min-width: 240px
-  max-width: 360px
+  height: 100%
+  min-height: 0
+  width: 380px
+  min-width: 280px
   display: flex
   flex-direction: column
-  border-right: 1px solid rgba(0,0,0,.12)
+  border-right: 1px solid rgba(0, 0, 0, 0.08)
+  overflow: hidden
 
 .groups-left-header
   flex-shrink: 0
 
 .groups-tree-scroll
   flex: 1 1 0
-  height: 0
+  min-height: 0
+  overflow: hidden
 
-.groups-tree
-  :deep(.q-tree__node--selected > .q-tree__node-header)
-    background: rgba(25, 118, 210, .1)
-    border-radius: 4px
+.groups-tree .q-tree__node--selected > .q-tree__node-header
+  background: rgba(25, 118, 210, 0.1)
+  border-radius: 4px
 
 .groups-tree-item
   padding: 1px 0
