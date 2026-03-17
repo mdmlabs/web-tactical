@@ -12,28 +12,7 @@
           @click="goBack"
         />
         <q-icon name="group" size="sm" class="q-mr-sm" color="primary" />
-        <q-toolbar-title>Groups Manager</q-toolbar-title>
-
-        <q-badge
-          v-if="targetLabel"
-          :label="targetLabel"
-          class="target-badge cursor-pointer"
-          color="primary"
-          text-color="white"
-          @click="showTargetPanel = true"
-        />
-        <q-btn
-          v-if="currentTargetRef"
-          flat
-          round
-          dense
-          icon="close"
-          size="xs"
-          color="primary"
-          class="q-mr-md"
-          title="Reset to Global"
-          @click.stop="resetTarget"
-        />
+        <q-toolbar-title>Users Groups Manager</q-toolbar-title>
 
         <q-btn
           v-if="!standalonePage"
@@ -87,7 +66,9 @@
           @remove-agent="handleRemoveGroupAgent"
           @apply-collection="showApplyCollectionDialog = true"
           @remove-collection="showRemoveCollectionDialog = true"
+          @remove-collection-by-id="handleRemoveCollectionById"
           @open-agent-dashboard="goToAgentDashboard"
+          @manage-child-groups="openManageChildGroupsDialog"
         />
       </div>
     </div>
@@ -127,13 +108,23 @@
     />
 
     <TargetSelectionDialog
-      v-model="showTargetPanel"
-      @select="handleTargetSelect"
-    />
-
-    <TargetSelectionDialog
       v-model="showAddAgentPanel"
       @select="handleAddAgentToGroupSelect"
+    />
+
+    <ManageChildGroupsDialog
+      v-model="showManageChildGroups"
+      :loading="manageChildGroupsLoading"
+      :parent-group-id="selectedGroupId ?? ''"
+      :parent-group-name="
+        selectedGroup?.displayname ||
+        selectedGroup?.name ||
+        selectedGroupSam ||
+        ''
+      "
+      :available-groups="parentGroupOptions"
+      :initial-selected-ids="groupChildren.map((g) => g.groupid || '')"
+      @save="handleSaveChildGroups"
     />
   </div>
 </template>
@@ -150,6 +141,7 @@ import {
   createGlobalTarget,
   policyAssignmentClient,
   collectionsClient,
+  agentServiceClientWrapper,
 } from "@/gpo/api/grpc-client";
 import type { Target } from "@/gpo/api/grpc-client";
 import type { TargetRef } from "@/gpo/composables/useTargetSelection";
@@ -162,6 +154,7 @@ import CreateGroupDialog from "./dialogs/CreateGroupDialog.vue";
 import AddUserToGroupDialog from "./dialogs/AddUserToGroupDialog.vue";
 import ApplyCollectionToGroupDialog from "./dialogs/ApplyCollectionToGroupDialog.vue";
 import RemoveCollectionFromGroupDialog from "./dialogs/RemoveCollectionFromGroupDialog.vue";
+import ManageChildGroupsDialog from "./dialogs/ManageChildGroupsDialog.vue";
 
 interface GroupRow {
   name?: string;
@@ -170,6 +163,7 @@ interface GroupRow {
   samaccountname?: string;
   description?: string;
   sid?: string;
+  groupid?: string;
 }
 
 interface TreeNode {
@@ -182,6 +176,11 @@ interface TreeNode {
 
 interface GroupRowWithId extends GroupRow {
   groupId: string;
+}
+
+interface AgentRow {
+  id: string;
+  name: string;
 }
 
 const props = withDefaults(
@@ -207,11 +206,8 @@ function goToAgentDashboard(agentId: string) {
   });
 }
 
-const showTargetPanel = ref(false);
 const showAddAgentPanel = ref(false);
-const currentTargetRef = ref<TargetRef | null>(null);
 const currentTarget = ref<Target>(createGlobalTarget());
-const targetLabel = ref("Global");
 
 const allGroups = ref<GroupRowWithId[]>([]);
 const groupTreeNodes = ref<TreeNode[]>([]);
@@ -228,13 +224,16 @@ const detailLoading = ref(false);
 const groupUsers = ref<GroupRow[]>([]);
 const groupChildren = ref<GroupRow[]>([]);
 const groupParents = ref<GroupRow[]>([]);
-const groupAgents = ref<string[]>([]);
+const groupAgents = ref<AgentRow[]>([]);
 const removingAgentId = ref<string | null>(null);
 
 const deleteLoading = ref(false);
 
 const showCreateGroup = ref(false);
 const createGroupLoading = ref(false);
+
+const showManageChildGroups = ref(false);
+const manageChildGroupsLoading = ref(false);
 
 const parentGroupOptions = computed(() =>
   allGroups.value.map((g) => ({
@@ -268,8 +267,7 @@ const groupAppliedCollectionsLoading = ref(false);
 
 const canRemoveGroupCollection = computed(
   () =>
-    !!selectedGroupId.value &&
-    (groupAppliedCollections.value?.length ?? 0) > 0,
+    !!selectedGroupId.value && (groupAppliedCollections.value?.length ?? 0) > 0,
 );
 
 const showRemoveCollectionDialog = ref(false);
@@ -344,24 +342,23 @@ function filterGroupTree(nodes: TreeNode[], q: string): TreeNode[] {
 
 const filteredGroupTree = computed<TreeNode[]>(() => {
   const q = groupSearch.value.trim();
-  if (!q) return groupTreeNodes.value;
-  return filterGroupTree(groupTreeNodes.value, q);
+  const baseTree = q
+    ? filterGroupTree(groupTreeNodes.value, q)
+    : groupTreeNodes.value;
+
+  if (baseTree.length === 0) return [];
+
+  return [
+    {
+      id: "__root__",
+      label: "All Groups",
+      isCategory: true,
+      children: baseTree,
+    },
+  ];
 });
 
 const currentUserGroupTarget = computed(() => currentTarget.value);
-
-function handleTargetSelect(ref: TargetRef) {
-  currentTargetRef.value = ref;
-  currentTarget.value = ref.target;
-  targetLabel.value = ref.label;
-  onTargetChange();
-}
-
-function resetTarget() {
-  currentTargetRef.value = null;
-  currentTarget.value = createGlobalTarget();
-  targetLabel.value = "Global";
-}
 
 async function handleAddAgentToGroupSelect(ref: TargetRef) {
   const groupId = selectedGroupId.value;
@@ -385,36 +382,40 @@ async function handleAddAgentToGroupSelect(ref: TargetRef) {
 async function handleRemoveGroupAgent(agentId: string) {
   const groupId = selectedGroupId.value;
   if (!groupId) return;
-  removingAgentId.value = agentId;
-  try {
-    const target = createAgentTarget(agentId);
-    const res = await userControlClient.removeGroupAgent(target, groupId);
-    if (res.status === 0) {
-      notifySuccess("Agent unlinked from group");
-      await loadGroupDetails(groupId);
-    } else {
-      notifyError(res.errorMessage ?? "Failed to unlink agent from group");
-    }
-  } catch (err) {
-    notifyError(
-      err instanceof Error ? err.message : "Failed to unlink agent from group",
-    );
-  } finally {
-    removingAgentId.value = null;
-  }
-}
 
-function onTargetChange() {
-  selectedGroupSam.value = null;
-  selectedGroupId.value = null;
-  selectedGroup.value = null;
-  allGroups.value = [];
-  groupTreeNodes.value = [];
-  groupUsers.value = [];
-  groupChildren.value = [];
-  groupParents.value = [];
-  groupAgents.value = [];
-  loadGroups();
+  const agent = (groupAgents.value ?? []).find((a) => a.id === agentId);
+  const agentLabel =
+    agent?.name && agent.name !== agentId
+      ? `${agent.name} (${agentId})`
+      : agentId;
+
+  $q.dialog({
+    title: "Remove agent",
+    message: `Do you really want to unlink agent «${agentLabel}» from this group?`,
+    cancel: true,
+    persistent: true,
+    color: "negative",
+  }).onOk(async () => {
+    removingAgentId.value = agentId;
+    try {
+      const target = createAgentTarget(agentId);
+      const res = await userControlClient.removeGroupAgent(target, groupId);
+      if (res.status === 0) {
+        notifySuccess("Agent unlinked from group");
+        await loadGroupDetails(groupId);
+      } else {
+        notifyError(res.errorMessage ?? "Failed to unlink agent from group");
+      }
+    } catch (err) {
+      notifyError(
+        err instanceof Error
+          ? err.message
+          : "Failed to unlink agent from group",
+      );
+    } finally {
+      removingAgentId.value = null;
+    }
+  });
 }
 
 async function loadGroups() {
@@ -470,7 +471,20 @@ onMounted(() => {
 });
 
 function selectGroup(nodeId: string | null) {
-  if (!nodeId) return;
+  if (!nodeId || nodeId === "__root__") {
+    selectedGroupId.value = null;
+    selectedGroupSam.value = null;
+    selectedGroup.value = null;
+    return;
+  }
+
+  if (selectedGroupId.value === nodeId) {
+    selectedGroupId.value = null;
+    selectedGroupSam.value = null;
+    selectedGroup.value = null;
+    return;
+  }
+
   const found = allGroups.value.find((g) => g.groupId === nodeId);
   if (!found) return;
 
@@ -507,6 +521,7 @@ async function loadGroupDetails(groupId: string) {
     samaccountname: (g.samaccountname as string) || "",
     description: (g.description as string) || "",
     sid: (g.sid as string) || "",
+    groupid: (g.groupid as string) || "",
   });
 
   try {
@@ -548,7 +563,22 @@ async function loadGroupDetails(groupId: string) {
       );
     }
     if (agentsRes.status === "fulfilled") {
-      groupAgents.value = agentsRes.value.agentIdsList || [];
+      const agentIds = agentsRes.value.agentIdsList || [];
+      const agentsWithNames = await Promise.all(
+        agentIds.map(async (id: string) => {
+          try {
+            const agent = await agentServiceClientWrapper.getAgent(id);
+            const name =
+              (agent as { hostName?: string; host_name?: string }).hostName ??
+              (agent as { hostName?: string; host_name?: string }).host_name ??
+              id;
+            return { id, name };
+          } catch {
+            return { id, name: id };
+          }
+        }),
+      );
+      groupAgents.value = agentsWithNames;
     }
   } finally {
     detailLoading.value = false;
@@ -631,6 +661,39 @@ async function handleCreateGroup(payload: {
     });
   } finally {
     createGroupLoading.value = false;
+  }
+}
+
+function openManageChildGroupsDialog() {
+  showManageChildGroups.value = true;
+}
+
+async function handleSaveChildGroups(childGroupIds: string[]) {
+  if (!selectedGroupId.value) {
+    notifyError("No group selected");
+    return;
+  }
+
+  manageChildGroupsLoading.value = true;
+  try {
+    const res = await userControlClient.setGroupChildGroups(
+      selectedGroupId.value,
+      childGroupIds,
+    );
+
+    if (res.status === 0) {
+      notifySuccess("Child groups updated successfully");
+      showManageChildGroups.value = false;
+      await loadGroupDetails(selectedGroupId.value);
+    } else {
+      notifyError(res.errorMessage || "Failed to update child groups");
+    }
+  } catch (err) {
+    notifyError(
+      err instanceof Error ? err.message : "Failed to update child groups",
+    );
+  } finally {
+    manageChildGroupsLoading.value = false;
   }
 }
 
@@ -793,11 +856,9 @@ async function doApplyCollectionToGroup() {
   if (!groupId || collectionId == null) return;
   applyCollectionApplying.value = true;
   try {
-    await policyAssignmentClient.assignPolicyCollection(
-      collectionId,
-      "group",
-      { groupId },
-    );
+    await policyAssignmentClient.assignPolicyCollection(collectionId, "group", {
+      groupId,
+    });
     notifySuccess(
       `Collection applied to group "${selectedGroupSam.value ?? groupId}"`,
     );
@@ -842,11 +903,9 @@ async function doRemoveCollectionFromGroup() {
   if (!groupId || collectionId == null) return;
   removeCollectionRemoving.value = true;
   try {
-    await policyAssignmentClient.removePolicyCollection(
-      collectionId,
-      "group",
-      { groupId },
-    );
+    await policyAssignmentClient.removePolicyCollection(collectionId, "group", {
+      groupId,
+    });
     notifySuccess(`Collection removed from group "${groupLabel}"`);
     showRemoveCollectionDialog.value = false;
     await loadGroupAppliedCollections();
@@ -857,6 +916,43 @@ async function doRemoveCollectionFromGroup() {
   } finally {
     removeCollectionRemoving.value = false;
   }
+}
+
+function handleRemoveCollectionById(collectionId: number) {
+  const collection = groupAppliedCollections.value.find(
+    (c) => c.id === collectionId,
+  );
+  const collectionLabel = collection?.name ?? String(collectionId);
+
+  $q.dialog({
+    title: "Remove collection",
+    message: `Do you really want to remove the collection «${collectionLabel}» from this group?`,
+    cancel: true,
+    persistent: true,
+    color: "negative",
+  }).onOk(async () => {
+    const groupId = selectedGroupId.value;
+    const groupLabel = selectedGroupSam.value ?? groupId;
+
+    if (!groupId) return;
+
+    deleteLoading.value = true;
+    try {
+      await policyAssignmentClient.removePolicyCollection(
+        collectionId,
+        "group",
+        { groupId },
+      );
+      notifySuccess(`Collection removed from group "${groupLabel}"`);
+      await loadGroupAppliedCollections();
+    } catch (err) {
+      notifyError(
+        err instanceof Error ? err.message : "Failed to remove collection",
+      );
+    } finally {
+      deleteLoading.value = false;
+    }
+  });
 }
 
 async function loadGroupAppliedCollections() {
@@ -899,11 +995,11 @@ async function loadGroupAppliedCollections() {
       return {
         id: c.id ?? 0,
         name: c.name ?? String(c.id ?? ""),
-        explainText: (c.explainText ?? c.explain_text ?? "").trim() || undefined,
+        explainText:
+          (c.explainText ?? c.explain_text ?? "").trim() || undefined,
         policies: rawPolicies.map((p) => ({
           id: p.id ?? 0,
-          name:
-            p.displayName ?? p.display_name ?? p.name ?? String(p.id ?? ""),
+          name: p.displayName ?? p.display_name ?? p.name ?? String(p.id ?? ""),
         })),
       };
     });

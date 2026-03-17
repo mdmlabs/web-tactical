@@ -3,7 +3,8 @@
     <div class="sidebar-header">
       <h2 class="sidebar-title">Policies</h2>
       <p class="sidebar-description">
-        Policies are the way to share configurations and apps across your devices.
+        Policies are the way to share configurations and apps across your
+        devices.
         <a href="#" class="read-more-link" @click.prevent="openDocs">
           Read more <q-icon name="open_in_new" size="12px" />
         </a>
@@ -19,7 +20,7 @@
         :class="[
           'platform-item',
           { 'platform-item--active': platform.id === currentPlatform },
-          { 'platform-item--disabled': platform.disabled }
+          { 'platform-item--disabled': platform.disabled },
         ]"
         @click="!platform.disabled && $emit('select', platform.id)"
       >
@@ -34,7 +35,7 @@
             :label="platform.count"
             :class="[
               'platform-badge',
-              { 'platform-badge--active': platform.id === currentPlatform }
+              { 'platform-badge--active': platform.id === currentPlatform },
             ]"
           />
         </q-item-section>
@@ -44,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Platform } from '../types/policies';
+import type { Platform } from "../types/policies";
 
 interface PlatformWithCount {
   id: Platform;
@@ -59,24 +60,24 @@ defineProps<{
 }>();
 
 defineEmits<{
-  (e: 'select', platform: Platform): void;
+  (e: "select", platform: Platform): void;
 }>();
 
 function getPlatformIcon(platform: Platform): string {
   switch (platform) {
-    case 'apple':
-      return 'mdi-apple';
-    case 'android':
-      return 'mdi-android';
-    case 'windows':
-      return 'mdi-microsoft-windows';
+    case "apple":
+      return "mdi-apple";
+    case "android":
+      return "mdi-android";
+    case "windows":
+      return "mdi-microsoft-windows";
     default:
-      return 'devices';
+      return "devices";
   }
 }
 
 function openDocs() {
-  window.open('https://docs.example.com/policies', '_blank');
+  window.open("https://docs.example.com/policies", "_blank");
 }
 </script>
 

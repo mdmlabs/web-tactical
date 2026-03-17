@@ -101,12 +101,7 @@
 
       <!-- Actions -->
       <q-card-actions align="right" class="dialog-actions">
-        <q-btn
-          flat
-          label="Cancel"
-          @click="close"
-          class="action-btn"
-        />
+        <q-btn flat label="Cancel" @click="close" class="action-btn" />
         <q-btn
           unelevated
           color="primary"
@@ -131,8 +126,8 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: boolean): void;
-  (e: 'add', resource: PolicyResource): void;
+  (e: "update:modelValue", value: boolean): void;
+  (e: "add", resource: PolicyResource): void;
 }>();
 
 const $q = useQuasar();
@@ -150,15 +145,15 @@ const certificateResources = ref<Array<{ id: number; name: string }>>([]);
 const loading = ref(false);
 
 const scopeOptions = [
-  { value: 'primary_user', label: 'Primary user' },
-  { value: 'all_users', label: 'All users' },
-  { value: 'system', label: 'System' },
+  { value: "primary_user", label: "Primary user" },
+  { value: "all_users", label: "All users" },
+  { value: "system", label: "System" },
 ];
 
 const typeDescriptions: Record<ResourceType, string> = {
-  book: 'Select or upload your own PDF or EPUB resources',
-  certificate: 'Select or upload your own certificate files',
-  image: 'Select or upload your own image resources',
+  book: "Select or upload your own PDF or EPUB resources",
+  certificate: "Select or upload your own certificate files",
+  image: "Select or upload your own image resources",
 };
 
 const typeDescription = computed(() => typeDescriptions[resourceType.value]);
@@ -177,7 +172,7 @@ const currentResources = computed(() => {
 });
 
 const selectedResourceData = computed(() =>
-  currentResources.value.find(r => r.id === selectedResource.value)
+  currentResources.value.find((r) => r.id === selectedResource.value),
 );
 
 const canAdd = computed(() => selectedResource.value !== null);
@@ -220,14 +215,14 @@ watch(() => props.modelValue, (isOpen) => {
 });
 
 function resetForm() {
-  resourceType.value = 'book';
+  resourceType.value = "book";
   selectedResource.value = null;
-  scope.value = 'primary_user';
-  location.value = '';
+  scope.value = "primary_user";
+  location.value = "";
 }
 
 function close() {
-  emit('update:modelValue', false);
+  emit("update:modelValue", false);
 }
 
 function addResource() {
@@ -242,7 +237,7 @@ function addResource() {
     locations: location.value ? [location.value] : [],
   };
 
-  emit('add', resource);
+  emit("add", resource);
   close();
 }
 </script>

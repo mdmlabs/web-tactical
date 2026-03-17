@@ -1,4 +1,5 @@
-npm<template>
+npm
+<template>
   <q-page class="gpo-manager-page">
     <div class="row gpo-main-row">
       <div
@@ -141,9 +142,7 @@ npm<template>
                             </div>
                             <div>
                               {{
-                                agentDetails?.nodeInfo?.firmwareVersion ||
-                                agentDetails?.nodeInfo?.firmware_version ||
-                                "N/A"
+                                agentDetails?.nodeInfo?.firmwareversion || "N/A"
                               }}
                             </div>
                           </div>
@@ -155,15 +154,7 @@ npm<template>
                             </div>
                             <div>
                               {{
-                                (
-                                  agentDetails?.nodeInfo?.isDomainJoined !==
-                                  undefined
-                                    ? agentDetails.nodeInfo.isDomainJoined
-                                    : agentDetails?.nodeInfo
-                                          ?.is_domain_joined !== undefined
-                                      ? agentDetails.nodeInfo.is_domain_joined
-                                      : false
-                                )
+                                agentDetails?.nodeInfo?.isdomainjoined
                                   ? "Yes"
                                   : "No"
                               }}
@@ -177,7 +168,6 @@ npm<template>
                           icon="policy"
                           label="Apply Policy"
                           @click="openApplyPolicyDialog"
-                          :loading="actionLoading"
                         />
                         <q-btn
                           color="secondary"
@@ -195,7 +185,7 @@ npm<template>
                     <div class="text-h6 q-mb-md">System information</div>
                     <q-card v-if="agentDetails?.nodeInfo">
                       <q-card-section>
-                        <q-scroll-area style="height: 600px">
+                        <q-scroll-area style="height: 800px">
                           <q-list>
                             <q-item>
                               <q-item-section>
@@ -217,7 +207,7 @@ npm<template>
                               <q-item-section>
                                 <q-item-label>CPU</q-item-label>
                                 <q-item-label caption>{{
-                                  agentDetails.nodeInfo.systemInfo?.cpu || "N/A"
+                                  agentDetails.nodeInfo.systeminfo?.cpu || "N/A"
                                 }}</q-item-label>
                               </q-item-section>
                             </q-item>
@@ -225,9 +215,8 @@ npm<template>
                               <q-item-section>
                                 <q-item-label>RAM</q-item-label>
                                 <q-item-label caption>{{
-                                  agentDetails.nodeInfo.systemInfo?.ramGb ||
-                                  agentDetails.nodeInfo.systemInfo?.ram_gb
-                                    ? `${agentDetails.nodeInfo.systemInfo.ramGb || agentDetails.nodeInfo.systemInfo.ram_gb} GB`
+                                  agentDetails.nodeInfo.systeminfo?.ramgb
+                                    ? `${agentDetails.nodeInfo.systeminfo.ramgb} GB`
                                     : "N/A"
                                 }}</q-item-label>
                               </q-item-section>
@@ -236,18 +225,15 @@ npm<template>
                               <q-item-section>
                                 <q-item-label>Motherboard</q-item-label>
                                 <q-item-label caption>{{
-                                  agentDetails.nodeInfo.systemInfo
+                                  agentDetails.nodeInfo.systeminfo
                                     ?.motherboard || "N/A"
                                 }}</q-item-label>
                               </q-item-section>
                             </q-item>
                             <q-item
                               v-if="
-                                (
-                                  agentDetails.nodeInfo.systemInfo?.disksList ||
-                                  agentDetails.nodeInfo.systemInfo?.disks ||
-                                  []
-                                )?.length
+                                agentDetails.nodeInfo.systeminfo?.disksList
+                                  ?.length
                               "
                             >
                               <q-item-section>
@@ -255,9 +241,7 @@ npm<template>
                                 <q-item-label caption>
                                   <div
                                     v-for="(disk, index) in agentDetails
-                                      .nodeInfo?.systemInfo?.disksList ||
-                                    agentDetails.nodeInfo?.systemInfo?.disks ||
-                                    []"
+                                      .nodeInfo?.systeminfo?.disksList || []"
                                     :key="index"
                                   >
                                     {{ disk }}
@@ -267,11 +251,8 @@ npm<template>
                             </q-item>
                             <q-item
                               v-if="
-                                (
-                                  agentDetails.nodeInfo.systemInfo?.gpuList ||
-                                  agentDetails.nodeInfo.systemInfo?.gpu ||
-                                  []
-                                )?.length
+                                agentDetails.nodeInfo.systeminfo?.gpuList
+                                  ?.length
                               "
                             >
                               <q-item-section>
@@ -279,9 +260,7 @@ npm<template>
                                 <q-item-label caption>
                                   <div
                                     v-for="(gpu, index) in agentDetails.nodeInfo
-                                      ?.systemInfo?.gpuList ||
-                                    agentDetails.nodeInfo?.systemInfo?.gpu ||
-                                    []"
+                                      ?.systeminfo?.gpuList || []"
                                     :key="index"
                                   >
                                     {{ gpu }}
@@ -342,9 +321,7 @@ npm<template>
                               <q-item-section>
                                 <q-item-label>Firmware version</q-item-label>
                                 <q-item-label caption>{{
-                                  agentDetails.nodeInfo.firmwareVersion ||
-                                  agentDetails.nodeInfo.firmware_version ||
-                                  "N/A"
+                                  agentDetails.nodeInfo.firmwareversion || "N/A"
                                 }}</q-item-label>
                               </q-item-section>
                             </q-item>
@@ -352,9 +329,7 @@ npm<template>
                               <q-item-section>
                                 <q-item-label>Assembling ОС</q-item-label>
                                 <q-item-label caption>{{
-                                  agentDetails.nodeInfo.osBuild ||
-                                  agentDetails.nodeInfo.os_build ||
-                                  "N/A"
+                                  agentDetails.nodeInfo.osbuild || "N/A"
                                 }}</q-item-label>
                               </q-item-section>
                             </q-item>
@@ -362,9 +337,7 @@ npm<template>
                               <q-item-section>
                                 <q-item-label>Time zone</q-item-label>
                                 <q-item-label caption>{{
-                                  agentDetails.nodeInfo.timeZone ||
-                                  agentDetails.nodeInfo.time_zone ||
-                                  "N/A"
+                                  agentDetails.nodeInfo.timezone || "N/A"
                                 }}</q-item-label>
                               </q-item-section>
                             </q-item>
@@ -372,15 +345,7 @@ npm<template>
                               <q-item-section>
                                 <q-item-label>In the domain</q-item-label>
                                 <q-item-label caption>{{
-                                  (
-                                    agentDetails.nodeInfo.isDomainJoined !==
-                                    undefined
-                                      ? agentDetails.nodeInfo.isDomainJoined
-                                      : agentDetails.nodeInfo
-                                            .is_domain_joined !== undefined
-                                        ? agentDetails.nodeInfo.is_domain_joined
-                                        : false
-                                  )
+                                  agentDetails.nodeInfo.isdomainjoined
                                     ? "Yes"
                                     : "No"
                                 }}</q-item-label>
@@ -390,9 +355,7 @@ npm<template>
                               <q-item-section>
                                 <q-item-label>Antivirus status</q-item-label>
                                 <q-item-label caption>{{
-                                  agentDetails.nodeInfo.antivirusStatus ||
-                                  agentDetails.nodeInfo.antivirus_status ||
-                                  "N/A"
+                                  agentDetails.nodeInfo.antivirusstatus || "N/A"
                                 }}</q-item-label>
                               </q-item-section>
                             </q-item>
@@ -408,25 +371,13 @@ npm<template>
                               <q-item-section>
                                 <q-item-label>Last download</q-item-label>
                                 <q-item-label caption>{{
-                                  agentDetails.nodeInfo?.lastBootTimeUnix ||
-                                  agentDetails.nodeInfo?.last_boot_time_unix
-                                    ? (() => {
-                                        const bootTime =
-                                          agentDetails.nodeInfo
-                                            ?.lastBootTimeUnix ||
-                                          agentDetails.nodeInfo
-                                            ?.last_boot_time_unix;
-                                        if (!bootTime) return "N/A";
-                                        const bootTimeValue =
-                                          typeof bootTime === "string"
-                                            ? Number.parseInt(bootTime, 10)
-                                            : bootTime;
-                                        return formatDate(
-                                          new Date(
-                                            bootTimeValue * 1000,
-                                          ).toISOString(),
-                                        );
-                                      })()
+                                  agentDetails.nodeInfo?.lastboottime?.seconds
+                                    ? formatDate(
+                                        new Date(
+                                          agentDetails.nodeInfo.lastboottime
+                                            .seconds * 1000,
+                                        ).toISOString(),
+                                      )
                                     : "N/A"
                                 }}</q-item-label>
                               </q-item-section>
@@ -473,189 +424,209 @@ npm<template>
                         :rows="usersList"
                         :columns="usersColumns"
                         row-key="sid"
+                        :pagination="{ rowsPerPage: 20 }"
                         :loading="usersLoading"
                         flat
                         bordered
                       >
-                      <template v-slot:body="props">
-                        <q-tr :props="props">
-                          <q-menu context-menu>
-                            <q-list dense style="min-width: 220px">
-                              <q-item
-                                clickable
-                                v-close-popup
-                                @click="openEditUserDialog(props.row)"
-                              >
-                                <q-item-section side>
-                                  <q-icon name="edit" size="xs" />
-                                </q-item-section>
-                                <q-item-section>Edit</q-item-section>
-                              </q-item>
-                              <q-item
-                                clickable
-                                v-close-popup
-                                @click="openSetPasswordDialog(props.row)"
-                              >
-                                <q-item-section side>
-                                  <q-icon name="lock" size="xs" />
-                                </q-item-section>
-                                <q-item-section>Set Password</q-item-section>
-                              </q-item>
-                              <q-item
-                                clickable
-                                v-close-popup
-                                @click="toggleUserEnabled(props.row)"
-                              >
-                                <q-item-section side>
-                                  <q-icon name="toggle_on" size="xs" />
-                                </q-item-section>
-                                <q-item-section>{{
-                                  props.row.isEnabled !== false
-                                    ? "Disable"
-                                    : "Enable"
-                                }}</q-item-section>
-                              </q-item>
-                              <q-item
-                                clickable
-                                v-close-popup
-                                @click="
-                                  props.row.isLocked
-                                    ? unlockUserConfirm(props.row)
-                                    : $q.notify({
-                                        message: 'User is not locked',
-                                        type: 'info',
-                                      })
-                                "
-                              >
-                                <q-item-section side>
-                                  <q-icon
-                                    :name="
-                                      props.row.isLocked ? 'lock_open' : 'lock'
-                                    "
-                                    size="xs"
-                                  />
-                                </q-item-section>
-                                <q-item-section>{{
-                                  props.row.isLocked ? "Unlock" : "lock"
-                                }}</q-item-section>
-                              </q-item>
-                              <q-item
-                                clickable
-                                v-close-popup
-                                @click="expirePasswordConfirm(props.row)"
-                              >
-                                <q-item-section side>
-                                  <q-icon name="schedule" size="xs" />
-                                </q-item-section>
-                                <q-item-section>Expire Password</q-item-section>
-                              </q-item>
-                              <q-item
-                                clickable
-                                v-close-popup
-                                @click="
-                                  openSetAccountExpirationDialog(props.row)
-                                "
-                              >
-                                <q-item-section side>
-                                  <q-icon name="event" size="xs" />
-                                </q-item-section>
-                                <q-item-section
-                                  >Set Account Expiration</q-item-section
+                        <template v-slot:body="props">
+                          <q-tr :props="props">
+                            <q-menu context-menu>
+                              <q-list dense style="min-width: 220px">
+                                <q-item
+                                  clickable
+                                  v-close-popup
+                                  @click="openEditUserDialog(props.row)"
                                 >
-                              </q-item>
-                              <q-separator />
-                              <q-item
-                                clickable
-                                v-close-popup
-                                @click="openAddUserToGroupDialog(props.row)"
-                              >
-                                <q-item-section side>
-                                  <q-icon name="group_add" size="xs" />
-                                </q-item-section>
-                                <q-item-section>Add to Group</q-item-section>
-                              </q-item>
-                              <q-item
-                                clickable
-                                v-close-popup
-                                @click="
-                                  openRemoveUserFromGroupDialog(props.row)
-                                "
-                              >
-                                <q-item-section side>
-                                  <q-icon name="group_remove" size="xs" />
-                                </q-item-section>
-                                <q-item-section
-                                  >Remove from Group</q-item-section
+                                  <q-item-section side>
+                                    <q-icon name="edit" size="xs" />
+                                  </q-item-section>
+                                  <q-item-section>Edit</q-item-section>
+                                </q-item>
+                                <q-item
+                                  clickable
+                                  v-close-popup
+                                  @click="openSetPasswordDialog(props.row)"
                                 >
-                              </q-item>
-                              <q-separator />
-                              <q-item
-                                clickable
-                                v-close-popup
-                                @click="openApplyPolicyDialogForUser(props.row)"
-                              >
-                                <q-item-section side>
-                                  <q-icon name="policy" size="xs" />
-                                </q-item-section>
-                                <q-item-section>Assign policy</q-item-section>
-                              </q-item>
-                              <q-separator />
-                              <q-item
-                                clickable
-                                v-close-popup
-                                @click="deleteUserConfirm(props.row)"
-                              >
-                                <q-item-section side>
-                                  <q-icon
-                                    name="delete"
-                                    size="xs"
-                                    color="negative"
-                                  />
-                                </q-item-section>
-                                <q-item-section class="text-negative"
-                                  >Delete</q-item-section
+                                  <q-item-section side>
+                                    <q-icon name="lock" size="xs" />
+                                  </q-item-section>
+                                  <q-item-section>Set Password</q-item-section>
+                                </q-item>
+                                <q-item
+                                  clickable
+                                  v-close-popup
+                                  @click="toggleUserEnabled(props.row)"
                                 >
-                              </q-item>
-                              <q-item clickable v-close-popup>
-                                <q-item-section>Close</q-item-section>
-                              </q-item>
-                            </q-list>
-                          </q-menu>
-                          <q-td
-                            v-for="col in props.cols"
-                            :key="col.name"
-                            :props="props"
-                          >
-                            <template v-if="col.name === 'actions'">
-                              <q-btn
-                                flat
-                                dense
-                                round
-                                icon="policy"
-                                color="primary"
-                                @click.stop="
-                                  openApplyPolicyDialogForUser(props.row)
-                                "
-                              >
-                                <q-tooltip>Assign a policy</q-tooltip>
-                              </q-btn>
-                            </template>
-                            <template v-else-if="col.name === 'type'">
-                              <q-badge
-                                :color="
-                                  props.row.type === 'Local'
-                                    ? 'primary'
-                                    : 'secondary'
-                                "
-                                :label="props.row.type"
-                              />
-                            </template>
-                            <template v-else>
-                              {{ col.value }}
-                            </template>
-                          </q-td>
-                        </q-tr>
-                      </template>
+                                  <q-item-section side>
+                                    <q-icon name="toggle_on" size="xs" />
+                                  </q-item-section>
+                                  <q-item-section>{{
+                                    props.row.isEnabled !== false
+                                      ? "Disable"
+                                      : "Enable"
+                                  }}</q-item-section>
+                                </q-item>
+                                <q-item
+                                  clickable
+                                  v-close-popup
+                                  @click="
+                                    props.row.isLocked
+                                      ? unlockUserConfirm(props.row)
+                                      : $q.notify({
+                                          message: 'User is not locked',
+                                          type: 'info',
+                                        })
+                                  "
+                                >
+                                  <q-item-section side>
+                                    <q-icon
+                                      :name="
+                                        props.row.isLocked
+                                          ? 'lock_open'
+                                          : 'lock'
+                                      "
+                                      size="xs"
+                                    />
+                                  </q-item-section>
+                                  <q-item-section>{{
+                                    props.row.isLocked ? "Unlock" : "lock"
+                                  }}</q-item-section>
+                                </q-item>
+                                <q-item
+                                  clickable
+                                  v-close-popup
+                                  @click="expirePasswordConfirm(props.row)"
+                                >
+                                  <q-item-section side>
+                                    <q-icon name="schedule" size="xs" />
+                                  </q-item-section>
+                                  <q-item-section
+                                    >Expire Password</q-item-section
+                                  >
+                                </q-item>
+                                <q-item
+                                  clickable
+                                  v-close-popup
+                                  @click="
+                                    openSetAccountExpirationDialog(props.row)
+                                  "
+                                >
+                                  <q-item-section side>
+                                    <q-icon name="event" size="xs" />
+                                  </q-item-section>
+                                  <q-item-section
+                                    >Set Account Expiration</q-item-section
+                                  >
+                                </q-item>
+                                <q-separator />
+                                <q-item
+                                  clickable
+                                  v-close-popup
+                                  @click="openAddUserToGroupDialog(props.row)"
+                                >
+                                  <q-item-section side>
+                                    <q-icon name="group_add" size="xs" />
+                                  </q-item-section>
+                                  <q-item-section>Add to Group</q-item-section>
+                                </q-item>
+                                <q-item
+                                  clickable
+                                  v-close-popup
+                                  @click="
+                                    openRemoveUserFromGroupDialog(props.row)
+                                  "
+                                >
+                                  <q-item-section side>
+                                    <q-icon name="group_remove" size="xs" />
+                                  </q-item-section>
+                                  <q-item-section
+                                    >Remove from Group</q-item-section
+                                  >
+                                </q-item>
+                                <q-separator />
+                                <q-item
+                                  clickable
+                                  v-close-popup
+                                  @click="
+                                    openApplyPolicyDialogForUser(props.row)
+                                  "
+                                >
+                                  <q-item-section side>
+                                    <q-icon name="policy" size="xs" />
+                                  </q-item-section>
+                                  <q-item-section>Assign policy</q-item-section>
+                                </q-item>
+                                <q-separator />
+                                <q-item
+                                  clickable
+                                  v-close-popup
+                                  @click="deleteUserConfirm(props.row)"
+                                >
+                                  <q-item-section side>
+                                    <q-icon
+                                      name="delete"
+                                      size="xs"
+                                      color="negative"
+                                    />
+                                  </q-item-section>
+                                  <q-item-section class="text-negative"
+                                    >Delete</q-item-section
+                                  >
+                                </q-item>
+                                <q-item clickable v-close-popup>
+                                  <q-item-section>Close</q-item-section>
+                                </q-item>
+                              </q-list>
+                            </q-menu>
+                            <q-td
+                              v-for="col in props.cols"
+                              :key="col.name"
+                              :props="props"
+                            >
+                              <template v-if="col.name === 'actions'">
+                                <q-btn
+                                  flat
+                                  dense
+                                  round
+                                  icon="policy"
+                                  color="primary"
+                                  @click.stop="
+                                    openApplyPolicyDialogForUser(props.row)
+                                  "
+                                >
+                                  <q-tooltip>Assign a policy</q-tooltip>
+                                </q-btn>
+                              </template>
+                              <template v-else-if="col.name === 'type'">
+                                <q-badge
+                                  :color="
+                                    props.row.type === 'Local'
+                                      ? 'primary'
+                                      : 'secondary'
+                                  "
+                                  :label="props.row.type"
+                                />
+                              </template>
+                              <template v-else-if="col.name === 'description'">
+                                <q-tooltip v-if="col.value">
+                                  {{ col.value }}
+                                </q-tooltip>
+                                <span>
+                                  {{
+                                    typeof col.value === "string" &&
+                                    col.value.length > 80
+                                      ? col.value.slice(0, 80) + "..."
+                                      : col.value ?? ""
+                                  }}
+                                </span>
+                              </template>
+                              <template v-else>
+                                {{ col.value }}
+                              </template>
+                            </q-td>
+                          </q-tr>
+                        </template>
                       </q-table>
                     </q-scroll-area>
                   </div>
@@ -680,73 +651,91 @@ npm<template>
                         :rows="groupsList"
                         :columns="groupsColumns"
                         row-key="sid"
+                        :pagination="{ rowsPerPage: 20 }"
                         :loading="groupsLoading"
                         flat
                         bordered
                       >
-                      <template v-slot:body="props">
-                        <q-tr :props="props">
-                          <q-menu context-menu>
-                            <q-list dense style="min-width: 220px">
-                              <q-item
-                                clickable
-                                v-close-popup
-                                @click="
-                                  openAddUserToGroupFromGroupRow(props.row)
-                                "
-                              >
-                                <q-item-section side>
-                                  <q-icon name="person_add" size="xs" />
-                                </q-item-section>
-                                <q-item-section
-                                  >Add User to Group</q-item-section
+                        <template v-slot:body="props">
+                          <q-tr :props="props">
+                            <q-menu context-menu>
+                              <q-list dense style="min-width: 220px">
+                                <q-item
+                                  clickable
+                                  v-close-popup
+                                  @click="
+                                    openAddUserToGroupFromGroupRow(props.row)
+                                  "
                                 >
-                              </q-item>
-                              <q-item
-                                clickable
-                                v-close-popup
-                                @click="
-                                  openRemoveUserFromGroupFromGroupRow(props.row)
-                                "
-                              >
-                                <q-item-section side>
-                                  <q-icon name="person_remove" size="xs" />
-                                </q-item-section>
-                                <q-item-section
-                                  >Remove User from Group</q-item-section
+                                  <q-item-section side>
+                                    <q-icon name="person_add" size="xs" />
+                                  </q-item-section>
+                                  <q-item-section
+                                    >Add User to Group</q-item-section
+                                  >
+                                </q-item>
+                                <q-item
+                                  clickable
+                                  v-close-popup
+                                  @click="
+                                    openRemoveUserFromGroupFromGroupRow(
+                                      props.row,
+                                    )
+                                  "
                                 >
-                              </q-item>
-                              <q-separator />
-                              <q-item
-                                clickable
-                                v-close-popup
-                                @click="deleteGroupConfirm(props.row)"
-                              >
-                                <q-item-section side>
-                                  <q-icon
-                                    name="delete"
-                                    size="xs"
-                                    color="negative"
-                                  />
-                                </q-item-section>
-                                <q-item-section class="text-negative"
-                                  >Delete Group</q-item-section
+                                  <q-item-section side>
+                                    <q-icon name="person_remove" size="xs" />
+                                  </q-item-section>
+                                  <q-item-section
+                                    >Remove User from Group</q-item-section
+                                  >
+                                </q-item>
+                                <q-separator />
+                                <q-item
+                                  clickable
+                                  v-close-popup
+                                  @click="deleteGroupConfirm(props.row)"
                                 >
-                              </q-item>
-                              <q-item clickable v-close-popup>
-                                <q-item-section>Close</q-item-section>
-                              </q-item>
-                            </q-list>
-                          </q-menu>
-                          <q-td
-                            v-for="col in props.cols"
-                            :key="col.name"
-                            :props="props"
-                          >
-                            {{ col.value }}
-                          </q-td>
-                        </q-tr>
-                      </template>
+                                  <q-item-section side>
+                                    <q-icon
+                                      name="delete"
+                                      size="xs"
+                                      color="negative"
+                                    />
+                                  </q-item-section>
+                                  <q-item-section class="text-negative"
+                                    >Delete Group</q-item-section
+                                  >
+                                </q-item>
+                                <q-item clickable v-close-popup>
+                                  <q-item-section>Close</q-item-section>
+                                </q-item>
+                              </q-list>
+                            </q-menu>
+                            <q-td
+                              v-for="col in props.cols"
+                              :key="col.name"
+                              :props="props"
+                            >
+                              <template v-if="col.name === 'description'">
+                                <q-tooltip v-if="col.value">
+                                  {{ col.value }}
+                                </q-tooltip>
+                                <span>
+                                  {{
+                                    typeof col.value === "string" &&
+                                    col.value.length > 80
+                                      ? col.value.slice(0, 80) + "..."
+                                      : col.value ?? ""
+                                  }}
+                                </span>
+                              </template>
+                              <template v-else>
+                                {{ col.value }}
+                              </template>
+                            </q-td>
+                          </q-tr>
+                        </template>
                       </q-table>
                     </q-scroll-area>
                   </div>
@@ -772,11 +761,6 @@ npm<template>
                   no-caps
                 >
                   <q-tab name="status" icon="info" label="General status" />
-                  <q-tab name="events" icon="event" label="Recent events" />
-                  <q-tab name="agents" icon="computer" label="Active agents" />
-                  <q-tab name="errors" icon="error" label="Policy errors" />
-                  <q-tab name="overview" icon="visibility" label="Review" />
-                  <q-tab name="metrics" icon="bar_chart" label="Metrics" />
                 </q-tabs>
                 <q-separator />
               </div>
@@ -840,391 +824,6 @@ npm<template>
                     </q-card-section>
                   </q-card>
                 </q-tab-panel>
-
-                <q-tab-panel name="events" class="q-pa-md">
-                  <div class="text-h6 q-mb-md">Recent events</div>
-                  <q-card>
-                    <q-card-section>
-                      <q-timeline color="primary">
-                        <q-timeline-entry
-                          v-for="(event, index) in recentEvents"
-                          :key="index"
-                          :title="event.title"
-                          :subtitle="event.date"
-                          :icon="event.icon"
-                          :color="event.color"
-                        >
-                          <div>{{ event.description }}</div>
-                        </q-timeline-entry>
-                        <q-timeline-entry
-                          v-if="recentEvents.length === 0"
-                          title="No events"
-                          subtitle="No events"
-                          icon="info"
-                        >
-                          <div>
-                            Events will be displayed here after they appear.
-                          </div>
-                        </q-timeline-entry>
-                      </q-timeline>
-                    </q-card-section>
-                  </q-card>
-                </q-tab-panel>
-
-                <q-tab-panel name="agents" class="q-pa-md">
-                  <div class="text-h6 q-mb-md">Active agents</div>
-                  <q-table
-                    :rows="agentsList"
-                    :columns="agentTableColumns"
-                    row-key="id"
-                    :loading="agentsLoading"
-                    flat
-                    bordered
-                  >
-                    <template v-slot:body-cell-status="props">
-                      <q-td :props="props">
-                        <q-badge
-                          :color="getAgentStatusColor(props.value)"
-                          :label="getAgentStatusLabel(props.value)"
-                          rounded
-                        >
-                          <q-tooltip>
-                            {{ getAgentStatusTooltip(props.value) }}
-                          </q-tooltip>
-                        </q-badge>
-                      </q-td>
-                    </template>
-                  </q-table>
-                </q-tab-panel>
-
-                <q-tab-panel name="errors" class="q-pa-md">
-                  <div class="text-h6 q-mb-md">Policy errors</div>
-                  <q-card>
-                    <q-card-section>
-                      <div class="text-center q-pa-lg text-grey-6">
-                        <q-icon
-                          name="check_circle"
-                          size="3em"
-                          class="q-mb-md"
-                        />
-                        <div>No errors were found</div>
-                        <div class="text-caption q-mt-sm">
-                          All policies are applied correctly
-                        </div>
-                      </div>
-                    </q-card-section>
-                  </q-card>
-                </q-tab-panel>
-
-                <q-tab-panel name="overview" class="q-pa-md">
-                  <div class="text-h6 q-mb-md">Review</div>
-                  <div class="row q-gutter-md">
-                    <q-card class="col-6">
-                      <q-card-section>
-                        <div class="text-subtitle1 q-mb-sm">Devices</div>
-                        <div class="text-h4">{{ agentsList.length }}</div>
-                        <div class="text-caption text-grey-7">
-                          Total devices in the system
-                        </div>
-                      </q-card-section>
-                    </q-card>
-                    <q-card class="col-6">
-                      <q-card-section>
-                        <div class="text-subtitle1 q-mb-sm">Policies</div>
-                        <div class="text-h4">
-                          {{ policiesStore.policies.value.length }}
-                        </div>
-                        <div class="text-caption text-grey-7">
-                          Available policies
-                        </div>
-                      </q-card-section>
-                    </q-card>
-                  </div>
-                  <q-card class="q-mt-md">
-                    <q-card-section>
-                      <div class="text-subtitle1 q-mb-md">Quick access</div>
-                      <div class="row q-gutter-sm">
-                        <q-btn
-                          color="primary"
-                          label="Policy Library"
-                          icon="library_books"
-                          @click="mainTab = 'library'"
-                        />
-                        <q-btn
-                          color="secondary"
-                          label="Windows Policies"
-                          icon="windows"
-                          @click="mainTab = 'windows'"
-                        />
-                      </div>
-                    </q-card-section>
-                  </q-card>
-                </q-tab-panel>
-
-                <q-tab-panel name="metrics" class="q-pa-md">
-                  <div class="text-h6 q-mb-md">Metrics</div>
-                  <div class="row q-gutter-md">
-                    <q-card class="col-12">
-                      <q-card-section>
-                        <div class="text-subtitle1 q-mb-md">
-                          Policy application statistics
-                        </div>
-                        <q-list>
-                          <q-item>
-                            <q-item-section>
-                              <q-item-label>Policy applied</q-item-label>
-                              <q-item-label caption
-                                >Uploading data...</q-item-label
-                              >
-                            </q-item-section>
-                          </q-item>
-                          <q-item>
-                            <q-item-section>
-                              <q-item-label
-                                >Successful applications</q-item-label
-                              >
-                              <q-item-label caption
-                                >Uploading data...</q-item-label
-                              >
-                            </q-item-section>
-                          </q-item>
-                          <q-item>
-                            <q-item-section>
-                              <q-item-label>Application errors</q-item-label>
-                              <q-item-label caption>0</q-item-label>
-                            </q-item-section>
-                          </q-item>
-                        </q-list>
-                      </q-card-section>
-                    </q-card>
-                  </div>
-                </q-tab-panel>
-              </q-tab-panels>
-            </div>
-
-            <div
-              v-else-if="mainTab === 'network'"
-              :key="`network-${networkTab}`"
-              class="gpo-content-panels"
-            >
-              <div class="gpo-content-header">
-                <q-tabs
-                  v-model="networkTab"
-                  dense
-                  inline-label
-                  class="text-grey"
-                  active-color="primary"
-                  indicator-color="primary"
-                  align="left"
-                  narrow-indicator
-                  no-caps
-                >
-                  <q-tab name="agents" icon="computer" label="Agents" />
-                  <q-tab name="management" icon="settings" label="Management" />
-                  <q-tab name="network" icon="router" label="Network" />
-                </q-tabs>
-                <q-separator />
-              </div>
-
-              <q-tab-panels v-model="networkTab" class="gpo-content-panels">
-                <q-tab-panel name="agents" class="q-pa-md">
-                  <div class="row q-mb-md items-center">
-                    <div class="col-auto">
-                      <div class="text-h6">Agents</div>
-                    </div>
-                    <q-space />
-                    <div class="col-auto">
-                      <q-btn-toggle
-                        v-model="networkStatusFilter"
-                        :options="[
-                          { label: 'All', value: 'all' },
-                          { label: 'Online', value: 'online' },
-                          { label: 'Offline', value: 'offline' },
-                        ]"
-                        color="primary"
-                        dense
-                      />
-                    </div>
-                  </div>
-                  <q-table
-                    :rows="filteredNetworkAgents"
-                    :columns="agentTableColumns"
-                    row-key="id"
-                    :loading="agentsLoading"
-                    flat
-                    bordered
-                    @row-click="(evt, row) => selectAgent(row)"
-                  >
-                    <template v-slot:body-cell-status="props">
-                      <q-td :props="props">
-                        <q-badge
-                          :color="getAgentStatusColor(props.value)"
-                          :label="getAgentStatusLabel(props.value)"
-                          rounded
-                        >
-                          <q-tooltip>
-                            {{ getAgentStatusTooltip(props.value) }}
-                          </q-tooltip>
-                        </q-badge>
-                      </q-td>
-                    </template>
-                  </q-table>
-                </q-tab-panel>
-
-                <q-tab-panel name="management" class="q-pa-md">
-                  <div class="text-h6 q-mb-md">Management</div>
-                  <div v-if="selectedAgent" class="q-mb-md">
-                    <q-card>
-                      <q-card-section>
-                        <div class="text-subtitle1 q-mb-sm">
-                          {{ selectedAgent.hostname }}
-                        </div>
-                        <div class="row q-gutter-md">
-                          <div class="col-4">
-                            <div class="text-caption text-grey-7">
-                              General status
-                            </div>
-                            <q-badge
-                              :color="getAgentStatusColor(selectedAgent.status)"
-                              :label="getAgentStatusLabel(selectedAgent.status)"
-                              class="q-mt-xs"
-                            />
-                          </div>
-                          <div class="col-4">
-                            <div class="text-caption text-grey-7">
-                              Last answer
-                            </div>
-                            <div class="q-mt-xs">
-                              {{ formatDate(selectedAgent.last_seen) }}
-                            </div>
-                          </div>
-                          <div class="col-4">
-                            <div class="text-caption text-grey-7">ОС</div>
-                            <div class="q-mt-xs">
-                              {{ selectedAgent.operating_system || "N/A" }}
-                            </div>
-                          </div>
-                        </div>
-                      </q-card-section>
-                      <q-card-actions>
-                        <q-btn
-                          color="primary"
-                          icon="refresh"
-                          label="Reboot"
-                          @click="handleReboot"
-                          :loading="actionLoading"
-                        />
-                        <q-btn
-                          color="warning"
-                          icon="power_settings_new"
-                          label="Disable"
-                          @click="handleShutdown"
-                          :loading="actionLoading"
-                        />
-                        <q-btn
-                          color="negative"
-                          icon="delete"
-                          label="Delete"
-                          @click="handleDelete"
-                          :loading="actionLoading"
-                        />
-                      </q-card-actions>
-                    </q-card>
-                  </div>
-                  <div v-else class="text-center q-pa-xl">
-                    <q-icon
-                      name="info"
-                      size="3em"
-                      class="q-mb-md text-grey-7"
-                    />
-                    <div class="text-grey-7">
-                      Select an agent from the list to manage
-                    </div>
-                  </div>
-                </q-tab-panel>
-
-                <q-tab-panel name="network" class="q-pa-md">
-                  <div class="text-h6 q-mb-md">Network</div>
-                  <div v-if="selectedAgent">
-                    <q-card class="q-mb-md">
-                      <q-card-section>
-                        <div class="text-subtitle1 q-mb-md">
-                          IP-configuration
-                        </div>
-                        <q-list>
-                          <q-item>
-                            <q-item-section avatar>
-                              <q-icon name="fas fa-network-wired" />
-                            </q-item-section>
-                            <q-item-section>
-                              <q-item-label>LAN IP</q-item-label>
-                              <q-item-label caption>
-                                {{ networkInfo.local_ips || "Loading..." }}
-                              </q-item-label>
-                            </q-item-section>
-                          </q-item>
-                          <q-item>
-                            <q-item-section avatar>
-                              <q-icon name="fas fa-globe-americas" />
-                            </q-item-section>
-                            <q-item-section>
-                              <q-item-label>Public IP</q-item-label>
-                              <q-item-label caption>
-                                {{ networkInfo.public_ip || "Loading..." }}
-                              </q-item-label>
-                            </q-item-section>
-                          </q-item>
-                        </q-list>
-                      </q-card-section>
-                    </q-card>
-                    <q-card>
-                      <q-card-section>
-                        <div class="text-subtitle1 q-mb-md">Ping</div>
-                        <div class="row q-gutter-md items-center">
-                          <div class="col-auto">
-                            <q-btn
-                              color="primary"
-                              icon="network_check"
-                              label="perform Ping"
-                              @click="handlePing"
-                              :loading="pingLoading"
-                            />
-                          </div>
-                          <div class="col" v-if="pingResult">
-                            <q-badge
-                              :color="
-                                pingResult.status === 'online'
-                                  ? 'positive'
-                                  : 'negative'
-                              "
-                              :label="
-                                pingResult.status === 'online'
-                                  ? 'Online'
-                                  : 'Offline'
-                              "
-                            />
-                            <div
-                              class="text-caption q-mt-xs"
-                              v-if="pingResult.message"
-                            >
-                              {{ pingResult.message }}
-                            </div>
-                          </div>
-                        </div>
-                      </q-card-section>
-                    </q-card>
-                  </div>
-                  <div v-else class="text-center q-pa-xl">
-                    <q-icon
-                      name="info"
-                      size="3em"
-                      class="q-mb-md text-grey-7"
-                    />
-                    <div class="text-grey-7">
-                      Select an agent from the list to view network information.
-                    </div>
-                  </div>
-                </q-tab-panel>
               </q-tab-panels>
             </div>
 
@@ -1234,181 +833,6 @@ npm<template>
               class="gpo-content-panels"
             >
               <GPOCollectionsTable />
-            </div>
-
-            <div
-              v-else-if="mainTab === 'devices'"
-              :key="`devices-${devicesTab}`"
-              class="gpo-content-panels"
-            >
-              <div class="gpo-content-header">
-                <q-tabs
-                  v-model="devicesTab"
-                  dense
-                  inline-label
-                  class="text-grey"
-                  active-color="primary"
-                  indicator-color="primary"
-                  align="left"
-                  narrow-indicator
-                  no-caps
-                >
-                  <q-tab
-                    name="assignment"
-                    icon="assignment"
-                    label="Appointment"
-                  />
-                  <q-tab name="history" icon="history" label="History" />
-                </q-tabs>
-                <q-separator />
-              </div>
-
-              <q-tab-panels v-model="devicesTab" class="gpo-content-panels">
-                <q-tab-panel name="assignment" class="q-pa-md">
-                  <div v-if="selectedAgent">
-                    <div class="text-h6 q-mb-md">
-                      Assigning policies for {{ selectedAgent.hostname }}
-                    </div>
-
-                    <q-card class="q-mt-md">
-                      <q-card-section>
-                        <div class="text-subtitle2 q-mb-md">
-                          Assigned policies
-                        </div>
-                        <q-scroll-area class="policy-assignment-scroll-area">
-                          <q-table
-                            :rows="assignedPolicies"
-                            :columns="assignedPolicyColumns"
-                            row-key="id"
-                            flat
-                            bordered
-                            class="policy-assignment-table"
-                          >
-                            <template v-slot:body-cell-actions="props">
-                              <q-td :props="props">
-                                <q-btn
-                                  flat
-                                  dense
-                                  round
-                                  icon="delete"
-                                  color="negative"
-                                  size="sm"
-                                  @click="removePolicyAssignment(props.row)"
-                                >
-                                  <q-tooltip>Delete an appointment</q-tooltip>
-                                </q-btn>
-                              </q-td>
-                            </template>
-                          </q-table>
-                        </q-scroll-area>
-                      </q-card-section>
-                    </q-card>
-                  </div>
-                  <div v-else class="text-center q-pa-xl">
-                    <q-icon
-                      name="info"
-                      size="3em"
-                      class="q-mb-md text-grey-7"
-                    />
-                    <div class="text-grey-7">
-                      Select the device to assign policies to
-                    </div>
-                  </div>
-                </q-tab-panel>
-
-                <q-tab-panel name="history" class="q-pa-md">
-                  <div v-if="selectedAgent">
-                    <div class="text-h6 q-mb-md">
-                      History of actions for {{ selectedAgent.hostname }}
-                    </div>
-                    <q-card>
-                      <q-card-section>
-                        <div class="row q-gutter-md">
-                          <q-btn
-                            color="primary"
-                            icon="refresh"
-                            label="Apply again"
-                            @click="reapplyPolicies"
-                            :loading="actionLoading"
-                            :disable="!selectedAgent"
-                          />
-                          <q-btn
-                            color="warning"
-                            icon="undo"
-                            label="Roll back"
-                            @click="rollbackPolicies"
-                            :loading="actionLoading"
-                            :disable="!selectedAgent"
-                          />
-                          <q-btn
-                            color="secondary"
-                            icon="sync"
-                            label="Synchronize"
-                            @click="synchronizePolicies"
-                            :loading="actionLoading"
-                            :disable="!selectedAgent"
-                          />
-                        </div>
-                      </q-card-section>
-                    </q-card>
-                    <q-card class="q-mt-md">
-                      <q-card-section>
-                        <div class="text-subtitle2 q-mb-md">
-                          History of actions
-                        </div>
-                        <q-timeline color="primary">
-                          <q-timeline-entry
-                            v-for="(action, index) in deviceActionHistory"
-                            :key="index"
-                            :title="action.title"
-                            :subtitle="action.date"
-                            :icon="action.icon"
-                            :color="action.color"
-                          >
-                            <div class="row items-center no-wrap">
-                              <div class="col">
-                                {{ action.description }}
-                              </div>
-                              <div class="col-auto" v-if="action.policyHash">
-                                <q-btn
-                                  dense
-                                  flat
-                                  round
-                                  size="sm"
-                                  icon="policy"
-                                  @click.stop="
-                                    openPolicyDetails(action.policyHash)
-                                  "
-                                >
-                                  <q-tooltip>Policy details</q-tooltip>
-                                </q-btn>
-                              </div>
-                            </div>
-                          </q-timeline-entry>
-                          <q-timeline-entry
-                            v-if="deviceActionHistory.length === 0"
-                            title="No action"
-                            subtitle="The action history is empty"
-                            icon="info"
-                          >
-                            <div>The action history will be displayed here</div>
-                          </q-timeline-entry>
-                        </q-timeline>
-                      </q-card-section>
-                    </q-card>
-                  </div>
-                  <div v-else class="text-center q-pa-xl">
-                    <q-icon
-                      name="info"
-                      size="3em"
-                      class="q-mb-md text-grey-7"
-                    />
-                    <div class="text-grey-7">
-                      Select a device to view the activity history.
-                    </div>
-                  </div>
-                </q-tab-panel>
-              </q-tab-panels>
             </div>
 
             <div
@@ -1623,11 +1047,6 @@ npm<template>
                                       no-caps
                                     >
                                       <q-tab
-                                        name="settings"
-                                        icon="settings"
-                                        label="Setting up Policies"
-                                      />
-                                      <q-tab
                                         name="description"
                                         icon="description"
                                         label="Description"
@@ -1644,329 +1063,6 @@ npm<template>
                                         overflow-y: auto;
                                       "
                                     >
-                                      <q-tab-panel
-                                        name="settings"
-                                        class="q-pa-md"
-                                      >
-                                        <div
-                                          v-if="loadingAdmxPolicyDetails"
-                                          class="text-center q-pa-lg"
-                                        >
-                                          <q-spinner
-                                            color="primary"
-                                            size="2em"
-                                          />
-                                          <div class="q-mt-sm">
-                                            Loading the settings...
-                                          </div>
-                                        </div>
-
-                                        <div
-                                          v-else-if="
-                                            admxPolicyDetailsElements.length ===
-                                            0
-                                          "
-                                          class="text-center q-pa-lg text-grey-6"
-                                        >
-                                          <q-icon name="info" size="2em" />
-                                          <div class="q-mt-sm">
-                                            There are no additional settings
-                                          </div>
-                                        </div>
-
-                                        <div
-                                          v-else
-                                          class="policy-settings-form"
-                                        >
-                                          <q-form>
-                                            <div
-                                              v-for="element in admxPolicyDetailsElements"
-                                              :key="element.id"
-                                              class="q-mb-md"
-                                            >
-                                              <div class="policy-element">
-                                                <div
-                                                  class="text-subtitle2 q-mb-xs"
-                                                >
-                                                  {{
-                                                    element.display_name ||
-                                                    element.element_id
-                                                  }}
-                                                </div>
-                                                <div
-                                                  v-if="element.description"
-                                                  class="text-caption text-grey-7 q-mb-sm"
-                                                >
-                                                  {{ element.description }}
-                                                </div>
-
-                                                <q-toggle
-                                                  v-if="
-                                                    element.type ===
-                                                      'CHECKBOX' ||
-                                                    element.type === 'BOOL' ||
-                                                    element.type ===
-                                                      'boolean' ||
-                                                    element.type ===
-                                                      'checkBox' ||
-                                                    element.presentation_type?.toLowerCase() ===
-                                                      'checkbox' ||
-                                                    element.presentation_type?.toLowerCase() ===
-                                                      'check_box' ||
-                                                    element.presentation_type ===
-                                                      'checkBox'
-                                                  "
-                                                  :model-value="
-                                                    (admxPolicySettingsValues[
-                                                      element.element_id
-                                                    ] as boolean) || false
-                                                  "
-                                                  @update:model-value="
-                                                    admxPolicySettingsValues[
-                                                      element.element_id
-                                                    ] = $event
-                                                  "
-                                                  color="primary"
-                                                />
-
-                                                <q-input
-                                                  v-else-if="
-                                                    element.type === 'TEXT' ||
-                                                    element.type === 'STRING' ||
-                                                    element.type === 'string' ||
-                                                    element.type === 'text' ||
-                                                    element.type ===
-                                                      'multiTextbox' ||
-                                                    element.type ===
-                                                      'multiTextBox' ||
-                                                    element.presentation_type?.toLowerCase() ===
-                                                      'textbox' ||
-                                                    element.presentation_type?.toLowerCase() ===
-                                                      'text_box' ||
-                                                    element.presentation_type?.toLowerCase() ===
-                                                      'text' ||
-                                                    element.presentation_type ===
-                                                      'multiTextbox' ||
-                                                    element.presentation_type ===
-                                                      'multiTextBox'
-                                                  "
-                                                  :model-value="
-                                                    String(
-                                                      admxPolicySettingsValues[
-                                                        element.element_id
-                                                      ] || '',
-                                                    )
-                                                  "
-                                                  @update:model-value="
-                                                    admxPolicySettingsValues[
-                                                      element.element_id
-                                                    ] = $event
-                                                  "
-                                                  :maxlength="
-                                                    element.max_length
-                                                  "
-                                                  :type="
-                                                    element.type ===
-                                                      'multiTextbox' ||
-                                                    element.type ===
-                                                      'multiTextBox' ||
-                                                    element.presentation_type ===
-                                                      'multiTextbox' ||
-                                                    element.presentation_type ===
-                                                      'multiTextBox'
-                                                      ? 'textarea'
-                                                      : 'text'
-                                                  "
-                                                  :rows="
-                                                    element.type ===
-                                                      'multiTextbox' ||
-                                                    element.type ===
-                                                      'multiTextBox' ||
-                                                    element.presentation_type ===
-                                                      'multiTextbox' ||
-                                                    element.presentation_type ===
-                                                      'multiTextBox'
-                                                      ? 3
-                                                      : undefined
-                                                  "
-                                                  :hint="
-                                                    element.required
-                                                      ? 'Required field'
-                                                      : ''
-                                                  "
-                                                  outlined
-                                                  dense
-                                                />
-
-                                                <q-input
-                                                  v-else-if="
-                                                    element.type ===
-                                                      'NUMERIC' ||
-                                                    element.type === 'INT' ||
-                                                    element.type === 'int' ||
-                                                    element.type === 'number' ||
-                                                    element.type ===
-                                                      'decimalTextbox' ||
-                                                    element.type ===
-                                                      'decimalTextBox' ||
-                                                    element.value_type ===
-                                                      'decimal' ||
-                                                    element.value_type ===
-                                                      'int' ||
-                                                    element.value_type ===
-                                                      'integer' ||
-                                                    element.presentation_type ===
-                                                      'decimalTextbox' ||
-                                                    element.presentation_type ===
-                                                      'decimalTextBox'
-                                                  "
-                                                  :model-value="
-                                                    Number(
-                                                      admxPolicySettingsValues[
-                                                        element.element_id
-                                                      ] || 0,
-                                                    )
-                                                  "
-                                                  @update:model-value="
-                                                    admxPolicySettingsValues[
-                                                      element.element_id
-                                                    ] = $event
-                                                  "
-                                                  type="number"
-                                                  :min="element.min_value"
-                                                  :max="element.max_value"
-                                                  :step="
-                                                    element.value_type ===
-                                                      'decimal' ||
-                                                    element.type ===
-                                                      'decimalTextbox' ||
-                                                    element.type ===
-                                                      'decimalTextBox' ||
-                                                    element.presentation_type ===
-                                                      'decimalTextbox' ||
-                                                    element.presentation_type ===
-                                                      'decimalTextBox'
-                                                      ? 0.01
-                                                      : 1
-                                                  "
-                                                  :hint="
-                                                    element.required
-                                                      ? 'Required field'
-                                                      : ''
-                                                  "
-                                                  outlined
-                                                  dense
-                                                />
-
-                                                <MultiTextBox
-                                                  v-else-if="
-                                                    (element.type === 'list' ||
-                                                      element.type === 'LIST' ||
-                                                      element.type ===
-                                                        'List') &&
-                                                    (element.presentation_type?.toLowerCase() ===
-                                                      'listbox' ||
-                                                      element.presentation_type?.toLowerCase() ===
-                                                        'list_box' ||
-                                                      element.presentation_type?.toLowerCase() ===
-                                                        'list' ||
-                                                      element.presentation_type ===
-                                                        'List') &&
-                                                    (!element.items ||
-                                                      element.items.length ===
-                                                        0)
-                                                  "
-                                                  :model-value="
-                                                    (admxPolicySettingsValues[
-                                                      element.element_id
-                                                    ] as string[]) || []
-                                                  "
-                                                  @update:model-value="
-                                                    admxPolicySettingsValues[
-                                                      element.element_id
-                                                    ] = $event
-                                                  "
-                                                  :hint="
-                                                    (element.required
-                                                      ? 'Required field'
-                                                      : '') +
-                                                    (element.value_type
-                                                      ? ` (value type: ${element.value_type})`
-                                                      : '')
-                                                  "
-                                                  :maxlength="
-                                                    element.max_length
-                                                  "
-                                                />
-
-                                                <q-select
-                                                  v-else-if="
-                                                    (element.type === 'LIST' ||
-                                                      element.type === 'list' ||
-                                                      element.type === 'List' ||
-                                                      element.type === 'enum' ||
-                                                      element.type ===
-                                                        'dropdownList' ||
-                                                      element.presentation_type?.toLowerCase() ===
-                                                        'dropdownlist' ||
-                                                      element.presentation_type?.toLowerCase() ===
-                                                        'dropdown_list' ||
-                                                      element.presentation_type ===
-                                                        'dropdownList') &&
-                                                    element.items &&
-                                                    element.items.length > 0
-                                                  "
-                                                  :model-value="
-                                                    admxPolicySettingsValues[
-                                                      element.element_id
-                                                    ] ?? null
-                                                  "
-                                                  @update:model-value="
-                                                    admxPolicySettingsValues[
-                                                      element.element_id
-                                                    ] = $event
-                                                  "
-                                                  :options="element.items"
-                                                  option-label="display_name"
-                                                  option-value="id"
-                                                  :hint="
-                                                    (element.required
-                                                      ? 'Required field'
-                                                      : '') +
-                                                    (element.value_type
-                                                      ? ` (value type: ${element.value_type})`
-                                                      : '')
-                                                  "
-                                                  outlined
-                                                  dense
-                                                  emit-value
-                                                  map-options
-                                                />
-
-                                                <q-input
-                                                  v-else
-                                                  :model-value="
-                                                    String(
-                                                      admxPolicySettingsValues[
-                                                        element.element_id
-                                                      ] || '',
-                                                    )
-                                                  "
-                                                  @update:model-value="
-                                                    admxPolicySettingsValues[
-                                                      element.element_id
-                                                    ] = $event
-                                                  "
-                                                  :hint="`Type: ${element.type}${element.required ? ' (required)' : ''}`"
-                                                  outlined
-                                                  dense
-                                                />
-                                              </div>
-                                            </div>
-                                          </q-form>
-                                        </div>
-                                      </q-tab-panel>
-
                                       <q-tab-panel
                                         name="description"
                                         class="q-pa-md"
@@ -2031,27 +1127,6 @@ npm<template>
                                       Select a policy to configure
                                     </div>
                                   </q-card-section>
-
-                                  <q-card-actions
-                                    v-if="selectedAdmxPolicy"
-                                    align="right"
-                                    class="q-pa-md"
-                                  >
-                                    <q-btn
-                                      flat
-                                      label="Disable"
-                                      color="negative"
-                                      @click="disableAdmxPolicy"
-                                      :disable="!selectedAdmxPolicy"
-                                    />
-                                    <q-btn
-                                      flat
-                                      label="Apply"
-                                      color="positive"
-                                      @click="applyAdmxPolicy"
-                                      :disable="!selectedAdmxPolicy"
-                                    />
-                                  </q-card-actions>
                                 </q-card>
                               </div>
                             </div>
@@ -2098,7 +1173,7 @@ npm<template>
           </div>
 
           <div
-            v-if="mainTab === 'devices' || mainTab === 'dashboard'"
+            v-if="mainTab === 'dashboard'"
             :key="`devices-${mainTab}`"
             class="gpo-devices-panel col-3"
           >
@@ -2301,6 +1376,21 @@ npm<template>
                       flat
                       bordered
                     >
+                      <template v-slot:body-cell-description="props">
+                        <q-td :props="props">
+                          <q-tooltip v-if="props.row.description">
+                            {{ props.row.description }}
+                          </q-tooltip>
+                          <span>
+                            {{
+                              props.row.description &&
+                              props.row.description.length > 80
+                                ? props.row.description.slice(0, 80) + "..."
+                                : props.row.description || ""
+                            }}
+                          </span>
+                        </q-td>
+                      </template>
                       <template v-slot:body-cell-actions="props">
                         <q-td :props="props">
                           <q-btn
@@ -2380,6 +1470,21 @@ npm<template>
                       flat
                       bordered
                     >
+                      <template v-slot:body-cell-description="props">
+                        <q-td :props="props">
+                          <q-tooltip v-if="props.row.description">
+                            {{ props.row.description }}
+                          </q-tooltip>
+                          <span>
+                            {{
+                              props.row.description &&
+                              props.row.description.length > 80
+                                ? props.row.description.slice(0, 80) + "..."
+                                : props.row.description || ""
+                            }}
+                          </span>
+                        </q-td>
+                      </template>
                       <template v-slot:body-cell-actions="props">
                         <q-td :props="props">
                           <q-btn
@@ -2459,6 +1564,21 @@ npm<template>
                       flat
                       bordered
                     >
+                      <template v-slot:body-cell-description="props">
+                        <q-td :props="props">
+                          <q-tooltip v-if="props.row.description">
+                            {{ props.row.description }}
+                          </q-tooltip>
+                          <span>
+                            {{
+                              props.row.description &&
+                              props.row.description.length > 80
+                                ? props.row.description.slice(0, 80) + "..."
+                                : props.row.description || ""
+                            }}
+                          </span>
+                        </q-td>
+                      </template>
                       <template v-slot:body-cell-actions="props">
                         <q-td :props="props">
                           <q-btn
@@ -2617,75 +1737,7 @@ npm<template>
                     </q-card-section>
                   </q-card>
 
-                  <q-separator class="q-my-md" />
-
-                  <div class="row q-gutter-md q-mb-md">
-                    <q-btn
-                      color="primary"
-                      icon="add"
-                      label="to Create"
-                      @click="onCreatePolicy"
-                      class="col-auto"
-                    />
-                    <q-btn
-                      color="secondary"
-                      icon="edit"
-                      label="Edit"
-                      @click="onEditSelectedPolicy"
-                      :disable="!selectedPolicyForManagement"
-                      class="col-auto"
-                    />
-                    <q-btn
-                      color="accent"
-                      icon="content_copy"
-                      label="Clone"
-                      @click="onClonePolicy"
-                      :disable="!selectedPolicyForManagement"
-                      class="col-auto"
-                    />
-                    <q-btn
-                      color="negative"
-                      icon="delete"
-                      label="Delete"
-                      @click="onDeleteSelectedPolicy"
-                      :disable="!selectedPolicyForManagement"
-                      class="col-auto"
-                    />
-                  </div>
-
-                  <div class="q-mt-md">
-                    <div class="text-subtitle2 q-mb-sm">
-                      Select a policy to manage:
-                    </div>
-                    <q-scroll-area
-                      class="policies-table-scroll"
-                      style="height: 500px"
-                    >
-                      <q-table
-                        :rows="filteredPolicies"
-                        :columns="policyManagementColumns"
-                        row-key="id"
-                        :loading="policiesStore.isLoading.value"
-                        flat
-                        bordered
-                        v-model:selected="selectedPoliciesForManagement"
-                      >
-                        <template v-slot:top>
-                          <q-input
-                            v-model="policyFilter"
-                            placeholder="Policy search..."
-                            dense
-                            outlined
-                            class="col-4"
-                          >
-                            <template v-slot:append>
-                              <q-icon name="search" />
-                            </template>
-                          </q-input>
-                        </template>
-                      </q-table>
-                    </q-scroll-area>
-                  </div>
+                  <!-- management tab: only ADMX ZIP import and loaded files table are kept -->
                 </div>
               </q-scroll-area>
             </q-tab-panel>
@@ -2720,10 +1772,7 @@ npm<template>
         <q-card style="min-width: 420px; max-width: 90vw">
           <q-card-section>
             <div class="text-h6">Add User</div>
-            <div
-              v-if="selectedAgent"
-              class="text-caption text-grey-7 q-mt-xs"
-            >
+            <div v-if="selectedAgent" class="text-caption text-grey-7 q-mt-xs">
               Link existing user to device: {{ selectedAgent.hostname }}
             </div>
           </q-card-section>
@@ -3106,7 +2155,11 @@ npm<template>
                   <template v-slot:prepend>
                     <q-icon name="event" />
                   </template>
-                  <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                  <q-popup-proxy
+                    cover
+                    transition-show="scale"
+                    transition-hide="scale"
+                  >
                     <q-date v-model="gpoExpirationDate" mask="YYYY-MM-DD">
                       <div class="row items-center justify-end">
                         <q-btn v-close-popup label="OK" color="primary" flat />
@@ -3129,7 +2182,11 @@ npm<template>
                   <template v-slot:prepend>
                     <q-icon name="access_time" />
                   </template>
-                  <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                  <q-popup-proxy
+                    cover
+                    transition-show="scale"
+                    transition-hide="scale"
+                  >
                     <q-time v-model="gpoExpirationTime" mask="HH:mm" format24h>
                       <div class="row items-center justify-end">
                         <q-btn v-close-popup label="OK" color="primary" flat />
@@ -3139,11 +2196,18 @@ npm<template>
                 </q-input>
               </div>
             </div>
-            
           </q-card-section>
           <q-card-actions align="right">
             <q-btn flat label="Cancel" color="primary" v-close-popup />
-            <q-btn flat label="Clear" color="orange" @click="gpoExpirationDate = ''; gpoExpirationTime = ''" />
+            <q-btn
+              flat
+              label="Clear"
+              color="orange"
+              @click="
+                gpoExpirationDate = '';
+                gpoExpirationTime = '';
+              "
+            />
             <q-btn
               unelevated
               label="Save"
@@ -3384,7 +2448,6 @@ import {
   // userServiceClient,
   createGrpcMetadata,
   operator_pb,
-  policyAssignmentClient,
   policyCatalogClient,
   policyCatalogServiceClient,
   policyStateClient,
@@ -3400,21 +2463,13 @@ import GPOCollectionsTable from "../components/CollectionsPolicies/GPOCollection
 import UsersManagerModal from "../components/UsersManager/UsersManagerModal.vue";
 import GroupsManagerModal from "../components/GroupsManager/GroupsManagerModal.vue";
 import GroupsMachinesModal from "../components/GroupsMachines/GroupsMachinesModal.vue";
-import MultiTextBox from "@/components/ui/MultiTextBox.vue";
 import type {
   GPOPolicy,
   CreateGPOPolicyRequest,
   UpdateGPOPolicyRequest,
 } from "../types/gpo";
-import {
-  agentRebootNow,
-  agentShutdown,
-  sendAgentPing,
-  removeAgent,
-} from "@/api/agents";
 import { useQuasar, QTableColumn } from "quasar";
 import { notifySuccess, notifyError } from "@/utils/notify";
-import DOMPurify from "dompurify";
 
 interface Agent {
   id: string;
@@ -3474,8 +2529,6 @@ const subTab = ref("status");
 const contentTab = ref("overview");
 const libraryTab = ref("policies");
 const policiesSubTab = ref("all");
-const networkTab = ref("agents");
-const devicesTab = ref("assignment");
 const windowsTab = ref<string>("");
 const admxGroups = ref<AdmxGroup[]>([]);
 const admxLoading = ref(false);
@@ -3494,7 +2547,7 @@ const admxPolicies = ref<AdmxPolicy[]>([]);
 const selectedAdmxPolicy = ref<AdmxPolicy | null>(null);
 const loadingAdmxPolicies = ref(false);
 const admxPoliciesError = ref<string | null>(null);
-const admxPolicySettingsTab = ref("settings");
+const admxPolicySettingsTab = ref("description");
 const loadingAdmxPolicyDetails = ref(false);
 
 interface PolicyDetailsElement {
@@ -3545,7 +2598,6 @@ const loadingAdmxFiles = ref(false);
 const selectedAgent = ref<Agent | null>(null);
 const usersLoading = ref(false);
 const policyFilter = ref("");
-const networkStatusFilter = ref<"all" | "online" | "offline">("all");
 const selectedPolicyForManagement = ref<GPOPolicy | null>(null);
 const selectedPoliciesForManagement = ref<GPOPolicy[]>([]);
 const showPolicyDialog = ref(false);
@@ -3656,30 +2708,6 @@ const agentsLoading = ref(false);
 const agentsError = ref(false);
 const gpoAgents = ref<Agent[]>([]);
 
-interface AssignedPolicy extends GPOPolicy {
-  applied?: boolean;
-  policyHash?: string;
-  assignedDate?: string;
-}
-const assignedPolicies = ref<AssignedPolicy[]>([]);
-const actionLoading = ref(false);
-
-interface DeviceAction {
-  title: string;
-  date: string;
-  icon: string;
-  color: string;
-  description: string;
-}
-interface DeviceAction {
-  policyHash?: string;
-  policyName?: string;
-  actionType?: string;
-  details?: string;
-}
-
-const deviceActionHistory = ref<DeviceAction[]>([]);
-
 const agentsList = computed<Agent[]>(() => {
   return gpoAgents.value;
 });
@@ -3783,7 +2811,7 @@ function onAdmxFileClick(admxFile: string, groupName: string) {
 
 async function onAdmxPolicySelect(policy: AdmxPolicy) {
   selectedAdmxPolicy.value = policy;
-  admxPolicySettingsTab.value = "settings";
+  admxPolicySettingsTab.value = "description";
   await loadAdmxPolicyDetails(policy);
 }
 
@@ -4068,32 +3096,6 @@ async function loadAdmxPolicyDetails(policy: AdmxPolicy) {
   }
 }
 
-async function applyAdmxPolicy() {
-  if (!selectedAdmxPolicy.value) {
-    return;
-  }
-
-  try {
-    notifySuccess("Policy applied");
-    // TODO: Реализовать применение политики через API
-  } catch (error) {
-    notifyError("Policy application error");
-  }
-}
-
-async function disableAdmxPolicy() {
-  if (!selectedAdmxPolicy.value) {
-    return;
-  }
-
-  try {
-    notifySuccess("Policy disabled");
-    // TODO: Реализовать отключение политики через API
-  } catch (error) {
-    notifyError("Policy Deactivation error");
-  }
-}
-
 function getAdmxGroupIcon(groupName: string): string {
   const iconMap: Record<string, string> = {
     Безопасность: "security",
@@ -4196,7 +3198,6 @@ async function loadAgents() {
     if (selectedAgent.value?.id) {
       const agentId = selectedAgent.value.id;
       Promise.all([
-        loadNetworkInfo(agentId),
         loadGroupsForAgent(agentId),
         loadUsersForAgent(agentId),
       ]).catch((error) => {
@@ -4301,13 +3302,6 @@ const usersColumns: QTableColumn[] = [
     sortable: true,
   },
   {
-    name: "accountExpirationDate",
-    label: "Account Expires",
-    align: "left",
-    field: "accountExpirationDate",
-    sortable: true,
-  },
-  {
     name: "lastLogon",
     label: "Last Logon",
     align: "left",
@@ -4322,119 +3316,14 @@ const usersColumns: QTableColumn[] = [
     sortable: true,
   },
   {
-    name: "displayName",
-    label: "Display Name",
-    align: "left",
-    field: "displayName",
-    sortable: true,
-  },
-  {
     name: "description",
     label: "Description",
     align: "left",
     field: "description",
     sortable: true,
   },
-  {
-    name: "givenName",
-    label: "Name",
-    align: "left",
-    field: "givenName",
-    sortable: true,
-  },
-  {
-    name: "middleName",
-    label: "Middle Name",
-    align: "left",
-    field: "middleName",
-    sortable: true,
-  },
-  {
-    name: "surname",
-    label: "Surname",
-    align: "left",
-    field: "surname",
-    sortable: true,
-  },
-  {
-    name: "email",
-    label: "Email",
-    align: "left",
-    field: "email",
-    sortable: true,
-  },
-  {
-    name: "telephoneNumber",
-    label: "Phone",
-    align: "left",
-    field: "telephoneNumber",
-    sortable: true,
-  },
-  {
-    name: "homeDirectory",
-    label: "Home Dir",
-    align: "left",
-    field: "homeDirectory",
-    sortable: true,
-  },
-  {
-    name: "scriptPath",
-    label: "Script Path",
-    align: "left",
-    field: "scriptPath",
-    sortable: true,
-  },
-  {
-    name: "employeeId",
-    label: "Employee ID",
-    align: "left",
-    field: "employeeId",
-    sortable: true,
-  },
-];
 
-const agentTableColumns: QTableColumn[] = [
-  {
-    name: "hostname",
-    required: true,
-    label: "Device Name",
-    align: "left",
-    field: "hostname",
-    sortable: true,
-  },
-  {
-    name: "status",
-    label: "Status",
-    align: "left",
-    field: "status",
-    sortable: true,
-  },
-  {
-    name: "last_seen",
-    label: "Last answer",
-    align: "left",
-    field: "last_seen",
-    format: (val: string) => formatDate(val),
-    sortable: true,
-  },
-  {
-    name: "operating_system",
-    label: "ОС",
-    align: "left",
-    field: "operating_system",
-    sortable: true,
-  },
 ];
-
-const recentEvents = ref<
-  Array<{
-    title: string;
-    date: string;
-    description: string;
-    icon: string;
-    color: string;
-  }>
->([]);
 
 const policyColumns: QTableColumn[] = [
   {
@@ -4472,122 +3361,47 @@ const policyColumns: QTableColumn[] = [
   },
 ];
 
-const policyManagementColumns: QTableColumn[] = [
-  {
-    name: "name",
-    required: true,
-    label: "Name",
-    align: "left",
-    field: "name",
-    sortable: true,
-  },
-  {
-    name: "displayName",
-    label: "DisplayName",
-    align: "left",
-    field: "displayName",
-    sortable: true,
-  },
-  {
-    name: "path",
-    label: "Path",
-    align: "left",
-    field: "path",
-  },
-  {
-    name: "enabled",
-    label: "Status",
-    align: "center",
-    field: "enabled",
-    format: (val: boolean) => (val ? "Enabled" : "Disabled"),
-  },
-];
-
-const filteredPolicies = computed(() => {
-  if (!policyFilter.value) {
-    return policiesStore.policies.value;
-  }
-  const filter = policyFilter.value.toLowerCase();
-  return policiesStore.policies.value.filter(
-    (policy) =>
-      policy.name.toLowerCase().includes(filter) ||
-      policy.displayName?.toLowerCase().includes(filter) ||
-      policy.description?.toLowerCase().includes(filter),
-  );
-});
-
 const filteredPoliciesByCategory = (
   category: "all" | "templates" | "archive",
 ) => {
-  let policies = filteredPolicies.value;
+  const allPolicies = policiesStore.policies.value;
+  const filter = policyFilter.value?.toLowerCase() ?? "";
 
-  // фильтр по категориям пока по простому
-  // TODO: добавить реальную логику определения шаблонов и архива
+  let policies = !filter
+    ? allPolicies
+    : allPolicies.filter((policy) => {
+        const name = policy.name.toLowerCase();
+        const path = policy.path?.toLowerCase() ?? "";
+        const displayName = policy.displayName?.toLowerCase() ?? "";
+        const description = policy.description?.toLowerCase() ?? "";
+        return (
+          name.includes(filter) ||
+          path.includes(filter) ||
+          displayName.includes(filter) ||
+          description.includes(filter)
+        );
+      });
+
   if (category === "templates") {
-    policies = policies.filter(
-      (policy) =>
-        policy.name.toLowerCase().includes("template") ||
-        policy.path?.toLowerCase().includes("template") ||
-        policy.displayName?.toLowerCase().includes("template"),
-    );
+    policies = policies.filter((policy) => {
+      const name = policy.name.toLowerCase();
+      const path = policy.path?.toLowerCase() ?? "";
+      const displayName = policy.displayName?.toLowerCase() ?? "";
+      return (
+        name.includes("template") ||
+        path.includes("template") ||
+        displayName.includes("template")
+      );
+    });
   } else if (category === "archive") {
-    policies = policies.filter(
-      (policy) =>
-        !policy.enabled ||
-        policy.path?.toLowerCase().includes("archive") ||
-        policy.path?.toLowerCase().includes("archive"),
-    );
+    policies = policies.filter((policy) => {
+      const path = policy.path?.toLowerCase() ?? "";
+      return !policy.enabled || path.includes("archive");
+    });
   }
 
   return policies;
 };
-
-const filteredNetworkAgents = computed(() => {
-  if (networkStatusFilter.value === "all") {
-    return agentsList.value;
-  }
-  return agentsList.value.filter(
-    (agent) => agent.status === networkStatusFilter.value,
-  );
-});
-
-const assignedPolicyColumns: QTableColumn[] = [
-  {
-    name: "name",
-    required: true,
-    label: "Name",
-    align: "left",
-    field: "name",
-    sortable: true,
-  },
-  {
-    name: "displayName",
-    label: "Display Name",
-    align: "left",
-    field: "displayName",
-    sortable: true,
-  },
-  {
-    name: "assignedDate",
-    label: "Assigned Date",
-    align: "left",
-    field: "assignedDate",
-    format: (val: string) => formatDate(val),
-  },
-  {
-    name: "applied",
-    label: "Applied",
-    align: "center",
-    field: (row: AssignedPolicy) => row.applied,
-    format: (val: boolean) => (val ? "Yes" : "No"),
-  },
-  {
-    name: "actions",
-    label: "Actions",
-    align: "center",
-    field: "actions",
-  },
-];
 
 const admxFilesColumns: QTableColumn[] = [
   {
@@ -4614,16 +3428,6 @@ const admxFilesColumns: QTableColumn[] = [
   },
 ];
 
-const pingLoading = ref(false);
-const networkInfo = ref<{
-  local_ips?: string;
-  public_ip?: string;
-}>({});
-const pingResult = ref<{
-  status: string;
-  message?: string;
-} | null>(null);
-
 interface AgentDetails {
   agentId?: string;
   hostName?: string;
@@ -4631,46 +3435,30 @@ interface AgentDetails {
   isOnline?: boolean;
   lastHeartbeatUnix?: number | string;
   nodeInfo?: {
-    systemInfo?: {
-      hostName?: string;
-      host_name?: string;
-      osVersion?: string;
-      os_version?: string;
+    systeminfo?: {
+      nodeid?: string;
+      hostname?: string;
+      osversion?: string;
       cpu?: string;
-      ramGb?: number;
-      ram_gb?: number;
-      motherboard?: string;
-      manufacturer?: string;
-      model?: string;
-      firmwareVersion?: string;
-      firmware_version?: string;
-      disks?: string[];
+      ramgb?: number;
       disksList?: string[];
-      gpu?: string[];
       gpuList?: string[];
-      ipAddresses?: string[];
-      ipAddressesList?: string[];
-      ip_addresses?: string[];
-      macAddresses?: string[];
-      macAddressesList?: string[];
-      mac_addresses?: string[];
+      ipaddressesList?: string[];
+      macaddressesList?: string[];
+      motherboard?: string;
     };
-    lastBootTimeUnix?: number | string;
-    last_boot_time_unix?: number | string;
-    osBuild?: string;
-    os_build?: string;
-    isDomainJoined?: boolean;
-    is_domain_joined?: boolean;
-    antivirusStatus?: string;
-    antivirus_status?: string;
-    timeZone?: string;
-    time_zone?: string;
     manufacturer?: string;
     model?: string;
-    firmwareVersion?: string;
-    firmware_version?: string;
-    isOnline?: boolean;
-    is_online?: boolean;
+    firmwareversion?: string;
+    osbuild?: string;
+    timezone?: string;
+    isdomainjoined?: boolean;
+    antivirusstatus?: string;
+    lastboottime?: {
+      seconds?: number;
+      nanos?: number;
+    };
+    nodeId?: string;
   };
 }
 
@@ -4678,13 +3466,8 @@ const agentDetails = ref<AgentDetails | null>(null);
 
 const agentOsVersion = computed(() => {
   const details = agentDetails.value;
-  const sys = details?.nodeInfo?.systemInfo as
-    | Record<string, string>
-    | undefined;
   return (
-    details?.nodeInfo?.systemInfo?.osVersion ||
-    details?.nodeInfo?.systemInfo?.os_version ||
-    sys?.osversion ||
+    details?.nodeInfo?.systeminfo?.osversion ||
     selectedAgent.value?.operating_system ||
     "N/A"
   );
@@ -4692,13 +3475,8 @@ const agentOsVersion = computed(() => {
 
 const agentSystemHostname = computed(() => {
   const details = agentDetails.value;
-  const sys = details?.nodeInfo?.systemInfo as
-    | Record<string, string>
-    | undefined;
   return (
-    details?.nodeInfo?.systemInfo?.hostName ||
-    details?.nodeInfo?.systemInfo?.host_name ||
-    sys?.hostname ||
+    details?.nodeInfo?.systeminfo?.hostname ||
     details?.hostName ||
     selectedAgent.value?.hostname ||
     "N/A"
@@ -4706,29 +3484,11 @@ const agentSystemHostname = computed(() => {
 });
 
 const agentSystemIpAddresses = computed(() => {
-  const sys = agentDetails.value?.nodeInfo?.systemInfo as
-    | Record<string, string[] | undefined>
-    | undefined;
-  return (
-    agentDetails.value?.nodeInfo?.systemInfo?.ipAddressesList ||
-    agentDetails.value?.nodeInfo?.systemInfo?.ipAddresses ||
-    agentDetails.value?.nodeInfo?.systemInfo?.ip_addresses ||
-    sys?.ipaddressesList ||
-    []
-  );
+  return agentDetails.value?.nodeInfo?.systeminfo?.ipaddressesList || [];
 });
 
 const agentSystemMacAddresses = computed(() => {
-  const sys = agentDetails.value?.nodeInfo?.systemInfo as
-    | Record<string, string[] | undefined>
-    | undefined;
-  return (
-    agentDetails.value?.nodeInfo?.systemInfo?.macAddressesList ||
-    agentDetails.value?.nodeInfo?.systemInfo?.macAddresses ||
-    agentDetails.value?.nodeInfo?.systemInfo?.mac_addresses ||
-    sys?.macaddressesList ||
-    []
-  );
+  return agentDetails.value?.nodeInfo?.systeminfo?.macaddressesList || [];
 });
 
 async function loadUsersForAgent(agentId: string) {
@@ -4754,8 +3514,9 @@ async function loadUsersForAgent(agentId: string) {
         let groupsString: string | undefined;
         if (user.groupsList && user.groupsList.length > 0) {
           const groupNames = user.groupsList
-            .map((group) =>
-              group.displayname || group.name || group.samaccountname || "",
+            .map(
+              (group) =>
+                group.displayname || group.name || group.samaccountname || "",
             )
             .filter((name) => name !== "");
           groupsString = groupNames.join(", ");
@@ -4881,7 +3642,7 @@ async function loadGroupsForAgent(agentId: string) {
   }
 }
 
-const selectAgent = (agent: Agent) => {
+const selectAgent = async (agent: Agent) => {
   if (selectedAgent.value?.id === agent.id) {
     clearAgentSelection();
     return;
@@ -4890,9 +3651,21 @@ const selectAgent = (agent: Agent) => {
   if (agent.id) {
     loadUsersForAgent(agent.id);
     loadGroupsForAgent(agent.id);
-    loadNetworkInfo(agent.id);
+    loadAgentDetails(agent.id);
   }
-  pingResult.value = null;
+};
+
+const loadAgentDetails = async (agentId: string) => {
+  try {
+    const details = await agentServiceClientWrapper.getAgent(agentId);
+    console.log("Agent details loaded:", details);
+    console.log("NodeInfo:", details?.nodeInfo);
+    console.log("SystemInfo:", details?.nodeInfo?.systeminfo);
+    agentDetails.value = details;
+  } catch (error) {
+    console.error("Error loading agent details:", error);
+    agentDetails.value = null;
+  }
 };
 
 const clearAgentSelection = () => {
@@ -4900,490 +3673,44 @@ const clearAgentSelection = () => {
   usersList.value = [];
   groupsList.value = [];
   agentDetails.value = null;
-  networkInfo.value = {};
-  pingResult.value = null;
-  assignedPolicies.value = [];
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function loadAssignedPolicies(agentId: string) {
-  try {
-    assignedPolicies.value = [];
+// async function openPolicyDetails(policyHash: string) {
+//   if (!policyHash) {
+//     return;
+//   }
 
-    const assignmentsResp = await policyStateClient.getAssignmentsFor("agent", {
-      agentId,
-    });
+//   try {
+//     const pd = await policyCatalogClient.getPolicy(policyHash);
+//     const pdObj = pd as unknown as Record<string, unknown>;
+//     const name = String(
+//       pdObj["displayName"] ||
+//         pdObj["display_name"] ||
+//         pdObj["name"] ||
+//         policyHash,
+//     );
+//     const description = String(
+//       pdObj["explain_text"] || pdObj["explainText"] || "",
+//     );
 
-    const effectiveResp = await policyStateClient.getEffectivePoliciesFor(
-      "agent",
-      { agentId },
-    );
+//     $q.dialog({
+//       title: `Policy: ${name}`,
+//       message: `
+//         <div><strong>Hash:</strong> ${policyHash}</div>
+//         <div style="margin-top:8px;"><strong>Description:</strong> ${description}</div>
+//       `,
+//       html: true,
+//       ok: true,
+//     });
+//   } catch (error) {
+//     $q.dialog({
+//       title: "Policy details",
+//       message: `Could not load policy details for ${policyHash}`,
+//     });
+//   }
+// }
 
-    const assignmentsObj = assignmentsResp as unknown as Record<
-      string,
-      unknown
-    >;
-    const assignments = ((assignmentsObj["assignmentsList"] as unknown) ||
-      (assignmentsObj["assignments"] as unknown) ||
-      []) as Array<Record<string, unknown>>;
-
-    const effectiveObj = effectiveResp as unknown as Record<string, unknown>;
-    const effectivePolicies = ((effectiveObj["policiesList"] as unknown) ||
-      (effectiveObj["policies"] as unknown) ||
-      []) as Array<Record<string, unknown>>;
-
-    const effectiveSet = new Set<string>(
-      effectivePolicies.map((p: Record<string, unknown>) =>
-        String(p["policyHash"] || p["policy_hash"] || ""),
-      ),
-    );
-
-    for (const a of assignments as Array<Record<string, unknown>>) {
-      const policyHash = String(a["policyHash"] || a["policy_hash"] || "");
-      let name = policyHash;
-      let displayName = policyHash;
-
-      try {
-        const pd = await policyCatalogClient.getPolicy(policyHash);
-        const pdObj = pd as unknown as Record<string, unknown>;
-        name = String(
-          pdObj["name"] ||
-            pdObj["policy_name"] ||
-            pdObj["policy_hash"] ||
-            policyHash,
-        );
-        displayName = String(
-          pdObj["displayName"] ||
-            pdObj["display_name"] ||
-            pdObj["name"] ||
-            name,
-        );
-      } catch (e) {
-        // ignore
-      }
-
-      assignedPolicies.value.push({
-        id: policyHash, // используем hash как id (удобно для удаления при отсутствии numeric id)
-        name,
-        displayName,
-        path: "",
-        enabled: true,
-        description: "",
-        assignedDate: new Date().toISOString(),
-        applied: effectiveSet.has(policyHash),
-        policyHash,
-      } as AssignedPolicy);
-    }
-  } catch (error) {
-    notifyError("Error loading assigned policies");
-  }
-}
-
-async function removePolicyAssignment(policy: GPOPolicy) {
-  if (!selectedAgent.value) {
-    return;
-  }
-
-  $q.dialog({
-    title: "Confirmation",
-    message: `Delete a policy assignment"${policy.displayName || policy.name}" for the device ${selectedAgent.value.hostname}?`,
-    cancel: true,
-    persistent: true,
-  }).onOk(async () => {
-    try {
-      let policyHash: string | undefined;
-
-      const parsedId = Number.parseInt(policy.id, 10);
-      if (!Number.isNaN(parsedId)) {
-        const policyDetails = await policyCatalogClient.getPolicyDetails(
-          parsedId,
-          "en-US",
-        );
-        policyHash = (policyDetails.policy?.hash as string) || undefined;
-        if (!policyHash) {
-          throw new Error(
-            "Hash policy was not found. Couldn't get policy details.",
-          );
-        }
-      } else if (
-        "policyHash" in policy &&
-        (policy as AssignedPolicy).policyHash
-      ) {
-        policyHash = (policy as AssignedPolicy).policyHash;
-      } else {
-        policyHash = policy.id;
-      }
-
-      if (!selectedAgent.value) {
-        throw new Error("Agent is not selected");
-      }
-
-      if (!policyHash) {
-        throw new Error("Policy hash is undefined");
-      }
-
-      await policyAssignmentClient.removePolicy(policyHash, "agent", {
-        agentId: selectedAgent.value.id,
-      });
-
-      assignedPolicies.value = assignedPolicies.value.filter(
-        (p) => p.id !== policy.id,
-      );
-
-      if (selectedAgent.value) {
-        let policyNameForHistory =
-          policy.displayName || policy.name || policyHash;
-        try {
-          const pd = await policyCatalogClient.getPolicy(policyHash);
-          const pdObj = pd as unknown as Record<string, unknown>;
-          policyNameForHistory = String(
-            pdObj["displayName"] ||
-              pdObj["display_name"] ||
-              pdObj["name"] ||
-              policyNameForHistory,
-          );
-        } catch (e) {
-          // ignore
-        }
-
-        addActionToHistory({
-          title: "Deleting an appointment",
-          description: `Policy assignment removed "${policyNameForHistory}" for the device ${selectedAgent.value.hostname}`,
-          icon: "delete",
-          color: "negative",
-          policyHash,
-          policyName: policyNameForHistory,
-          actionType: "remove",
-        });
-      }
-
-      notifySuccess("Policy assignment removed");
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Unknown destination deletion error";
-      notifyError(`Assignment deletion error: ${errorMessage}`);
-    }
-  });
-}
-
-async function reapplyPolicies() {
-  if (!selectedAgent.value) {
-    return;
-  }
-
-  actionLoading.value = true;
-  try {
-    // TODO: Реализовать повторное применение политик через API
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // типа запроса
-
-    addActionToHistory({
-      title: "Re-applying policies",
-      description: `Policies have been reapplied for the device ${selectedAgent.value.hostname}`,
-      icon: "refresh",
-      color: "primary",
-    });
-
-    notifySuccess("Policies have been applied repeatedly");
-  } catch (error) {
-    notifyError("Policy Reapplication error");
-  } finally {
-    actionLoading.value = false;
-  }
-}
-
-async function rollbackPolicies() {
-  if (!selectedAgent.value) {
-    return;
-  }
-
-  $q.dialog({
-    title: "Confirmation",
-    message: `Roll back Device policies ${selectedAgent.value.hostname}?`,
-    cancel: true,
-    persistent: true,
-  }).onOk(async () => {
-    actionLoading.value = true;
-    try {
-      // TODO: Реализовать откат политик через API
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // типа запрос
-
-      if (selectedAgent.value) {
-        addActionToHistory({
-          title: "Rollback of policies",
-          description: `Policies have been rolled out for the device ${selectedAgent.value.hostname}`,
-          icon: "undo",
-          color: "warning",
-        });
-      }
-
-      notifySuccess("Policy have been pumped out");
-    } catch (error) {
-      notifyError("Policy Rollback error");
-    } finally {
-      actionLoading.value = false;
-    }
-  });
-}
-
-async function synchronizePolicies() {
-  if (!selectedAgent.value) {
-    return;
-  }
-
-  actionLoading.value = true;
-  try {
-    // TODO: Реализовать синхронизацию политик через API
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // типа запрос
-
-    await loadAssignedPolicies(selectedAgent.value.id);
-
-    addActionToHistory({
-      title: "Policy synchronization",
-      description: `Politics are synchronized for the device ${selectedAgent.value.hostname}`,
-      icon: "sync",
-      color: "secondary",
-    });
-
-    notifySuccess("Policies are synchronized");
-  } catch (error) {
-    notifyError("Policy synchronization error");
-  } finally {
-    actionLoading.value = false;
-  }
-}
-
-function addActionToHistory(action: Omit<DeviceAction, "date">) {
-  deviceActionHistory.value.unshift({
-    ...action,
-    date: formatDate(new Date().toISOString()),
-  });
-
-  if (deviceActionHistory.value.length > 50) {
-    deviceActionHistory.value = deviceActionHistory.value.slice(0, 50);
-  }
-}
-
-async function openPolicyDetails(policyHash: string) {
-  if (!policyHash) {
-    return;
-  }
-
-  try {
-    const pd = await policyCatalogClient.getPolicy(policyHash);
-    const pdObj = pd as unknown as Record<string, unknown>;
-    const name = String(
-      pdObj["displayName"] ||
-        pdObj["display_name"] ||
-        pdObj["name"] ||
-        policyHash,
-    );
-    const description = String(
-      pdObj["explain_text"] || pdObj["explainText"] || "",
-    );
-
-    $q.dialog({
-      title: `Policy: ${name}`,
-      message: `
-        <div><strong>Hash:</strong> ${policyHash}</div>
-        <div style="margin-top:8px;"><strong>Description:</strong> ${description}</div>
-      `,
-      html: true,
-      ok: true,
-    });
-  } catch (error) {
-    $q.dialog({
-      title: "Policy details",
-      message: `Could not load policy details for ${policyHash}`,
-    });
-  }
-}
-
-const LOCAL_IP_SKIP = /^(127\.0\.0\.1|::1|fe80::|169\.254\.)/;
-const isDisplayableIp = (ip: string) =>
-  !LOCAL_IP_SKIP.test(ip) && /^\d+\.\d+\.\d+\.\d+$/.test(ip);
-
-async function loadNetworkInfo(agentId: string) {
-  if (selectedAgent.value?.id === agentId && selectedAgent.value.ip_address) {
-    networkInfo.value = {
-      local_ips: selectedAgent.value.ip_address,
-      public_ip: "N/A",
-    };
-    return;
-  }
-
-  try {
-    const agentData = await agentServiceClientWrapper.getAgent(agentId);
-    const nodeInfo = agentData.nodeInfo;
-    const si = nodeInfo?.systeminfo;
-
-    agentDetails.value = {
-      ...agentData,
-      nodeInfo: nodeInfo
-        ? {
-            ...nodeInfo,
-            systemInfo: si
-              ? {
-                  hostName: si.hostname,
-                  osVersion: si.osversion,
-                  ramGb: si.ramgb,
-                  cpu: si.cpu,
-                  motherboard: si.motherboard,
-                  ipAddressesList: si.ipaddressesList ?? [],
-                  macAddressesList: si.macaddressesList ?? [],
-                  disksList: si.disksList ?? [],
-                  gpuList: si.gpuList ?? [],
-                }
-              : {
-                  hostName: agentData.hostName,
-                  osVersion: "",
-                  ramGb: undefined,
-                  cpu: "",
-                  motherboard: "",
-                  ipAddressesList: agentData.ipAddress
-                    ? [agentData.ipAddress]
-                    : [],
-                  macAddressesList: [],
-                  disksList: [],
-                  gpuList: [],
-                },
-            isDomainJoined: nodeInfo.isdomainjoined,
-            firmwareVersion: nodeInfo.firmwareversion,
-            timeZone: nodeInfo.timezone,
-            model: nodeInfo.model,
-            manufacturer: nodeInfo.manufacturer,
-          }
-        : undefined,
-    };
-
-    const ipAddresses = si?.ipaddressesList ?? [];
-    const localIps =
-      ipAddresses.filter(isDisplayableIp).join(", ") ||
-      agentData.ipAddress ||
-      "N/A";
-
-    networkInfo.value = {
-      local_ips: localIps,
-      public_ip: "N/A",
-    };
-  } catch {
-    agentDetails.value = null;
-    networkInfo.value = { local_ips: "N/A", public_ip: "N/A" };
-  }
-}
-
-async function handleReboot() {
-  if (!selectedAgent.value) return;
-
-  $q.dialog({
-    title: "Confirmation",
-    message: `Reboot ${selectedAgent.value.hostname}?`,
-    cancel: true,
-    persistent: true,
-  }).onOk(async () => {
-    actionLoading.value = true;
-    try {
-      await agentRebootNow(selectedAgent.value!.id);
-      notifySuccess(`${selectedAgent.value!.hostname} will be rebooted`);
-    } catch (error) {
-      notifyError("Error when restarting the agent");
-    } finally {
-      actionLoading.value = false;
-    }
-  });
-}
-
-async function handleShutdown() {
-  if (!selectedAgent.value) return;
-
-  const clean = DOMPurify.sanitize(selectedAgent.value.hostname);
-  $q.dialog({
-    title: `Enter <code style="color:red">yes</code> o confirm the disable <span style="color:red">${clean}</span>.`,
-    prompt: {
-      model: "",
-      type: "text",
-      isValid: (val) => val.toLowerCase() === "yes",
-    },
-    cancel: true,
-    ok: { label: "Disable", color: "negative" },
-    persistent: true,
-    html: true,
-  }).onOk(async () => {
-    actionLoading.value = true;
-    try {
-      await agentShutdown(selectedAgent.value!.id);
-      notifySuccess(`${selectedAgent.value!.hostname} will be turned off`);
-    } catch (error) {
-      notifyError("Error when turning off the agent");
-    } finally {
-      actionLoading.value = false;
-    }
-  });
-}
-
-async function handleDelete() {
-  if (!selectedAgent.value) return;
-
-  const clean = DOMPurify.sanitize(selectedAgent.value.hostname);
-  $q.dialog({
-    title: `Enter <code style="color:red">yes</code> to confirm the deletion <span style="color:red">${clean}</span>.`,
-    prompt: {
-      model: "",
-      type: "text",
-      isValid: (val) => val.toLowerCase() === "yes",
-    },
-    cancel: true,
-    ok: { label: "Delete", color: "negative" },
-    persistent: true,
-    html: true,
-  }).onOk(async () => {
-    actionLoading.value = true;
-    try {
-      const data = await removeAgent(selectedAgent.value!.id);
-      notifySuccess(data);
-      selectedAgent.value = null;
-      await loadAgents();
-    } catch (error) {
-      notifyError("Error deleting the agent");
-    } finally {
-      actionLoading.value = false;
-    }
-  });
-}
-
-async function handlePing() {
-  if (!selectedAgent.value) return;
-
-  pingLoading.value = true;
-  pingResult.value = null;
-  try {
-    const data = await sendAgentPing(selectedAgent.value.id);
-    let message = "Unknown status";
-    if (data.status === "online") {
-      message = "Agent is available";
-    } else if (data.status === "offline") {
-      message = "Agent is unavailable";
-    }
-    pingResult.value = {
-      status: data.status || "unknown",
-      message,
-    };
-    if (data.status === "online") {
-      notifySuccess("Ping successful: online agent");
-    } else {
-      notifyError("Ping unsuccessful: offline agent");
-    }
-  } catch (error) {
-    pingResult.value = {
-      status: "error",
-      message: "Error during execution ping",
-    };
-    notifyError("Error during execution ping");
-  } finally {
-    pingLoading.value = false;
-  }
-}
 function handleFileChange(file: File | null) {
   fileError.value = "";
 
@@ -5558,46 +3885,6 @@ const onDeletePolicy = (policy: unknown) => {
   });
 };
 
-const onCreatePolicy = () => {
-  policyToEdit.value = null;
-  policyDialogMode.value = "create";
-  showPolicyDialog.value = true;
-};
-
-const onEditSelectedPolicy = () => {
-  if (selectedPolicyForManagement.value) {
-    onEditPolicy(selectedPolicyForManagement.value);
-  }
-};
-
-const onClonePolicy = () => {
-  if (selectedPolicyForManagement.value) {
-    const policy = selectedPolicyForManagement.value;
-    policyToEdit.value = {
-      ...policy,
-      name: `${policy.name}_copy`,
-      displayName: `${policy.displayName || policy.name} (copy)`,
-      id: "",
-    } as GPOPolicy;
-    policyDialogMode.value = "clone";
-    showPolicyDialog.value = true;
-  }
-};
-
-const onDeleteSelectedPolicy = () => {
-  if (selectedPolicyForManagement.value) {
-    onDeletePolicy(selectedPolicyForManagement.value);
-  }
-};
-
-watch(selectedPoliciesForManagement, (newSelection) => {
-  if (newSelection && newSelection.length > 0) {
-    selectedPolicyForManagement.value = newSelection[0] as GPOPolicy;
-  } else {
-    selectedPolicyForManagement.value = null;
-  }
-});
-
 watch(windowsTab, (newTab) => {
   if (newTab && newTab.startsWith("admx-")) {
     const groupName = newTab.replace("admx-", "");
@@ -5707,7 +3994,6 @@ watch(
       [
         "dashboard",
         "collections",
-        "network",
         "library",
         "windows",
         "devices",
@@ -5770,15 +4056,27 @@ async function openAddUserDialog() {
     const res = await userControlClient.getAllUsers();
     const list =
       res?.usersList ??
-      (res as { users?: Array<{ userid?: string; info?: { samaccountname?: string } }> })
-        ?.users ??
+      (
+        res as {
+          users?: Array<{
+            userid?: string;
+            info?: { samaccountname?: string };
+          }>;
+        }
+      )?.users ??
       [];
     addUserOptions.value = list
-      .map((u: { userid?: string; userId?: string; info?: { samaccountname?: string } }) => {
-        const uid = u.userid ?? u.userId ?? "";
-        const label = (u.info?.samaccountname ?? uid) || "—";
-        return { value: uid, label };
-      })
+      .map(
+        (u: {
+          userid?: string;
+          userId?: string;
+          info?: { samaccountname?: string };
+        }) => {
+          const uid = u.userid ?? u.userId ?? "";
+          const label = (u.info?.samaccountname ?? uid) || "—";
+          return { value: uid, label };
+        },
+      )
       .filter((o) => o.value);
   } catch {
     notifyError("Failed to load users list");
@@ -6013,7 +4311,9 @@ async function toggleUserEnabled(row: User) {
       enable,
     );
     notifySuccess(enable ? "User enabled" : "User disabled");
-    const u = usersList.value.find((x) => x.samAccountName === row.samAccountName);
+    const u = usersList.value.find(
+      (x) => x.samAccountName === row.samAccountName,
+    );
     if (u) u.isEnabled = enable;
     await refreshUsersAndGroups();
   } catch (e) {
@@ -6463,69 +4763,18 @@ async function refreshAppliedPoliciesDialog() {
 
 function onPolicySettingsApplied(
   policyId: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   settings: Record<string, unknown>,
 ) {
   if (selectedAgent.value) {
-    loadAssignedPolicies(selectedAgent.value.id);
-
-    (async () => {
-      let policyName = String(policyId);
-      try {
-        const pd = await policyCatalogClient.getPolicy(String(policyId));
-        const pdObj = pd as unknown as Record<string, unknown>;
-        policyName = String(
-          pdObj["displayName"] ||
-            pdObj["display_name"] ||
-            pdObj["name"] ||
-            policyName,
-        );
-      } catch (e) {
-        // игнор
-      }
-
-      addActionToHistory({
-        title: "Policy application",
-        description: `Policy ${policyName} applied`,
-        icon: "policy",
-        color: "positive",
-        policyHash: String(policyId),
-        policyName,
-        actionType: "apply",
-      });
-    })();
+    console.log("Policy applied:", policyId, settings);
+    notifySuccess("Policy applied successfully");
   }
 }
 
 function onPolicySettingsDisabled(policyId: string) {
   if (selectedAgent.value) {
-    loadAssignedPolicies(selectedAgent.value.id);
-
-    (async () => {
-      let policyName = String(policyId);
-      try {
-        const pd = await policyCatalogClient.getPolicy(String(policyId));
-        const pdObj = pd as unknown as Record<string, unknown>;
-        policyName = String(
-          pdObj["displayName"] ||
-            pdObj["display_name"] ||
-            pdObj["name"] ||
-            policyName,
-        );
-      } catch (e) {
-        // игнор
-      }
-
-      addActionToHistory({
-        title: "Disabling policy",
-        description: `Policy ${policyName} disabled`,
-        icon: "policy",
-        color: "negative",
-        policyHash: String(policyId),
-        policyName,
-        actionType: "disable",
-      });
-    })();
+    console.log("Policy disabled:", policyId);
+    notifySuccess("Policy disabled successfully");
   }
 }
 
@@ -6545,7 +4794,6 @@ onMounted(async () => {
     [
       "dashboard",
       "collections",
-      "network",
       "library",
       "windows",
       "devices",

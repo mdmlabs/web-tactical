@@ -168,14 +168,15 @@ defineEmits<{
   (e: 'view-jobs'): void;
 }>();
 
-const searchQuery = ref('');
+const searchQuery = ref("");
 
 const filteredDevices = computed(() => {
   if (!searchQuery.value) return props.devices;
   const query = searchQuery.value.toLowerCase();
-  return props.devices.filter(d =>
-    d.name.toLowerCase().includes(query) ||
-    d.employee.toLowerCase().includes(query)
+  return props.devices.filter(
+    (d) =>
+      d.name.toLowerCase().includes(query) ||
+      d.employee.toLowerCase().includes(query),
   );
 });
 

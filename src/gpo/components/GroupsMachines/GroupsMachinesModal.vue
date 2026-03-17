@@ -11,7 +11,7 @@
           color="primary"
           @click="goBack"
         />
-        <q-icon name="dns" size="sm" class="q-mr-sm" color="primary" />
+        <q-icon name="laptop" size="sm" class="q-mr-sm" color="primary" />
         <q-toolbar-title>Groups Machines</q-toolbar-title>
 
         <q-btn
@@ -28,763 +28,142 @@
 
     <div class="groups-manager-page">
       <div class="groups-manager-body">
-        <div class="groups-left-panel">
-          <div class="groups-left-header row items-center q-px-md q-py-sm">
-            <div class="text-subtitle1 text-weight-medium">Categories</div>
-            <q-space />
-            <q-btn
-              flat
-              dense
-              round
-              icon="add"
-              color="primary"
-              title="Create category"
-              @click="openCreateCategoryDialog"
-            />
-            <q-btn
-              flat
-              dense
-              round
-              icon="refresh"
-              color="grey-7"
-              title="Refresh"
-              :loading="categoriesLoading"
-              @click="loadCategories"
-            />
-          </div>
-
-          <q-separator />
-
-          <div class="q-px-md q-py-sm">
-            <q-input
-              v-model="categorySearch"
-              dense
-              outlined
-              placeholder="Search..."
-              clearable
-              :input-style="{ paddingLeft: '6px' }"
-              @clear="categorySearch = ''"
-            >
-              <template v-slot:prepend>
-                <q-icon name="search" size="xs" />
-              </template>
-            </q-input>
-          </div>
-
-          <div
-            v-if="categoriesLoading"
-            class="column items-center justify-center q-pa-xl"
-          >
-            <q-spinner color="primary" size="2em" />
-            <div class="q-mt-sm text-caption">Loading categories...</div>
-          </div>
-
-          <div
-            v-else-if="categoriesError"
-            class="column items-center justify-center q-pa-lg text-negative"
-          >
-            <q-icon name="error" size="2rem" class="q-mb-sm" />
-            <div class="text-caption">{{ categoriesError }}</div>
-            <q-btn
-              flat
-              dense
-              color="primary"
-              label="Retry"
-              class="q-mt-sm"
-              @click="loadCategories"
-            />
-          </div>
-
-          <q-scroll-area
-            v-else-if="filteredCategoryTree.length > 0"
-            class="groups-tree-scroll"
-          >
-            <q-tree
-              :nodes="filteredCategoryTree"
-              node-key="id"
-              :selected="selectedCategoryIdKey"
-              default-expand-all
-              class="groups-tree q-pa-sm"
-              @update:selected="selectCategory"
-            >
-              <template v-slot:default-header="prop">
-                <div class="row items-center full-width groups-tree-item">
-                  <q-icon
-                    name="folder"
-                    color="warning"
-                    size="xs"
-                    class="q-mr-xs"
-                  />
-                  <div class="col ellipsis text-body2">
-                    {{ prop.node.label }}
-                  </div>
-                  <q-badge
-                    v-if="prop.node.children?.length"
-                    color="grey-4"
-                    text-color="grey-8"
-                    :label="prop.node.children.length"
-                    class="q-ml-xs"
-                  />
-                </div>
-              </template>
-            </q-tree>
-          </q-scroll-area>
-
-          <div
-            v-else
-            class="column items-center justify-center q-pa-xl text-grey-6"
-          >
-            <q-icon name="folder_off" size="2rem" class="q-mb-sm" />
-            <div class="text-caption">
-              {{
-                categorySearch
-                  ? "No categories match the filter"
-                  : "No categories found"
-              }}
-            </div>
-          </div>
-        </div>
+        <CategoriesListPanel
+          :nodes="filteredCategoryTree"
+          :loading="categoriesLoading"
+          :error="categoriesError"
+          :selected-key="selectedCategoryIdKey"
+          :search="categorySearch"
+          @refresh="loadCategories"
+          @create="openCreateCategoryDialog"
+          @select="selectCategory"
+          @update:search="categorySearch = $event"
+        />
 
         <q-separator vertical />
 
-        <div class="groups-right-panel">
-          <div
-            v-if="selectedCategoryId == null"
-            class="column items-center justify-center full-height text-grey-6"
-          >
-            <q-icon name="dns" size="3rem" class="q-mb-md" />
-            <div class="text-h6">Select a category</div>
-            <div class="text-caption q-mt-xs">
-              Click on a category in the tree to see its details
-            </div>
-          </div>
-
-          <template v-else>
-            <div class="groups-detail-header q-px-lg q-py-md row items-center">
-              <div>
-                <div class="text-h6 text-weight-medium">
-                  {{ selectedCategory?.name ?? "—" }}
-                </div>
-                <div
-                  v-if="selectedCategory?.description"
-                  class="text-caption text-grey-6"
-                >
-                  {{ selectedCategory.description }}
-                </div>
-              </div>
-              <q-space />
-              <q-btn
-                flat
-                dense
-                color="primary"
-                icon="edit"
-                label="Edit"
-                :loading="editLoading"
-                @click="openEditCategoryDialog"
-              />
-              <q-btn
-                flat
-                dense
-                color="secondary"
-                icon="drive_file_move"
-                label="Move to"
-                :loading="moveLoading"
-                @click="openMoveCategoryDialog"
-              />
-              <q-btn
-                flat
-                dense
-                color="negative"
-                icon="delete"
-                label="Delete Category"
-                :loading="deleteLoading"
-                @click="confirmDeleteCategory"
-              />
-            </div>
-
-            <q-separator />
-
-            <q-tabs
-              v-model="detailTab"
-              dense
-              inline-label
-              class="text-grey bg-grey-1"
-              active-color="primary"
-              indicator-color="primary"
-              align="left"
-              narrow-indicator
-              no-caps
-            >
-              <q-tab name="agents" icon="dns" label="Agents">
-                <q-badge
-                  v-if="categoryAgents.length"
-                  color="primary"
-                  :label="categoryAgents.length"
-                  floating
-                  rounded
-                />
-              </q-tab>
-              <q-tab
-                name="children"
-                icon="account_tree"
-                label="Child Categories"
-              >
-                <q-badge
-                  v-if="categoryChildren.length"
-                  color="primary"
-                  :label="categoryChildren.length"
-                  floating
-                  rounded
-                />
-              </q-tab>
-              <q-tab
-                name="subtreeAgents"
-                icon="account_tree"
-                label="Agents in subtree"
-              >
-                <q-badge
-                  v-if="subtreeAgents.length"
-                  color="primary"
-                  :label="subtreeAgents.length"
-                  floating
-                  rounded
-                />
-              </q-tab>
-              <q-tab
-                name="collections"
-                icon="collections_bookmark"
-                label="Policy collections"
-              >
-                <q-badge
-                  v-if="categoryAppliedCollectionsLoading"
-                  color="grey"
-                  label="..."
-                  floating
-                  rounded
-                />
-                <q-badge
-                  v-else-if="categoryAppliedCollections.length > 0"
-                  color="primary"
-                  :label="categoryAppliedCollections.length"
-                  floating
-                  rounded
-                />
-              </q-tab>
-            </q-tabs>
-
-            <q-separator />
-
-            <q-tab-panels v-model="detailTab" class="groups-tab-panels">
-              <q-tab-panel name="agents" class="q-pa-md">
-                <div class="row items-center q-mb-md">
-                  <div class="text-subtitle2">Agents in this category</div>
-                  <q-space />
-                  <q-btn
-                    flat
-                    dense
-                    color="secondary"
-                    icon="edit"
-                    label="Set all agents"
-                    :disable="selectedCategoryId == null"
-                    title="Replace the entire list of agents"
-                    @click="openSetAgentsDialog"
-                    class="q-mr-sm"
-                  />
-                  <q-btn
-                    flat
-                    dense
-                    color="primary"
-                    icon="add_circle_outline"
-                    label="Add agent"
-                    :disable="selectedCategoryId == null"
-                    title="Select a category first"
-                    @click="showAddAgentPanel = true"
-                  />
-                </div>
-                <div v-if="detailLoading" class="text-center q-pa-md">
-                  <q-spinner color="primary" />
-                </div>
-                <div
-                  v-else-if="categoryAgents.length === 0"
-                  class="text-grey-6 text-caption"
-                >
-                  No agents in this category
-                </div>
-                <q-list v-else bordered separator>
-                  <q-item
-                    v-for="agentId in categoryAgents"
-                    :key="agentId"
-                    class="row items-center cursor-pointer"
-                    clickable
-                    @click="goToAgentDashboard(agentId)"
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="dns" color="primary" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>{{ agentId }}</q-item-label>
-                    </q-item-section>
-                    <q-item-section side>
-                      <q-btn
-                        flat
-                        round
-                        dense
-                        icon="remove_circle_outline"
-                        size="xs"
-                        color="negative"
-                        title="Remove from category"
-                        @click.stop="removeAgentFromCategory(agentId)"
-                      />
-                    </q-item-section>
-                  </q-item>
-                </q-list>
-              </q-tab-panel>
-
-              <q-tab-panel name="children" class="q-pa-md">
-                <div class="text-subtitle2 q-mb-md">Child Categories</div>
-                <div v-if="detailLoading" class="text-center q-pa-md">
-                  <q-spinner color="primary" />
-                </div>
-                <q-table
-                  v-else
-                  :rows="categoryChildren"
-                  :columns="childrenColumns"
-                  row-key="categoryId"
-                  flat
-                  bordered
-                  dense
-                  :rows-per-page-options="[15, 30, 50, 0]"
-                  :no-data-label="'No child categories'"
-                >
-                  <template v-slot:body-cell-name="cellProps">
-                    <q-td :props="cellProps">
-                      <span
-                        class="text-primary cursor-pointer"
-                        @click="navigateToCategory(cellProps.row)"
-                        >{{ cellProps.value }}</span
-                      >
-                    </q-td>
-                  </template>
-                </q-table>
-              </q-tab-panel>
-
-              <q-tab-panel name="subtreeAgents" class="q-pa-md">
-                <div class="text-subtitle2 q-mb-md">
-                  Agents in this category and all descendant categories
-                </div>
-                <div v-if="detailLoading" class="text-center q-pa-md">
-                  <q-spinner color="primary" />
-                </div>
-                <div
-                  v-else-if="subtreeAgents.length === 0"
-                  class="text-grey-6 text-caption"
-                >
-                  No agents in subtree
-                </div>
-                <q-list v-else bordered separator>
-                  <q-item
-                    v-for="agentId in subtreeAgents"
-                    :key="agentId"
-                    class="row items-center"
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="dns" color="primary" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>{{ agentId }}</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </q-list>
-              </q-tab-panel>
-
-              <q-tab-panel name="collections" class="q-pa-md">
-                <div class="row items-center q-mb-md">
-                  <div class="text-subtitle2">
-                    Policy collections for this category (machine scope)
-                  </div>
-                  <q-space />
-                  <q-btn
-                    flat
-                    dense
-                    color="primary"
-                    icon="add_circle_outline"
-                    label="Apply collection"
-                    :disable="selectedCategoryId == null"
-                    @click="showApplyCollectionDialog = true"
-                  />
-                  <q-btn
-                    flat
-                    dense
-                    color="negative"
-                    icon="remove_circle_outline"
-                    label="Remove collection"
-                    :disable="!canRemoveCategoryCollection"
-                    title="Remove an applied collection from this category"
-                    @click="showRemoveCollectionDialog = true"
-                  />
-                </div>
-                <div class="collections-tab-scroll">
-                  <div
-                    v-if="selectedCategoryId == null"
-                    class="text-grey-6 text-caption"
-                  >
-                    Select a category to apply policy collections.
-                  </div>
-                  <template v-else>
-                    <div
-                      v-if="categoryAppliedCollectionsLoading"
-                      class="column items-center q-py-lg"
-                    >
-                      <q-spinner color="primary" size="2em" />
-                      <div class="text-caption text-grey-7 q-mt-sm">
-                        Loading applied collections...
-                      </div>
-                    </div>
-                    <template v-else-if="categoryAppliedCollections.length">
-                      <div class="text-caption text-grey-7 q-mb-sm">
-                        Applied collections:
-                      </div>
-                      <div class="applied-collections-list">
-                        <div
-                          v-for="c in categoryAppliedCollections"
-                          :key="c.id"
-                          class="applied-collection-block"
-                        >
-                          <div class="text-weight-medium">
-                            {{ c.name || c.id }}
-                          </div>
-                          <div
-                            v-if="c.explainText"
-                            class="text-caption text-grey-7 q-mt-xs"
-                          >
-                            {{ c.explainText }}
-                          </div>
-                          <template v-if="c.policies?.length">
-                            <div class="text-caption text-grey-7 q-mt-sm">
-                              Policies in collection:
-                            </div>
-                            <ul
-                              class="q-pl-md q-mt-xs q-mb-none text-caption text-grey-8"
-                            >
-                              <li
-                                v-for="p in c.policies"
-                                :key="p.id"
-                                class="q-py-xs"
-                              >
-                                {{ p.name }}
-                              </li>
-                            </ul>
-                          </template>
-                        </div>
-                      </div>
-                    </template>
-                    <div v-else class="text-body2 text-grey-7">
-                      No policy collections applied to this category yet. Use
-                      «Apply collection» to assign a collection (machine scope).
-                    </div>
-                  </template>
-                </div>
-              </q-tab-panel>
-            </q-tab-panels>
-          </template>
-        </div>
+        <CategoryDetailPanel
+          :selected-category-id="selectedCategoryId"
+          :selected-category="selectedCategory"
+          :detail-tab="detailTab"
+          :detail-loading="detailLoading"
+          :action-loading="actionLoading"
+          :category-agents="categoryAgents"
+          :category-children="categoryChildren"
+          :children-columns="childrenColumns"
+          :category-applied-collections="categoryAppliedCollections"
+          :category-applied-collections-loading="
+            categoryAppliedCollectionsLoading
+          "
+          :collections-columns="collectionsColumns"
+          @update:detail-tab="detailTab = $event"
+          @edit="openEditCategoryDialog"
+          @move="openMoveCategoryDialog"
+          @delete="confirmDeleteCategory"
+          @set-agents="openSetAgentsDialog"
+          @add-agent="showAddAgentPanel = true"
+          @remove-agent="removeAgentFromCategory"
+          @open-agent-dashboard="goToAgentDashboard"
+          @navigate-to-category="
+            (row) => navigateToCategory(row as CategoryRow)
+          "
+          @apply-collection="showApplyCollectionDialog = true"
+          @remove-collection-by-id="handleRemoveCollectionById"
+          @open-collection-details="
+            (row) => openCollectionDetailsDialog(row as CollectionType)
+          "
+        />
       </div>
     </div>
 
-    <q-dialog v-model="showEditCategory" @show="loadCategoryForEdit">
-      <q-card style="min-width: 360px; margin-bottom: 250px">
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Edit Category</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
-        </q-card-section>
-        <q-card-section>
-          <q-input
-            v-model="editCategoryForm.name"
-            label="Category Name *"
-            outlined
-            dense
-            class="q-mb-sm"
-          />
-          <q-input
-            v-model="editCategoryForm.description"
-            label="Description"
-            outlined
-            dense
-            type="textarea"
-            rows="2"
-          />
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn
-            color="primary"
-            label="Save"
-            :loading="editLoading"
-            :disable="!editCategoryForm.name.trim()"
-            @click="doUpdateCategory"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <EditCategoryDialog
+      v-model="showEditCategory"
+      :loading="editLoading"
+      :name="editCategoryForm.name"
+      :description="editCategoryForm.description"
+      @show="loadCategoryForEdit"
+      @save="doUpdateCategory"
+      @update:name="editCategoryForm.name = $event"
+      @update:description="editCategoryForm.description = $event"
+    />
 
-    <q-dialog v-model="showMoveCategory">
-      <q-card style="min-width: 360px; margin-bottom: 250px">
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Move to Category</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
-        </q-card-section>
-        <q-card-section>
-          <div class="text-caption text-grey-7 q-mb-sm">
-            New parent for «{{ selectedCategory?.name }}»
-          </div>
-          <q-select
-            v-model="moveCategoryForm.parentId"
-            :options="moveParentOptions"
-            option-value="categoryId"
-            option-label="label"
-            emit-value
-            map-options
-            label="Parent Category"
-            outlined
-            dense
-            clearable
-            class="q-mb-sm"
-          >
-            <template v-slot:no-option>
-              <q-item>
-                <q-item-section class="text-grey">
-                  No parent (root)
-                </q-item-section>
-              </q-item>
-            </template>
-          </q-select>
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn
-            color="primary"
-            label="Move"
-            :loading="moveLoading"
-            @click="doSetCategoryParent"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <MoveCategoryDialog
+      v-model="showMoveCategory"
+      :loading="moveLoading"
+      :category-name="selectedCategory?.name ?? ''"
+      :parent-options="moveParentOptions"
+      :parent-id="moveCategoryForm.parentId"
+      @move="doSetCategoryParent"
+      @update:parent-id="moveCategoryForm.parentId = $event"
+    />
 
-    <q-dialog v-model="showSetAgents" @show="prepareSetAgentsForm">
-      <q-card style="min-width: 400px; margin-bottom: 250px">
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Set all agents</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
-        </q-card-section>
-        <q-card-section>
-          <div class="text-caption text-grey-7 q-mb-sm">
-            One agent ID per line. This replaces the current list.
-          </div>
-          <q-input
-            v-model="setAgentsForm.agentIdsText"
-            outlined
-            dense
-            type="textarea"
-            rows="6"
-            placeholder="agent-id-1&#10;agent-id-2"
-          />
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn
-            color="primary"
-            label="Set agents"
-            :loading="setAgentsLoading"
-            @click="doSetCategoryAgents"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <SetAgentsDialog
+      v-model="showSetAgents"
+      :loading="setAgentsLoading"
+      :agent-ids-text="setAgentsForm.agentIdsText"
+      @show="prepareSetAgentsForm"
+      @set="doSetCategoryAgents"
+      @update:agent-ids-text="setAgentsForm.agentIdsText = $event"
+    />
 
-    <q-dialog v-model="showCreateCategory">
-      <q-card style="min-width: 360px; margin-bottom: 250px">
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Create Category</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
-        </q-card-section>
-        <q-card-section>
-          <q-input
-            v-model="createCategoryForm.name"
-            label="Category Name *"
-            outlined
-            dense
-            class="q-mb-sm"
-            autofocus
-          />
-          <q-select
-            v-model="createCategoryForm.parentId"
-            :options="parentCategoryOptions"
-            option-value="categoryId"
-            option-label="label"
-            emit-value
-            map-options
-            label="Parent Category"
-            outlined
-            dense
-            clearable
-            class="q-mb-sm"
-          >
-            <template v-slot:no-option>
-              <q-item>
-                <q-item-section class="text-grey">
-                  No parent (root category)
-                </q-item-section>
-              </q-item>
-            </template>
-          </q-select>
-          <q-input
-            v-model="createCategoryForm.description"
-            label="Description"
-            outlined
-            dense
-            type="textarea"
-            rows="2"
-          />
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn
-            color="primary"
-            label="Create"
-            :loading="createCategoryLoading"
-            :disable="!createCategoryForm.name.trim()"
-            @click="doCreateCategory"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <CreateCategoryDialog
+      v-model="showCreateCategory"
+      :loading="createCategoryLoading"
+      :parent-options="parentCategoryOptions"
+      @create="doCreateCategory"
+      :name="createCategoryForm.name"
+      :description="createCategoryForm.description"
+      :parent-id="createCategoryForm.parentId"
+      @update:name="createCategoryForm.name = $event"
+      @update:description="createCategoryForm.description = $event"
+      @update:parent-id="createCategoryForm.parentId = $event"
+    />
 
-    <q-dialog
+    <ApplyCollectionDialog
       v-model="showApplyCollectionDialog"
-      position="standard"
+      :category-label="
+        selectedCategory?.name ?? String(selectedCategoryId ?? '')
+      "
+      :loading="applyCollectionLoading"
+      :applying="applyCollectionApplying"
+      :options="applyCollectionOptions"
+      :model-selected-id="applyCollectionSelectedId"
       @show="loadCollectionsForApply"
-    >
-      <q-card class="apply-collection-card" style="min-width: 400px">
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Apply collection to category</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
-        </q-card-section>
-        <q-separator />
-        <q-card-section>
-          <div class="text-caption text-grey-7 q-mb-sm">
-            Category:
-            <strong>{{ selectedCategory?.name ?? selectedCategoryId }}</strong>
-          </div>
-          <q-select
-            v-model="applyCollectionSelectedId"
-            :options="applyCollectionOptions"
-            option-value="id"
-            option-label="label"
-            emit-value
-            map-options
-            label="Collection *"
-            outlined
-            dense
-            :loading="applyCollectionLoading"
-            :disable="applyCollectionLoading"
-            clearable
-            options-dense
-          >
-            <template v-slot:no-option>
-              <q-item>
-                <q-item-section class="text-grey">
-                  {{
-                    applyCollectionLoading
-                      ? "Loading..."
-                      : "No collections available"
-                  }}
-                </q-item-section>
-              </q-item>
-            </template>
-          </q-select>
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn
-            color="primary"
-            label="Apply"
-            :loading="applyCollectionApplying"
-            :disable="!applyCollectionSelectedId"
-            @click="confirmApplyCollectionToCategory"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+      @update:selected-id="applyCollectionSelectedId = $event"
+      @apply="confirmApplyCollectionToCategory"
+    />
 
-    <q-dialog
+    <RemoveCollectionDialog
       v-model="showRemoveCollectionDialog"
-      position="standard"
+      :category-label="
+        selectedCategory?.name ?? String(selectedCategoryId ?? '')
+      "
+      :options="removeCollectionOptions"
+      :options-loading="removeCollectionOptionsLoading"
+      :removing="removeCollectionRemoving"
+      :model-selected-id="removeCollectionSelectedId"
       @show="prepareRemoveCollectionOptionsForCategory"
-    >
-      <q-card class="apply-collection-card" style="min-width: 400px">
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Remove collection from category</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
-        </q-card-section>
-        <q-separator />
-        <q-card-section>
-          <div class="text-caption text-grey-7 q-mb-sm">
-            Category:
-            <strong>{{ selectedCategory?.name ?? selectedCategoryId }}</strong>
-          </div>
-          <q-select
-            v-model="removeCollectionSelectedId"
-            :options="removeCollectionOptions"
-            option-value="id"
-            option-label="label"
-            emit-value
-            map-options
-            label="Collection to remove *"
-            outlined
-            dense
-            :loading="removeCollectionOptionsLoading"
-            :disable="removeCollectionOptions.length === 0"
-            clearable
-            options-dense
-          >
-            <template v-slot:no-option>
-              <q-item>
-                <q-item-section class="text-grey">
-                  No collections to remove
-                </q-item-section>
-              </q-item>
-            </template>
-          </q-select>
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn
-            color="negative"
-            label="Remove"
-            :loading="removeCollectionRemoving"
-            :disable="removeCollectionSelectedId == null"
-            @click="confirmRemoveCollectionFromCategory"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+      @update:selected-id="removeCollectionSelectedId = $event"
+      @remove="confirmRemoveCollectionFromCategory"
+    />
 
     <TargetSelectionDialog
       v-model="showAddAgentPanel"
       @select="handleAddAgentSelect"
     />
+
+    <CollectionDetailsDialog
+      v-model="showCollectionDetailsDialog"
+      :collection="selectedCollection"
+      :policy-search-query="policySearchQuery"
+      :filtered-policies="filteredPolicies"
+      @update:policy-search-query="policySearchQuery = $event"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch, onMounted, reactive } from "vue";
 import { useRouter } from "vue-router";
 import { useQuasar } from "quasar";
 import {
@@ -792,11 +171,22 @@ import {
   getSingleAgentIdFromTarget,
   policyAssignmentClient,
   collectionsClient,
+  agentServiceClientWrapper,
 } from "@/gpo/api/grpc-client";
 import operator_pb from "@/generated/operator_pb";
 import type { TargetRef } from "@/gpo/composables/useTargetSelection";
 import TargetSelectionDialog from "@/gpo/components/shared/TargetSelectionDialog.vue";
 import { notifyError, notifySuccess } from "@/utils/notify";
+
+import CategoriesListPanel from "./CategoriesListPanel.vue";
+import CategoryDetailPanel from "./CategoryDetailPanel.vue";
+import EditCategoryDialog from "./dialogs/EditCategoryDialog.vue";
+import MoveCategoryDialog from "./dialogs/MoveCategoryDialog.vue";
+import SetAgentsDialog from "./dialogs/SetAgentsDialog.vue";
+import CreateCategoryDialog from "./dialogs/CreateCategoryDialog.vue";
+import ApplyCollectionDialog from "./dialogs/ApplyCollectionDialog.vue";
+import RemoveCollectionDialog from "./dialogs/RemoveCollectionDialog.vue";
+import CollectionDetailsDialog from "./dialogs/CollectionDetailsDialog.vue";
 
 interface CategoryRow {
   categoryId: number;
@@ -807,8 +197,16 @@ interface CategoryRow {
 interface TreeNode {
   id: string;
   label: string;
+  isCategory?: boolean;
   children?: TreeNode[];
 }
+
+interface AgentRow {
+  id: string;
+  name: string;
+}
+
+type AgentNameById = Record<string, string | undefined>;
 
 const props = withDefaults(
   defineProps<{ open?: boolean; standalonePage?: boolean }>(),
@@ -847,13 +245,116 @@ const selectedCategory = ref<{ name: string; description?: string } | null>(
 const detailTab = ref("agents");
 const detailLoading = ref(false);
 
-const categoryAgents = ref<string[]>([]);
+const categoryAgents = ref<AgentRow[]>([]);
 const categoryChildren = ref<CategoryRow[]>([]);
-const subtreeAgents = ref<string[]>([]);
+
+const agentNameById = reactive<AgentNameById>({});
+const agentNameInflight = new Map<string, Promise<string>>();
+
+const categoryAgentsCache = new Map<number, Set<string>>();
+const agentCategoryLookupCache = new Map<string, number[]>();
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let i = 0;
+
+  const workers = Array.from(
+    { length: Math.max(1, Math.min(concurrency, items.length)) },
+    async () => {
+      while (i < items.length) {
+        const idx = i;
+        i += 1;
+        results[idx] = await mapper(items[idx]);
+      }
+    },
+  );
+
+  await Promise.all(workers);
+  return results;
+}
+
+async function resolveAgentName(agentId: string): Promise<string> {
+  if (!agentId) return "";
+  const cached = agentNameById[agentId];
+  if (cached) return cached;
+
+  const inflight = agentNameInflight.get(agentId);
+  if (inflight) return inflight;
+
+  const p = (async () => {
+    try {
+      const agent = await agentServiceClientWrapper.getAgent(agentId);
+      const name =
+        (agent as { hostName?: string; host_name?: string }).hostName ??
+        (agent as { hostName?: string; host_name?: string }).host_name ??
+        agentId;
+      agentNameById[agentId] = name;
+      return name;
+    } catch {
+      agentNameById[agentId] = agentId;
+      return agentId;
+    } finally {
+      agentNameInflight.delete(agentId);
+    }
+  })();
+
+  agentNameInflight.set(agentId, p);
+  return p;
+}
+
+function formatCategoryLabel(categoryId: number): string {
+  const row = allCategoriesFlat.value.find((c) => c.categoryId === categoryId);
+  return row?.name || String(categoryId);
+}
+
+async function getAgentIdsForCategory(
+  categoryId: number,
+): Promise<Set<string>> {
+  const cached = categoryAgentsCache.get(categoryId);
+  if (cached) return cached;
+
+  const res = await agentCategoryClient.getCategoryAgents(categoryId);
+  const ids = new Set<string>(res.status === 0 ? (res.agentIdsList ?? []) : []);
+  categoryAgentsCache.set(categoryId, ids);
+  return ids;
+}
+
+async function findAgentCategories(agentId: string): Promise<number[]> {
+  const cached = agentCategoryLookupCache.get(agentId);
+  if (cached) return cached;
+
+  const categoryIds = (allCategoriesFlat.value ?? []).map((c) => c.categoryId);
+  if (categoryIds.length === 0) {
+    agentCategoryLookupCache.set(agentId, []);
+    return [];
+  }
+
+  const hits: number[] = [];
+  await mapWithConcurrency(categoryIds, 10, async (categoryId) => {
+    try {
+      const ids = await getAgentIdsForCategory(categoryId);
+      if (ids.has(agentId)) hits.push(categoryId);
+    } catch {
+      // игнор
+    }
+    return true;
+  });
+
+  agentCategoryLookupCache.set(agentId, hits);
+  return hits;
+}
 
 const deleteLoading = ref(false);
 const editLoading = ref(false);
 const moveLoading = ref(false);
+
+const actionLoading = computed(
+  () => deleteLoading.value || editLoading.value || moveLoading.value,
+);
 
 const showEditCategory = ref(false);
 const showMoveCategory = ref(false);
@@ -966,17 +467,69 @@ const categoryAppliedCollections = ref<
 >([]);
 const categoryAppliedCollectionsLoading = ref(false);
 
-const canRemoveCategoryCollection = computed(
-  () =>
-    !!selectedCategoryId.value &&
-    (categoryAppliedCollections.value?.length ?? 0) > 0,
-);
-
 const showRemoveCollectionDialog = ref(false);
 const removeCollectionSelectedId = ref<number | null>(null);
 const removeCollectionOptions = ref<{ id: number; label: string }[]>([]);
 const removeCollectionOptionsLoading = ref(false);
 const removeCollectionRemoving = ref(false);
+
+type CollectionType = {
+  id: number;
+  name: string;
+  explainText?: string;
+  policies?: { id: number; name: string }[];
+};
+
+const showCollectionDetailsDialog = ref(false);
+const selectedCollection = ref<CollectionType | null>(null);
+const policySearchQuery = ref("");
+
+const filteredPolicies = computed(() => {
+  if (!selectedCollection.value?.policies) return [];
+  if (!policySearchQuery.value) return selectedCollection.value.policies;
+
+  const query = policySearchQuery.value.toLowerCase();
+  return selectedCollection.value.policies.filter((p) =>
+    p.name.toLowerCase().includes(query),
+  );
+});
+
+function openCollectionDetailsDialog(collection: CollectionType) {
+  selectedCollection.value = collection;
+  policySearchQuery.value = "";
+  showCollectionDetailsDialog.value = true;
+}
+
+const collectionsColumns = [
+  {
+    name: "name",
+    label: "Collection Name",
+    field: "name",
+    align: "left" as const,
+    sortable: true,
+  },
+  {
+    name: "explainText",
+    label: "Description",
+    field: "explainText",
+    align: "left" as const,
+    sortable: false,
+  },
+  {
+    name: "policiesCount",
+    label: "Policies",
+    field: (row: { policies?: unknown[] }) => row.policies?.length || 0,
+    align: "center" as const,
+    sortable: true,
+  },
+  {
+    name: "actions",
+    label: "Actions",
+    field: "actions",
+    align: "center" as const,
+    sortable: false,
+  },
+];
 
 const childrenColumns = [
   {
@@ -1017,6 +570,7 @@ function mapCategoryTreeNodeToTreeNode(
   return {
     id: String(id),
     label: node.name || String(id),
+    isCategory: true,
     children: children.length > 0 ? children : undefined,
   };
 }
@@ -1043,8 +597,20 @@ function filterCategoryTree(nodes: TreeNode[], q: string): TreeNode[] {
 
 const filteredCategoryTree = computed<TreeNode[]>(() => {
   const q = categorySearch.value.trim();
-  if (!q) return categoryTreeNodes.value;
-  return filterCategoryTree(categoryTreeNodes.value, q);
+  const baseTree = q
+    ? filterCategoryTree(categoryTreeNodes.value, q)
+    : categoryTreeNodes.value;
+
+  if (baseTree.length === 0) return [];
+
+  return [
+    {
+      id: "__root__",
+      label: "All Categories",
+      isCategory: true,
+      children: baseTree,
+    },
+  ];
 });
 
 async function loadCategories() {
@@ -1242,6 +808,38 @@ async function doRemoveCollectionFromCategory() {
   }
 }
 
+function handleRemoveCollectionById(collectionId: number) {
+  const categoryId = selectedCategoryId.value;
+  if (categoryId == null) return;
+  const collection = categoryAppliedCollections.value.find(
+    (c) => c.id === collectionId,
+  );
+  const collectionLabel = collection?.name || String(collectionId);
+  $q.dialog({
+    title: "Remove collection",
+    message: `Do you really want to remove the collection «${collectionLabel}» from this category?`,
+    cancel: true,
+    persistent: true,
+    color: "negative",
+  }).onOk(async () => {
+    try {
+      await policyAssignmentClient.removePolicyCollection(
+        collectionId,
+        "agentCategory",
+        { categoryId },
+      );
+      notifySuccess(
+        `Collection removed from category "${selectedCategory.value?.name ?? categoryId}"`,
+      );
+      await loadCategoryAppliedCollections();
+    } catch (err) {
+      notifyError(
+        err instanceof Error ? err.message : "Failed to remove collection",
+      );
+    }
+  });
+}
+
 async function loadCategoryAppliedCollections() {
   const categoryId = selectedCategoryId.value;
   if (categoryId == null) {
@@ -1299,7 +897,20 @@ async function loadCategoryAppliedCollections() {
 }
 
 function selectCategory(nodeId: string | null) {
-  if (!nodeId) return;
+  if (!nodeId || nodeId === "__root__") {
+    selectedCategoryId.value = null;
+    selectedCategoryIdKey.value = null;
+    selectedCategory.value = null;
+    return;
+  }
+
+  if (selectedCategoryIdKey.value === nodeId) {
+    selectedCategoryId.value = null;
+    selectedCategoryIdKey.value = null;
+    selectedCategory.value = null;
+    return;
+  }
+
   const id = Number(nodeId);
   if (Number.isNaN(id)) return;
   const found = allCategoriesFlat.value.find((c) => c.categoryId === id);
@@ -1329,19 +940,26 @@ async function loadCategoryDetails(categoryId: number) {
   detailLoading.value = true;
   categoryAgents.value = [];
   categoryChildren.value = [];
-  subtreeAgents.value = [];
 
   try {
-    const [agentsRes, childrenRes, subtreeRes] = await Promise.allSettled([
+    const [agentsRes, childrenRes] = await Promise.allSettled([
       agentCategoryClient.getCategoryAgents(categoryId),
       agentCategoryClient.getCategoryChildren(categoryId),
-      agentCategoryClient.getAgentsInSubtree(categoryId),
     ]);
 
     if (agentsRes.status === "fulfilled") {
       const r = agentsRes.value;
       if (r.status === 0) {
-        categoryAgents.value = r.agentIdsList ?? [];
+        const agentIds = r.agentIdsList ?? [];
+        const agentsWithNames = await mapWithConcurrency(
+          agentIds,
+          10,
+          async (id: string) => {
+            const name = await resolveAgentName(id);
+            return { id, name };
+          },
+        );
+        categoryAgents.value = agentsWithNames;
       }
     }
     if (childrenRes.status === "fulfilled") {
@@ -1358,12 +976,6 @@ async function loadCategoryDetails(categoryId: number) {
             description: c.info?.description?.value ?? "",
           }),
         );
-      }
-    }
-    if (subtreeRes.status === "fulfilled") {
-      const r = subtreeRes.value;
-      if (r.status === 0) {
-        subtreeAgents.value = r.agentIdsList ?? [];
       }
     }
   } finally {
@@ -1535,6 +1147,55 @@ async function handleAddAgentSelect(ref: TargetRef) {
     notifyError("Please select an agent (device) in the tree");
     return;
   }
+
+  const agentName = await resolveAgentName(agentId);
+  const agentLabel =
+    agentName && agentName !== agentId ? `${agentName} (${agentId})` : agentId;
+
+  const existingCategoryIds = (await findAgentCategories(agentId)).filter(
+    (id) => id !== categoryId,
+  );
+  if (existingCategoryIds.length > 0) {
+    const firstOtherId = existingCategoryIds[0];
+    const otherLabel = formatCategoryLabel(firstOtherId);
+    const targetLabel = selectedCategory.value?.name ?? String(categoryId);
+
+    $q.dialog({
+      title: "The agent is already in a different group",
+      message:
+        `Agent "${agentLabel}" is already a member of the "${otherLabel}" group. ` +
+        `If you add it to the "${targetLabel}" group, policy conflicts may occur.\n\n` +
+        "Continue adding?",
+      cancel: { label: "Reject", flat: true },
+      ok: { label: "Add", color: "primary" },
+      persistent: true,
+    }).onOk(() => {
+      void (async () => {
+        try {
+          const res = await agentCategoryClient.addAgentToCategory({
+            categoryId,
+            agentId,
+          });
+          if (res.status === 0) {
+            notifySuccess("Agent added to category");
+            agentCategoryLookupCache.delete(agentId);
+            categoryAgentsCache.delete(categoryId);
+            await loadCategoryDetails(categoryId);
+          } else {
+            notifyError(res.errorMessage ?? "Failed to add agent");
+          }
+        } catch (err) {
+          notifyError(
+            err instanceof Error
+              ? err.message
+              : "Failed to add agent to category",
+          );
+        }
+      })();
+    });
+    return;
+  }
+
   try {
     const res = await agentCategoryClient.addAgentToCategory({
       categoryId,
@@ -1542,6 +1203,8 @@ async function handleAddAgentSelect(ref: TargetRef) {
     });
     if (res.status === 0) {
       notifySuccess("Agent added to category");
+      agentCategoryLookupCache.delete(agentId);
+      categoryAgentsCache.delete(categoryId);
       await loadCategoryDetails(categoryId);
     } else {
       notifyError(res.errorMessage ?? "Failed to add agent");
@@ -1556,20 +1219,37 @@ async function handleAddAgentSelect(ref: TargetRef) {
 async function removeAgentFromCategory(agentId: string) {
   const categoryId = selectedCategoryId.value;
   if (categoryId == null) return;
-  try {
-    const res = await agentCategoryClient.removeAgentFromCategory({
-      categoryId,
-      agentId,
-    });
-    if (res.status === 0) {
-      notifySuccess("Agent removed from category");
-      await loadCategoryDetails(categoryId);
-    } else {
-      notifyError(res.errorMessage ?? "Failed to remove agent");
+
+  const agent = (categoryAgents.value ?? []).find((a) => a.id === agentId);
+  const agentLabel =
+    agent?.name && agent.name !== agentId
+      ? `${agent.name} (${agentId})`
+      : agentId;
+
+  $q.dialog({
+    title: "Remove agent",
+    message: `Do you really want to remove agent «${agentLabel}» from this category?`,
+    cancel: true,
+    persistent: true,
+    color: "negative",
+  }).onOk(async () => {
+    try {
+      const res = await agentCategoryClient.removeAgentFromCategory({
+        categoryId,
+        agentId,
+      });
+      if (res.status === 0) {
+        notifySuccess("Agent removed from category");
+        await loadCategoryDetails(categoryId);
+      } else {
+        notifyError(res.errorMessage ?? "Failed to remove agent");
+      }
+    } catch (err) {
+      notifyError(
+        err instanceof Error ? err.message : "Failed to remove agent",
+      );
     }
-  } catch (err) {
-    notifyError(err instanceof Error ? err.message : "Failed to remove agent");
-  }
+  });
 }
 
 function prepareSetAgentsForm() {
@@ -1671,14 +1351,25 @@ async function doSetCategoryAgents() {
   max-height: 50vh
   overflow-y: auto
 
-.applied-collections-list
-  display: flex
-  flex-direction: column
-  gap: 12px
+.collections-table
+  :deep(.q-table__top)
+    padding: 0
 
-.applied-collection-block
-  padding: 12px
+  :deep(.q-table tbody td)
+    font-size: 13px
+
+  :deep(.q-table thead th)
+    font-weight: 600
+
+.policies-list-container
+  max-height: 60vh
+  overflow-y: auto
   border: 1px solid rgba(0, 0, 0, 0.12)
   border-radius: 4px
-  background: rgba(0, 0, 0, 0.02)
+
+.policy-item
+  transition: background-color 0.2s
+
+  &:hover
+    background-color: rgba(0, 0, 0, 0.02)
 </style>

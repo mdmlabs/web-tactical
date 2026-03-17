@@ -8,7 +8,7 @@
         dense
         color="primary"
         icon="group_add"
-        label="Add to group"
+        label=""
         :disable="!hasTarget"
         :title="!hasTarget ? 'Select target first (click badge in header)' : ''"
         @click="$emit('add-to-group')"

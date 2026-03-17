@@ -32,6 +32,7 @@
         :columns="collectionsTableColumns"
         row-key="id"
         :loading="loading"
+        :pagination="{ rowsPerPage: 20 }"
         flat
         bordered
         dense

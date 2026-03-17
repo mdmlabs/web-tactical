@@ -124,9 +124,24 @@ export const mockDeviceGroups: DeviceGroup[] = [
 ];
 
 export const mockAppResources = [
-  { id: "app-res-1", name: "Google Chrome", version: "122.0.6261.69", extension: "msi" },
-  { id: "app-res-2", name: "Mozilla Firefox", version: "123.0", extension: "msi" },
-  { id: "app-res-3", name: "Visual Studio Code", version: "1.87.0", extension: "exe" },
+  {
+    id: "app-res-1",
+    name: "Google Chrome",
+    version: "122.0.6261.69",
+    extension: "msi",
+  },
+  {
+    id: "app-res-2",
+    name: "Mozilla Firefox",
+    version: "123.0",
+    extension: "msi",
+  },
+  {
+    id: "app-res-3",
+    name: "Visual Studio Code",
+    version: "1.87.0",
+    extension: "exe",
+  },
   { id: "app-res-4", name: "7-Zip", version: "23.01", extension: "msi" },
   { id: "app-res-5", name: "Notepad++", version: "8.6.2", extension: "exe" },
 ];

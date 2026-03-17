@@ -12,7 +12,9 @@
         <q-form @submit.prevent="handleSubmit" class="create-form">
           <!-- File Upload -->
           <div class="form-section">
-            <label class="form-label">Application File <span class="required">*</span></label>
+            <label class="form-label"
+              >Application File <span class="required">*</span></label
+            >
             <ResourceFileUpload
               v-model="formData.file"
               resource-type="app"
@@ -22,13 +24,15 @@
 
           <!-- Name -->
           <div class="form-section">
-            <label class="form-label">Name <span class="required">*</span></label>
+            <label class="form-label"
+              >Name <span class="required">*</span></label
+            >
             <q-input
               v-model="formData.name"
               outlined
               dense
               placeholder="Enter application name"
-              :rules="[val => !!val || 'Name is required']"
+              :rules="[(val) => !!val || 'Name is required']"
             />
           </div>
 
@@ -47,7 +51,9 @@
 
           <!-- Segment -->
           <div class="form-section">
-            <label class="form-label">Segment <span class="required">*</span></label>
+            <label class="form-label"
+              >Segment <span class="required">*</span></label
+            >
             <q-select
               v-model="formData.segment"
               :options="segmentOptions"
@@ -60,19 +66,23 @@
 
           <!-- Version -->
           <div class="form-section">
-            <label class="form-label">Version <span class="required">*</span></label>
+            <label class="form-label"
+              >Version <span class="required">*</span></label
+            >
             <q-input
               v-model="formData.version"
               outlined
               dense
               placeholder="e.g., 1.0.0"
-              :rules="[val => !!val || 'Version is required']"
+              :rules="[(val) => !!val || 'Version is required']"
             />
           </div>
 
           <!-- Platform -->
           <div class="form-section">
-            <label class="form-label">Platform <span class="required">*</span></label>
+            <label class="form-label"
+              >Platform <span class="required">*</span></label
+            >
             <q-select
               v-model="formData.platform"
               :options="platformOptions"
@@ -83,9 +93,22 @@
 
           <!-- Actions -->
           <div v-if="uploading" class="upload-progress-section">
-            <q-linear-progress :value="uploadProgress / 100" color="primary" rounded size="8px" />
+            <q-linear-progress
+              :value="uploadProgress / 100"
+              color="primary"
+              rounded
+              size="8px"
+            />
             <div class="upload-phase-text">
-              {{ uploadPhase === 'hashing' ? 'Computing file hash...' : uploadPhase === 'uploading' ? `Uploading... ${uploadProgress}%` : uploadPhase === 'confirming' ? 'Finalizing...' : '' }}
+              {{
+                uploadPhase === "hashing"
+                  ? "Computing file hash..."
+                  : uploadPhase === "uploading"
+                    ? `Uploading... ${uploadProgress}%`
+                    : uploadPhase === "confirming"
+                      ? "Finalizing..."
+                      : ""
+              }}
             </div>
           </div>
 
@@ -106,51 +129,57 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
-import { useQuasar } from 'quasar';
-import ResourceFileUpload from '../components/ResourceFileUpload.vue';
-import { SEGMENTS, APP_PLATFORMS } from '../types/resources';
-import type { AppPlatform } from '../types/resources';
-import { useResourceUpload } from '../composables/useResourceUpload';
+import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
+import { useQuasar } from "quasar";
+import ResourceFileUpload from "../components/ResourceFileUpload.vue";
+import { SEGMENTS, APP_PLATFORMS } from "../types/resources";
+import type { AppPlatform } from "../types/resources";
+import { useResourceUpload } from "../composables/useResourceUpload";
 
 const router = useRouter();
 const $q = useQuasar();
 
 const submitting = ref(false);
-const { uploading, uploadProgress, uploadPhase, uploadResource } = useResourceUpload();
+const { uploading, uploadProgress, uploadPhase, uploadResource } =
+  useResourceUpload();
 
 const formData = ref({
   file: null as File | null,
-  name: '',
-  description: '',
-  segment: 'Global',
-  version: '',
-  platform: 'Windows' as AppPlatform,
+  name: "",
+  description: "",
+  segment: "Global",
+  version: "",
+  platform: "Windows" as AppPlatform,
 });
 
-const segmentOptions = SEGMENTS.map(s => ({ label: s, value: s }));
+const segmentOptions = SEGMENTS.map((s) => ({ label: s, value: s }));
 const platformOptions = APP_PLATFORMS;
 
 const isFormValid = computed(() => {
-  return formData.value.file && formData.value.name && formData.value.segment && 
-         formData.value.version && formData.value.platform;
+  return (
+    formData.value.file &&
+    formData.value.name &&
+    formData.value.segment &&
+    formData.value.version &&
+    formData.value.platform
+  );
 });
 
 function onFileSelected(file: File) {
   if (!formData.value.name) {
-    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
     formData.value.name = nameWithoutExt;
   }
 
   // Auto-detect platform from extension
-  const ext = file.name.split('.').pop()?.toLowerCase() || '';
-  if (ext === 'dmg' || ext === 'pkg') {
-    formData.value.platform = 'macOS';
-  } else if (ext === 'deb' || ext === 'rpm' || ext === 'appimage') {
-    formData.value.platform = 'Linux';
-  } else if (ext === 'exe' || ext === 'msi') {
-    formData.value.platform = 'Windows';
+  const ext = file.name.split(".").pop()?.toLowerCase() || "";
+  if (ext === "dmg" || ext === "pkg") {
+    formData.value.platform = "macOS";
+  } else if (ext === "deb" || ext === "rpm" || ext === "appimage") {
+    formData.value.platform = "Linux";
+  } else if (ext === "exe" || ext === "msi") {
+    formData.value.platform = "Windows";
   }
 }
 
@@ -162,7 +191,7 @@ async function handleSubmit() {
   try {
     await uploadResource(formData.value.file!, {
       name: formData.value.name,
-      resource_type: 'app',
+      resource_type: "app",
       segment: formData.value.segment,
       description: formData.value.description,
       version: formData.value.version,
@@ -171,19 +200,19 @@ async function handleSubmit() {
 
     $q.notify({
       message: `App "${formData.value.name}" created successfully`,
-      color: 'positive',
-      position: 'top',
-      icon: 'check_circle',
+      color: "positive",
+      position: "top",
+      icon: "check_circle",
     });
 
-    router.push({ name: 'Resources' });
+    router.push({ name: "Resources" });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Failed to create app';
+    const msg = error instanceof Error ? error.message : "Failed to create app";
     $q.notify({
       message: msg,
-      color: 'negative',
-      position: 'top',
-      icon: 'error',
+      color: "negative",
+      position: "top",
+      icon: "error",
     });
   } finally {
     submitting.value = false;
@@ -191,7 +220,7 @@ async function handleSubmit() {
 }
 
 function goBack() {
-  router.push({ name: 'Resources' });
+  router.push({ name: "Resources" });
 }
 </script>
 

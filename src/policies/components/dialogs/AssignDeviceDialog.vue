@@ -184,7 +184,7 @@ function resetForm() {
 }
 
 function close() {
-  emit('update:modelValue', false);
+  emit("update:modelValue", false);
 }
 
 function resolveDeviceIds(): number[] {

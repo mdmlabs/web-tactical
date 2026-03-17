@@ -27,7 +27,9 @@ export function usePolicyDetail(policyId: string) {
   const appCount = computed(() => policy.value?.apps.length ?? 0);
   const scriptCount = computed(() => policy.value?.scripts.length ?? 0);
   const resourceCount = computed(() => policy.value?.resources.length ?? 0);
-  const applicationControlCount = computed(() => policy.value?.applicationControl?.tokens.length ?? 0);
+  const applicationControlCount = computed(
+    () => policy.value?.applicationControl?.tokens.length ?? 0,
+  );
 
   // Load all agents once and keep for lookup
   const allAgents = ref<Device[]>([]);
@@ -66,10 +68,11 @@ export function usePolicyDetail(policyId: string) {
     policy,
     () => {
       if (originalPolicy.value && policy.value) {
-        hasChanges.value = JSON.stringify(originalPolicy.value) !== JSON.stringify(policy.value);
+        hasChanges.value =
+          JSON.stringify(originalPolicy.value) !== JSON.stringify(policy.value);
       }
     },
-    { deep: true }
+    { deep: true },
   );
 
   // Save changes via API
@@ -120,7 +123,7 @@ export function usePolicyDetail(policyId: string) {
   // Remove app
   function removeApp(appId: string) {
     if (policy.value) {
-      policy.value.apps = policy.value.apps.filter(a => a.id !== appId);
+      policy.value.apps = policy.value.apps.filter((a) => a.id !== appId);
       updateSummary();
     }
   }
@@ -136,7 +139,9 @@ export function usePolicyDetail(policyId: string) {
   // Remove script
   function removeScript(scriptId: string) {
     if (policy.value) {
-      policy.value.scripts = policy.value.scripts.filter(s => s.id !== scriptId);
+      policy.value.scripts = policy.value.scripts.filter(
+        (s) => s.id !== scriptId,
+      );
       updateSummary();
     }
   }
@@ -152,7 +157,9 @@ export function usePolicyDetail(policyId: string) {
   // Remove resource
   function removeResource(resourceId: string) {
     if (policy.value) {
-      policy.value.resources = policy.value.resources.filter(r => r.id !== resourceId);
+      policy.value.resources = policy.value.resources.filter(
+        (r) => r.id !== resourceId,
+      );
       updateSummary();
     }
   }
@@ -227,13 +234,19 @@ export function usePolicyDetail(policyId: string) {
     if (policy.value) {
       const parts: string[] = [];
       if (policy.value.apps.length > 0) {
-        parts.push(`${policy.value.apps.length} app${policy.value.apps.length > 1 ? "s" : ""}`);
+        parts.push(
+          `${policy.value.apps.length} app${policy.value.apps.length > 1 ? "s" : ""}`,
+        );
       }
       if (policy.value.scripts.length > 0) {
-        parts.push(`${policy.value.scripts.length} script${policy.value.scripts.length > 1 ? "s" : ""}`);
+        parts.push(
+          `${policy.value.scripts.length} script${policy.value.scripts.length > 1 ? "s" : ""}`,
+        );
       }
       if (policy.value.resources.length > 0) {
-        parts.push(`${policy.value.resources.length} resource${policy.value.resources.length > 1 ? "s" : ""}`);
+        parts.push(
+          `${policy.value.resources.length} resource${policy.value.resources.length > 1 ? "s" : ""}`,
+        );
       }
       policy.value.summary = parts.length > 0 ? parts.join(", ") : "Empty";
     }

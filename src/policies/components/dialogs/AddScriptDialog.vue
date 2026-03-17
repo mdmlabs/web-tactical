@@ -80,12 +80,7 @@
 
       <!-- Actions -->
       <q-card-actions align="right" class="dialog-actions">
-        <q-btn
-          flat
-          label="Cancel"
-          @click="close"
-          class="action-btn"
-        />
+        <q-btn flat label="Cancel" @click="close" class="action-btn" />
         <q-btn
           unelevated
           color="primary"
@@ -110,8 +105,8 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: boolean): void;
-  (e: 'add', script: PolicyScript): void;
+  (e: "update:modelValue", value: boolean): void;
+  (e: "add", script: PolicyScript): void;
 }>();
 
 const $q = useQuasar();
@@ -164,7 +159,7 @@ function resetForm() {
 }
 
 function close() {
-  emit('update:modelValue', false);
+  emit("update:modelValue", false);
 }
 
 function addScript() {
@@ -178,7 +173,7 @@ function addScript() {
     runAsUser: runAsUser.value,
   };
 
-  emit('add', script);
+  emit("add", script);
   close();
 }
 </script>

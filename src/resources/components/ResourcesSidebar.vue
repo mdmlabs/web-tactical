@@ -4,7 +4,9 @@
       <h2 class="sidebar-title">Resources</h2>
       <p class="sidebar-description">
         Resources can be a variety of file types, used in devices and policies.
-        <a href="#" class="read-more-link" @click.prevent="openDocs">Read more <q-icon name="open_in_new" size="12px" /></a>
+        <a href="#" class="read-more-link" @click.prevent="openDocs"
+          >Read more <q-icon name="open_in_new" size="12px"
+        /></a>
       </p>
     </div>
 
@@ -13,7 +15,10 @@
         v-for="category in categories"
         :key="category.id"
         clickable
-        :class="['category-item', { 'category-item--active': category.id === currentCategory }]"
+        :class="[
+          'category-item',
+          { 'category-item--active': category.id === currentCategory },
+        ]"
         @click="$emit('select', category.id)"
       >
         <q-item-section avatar class="category-icon-section">
@@ -25,7 +30,10 @@
         <q-item-section side class="category-count-section">
           <q-badge
             :label="category.count"
-            :class="['category-badge', { 'category-badge--active': category.id === currentCategory }]"
+            :class="[
+              'category-badge',
+              { 'category-badge--active': category.id === currentCategory },
+            ]"
           />
         </q-item-section>
       </q-item>
@@ -34,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ResourceType } from '../types/resources';
+import type { ResourceType } from "../types/resources";
 
 interface CategoryWithCount {
   id: ResourceType;
@@ -49,11 +57,11 @@ defineProps<{
 }>();
 
 defineEmits<{
-  (e: 'select', category: ResourceType): void;
+  (e: "select", category: ResourceType): void;
 }>();
 
 function openDocs() {
-  window.open('https://docs.example.com/resources', '_blank');
+  window.open("https://docs.example.com/resources", "_blank");
 }
 </script>
 

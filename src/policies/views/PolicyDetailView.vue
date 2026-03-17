@@ -16,7 +16,9 @@
           </div>
           <div class="policy-name-section">
             <div class="policy-name-row">
-              <span v-if="!isEditingName" class="policy-name">{{ policy.name }}</span>
+              <span v-if="!isEditingName" class="policy-name">{{
+                policy.name
+              }}</span>
               <q-input
                 v-else
                 v-model="editedName"
@@ -37,7 +39,10 @@
                 @click="startEditName"
               />
             </div>
-            <span class="policy-meta">v{{ policy.version }} - Updated {{ formatDate(policy.updated) }}</span>
+            <span class="policy-meta"
+              >v{{ policy.version }} - Updated
+              {{ formatDate(policy.updated) }}</span
+            >
           </div>
         </div>
 
@@ -65,7 +70,7 @@
           class="save-btn"
           @click="saveChanges"
         >
-          {{ hasChanges ? 'Save changes' : 'No changes' }}
+          {{ hasChanges ? "Save changes" : "No changes" }}
         </q-btn>
 
         <!-- Navigation -->
@@ -74,7 +79,10 @@
             v-for="item in navItems"
             :key="item.id"
             clickable
-            :class="['nav-item', { 'nav-item--active': activeSection === item.id }]"
+            :class="[
+              'nav-item',
+              { 'nav-item--active': activeSection === item.id },
+            ]"
             @click="setActiveSection(item.id)"
           >
             <q-item-section avatar class="nav-icon">
@@ -84,33 +92,52 @@
             <q-item-section v-if="item.count !== undefined" side>
               <q-badge
                 :label="item.count"
-                :class="['nav-badge', { 'nav-badge--active': activeSection === item.id }]"
+                :class="[
+                  'nav-badge',
+                  { 'nav-badge--active': activeSection === item.id },
+                ]"
               />
             </q-item-section>
           </q-item>
 
           <q-separator class="q-my-sm" />
 
-          <q-item clickable class="nav-item add-config-item" @click="showAddConfigMenu = true">
+          <q-item
+            clickable
+            class="nav-item add-config-item"
+            @click="showAddConfigMenu = true"
+          >
             <q-item-section avatar class="nav-icon">
               <q-icon name="add" size="20px" />
             </q-item-section>
             <q-item-section>Add configuration</q-item-section>
             <q-menu v-model="showAddConfigMenu">
               <q-list dense style="min-width: 180px">
-                <q-item clickable v-close-popup @click="showAddAppDialog = true">
+                <q-item
+                  clickable
+                  v-close-popup
+                  @click="showAddAppDialog = true"
+                >
                   <q-item-section avatar>
                     <q-icon name="apps" size="sm" />
                   </q-item-section>
                   <q-item-section>Add App</q-item-section>
                 </q-item>
-                <q-item clickable v-close-popup @click="showAddScriptDialog = true">
+                <q-item
+                  clickable
+                  v-close-popup
+                  @click="showAddScriptDialog = true"
+                >
                   <q-item-section avatar>
                     <q-icon name="code" size="sm" />
                   </q-item-section>
                   <q-item-section>Add Script</q-item-section>
                 </q-item>
-                <q-item clickable v-close-popup @click="showAddResourceDialog = true">
+                <q-item
+                  clickable
+                  v-close-popup
+                  @click="showAddResourceDialog = true"
+                >
                   <q-item-section avatar>
                     <q-icon name="folder" size="sm" />
                   </q-item-section>
@@ -124,7 +151,6 @@
 
       <!-- Main Content -->
       <div class="detail-content" v-if="policy">
-
         <!-- ===== SUMMARY SECTION ===== -->
         <template v-if="activeSection === 'summary'">
           <!-- Summary Cards Row -->
@@ -156,12 +182,25 @@
                 <q-icon name="mdi-shield-lock" size="24px" color="grey-7" />
                 <span class="config-card__title">Application Control</span>
               </div>
-              <q-btn flat dense color="primary" label="View" class="view-btn" @click="setActiveSection('app-control')" />
+              <q-btn
+                flat
+                dense
+                color="primary"
+                label="View"
+                class="view-btn"
+                @click="setActiveSection('app-control')"
+              />
             </div>
             <div class="config-card__body">
               <div class="token-section">
                 <label class="token-label">Tokens*</label>
-                <q-input v-model="applicationControlToken" outlined dense placeholder="Id" class="token-input" />
+                <q-input
+                  v-model="applicationControlToken"
+                  outlined
+                  dense
+                  placeholder="Id"
+                  class="token-input"
+                />
               </div>
             </div>
           </div>
@@ -183,9 +222,19 @@
               <div class="config-card__title-row">
                 <q-icon name="mdi-apps" size="24px" color="primary" />
                 <span class="config-card__title">Apps</span>
-                <q-badge v-if="appCount > 0" :label="appCount" color="primary" class="q-ml-sm" />
+                <q-badge
+                  v-if="appCount > 0"
+                  :label="appCount"
+                  color="primary"
+                  class="q-ml-sm"
+                />
               </div>
-              <q-btn unelevated color="primary" class="add-item-btn" @click="showAddAppDialog = true">
+              <q-btn
+                unelevated
+                color="primary"
+                class="add-item-btn"
+                @click="showAddAppDialog = true"
+              >
                 <q-icon name="add" size="18px" class="q-mr-xs" />
                 Add App
               </q-btn>
@@ -218,13 +267,19 @@
                 </q-td>
               </template>
               <template v-slot:body-cell-timeout="props">
-                <q-td :props="props">
-                  {{ props.row.timeout }}s
-                </q-td>
+                <q-td :props="props"> {{ props.row.timeout }}s </q-td>
               </template>
               <template v-slot:body-cell-actions="props">
                 <q-td :props="props" auto-width>
-                  <q-btn flat round dense icon="delete" size="sm" color="negative" @click="confirmRemoveApp(props.row.id, props.row.name)">
+                  <q-btn
+                    flat
+                    round
+                    dense
+                    icon="delete"
+                    size="sm"
+                    color="negative"
+                    @click="confirmRemoveApp(props.row.id, props.row.name)"
+                  >
                     <q-tooltip>Remove app</q-tooltip>
                   </q-btn>
                 </q-td>
@@ -234,7 +289,9 @@
             <div v-else class="config-card__empty">
               <q-icon name="mdi-package-variant" size="48px" color="grey-4" />
               <p class="config-card__empty-text">No apps added yet</p>
-              <p class="config-card__empty-hint">Click "Add App" to add an application to this policy</p>
+              <p class="config-card__empty-hint">
+                Click "Add App" to add an application to this policy
+              </p>
             </div>
           </div>
         </template>
@@ -246,9 +303,19 @@
               <div class="config-card__title-row">
                 <q-icon name="mdi-code-brackets" size="24px" color="primary" />
                 <span class="config-card__title">Scripts</span>
-                <q-badge v-if="scriptCount > 0" :label="scriptCount" color="primary" class="q-ml-sm" />
+                <q-badge
+                  v-if="scriptCount > 0"
+                  :label="scriptCount"
+                  color="primary"
+                  class="q-ml-sm"
+                />
               </div>
-              <q-btn unelevated color="primary" class="add-item-btn" @click="showAddScriptDialog = true">
+              <q-btn
+                unelevated
+                color="primary"
+                class="add-item-btn"
+                @click="showAddScriptDialog = true"
+              >
                 <q-icon name="add" size="18px" class="q-mr-xs" />
                 Add Script
               </q-btn>
@@ -265,9 +332,7 @@
               hide-pagination
             >
               <template v-slot:body-cell-timeout="props">
-                <q-td :props="props">
-                  {{ props.row.timeout }}s
-                </q-td>
+                <q-td :props="props"> {{ props.row.timeout }}s </q-td>
               </template>
               <template v-slot:body-cell-runAsUser="props">
                 <q-td :props="props">
@@ -280,7 +345,15 @@
               </template>
               <template v-slot:body-cell-actions="props">
                 <q-td :props="props" auto-width>
-                  <q-btn flat round dense icon="delete" size="sm" color="negative" @click="confirmRemoveScript(props.row.id, props.row.name)">
+                  <q-btn
+                    flat
+                    round
+                    dense
+                    icon="delete"
+                    size="sm"
+                    color="negative"
+                    @click="confirmRemoveScript(props.row.id, props.row.name)"
+                  >
                     <q-tooltip>Remove script</q-tooltip>
                   </q-btn>
                 </q-td>
@@ -288,9 +361,15 @@
             </q-table>
 
             <div v-else class="config-card__empty">
-              <q-icon name="mdi-script-text-outline" size="48px" color="grey-4" />
+              <q-icon
+                name="mdi-script-text-outline"
+                size="48px"
+                color="grey-4"
+              />
               <p class="config-card__empty-text">No scripts added yet</p>
-              <p class="config-card__empty-hint">Click "Add Script" to add a script to this policy</p>
+              <p class="config-card__empty-hint">
+                Click "Add Script" to add a script to this policy
+              </p>
             </div>
           </div>
         </template>
@@ -302,9 +381,19 @@
               <div class="config-card__title-row">
                 <q-icon name="mdi-folder-outline" size="24px" color="primary" />
                 <span class="config-card__title">Resources</span>
-                <q-badge v-if="resourceCount > 0" :label="resourceCount" color="primary" class="q-ml-sm" />
+                <q-badge
+                  v-if="resourceCount > 0"
+                  :label="resourceCount"
+                  color="primary"
+                  class="q-ml-sm"
+                />
               </div>
-              <q-btn unelevated color="primary" class="add-item-btn" @click="showAddResourceDialog = true">
+              <q-btn
+                unelevated
+                color="primary"
+                class="add-item-btn"
+                @click="showAddResourceDialog = true"
+              >
                 <q-icon name="add" size="18px" class="q-mr-xs" />
                 Add Resource
               </q-btn>
@@ -322,7 +411,12 @@
             >
               <template v-slot:body-cell-type="props">
                 <q-td :props="props">
-                  <q-chip dense outline size="sm" :color="getResourceTypeColor(props.row.type)">
+                  <q-chip
+                    dense
+                    outline
+                    size="sm"
+                    :color="getResourceTypeColor(props.row.type)"
+                  >
                     {{ props.row.type }}
                   </q-chip>
                 </q-td>
@@ -345,7 +439,15 @@
               </template>
               <template v-slot:body-cell-actions="props">
                 <q-td :props="props" auto-width>
-                  <q-btn flat round dense icon="delete" size="sm" color="negative" @click="confirmRemoveResource(props.row.id, props.row.name)">
+                  <q-btn
+                    flat
+                    round
+                    dense
+                    icon="delete"
+                    size="sm"
+                    color="negative"
+                    @click="confirmRemoveResource(props.row.id, props.row.name)"
+                  >
                     <q-tooltip>Remove resource</q-tooltip>
                   </q-btn>
                 </q-td>
@@ -353,9 +455,15 @@
             </q-table>
 
             <div v-else class="config-card__empty">
-              <q-icon name="mdi-file-document-outline" size="48px" color="grey-4" />
+              <q-icon
+                name="mdi-file-document-outline"
+                size="48px"
+                color="grey-4"
+              />
               <p class="config-card__empty-text">No resources added yet</p>
-              <p class="config-card__empty-hint">Click "Add Resource" to add a resource to this policy</p>
+              <p class="config-card__empty-hint">
+                Click "Add Resource" to add a resource to this policy
+              </p>
             </div>
           </div>
         </template>
@@ -372,7 +480,13 @@
             <div class="config-card__body">
               <div class="token-section">
                 <label class="token-label">Tokens*</label>
-                <q-input v-model="applicationControlToken" outlined dense placeholder="Id" class="token-input" />
+                <q-input
+                  v-model="applicationControlToken"
+                  outlined
+                  dense
+                  placeholder="Id"
+                  class="token-input"
+                />
               </div>
             </div>
           </div>
@@ -390,11 +504,12 @@
             <div class="config-card__empty">
               <q-icon name="mdi-broadcast" size="48px" color="grey-4" />
               <p class="config-card__empty-text">Agent configuration</p>
-              <p class="config-card__empty-hint">Agent settings will be available here</p>
+              <p class="config-card__empty-hint">
+                Agent settings will be available here
+              </p>
             </div>
           </div>
         </template>
-
       </div>
 
       <!-- Loading state -->
@@ -405,15 +520,9 @@
     </div>
 
     <!-- Dialogs -->
-    <AddAppDialog
-      v-model="showAddAppDialog"
-      @add="handleAddApp"
-    />
+    <AddAppDialog v-model="showAddAppDialog" @add="handleAddApp" />
 
-    <AddScriptDialog
-      v-model="showAddScriptDialog"
-      @add="handleAddScript"
-    />
+    <AddScriptDialog v-model="showAddScriptDialog" @add="handleAddScript" />
 
     <AddResourceDialog
       v-model="showAddResourceDialog"
@@ -443,7 +552,12 @@ import AssignDeviceDialog from "../components/dialogs/AssignDeviceDialog.vue";
 import DeliveryJobsDialog from "../components/dialogs/DeliveryJobsDialog.vue";
 import { usePolicyDetail } from "../composables/usePolicyDetail";
 import { SEGMENTS } from "../types/policies";
-import type { PolicyApp, PolicyScript, PolicyResource, Scope } from "../types/policies";
+import type {
+  PolicyApp,
+  PolicyScript,
+  PolicyResource,
+  Scope,
+} from "../types/policies";
 import { formatRelativeTime } from "../mocks/policiesMockData";
 
 const route = useRoute();
@@ -491,10 +605,25 @@ const segments = SEGMENTS;
 const navItems = computed(() => [
   { id: "summary", label: "Summary", icon: "mdi-check-circle-outline" },
   { id: "apps", label: "Apps", icon: "mdi-apps", count: appCount.value },
-  { id: "scripts", label: "Scripts", icon: "mdi-code-brackets", count: scriptCount.value },
-  { id: "resources", label: "Resources", icon: "mdi-folder-outline", count: resourceCount.value },
+  {
+    id: "scripts",
+    label: "Scripts",
+    icon: "mdi-code-brackets",
+    count: scriptCount.value,
+  },
+  {
+    id: "resources",
+    label: "Resources",
+    icon: "mdi-folder-outline",
+    count: resourceCount.value,
+  },
   { id: "agent", label: "Agent", icon: "mdi-broadcast" },
-  { id: "app-control", label: "Application Control", icon: "mdi-shield-lock-outline", count: policy.value?.applicationControl?.tokens.length ?? 0 },
+  {
+    id: "app-control",
+    label: "Application Control",
+    icon: "mdi-shield-lock-outline",
+    count: policy.value?.applicationControl?.tokens.length ?? 0,
+  },
 ]);
 
 function formatDate(dateString: string): string {
@@ -504,17 +633,47 @@ function formatDate(dateString: string): string {
 // Table column definitions
 const appColumns = [
   { name: "name", label: "NAME", field: "name", align: "left" as const },
-  { name: "version", label: "VERSION", field: "version", align: "left" as const },
-  { name: "silentInstall", label: "SILENT", field: "silentInstall", align: "center" as const },
-  { name: "timeout", label: "TIMEOUT", field: "timeout", align: "left" as const },
-  { name: "verification", label: "VERIFICATION", field: "verification", align: "left" as const },
+  {
+    name: "version",
+    label: "VERSION",
+    field: "version",
+    align: "left" as const,
+  },
+  {
+    name: "silentInstall",
+    label: "SILENT",
+    field: "silentInstall",
+    align: "center" as const,
+  },
+  {
+    name: "timeout",
+    label: "TIMEOUT",
+    field: "timeout",
+    align: "left" as const,
+  },
+  {
+    name: "verification",
+    label: "VERIFICATION",
+    field: "verification",
+    align: "left" as const,
+  },
   { name: "actions", label: "", field: "actions", align: "right" as const },
 ];
 
 const scriptColumns = [
   { name: "name", label: "NAME", field: "name", align: "left" as const },
-  { name: "timeout", label: "TIMEOUT", field: "timeout", align: "left" as const },
-  { name: "runAsUser", label: "RUN AS USER", field: "runAsUser", align: "center" as const },
+  {
+    name: "timeout",
+    label: "TIMEOUT",
+    field: "timeout",
+    align: "left" as const,
+  },
+  {
+    name: "runAsUser",
+    label: "RUN AS USER",
+    field: "runAsUser",
+    align: "center" as const,
+  },
   { name: "actions", label: "", field: "actions", align: "right" as const },
 ];
 
@@ -522,25 +681,38 @@ const resourceColumns = [
   { name: "name", label: "NAME", field: "name", align: "left" as const },
   { name: "type", label: "TYPE", field: "type", align: "left" as const },
   { name: "scope", label: "SCOPE", field: "scope", align: "left" as const },
-  { name: "locations", label: "LOCATIONS", field: "locations", align: "left" as const },
+  {
+    name: "locations",
+    label: "LOCATIONS",
+    field: "locations",
+    align: "left" as const,
+  },
   { name: "actions", label: "", field: "actions", align: "right" as const },
 ];
 
 function getResourceTypeColor(type: string): string {
   switch (type) {
-    case "book": return "blue-7";
-    case "certificate": return "orange-7";
-    case "image": return "green-7";
-    default: return "grey-7";
+    case "book":
+      return "blue-7";
+    case "certificate":
+      return "orange-7";
+    case "image":
+      return "green-7";
+    default:
+      return "grey-7";
   }
 }
 
 function formatScope(scope: Scope): string {
   switch (scope) {
-    case "primary_user": return "Primary user";
-    case "all_users": return "All users";
-    case "system": return "System";
-    default: return scope;
+    case "primary_user":
+      return "Primary user";
+    case "all_users":
+      return "All users";
+    case "system":
+      return "System";
+    default:
+      return scope;
   }
 }
 
@@ -580,7 +752,11 @@ function confirmRemoveApp(appId: string, appName: string) {
     persistent: true,
   }).onOk(() => {
     removeApp(appId);
-    $q.notify({ message: `App "${appName}" removed`, color: "info", position: "top" });
+    $q.notify({
+      message: `App "${appName}" removed`,
+      color: "info",
+      position: "top",
+    });
   });
 }
 
@@ -592,7 +768,11 @@ function confirmRemoveScript(scriptId: string, scriptName: string) {
     persistent: true,
   }).onOk(() => {
     removeScript(scriptId);
-    $q.notify({ message: `Script "${scriptName}" removed`, color: "info", position: "top" });
+    $q.notify({
+      message: `Script "${scriptName}" removed`,
+      color: "info",
+      position: "top",
+    });
   });
 }
 
@@ -604,7 +784,11 @@ function confirmRemoveResource(resourceId: string, resourceName: string) {
     persistent: true,
   }).onOk(() => {
     removeResource(resourceId);
-    $q.notify({ message: `Resource "${resourceName}" removed`, color: "info", position: "top" });
+    $q.notify({
+      message: `Resource "${resourceName}" removed`,
+      color: "info",
+      position: "top",
+    });
   });
 }
 

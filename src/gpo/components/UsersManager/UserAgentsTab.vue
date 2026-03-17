@@ -8,7 +8,7 @@
         dense
         color="primary"
         icon="add_circle_outline"
-        label="Add agent"
+        label=""
         :disable="!hasTarget"
         :title="!hasTarget ? 'Select target first (click badge in header)' : ''"
         @click="$emit('add-agent')"
@@ -22,17 +22,20 @@
     </div>
     <q-list v-else bordered separator>
       <q-item
-        v-for="agentId in agents"
-        :key="agentId"
+        v-for="agent in agents"
+        :key="agent.id"
         class="row items-center cursor-pointer"
         clickable
-        @click="$emit('open-agent-dashboard', agentId)"
+        @click="$emit('open-agent-dashboard', agent.id)"
       >
         <q-item-section avatar>
-          <q-icon name="dns" color="primary" />
+          <q-icon name="laptop" color="primary" />
         </q-item-section>
         <q-item-section>
-          <q-item-label>{{ agentId }}</q-item-label>
+          <q-item-label>{{ agent.name }}</q-item-label>
+          <q-item-label v-if="agent.name !== agent.id" caption class="text-grey-6">
+            {{ agent.id }}
+          </q-item-label>
         </q-item-section>
         <q-item-section side>
           <q-btn
@@ -42,9 +45,9 @@
             icon="remove_circle_outline"
             size="sm"
             color="negative"
-            :loading="removingAgentId === agentId"
+            :loading="removingAgentId === agent.id"
             title="Remove agent"
-            @click.stop="$emit('remove-agent', agentId)"
+            @click.stop="$emit('remove-agent', agent.id)"
           />
         </q-item-section>
       </q-item>
@@ -53,8 +56,13 @@
 </template>
 
 <script setup lang="ts">
+export interface AgentRow {
+  id: string;
+  name: string;
+}
+
 defineProps<{
-  agents: string[];
+  agents: AgentRow[];
   loading: boolean;
   hasTarget: boolean;
   removingAgentId?: string | null;

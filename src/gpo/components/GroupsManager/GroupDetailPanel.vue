@@ -15,11 +15,7 @@
       <div class="groups-detail-header q-px-lg q-py-md row items-center">
         <div>
           <div class="text-h6 text-weight-medium">
-            {{
-              group?.displayname ||
-              group?.name ||
-              selectedGroupSam
-            }}
+            {{ group?.displayname || group?.name || selectedGroupSam }}
           </div>
           <div class="text-caption text-grey-6">
             {{ group?.distinguishedname || selectedGroupSam }}
@@ -31,7 +27,7 @@
           dense
           color="negative"
           icon="delete"
-          label="Delete Group"
+          label=""
           :loading="deleteLoading"
           @click="$emit('delete')"
         />
@@ -41,10 +37,7 @@
 
       <div class="row q-gutter-sm q-px-lg q-py-md">
         <q-card flat bordered class="col-auto">
-          <q-card-section
-            class="q-pa-sm text-center"
-            style="min-width: 120px"
-          >
+          <q-card-section class="q-pa-sm text-center" style="min-width: 120px">
             <div class="text-caption text-grey-6">SAM Name</div>
             <div class="text-body2 text-weight-medium">
               {{ group?.samaccountname || "—" }}
@@ -52,10 +45,7 @@
           </q-card-section>
         </q-card>
         <q-card flat bordered class="col-auto">
-          <q-card-section
-            class="q-pa-sm text-center"
-            style="min-width: 120px"
-          >
+          <q-card-section class="q-pa-sm text-center" style="min-width: 120px">
             <div class="text-caption text-grey-6">SID</div>
             <div
               class="text-body2 text-weight-medium text-mono"
@@ -159,7 +149,7 @@
               dense
               color="primary"
               icon="person_add"
-              label="Add User"
+              label=""
               :disable="!selectedGroupSam"
               @click="$emit('add-user')"
             />
@@ -197,7 +187,19 @@
         </q-tab-panel>
 
         <q-tab-panel name="children" class="q-pa-md">
-          <div class="text-subtitle2 q-mb-md">Child Groups</div>
+          <div class="row items-center q-mb-md">
+            <div class="text-subtitle2">Child Groups</div>
+            <q-space />
+            <q-btn
+              color="primary"
+              icon="add_circle_outline"
+              label=""
+              size="sm"
+              outline
+              dense
+              @click="$emit('manage-child-groups')"
+            />
+          </div>
           <div v-if="detailLoading" class="text-center q-pa-md">
             <q-spinner color="primary" />
           </div>
@@ -217,8 +219,9 @@
                 <span
                   class="text-primary cursor-pointer"
                   @click="$emit('navigate-to-group', cellProps.row)"
-                >{{ cellProps.value }}</span>
-                </q-td>
+                  >{{ cellProps.value }}</span
+                >
+              </q-td>
             </template>
           </q-table>
         </q-tab-panel>
@@ -244,8 +247,9 @@
                 <span
                   class="text-primary cursor-pointer"
                   @click="$emit('navigate-to-group', cellProps.row)"
-                >{{ cellProps.value }}</span>
-                </q-td>
+                  >{{ cellProps.value }}</span
+                >
+              </q-td>
             </template>
           </q-table>
         </q-tab-panel>
@@ -259,7 +263,7 @@
               dense
               color="primary"
               icon="add_circle_outline"
-              label="Add agent"
+              label=""
               :disable="!selectedGroupId"
               title="Select a group first"
               @click="$emit('add-agent')"
@@ -276,17 +280,24 @@
           </div>
           <q-list v-else bordered separator>
             <q-item
-              v-for="agentId in groupAgents"
-              :key="agentId"
+              v-for="agent in groupAgents"
+              :key="agent.id"
               class="row items-center cursor-pointer"
               clickable
-              @click="$emit('open-agent-dashboard', agentId)"
+              @click="$emit('open-agent-dashboard', agent.id)"
             >
               <q-item-section avatar>
-                <q-icon name="dns" color="primary" />
+                <q-icon name="laptop" color="primary" />
               </q-item-section>
               <q-item-section>
-                <q-item-label>{{ agentId }}</q-item-label>
+                <q-item-label>{{ agent.name }}</q-item-label>
+                <q-item-label
+                  v-if="agent.name !== agent.id"
+                  caption
+                  class="text-grey-6"
+                >
+                  {{ agent.id }}
+                </q-item-label>
               </q-item-section>
               <q-item-section side>
                 <q-btn
@@ -296,9 +307,9 @@
                   icon="remove_circle_outline"
                   size="sm"
                   color="negative"
-                  :loading="removingAgentId === agentId"
+                  :loading="removingAgentId === agent.id"
                   title="Remove agent"
-                  @click.stop="$emit('remove-agent', agentId)"
+                  @click.stop="$emit('remove-agent', agent.id)"
                 />
               </q-item-section>
             </q-item>
@@ -307,35 +318,20 @@
 
         <q-tab-panel name="collections" class="q-pa-md">
           <div class="row items-center q-mb-md">
-            <div class="text-subtitle2">
-              Policy collections for this group
-            </div>
+            <div class="text-subtitle2">Policy collections for this group</div>
             <q-space />
             <q-btn
               flat
               dense
               color="primary"
               icon="add_circle_outline"
-              label="Apply collection"
+              label=""
               :disable="!selectedGroupId"
               @click="$emit('apply-collection')"
             />
-            <q-btn
-              flat
-              dense
-              color="negative"
-              icon="remove_circle_outline"
-              label="Remove collection"
-              :disable="!canRemoveCollection"
-              title="Remove an applied collection from this group"
-              @click="$emit('remove-collection')"
-            />
           </div>
           <div class="collections-tab-scroll">
-            <div
-              v-if="!selectedGroupId"
-              class="text-grey-6 text-caption"
-            >
+            <div v-if="!selectedGroupId" class="text-grey-6 text-caption">
               Select a group to apply policy collections.
             </div>
             <template v-else>
@@ -349,57 +345,163 @@
                 </div>
               </div>
               <template v-else-if="groupAppliedCollections.length">
-                <div class="text-caption text-grey-7 q-mb-sm">
-                  Applied collections:
-                </div>
-                <div class="applied-collections-list">
-                  <div
-                    v-for="c in groupAppliedCollections"
-                    :key="c.id"
-                    class="applied-collection-block"
-                  >
-                    <div class="text-weight-medium">
-                      {{ c.name || c.id }}
-                    </div>
-                    <div
-                      v-if="c.explainText"
-                      class="text-caption text-grey-7 q-mt-xs"
-                    >
-                      {{ c.explainText }}
-                    </div>
-                    <template v-if="c.policies?.length">
-                      <div class="text-caption text-grey-7 q-mt-sm">
-                        Policies in collection:
-                      </div>
-                      <ul
-                        class="q-pl-md q-mt-xs q-mb-none text-caption text-grey-8"
-                      >
-                        <li
-                          v-for="p in c.policies"
-                          :key="p.id"
-                          class="q-py-xs"
+                <q-table
+                  :rows="groupAppliedCollections"
+                  :columns="collectionsColumns"
+                  row-key="id"
+                  flat
+                  bordered
+                  :rows-per-page-options="[0]"
+                  hide-pagination
+                  class="collections-table"
+                >
+                  <template v-slot:body="props">
+                    <q-tr :props="props">
+                      <q-td key="name" :props="props">
+                        <div
+                          class="cursor-pointer text-primary row items-center no-wrap"
+                          @click="openCollectionDetailsDialog(props.row)"
                         >
-                          {{ p.name }}
-                        </li>
-                      </ul>
-                    </template>
-                  </div>
-                </div>
+                          <q-icon name="visibility" size="xs" class="q-mr-xs" />
+                          <span class="text-weight-medium">{{
+                            props.row.name || props.row.id
+                          }}</span>
+                        </div>
+                      </q-td>
+                      <q-td key="explainText" :props="props">
+                        <div class="text-caption text-grey-7">
+                          {{ props.row.explainText || "—" }}
+                        </div>
+                      </q-td>
+                      <q-td key="policiesCount" :props="props">
+                        <q-badge
+                          v-if="props.row.policies?.length"
+                          color="primary"
+                          :label="props.row.policies.length"
+                        />
+                        <span v-else class="text-grey-5">0</span>
+                      </q-td>
+                      <q-td key="actions" :props="props">
+                        <q-btn
+                          flat
+                          round
+                          dense
+                          icon="delete"
+                          color="negative"
+                          size="sm"
+                          :title="`Remove collection ${props.row.name || props.row.id}`"
+                          @click="
+                            $emit('remove-collection-by-id', props.row.id)
+                          "
+                        />
+                      </q-td>
+                    </q-tr>
+                  </template>
+                </q-table>
               </template>
               <div v-else class="text-body2 text-grey-7">
-                Apply a policy collection to this group so that its
-                policies apply to all members. Use the button above to
-                choose a collection. No collections applied yet.
+                Apply a policy collection to this group so that its policies
+                apply to all members. Use the button above to choose a
+                collection. No collections applied yet.
               </div>
             </template>
           </div>
         </q-tab-panel>
       </q-tab-panels>
     </template>
+
+    <q-dialog v-model="showCollectionDetailsDialog" position="standard">
+      <q-card style="min-width: 600px; max-width: 800px">
+        <q-card-section class="row items-center q-pb-sm">
+          <q-icon
+            name="collections_bookmark"
+            color="primary"
+            size="sm"
+            class="q-mr-sm"
+          />
+          <div class="text-h6">
+            {{ selectedCollection?.name || selectedCollection?.id }}
+          </div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-section
+          v-if="selectedCollection?.explainText"
+          class="q-pt-sm q-pb-sm"
+        >
+          <div class="text-caption text-grey-7">
+            {{ selectedCollection.explainText }}
+          </div>
+        </q-card-section>
+
+        <q-separator v-if="selectedCollection?.explainText" />
+
+        <q-card-section class="q-pt-sm">
+          <div class="row items-center q-mb-sm">
+            <q-space />
+            <q-input
+              v-model="policySearchQuery"
+              dense
+              outlined
+              placeholder="Search policies..."
+              style="max-width: 250px"
+              clearable
+            >
+              <template v-slot:prepend>
+                <q-icon name="search" />
+              </template>
+            </q-input>
+          </div>
+
+          <div class="policies-list-container">
+            <template v-if="filteredPolicies.length">
+              <q-list bordered separator class="rounded-borders">
+                <q-item
+                  v-for="(p, index) in filteredPolicies"
+                  :key="p.id"
+                  class="policy-item"
+                >
+                  <q-item-section avatar>
+                    <div class="text-caption text-grey-6">{{ index + 1 }}</div>
+                  </q-item-section>
+                  <q-item-section avatar>
+                    <q-icon name="policy" color="primary" size="sm" />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>{{ p.name }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </template>
+            <div
+              v-else-if="policySearchQuery"
+              class="text-center text-grey-6 q-pa-md"
+            >
+              <q-icon name="search_off" size="md" class="q-mb-sm" />
+              <div>No policies found matching "{{ policySearchQuery }}"</div>
+            </div>
+            <div v-else class="text-center text-grey-6 q-pa-md">
+              <q-icon name="info" size="md" class="q-mb-sm" />
+              <div>No policies in this collection</div>
+            </div>
+          </div>
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-actions align="right">
+          <q-btn flat label="Close" color="primary" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, computed } from "vue";
 export interface GroupRow {
   name?: string;
   displayname?: string;
@@ -414,6 +516,11 @@ export interface AppliedCollection {
   name: string;
   explainText?: string;
   policies?: { id: number; name: string }[];
+}
+
+export interface AgentRow {
+  id: string;
+  name: string;
 }
 
 const usersColumns = [
@@ -463,6 +570,57 @@ const groupsSubColumns = [
   },
 ];
 
+const collectionsColumns = [
+  {
+    name: "name",
+    label: "Collection Name",
+    field: "name",
+    align: "left" as const,
+    sortable: true,
+  },
+  {
+    name: "explainText",
+    label: "Description",
+    field: "explainText",
+    align: "left" as const,
+    sortable: false,
+  },
+  {
+    name: "policiesCount",
+    label: "Policies",
+    field: (row: { policies?: unknown[] }) => row.policies?.length || 0,
+    align: "center" as const,
+    sortable: true,
+  },
+  {
+    name: "actions",
+    label: "Actions",
+    field: "actions",
+    align: "center" as const,
+    sortable: false,
+  },
+];
+
+const showCollectionDetailsDialog = ref(false);
+const selectedCollection = ref<AppliedCollection | null>(null);
+const policySearchQuery = ref("");
+
+const filteredPolicies = computed(() => {
+  if (!selectedCollection.value?.policies) return [];
+  if (!policySearchQuery.value) return selectedCollection.value.policies;
+
+  const query = policySearchQuery.value.toLowerCase();
+  return selectedCollection.value.policies.filter((p) =>
+    p.name.toLowerCase().includes(query),
+  );
+});
+
+function openCollectionDetailsDialog(collection: AppliedCollection) {
+  selectedCollection.value = collection;
+  policySearchQuery.value = "";
+  showCollectionDetailsDialog.value = true;
+}
+
 defineProps<{
   selectedGroupSam: string | null;
   selectedGroupId: string | null;
@@ -473,7 +631,7 @@ defineProps<{
   groupUsers: GroupRow[];
   groupChildren: GroupRow[];
   groupParents: GroupRow[];
-  groupAgents: string[];
+  groupAgents: AgentRow[];
   removingAgentId?: string | null;
   groupAppliedCollections: AppliedCollection[];
   groupAppliedCollectionsLoading: boolean;
@@ -490,7 +648,9 @@ defineEmits<{
   "remove-agent": [agentId: string];
   "apply-collection": [];
   "remove-collection": [];
+  "remove-collection-by-id": [collectionId: number];
   "open-agent-dashboard": [agentId: string];
+  "manage-child-groups": [];
 }>();
 </script>
 
@@ -512,16 +672,27 @@ defineEmits<{
   max-height: 50vh
   overflow-y: auto
 
-.applied-collections-list
-  display: flex
-  flex-direction: column
-  gap: 12px
+.collections-table
+  :deep(.q-table__top)
+    padding: 0
 
-.applied-collection-block
-  padding: 12px
+  :deep(.q-table tbody td)
+    font-size: 13px
+
+  :deep(.q-table thead th)
+    font-weight: 600
+
+.policies-list-container
+  max-height: 60vh
+  overflow-y: auto
   border: 1px solid rgba(0, 0, 0, 0.12)
   border-radius: 4px
-  background: rgba(0, 0, 0, 0.02)
+
+.policy-item
+  transition: background-color 0.2s
+
+  &:hover
+    background-color: rgba(0, 0, 0, 0.02)
 
 .text-mono
   font-family: monospace
