@@ -14,27 +14,6 @@
         <q-icon name="group" size="sm" class="q-mr-sm" color="primary" />
         <q-toolbar-title>Users Groups Manager</q-toolbar-title>
 
-        <q-badge
-          v-if="targetLabel"
-          :label="targetLabel"
-          class="target-badge cursor-pointer"
-          color="primary"
-          text-color="white"
-          @click="showTargetPanel = true"
-        />
-        <q-btn
-          v-if="currentTargetRef"
-          flat
-          round
-          dense
-          icon="close"
-          size="xs"
-          color="primary"
-          class="q-mr-md"
-          title="Reset to Global"
-          @click.stop="resetTarget"
-        />
-
         <q-btn
           v-if="!standalonePage"
           flat
@@ -126,11 +105,6 @@
       :options="removeCollectionOptions"
       :loading="removeCollectionRemoving"
       @remove="handleRemoveCollectionFromGroup"
-    />
-
-    <TargetSelectionDialog
-      v-model="showTargetPanel"
-      @select="handleTargetSelect"
     />
 
     <TargetSelectionDialog
@@ -232,11 +206,8 @@ function goToAgentDashboard(agentId: string) {
   });
 }
 
-const showTargetPanel = ref(false);
 const showAddAgentPanel = ref(false);
-const currentTargetRef = ref<TargetRef | null>(null);
 const currentTarget = ref<Target>(createGlobalTarget());
-const targetLabel = ref("Global");
 
 const allGroups = ref<GroupRowWithId[]>([]);
 const groupTreeNodes = ref<TreeNode[]>([]);
@@ -389,19 +360,6 @@ const filteredGroupTree = computed<TreeNode[]>(() => {
 
 const currentUserGroupTarget = computed(() => currentTarget.value);
 
-function handleTargetSelect(ref: TargetRef) {
-  currentTargetRef.value = ref;
-  currentTarget.value = ref.target;
-  targetLabel.value = ref.label;
-  onTargetChange();
-}
-
-function resetTarget() {
-  currentTargetRef.value = null;
-  currentTarget.value = createGlobalTarget();
-  targetLabel.value = "Global";
-}
-
 async function handleAddAgentToGroupSelect(ref: TargetRef) {
   const groupId = selectedGroupId.value;
   if (!groupId) return;
@@ -458,19 +416,6 @@ async function handleRemoveGroupAgent(agentId: string) {
       removingAgentId.value = null;
     }
   });
-}
-
-function onTargetChange() {
-  selectedGroupSam.value = null;
-  selectedGroupId.value = null;
-  selectedGroup.value = null;
-  allGroups.value = [];
-  groupTreeNodes.value = [];
-  groupUsers.value = [];
-  groupChildren.value = [];
-  groupParents.value = [];
-  groupAgents.value = [];
-  loadGroups();
 }
 
 async function loadGroups() {

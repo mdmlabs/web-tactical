@@ -64,16 +64,12 @@
               >
                 <q-item-section avatar>
                   <q-icon
-                    :name="
-                      user?.info?.isenabled !== false ? 'block' : 'check_circle'
-                    "
-                    :color="
-                      user?.info?.isenabled !== false ? 'orange' : 'positive'
-                    "
+                    :name="user?.info?.isenabled !== false ? 'block' : 'check_circle'"
+                    :color="user?.info?.isenabled !== false ? 'orange' : 'positive'"
                   />
                 </q-item-section>
                 <q-item-section>
-                  {{ user?.info?.isenabled !== false ? "Disable" : "Enable" }}
+                  {{ user?.info?.isenabled !== false ? 'Disable' : 'Enable' }}
                 </q-item-section>
               </q-item>
 
@@ -325,15 +321,17 @@
                           class="cursor-pointer text-primary row items-center no-wrap"
                           @click="openCollectionDetailsDialog(props.row)"
                         >
-                          <q-icon name="visibility" size="xs" class="q-mr-xs" />
-                          <span class="text-weight-medium">{{
-                            props.row.name || props.row.id
-                          }}</span>
+                          <q-icon
+                            name="visibility"
+                            size="xs"
+                            class="q-mr-xs"
+                          />
+                          <span class="text-weight-medium">{{ props.row.name || props.row.id }}</span>
                         </div>
                       </q-td>
                       <q-td key="explainText" :props="props">
                         <div class="text-caption text-grey-7">
-                          {{ props.row.explainText || "—" }}
+                          {{ props.row.explainText || '—' }}
                         </div>
                       </q-td>
                       <q-td key="policiesCount" :props="props">
@@ -353,9 +351,7 @@
                           color="negative"
                           size="sm"
                           :title="`Remove collection ${props.row.name || props.row.id}`"
-                          @click="
-                            $emit('remove-collection-by-id', props.row.id)
-                          "
+                          @click="$emit('remove-collection-by-id', props.row.id)"
                         />
                       </q-td>
                     </q-tr>
@@ -383,28 +379,16 @@
     <q-dialog v-model="showCollectionDetailsDialog" position="standard">
       <q-card style="min-width: 600px; max-width: 800px">
         <q-card-section class="row items-center q-pb-sm">
-          <q-icon
-            name="collections_bookmark"
-            color="primary"
-            size="sm"
-            class="q-mr-sm"
-          />
-          <div class="text-h6">
-            {{ selectedCollection?.name || selectedCollection?.id }}
-          </div>
+          <q-icon name="collections_bookmark" color="primary" size="sm" class="q-mr-sm" />
+          <div class="text-h6">{{ selectedCollection?.name || selectedCollection?.id }}</div>
           <q-space />
           <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
 
         <q-separator />
 
-        <q-card-section
-          v-if="selectedCollection?.explainText"
-          class="q-pt-sm q-pb-sm"
-        >
-          <div class="text-caption text-grey-7">
-            {{ selectedCollection.explainText }}
-          </div>
+        <q-card-section v-if="selectedCollection?.explainText" class="q-pt-sm q-pb-sm">
+          <div class="text-caption text-grey-7">{{ selectedCollection.explainText }}</div>
         </q-card-section>
 
         <q-separator v-if="selectedCollection?.explainText" />
@@ -446,10 +430,7 @@
                 </q-item>
               </q-list>
             </template>
-            <div
-              v-else-if="policySearchQuery"
-              class="text-center text-grey-6 q-pa-md"
-            >
+            <div v-else-if="policySearchQuery" class="text-center text-grey-6 q-pa-md">
               <q-icon name="search_off" size="md" class="q-mb-sm" />
               <div>No policies found matching "{{ policySearchQuery }}"</div>
             </div>
@@ -574,7 +555,7 @@ const filteredPolicies = computed(() => {
 
   const query = policySearchQuery.value.toLowerCase();
   return selectedCollection.value.policies.filter((p) =>
-    p.name.toLowerCase().includes(query),
+    p.name.toLowerCase().includes(query)
   );
 });
 

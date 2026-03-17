@@ -147,8 +147,7 @@
                     <div class="text-caption q-mt-xs">
                       <strong>Source:</strong> {{ policySourceLabel(p) }}
                       <span v-if="p.userId || p.userSid">
-                        • <strong>User:</strong>
-                        {{ p.userId || p.userSid }}</span
+                        • <strong>User:</strong> {{ p.userId || p.userSid }}</span
                       >
                     </div>
                   </q-item-section>
@@ -254,13 +253,7 @@ const assignmentColumns: QTableColumn[] = [
     label: "Target",
     align: "left",
     field: (row: Record<string, unknown>) =>
-      String(
-        row["target"] ||
-          row["targetName"] ||
-          row["userId"] ||
-          row["userSid"] ||
-          "",
-      ),
+      String(row["target"] || row["targetName"] || row["userId"] || row["userSid"] || ""),
   },
   // {
   //   name: "scope",

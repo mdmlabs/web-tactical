@@ -617,7 +617,7 @@ npm
                                     typeof col.value === "string" &&
                                     col.value.length > 80
                                       ? col.value.slice(0, 80) + "..."
-                                      : (col.value ?? "")
+                                      : col.value ?? ""
                                   }}
                                 </span>
                               </template>
@@ -726,7 +726,7 @@ npm
                                     typeof col.value === "string" &&
                                     col.value.length > 80
                                       ? col.value.slice(0, 80) + "..."
-                                      : (col.value ?? "")
+                                      : col.value ?? ""
                                   }}
                                 </span>
                               </template>
@@ -3322,6 +3322,7 @@ const usersColumns: QTableColumn[] = [
     field: "description",
     sortable: true,
   },
+
 ];
 
 const policyColumns: QTableColumn[] = [
@@ -3657,6 +3658,9 @@ const selectAgent = async (agent: Agent) => {
 const loadAgentDetails = async (agentId: string) => {
   try {
     const details = await agentServiceClientWrapper.getAgent(agentId);
+    console.log("Agent details loaded:", details);
+    console.log("NodeInfo:", details?.nodeInfo);
+    console.log("SystemInfo:", details?.nodeInfo?.systeminfo);
     agentDetails.value = details;
   } catch (error) {
     console.error("Error loading agent details:", error);

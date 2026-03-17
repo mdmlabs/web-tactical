@@ -1,9 +1,5 @@
 <template>
-  <q-dialog
-    :model-value="modelValue"
-    persistent
-    @update:model-value="$emit('update:modelValue', $event)"
-  >
+  <q-dialog :model-value="modelValue" persistent @update:model-value="$emit('update:modelValue', $event)">
     <q-card style="min-width: 360px">
       <q-card-section class="row items-center q-pb-none">
         <div class="text-h6">Set Password</div>

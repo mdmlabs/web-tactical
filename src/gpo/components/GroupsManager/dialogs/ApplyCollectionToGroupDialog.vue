@@ -34,7 +34,11 @@
           <template v-slot:no-option>
             <q-item>
               <q-item-section class="text-grey">
-                {{ optionsLoading ? "Loading..." : "No collections available" }}
+                {{
+                  optionsLoading
+                    ? "Loading..."
+                    : "No collections available"
+                }}
               </q-item-section>
             </q-item>
           </template>

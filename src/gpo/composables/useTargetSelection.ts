@@ -75,6 +75,7 @@ type AgentCategoryTreeNode = {
   childrenList?: AgentCategoryTreeNode[];
 };
 
+
 function mapAgentCategoryTreeNodeToTargetNode(
   node: AgentCategoryTreeNode,
 ): TargetTreeNode {
@@ -97,6 +98,7 @@ export function useTargetSelection() {
   const targetSelectedId = ref<string | null>(null);
   const targetTickedIds = ref<string[]>([]);
   const currentTargetRef = ref<TargetRef | null>(null);
+
 
   const agentIdToHostnameMap = ref<Map<string, string>>(new Map());
   const agentsPanelList = ref<AgentPanelItem[]>([]);
@@ -189,9 +191,7 @@ export function useTargetSelection() {
       if (Array.isArray(raw)) {
         list = raw;
       } else if (raw && typeof raw === "object" && "results" in raw) {
-        list = ((raw as { results: unknown[] }).results || []) as Array<
-          Record<string, unknown>
-        >;
+        list = ((raw as { results: unknown[] }).results || []) as Array<Record<string, unknown>>;
       }
       const newItems: AgentPanelItem[] = list.map((a) => {
         const agentId = getStringValue(a.agent_id) || getStringValue(a.id);
@@ -200,9 +200,7 @@ export function useTargetSelection() {
       });
 
       if (mergeWithCurrent && agentsPanelList.value.length > 0) {
-        const existingIds = new Set(
-          agentsPanelList.value.map((a) => a.agentId),
-        );
+        const existingIds = new Set(agentsPanelList.value.map((a) => a.agentId));
         const toAdd = newItems.filter((a) => !existingIds.has(a.agentId));
         agentsPanelList.value = [...agentsPanelList.value, ...toAdd];
       } else {
@@ -233,14 +231,8 @@ export function useTargetSelection() {
       let agents: Array<Record<string, unknown>> = [];
       if (Array.isArray(rawAgents)) {
         agents = rawAgents as Array<Record<string, unknown>>;
-      } else if (
-        rawAgents &&
-        typeof rawAgents === "object" &&
-        "results" in rawAgents
-      ) {
-        agents = ((rawAgents as { results: unknown[] }).results || []) as Array<
-          Record<string, unknown>
-        >;
+      } else if (rawAgents && typeof rawAgents === "object" && "results" in rawAgents) {
+        agents = ((rawAgents as { results: unknown[] }).results || []) as Array<Record<string, unknown>>;
       }
 
       const map = new Map<string, string>();
@@ -291,10 +283,7 @@ export function useTargetSelection() {
 
   function buildTargetFromSingleNode(): TargetRef | null {
     const id = targetSelectedId.value;
-    console.log(
-      "[TargetSelection] buildTargetFromSingleNode - selectedId:",
-      id,
-    );
+    console.log("[TargetSelection] buildTargetFromSingleNode - selectedId:", id);
     if (!id) return null;
     const node = findTargetNodeById(targetTreeNodes.value, id);
     if (!node?.targetType) return null;
@@ -361,10 +350,7 @@ export function useTargetSelection() {
 
   function buildCombinedTargetFromTicked(): TargetRef | null {
     const ids = targetTickedIds.value;
-    console.log(
-      "[TargetSelection] buildCombinedTargetFromTicked - tickedIds:",
-      ids,
-    );
+    console.log("[TargetSelection] buildCombinedTargetFromTicked - tickedIds:", ids);
     if (ids.length === 0) return null;
     if (ids.length === 1 && ids[0] === GLOBAL_TARGET_NODE_ID) {
       return {

@@ -43,7 +43,10 @@
       </q-input>
     </div>
 
-    <div v-if="loading" class="column items-center justify-center q-pa-xl">
+    <div
+      v-if="loading"
+      class="column items-center justify-center q-pa-xl"
+    >
       <q-spinner color="primary" size="2em" />
       <div class="q-mt-sm text-caption">Loading groups...</div>
     </div>
@@ -64,7 +67,10 @@
       />
     </div>
 
-    <q-scroll-area v-else-if="treeNodes.length > 0" class="groups-tree-scroll">
+    <q-scroll-area
+      v-else-if="treeNodes.length > 0"
+      class="groups-tree-scroll"
+    >
       <q-tree
         :nodes="treeNodes"
         node-key="id"
@@ -96,7 +102,10 @@
       </q-tree>
     </q-scroll-area>
 
-    <div v-else class="column items-center justify-center q-pa-xl text-grey-6">
+    <div
+      v-else
+      class="column items-center justify-center q-pa-xl text-grey-6"
+    >
       <q-icon name="search_off" size="2rem" class="q-mb-sm" />
       <div class="text-caption">
         {{ search ? "No groups match the filter" : "No groups found" }}

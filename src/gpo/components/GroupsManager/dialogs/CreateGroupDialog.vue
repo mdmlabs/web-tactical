@@ -79,13 +79,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   "update:modelValue": [value: boolean];
-  create: [
-    payload: {
-      samGroupName: string;
-      description: string;
-      parentId: string | null;
-    },
-  ];
+  create: [payload: { samGroupName: string; description: string; parentId: string | null }];
 }>();
 
 const form = ref({

@@ -1,83 +1,83 @@
 <template>
   <div class="row q-col-gutter-md">
-    <div class="col-12 col-sm-6">
-      <div class="text-caption text-grey-6">Display Name</div>
-      <div class="text-body2">
-        {{ user?.info?.displayname || "—" }}
+      <div class="col-12 col-sm-6">
+        <div class="text-caption text-grey-6">Display Name</div>
+        <div class="text-body2">
+          {{ user?.info?.displayname || "—" }}
+        </div>
       </div>
-    </div>
-    <div class="col-12 col-sm-6">
-      <div class="text-caption text-grey-6">Description</div>
-      <div class="text-body2">
-        {{ user?.info?.description || "—" }}
+      <div class="col-12 col-sm-6">
+        <div class="text-caption text-grey-6">Description</div>
+        <div class="text-body2">
+          {{ user?.info?.description || "—" }}
+        </div>
       </div>
-    </div>
-    <div class="col-12 col-sm-6">
-      <div class="text-caption text-grey-6">Name</div>
-      <div class="text-body2">
-        {{ user?.info?.givenname || user?.info?.name || "—" }}
+      <div class="col-12 col-sm-6">
+        <div class="text-caption text-grey-6">Name</div>
+        <div class="text-body2">
+          {{ user?.info?.givenname || user?.info?.name || "—" }}
+        </div>
       </div>
-    </div>
-    <div class="col-12 col-sm-6">
-      <div class="text-caption text-grey-6">Middle Name</div>
-      <div class="text-body2">
-        {{ user?.info?.middlename || "—" }}
+      <div class="col-12 col-sm-6">
+        <div class="text-caption text-grey-6">Middle Name</div>
+        <div class="text-body2">
+          {{ user?.info?.middlename || "—" }}
+        </div>
       </div>
-    </div>
-    <div class="col-12 col-sm-6">
-      <div class="text-caption text-grey-6">Surname</div>
-      <div class="text-body2">
-        {{ user?.info?.surname || "—" }}
+      <div class="col-12 col-sm-6">
+        <div class="text-caption text-grey-6">Surname</div>
+        <div class="text-body2">
+          {{ user?.info?.surname || "—" }}
+        </div>
       </div>
-    </div>
-    <div class="col-12 col-sm-6">
-      <div class="text-caption text-grey-6">Email</div>
-      <div class="text-body2">
-        {{ user?.info?.email || "—" }}
+      <div class="col-12 col-sm-6">
+        <div class="text-caption text-grey-6">Email</div>
+        <div class="text-body2">
+          {{ user?.info?.email || "—" }}
+        </div>
       </div>
-    </div>
-    <div class="col-12 col-sm-6">
-      <div class="text-caption text-grey-6">Telephone</div>
-      <div class="text-body2">
-        {{ user?.info?.telephonenumber || "—" }}
+      <div class="col-12 col-sm-6">
+        <div class="text-caption text-grey-6">Telephone</div>
+        <div class="text-body2">
+          {{ user?.info?.telephonenumber || "—" }}
+        </div>
       </div>
-    </div>
-    <div class="col-12 col-sm-6">
-      <div class="text-caption text-grey-6">Home Directory</div>
-      <div class="text-body2 text-mono" style="font-size: 12px">
-        {{ user?.info?.homedirectory || "—" }}
+      <div class="col-12 col-sm-6">
+        <div class="text-caption text-grey-6">Home Directory</div>
+        <div class="text-body2 text-mono" style="font-size: 12px">
+          {{ user?.info?.homedirectory || "—" }}
+        </div>
       </div>
-    </div>
-    <div class="col-12 col-sm-6">
-      <div class="text-caption text-grey-6">Script Path</div>
-      <div class="text-body2 text-mono" style="font-size: 12px">
-        {{ user?.info?.scriptpath || "—" }}
+      <div class="col-12 col-sm-6">
+        <div class="text-caption text-grey-6">Script Path</div>
+        <div class="text-body2 text-mono" style="font-size: 12px">
+          {{ user?.info?.scriptpath || "—" }}
+        </div>
       </div>
-    </div>
-    <div class="col-12 col-sm-6">
-      <div class="text-caption text-grey-6">Employee ID</div>
-      <div class="text-body2">
-        {{ user?.info?.employeeid || "—" }}
+      <div class="col-12 col-sm-6">
+        <div class="text-caption text-grey-6">Employee ID</div>
+        <div class="text-body2">
+          {{ user?.info?.employeeid || "—" }}
+        </div>
       </div>
-    </div>
-    <div class="col-12 col-sm-6">
-      <div class="text-caption text-grey-6">Account Expiration</div>
-      <div class="text-body2">
-        {{ formatTimestamp(user?.info?.accountexpirationdate) }}
+      <div class="col-12 col-sm-6">
+        <div class="text-caption text-grey-6">Account Expiration</div>
+        <div class="text-body2">
+          {{ formatTimestamp(user?.info?.accountexpirationdate) }}
+        </div>
       </div>
-    </div>
-    <div class="col-12 col-sm-6">
-      <div class="text-caption text-grey-6">Password Last Set</div>
-      <div class="text-body2">
-        {{ formatTimestamp(user?.info?.passwordlastset) }}
+      <div class="col-12 col-sm-6">
+        <div class="text-caption text-grey-6">Password Last Set</div>
+        <div class="text-body2">
+          {{ formatTimestamp(user?.info?.passwordlastset) }}
+        </div>
       </div>
-    </div>
-    <div class="col-12 col-sm-6">
-      <div class="text-caption text-grey-6">Last Logon</div>
-      <div class="text-body2">
-        {{ formatTimestamp(user?.info?.lastlogon) }}
+      <div class="col-12 col-sm-6">
+        <div class="text-caption text-grey-6">Last Logon</div>
+        <div class="text-body2">
+          {{ formatTimestamp(user?.info?.lastlogon) }}
+        </div>
       </div>
-    </div>
   </div>
 </template>
 
