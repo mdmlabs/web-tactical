@@ -1,4 +1,4 @@
-<template>
+  <template>
   <div class="policies-table-container">
     <q-table
       :rows="policies"
@@ -66,20 +66,6 @@
                 {{ props.row.summary || "Empty" }}
               </span>
             </div>
-          </q-td>
-
-          <!-- Segment -->
-          <q-td key="segment" :props="props">
-            <q-chip
-              dense
-              outline
-              color="grey-7"
-              size="sm"
-              icon="public"
-              class="segment-chip"
-            >
-              {{ props.row.segment }}
-            </q-chip>
           </q-td>
 
           <!-- Device count -->
@@ -291,13 +277,6 @@ const columns = [
     align: "left" as const,
   },
   {
-    name: "segment",
-    label: "SEGMENT",
-    field: "segment",
-    align: "left" as const,
-    sortable: true,
-  },
-  {
     name: "deviceCount",
     label: "# DEVICES",
     field: "deviceCount",
@@ -448,10 +427,6 @@ watch(selectAll, (val) => {
 .empty-summary {
   color: var(--text-muted, #9ca3af);
   font-style: italic;
-}
-
-.segment-chip {
-  font-size: 12px;
 }
 
 .device-count-cell {

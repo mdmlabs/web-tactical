@@ -66,13 +66,12 @@
         </q-td>
       </template>
 
-      <!-- Segment Column -->
-      <template v-slot:body-cell-segment="props">
+      <!-- Type Column (All) -->
+      <template v-slot:body-cell-type="props">
         <q-td :props="props">
-          <q-badge class="segment-badge">
-            <q-icon name="public" size="12px" class="q-mr-xs" />
-            {{ props.row.segment }}
-          </q-badge>
+          <q-chip dense outline size="sm" :color="getTypeColor(props.row.type)" :icon="getTypeIcon(props.row.type)">
+            {{ getTypeLabel(props.row.type) }}
+          </q-chip>
         </q-td>
       </template>
 
@@ -294,6 +293,7 @@ function onRequest(requestProps: { pagination: typeof props.pagination }) {
 
 const categoryLabel = computed(() => {
   const labels: Record<ResourceType, string> = {
+    all: "Resources",
     script: "Scripts",
     app: "Apps",
     book: "Books",
@@ -305,6 +305,7 @@ const categoryLabel = computed(() => {
 
 const categorySingular = computed(() => {
   const labels: Record<ResourceType, string> = {
+    all: "Resource",
     script: "Script",
     app: "App",
     book: "Book",
@@ -316,6 +317,7 @@ const categorySingular = computed(() => {
 
 const emptyIcon = computed(() => {
   const icons: Record<ResourceType, string> = {
+    all: "folder",
     script: "code",
     app: "apps",
     book: "menu_book",
@@ -340,16 +342,13 @@ const columns = computed(() => {
       field: "description",
       align: "left" as const,
     },
-    {
-      name: "segment",
-      label: "SEGMENT",
-      field: "segment",
-      align: "left" as const,
-      sortable: true,
-    },
   ];
 
   const typeSpecificColumns: Record<ResourceType, typeof baseColumns> = {
+    all: [
+      { name: "type", label: "TYPE", field: "type", align: "left" as const, sortable: true },
+      { name: "extension", label: "EXTENSION", field: "extension", align: "left" as const },
+    ],
     script: [
       {
         name: "language",
@@ -444,14 +443,47 @@ const columns = computed(() => {
 });
 
 function getResourceIcon(resource: Resource): string {
-  const icons: Record<ResourceType, string> = {
+  const icons: Record<string, string> = {
     script: "code",
     app: "apps",
     book: "description",
     image: "image",
     certificate: "vpn_key",
   };
-  return icons[resource.type];
+  return icons[resource.type] || "folder";
+}
+
+function getTypeColor(type: string): string {
+  const colors: Record<string, string> = {
+    script: "blue",
+    app: "green",
+    book: "purple",
+    image: "orange",
+    certificate: "red",
+  };
+  return colors[type] || "grey";
+}
+
+function getTypeIcon(type: string): string {
+  const icons: Record<string, string> = {
+    script: "code",
+    app: "apps",
+    book: "menu_book",
+    image: "image",
+    certificate: "vpn_key",
+  };
+  return icons[type] || "folder";
+}
+
+function getTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    script: "Script",
+    app: "App",
+    book: "Book",
+    image: "Image",
+    certificate: "Certificate",
+  };
+  return labels[type] || type;
 }
 
 function formatRelativeTime(dateString: string): string {

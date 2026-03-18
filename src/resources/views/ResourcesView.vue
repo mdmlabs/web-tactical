@@ -13,23 +13,9 @@
         <!-- Header -->
         <div class="resources-header">
           <div class="header-left">
-            <!-- Segment Selector -->
-            <q-select
-              v-model="selectedSegmentLocal"
-              :options="segmentOptions"
-              outlined
-              dense
-              class="segment-select"
-              emit-value
-              map-options
-            >
-              <template v-slot:prepend>
-                <q-icon name="public" size="18px" />
-              </template>
-            </q-select>
-
             <!-- Create Button -->
             <q-btn
+              v-if="currentCategory !== 'all'"
               color="primary"
               unelevated
               class="create-btn"
@@ -37,6 +23,51 @@
             >
               <q-icon name="add" size="18px" class="q-mr-xs" />
               {{ currentCategoryInfo?.createLabel || "Create" }}
+            </q-btn>
+
+            <!-- Create Button with Dropdown for 'All' -->
+            <q-btn
+              v-else
+              color="primary"
+              unelevated
+              class="create-btn"
+            >
+              <q-icon name="add" size="18px" class="q-mr-xs" />
+              Create Resource
+              <q-menu>
+                <q-list dense style="min-width: 180px">
+                  <q-item clickable v-close-popup @click="navigateToCreateType('script')">
+                    <q-item-section avatar>
+                      <q-icon name="code" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Create Script</q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="navigateToCreateType('app')">
+                    <q-item-section avatar>
+                      <q-icon name="apps" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Create App</q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="navigateToCreateType('book')">
+                    <q-item-section avatar>
+                      <q-icon name="menu_book" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Upload Book</q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="navigateToCreateType('image')">
+                    <q-item-section avatar>
+                      <q-icon name="image" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Upload Image</q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="navigateToCreateType('certificate')">
+                    <q-item-section avatar>
+                      <q-icon name="vpn_key" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Upload Certificate</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
             </q-btn>
 
             <!-- Search -->
@@ -105,7 +136,7 @@
           @edit="handleEdit"
           @delete="handleDelete"
           @download="handleDownload"
-          @update:pagination="pagination = $event"
+          @update:pagination="handlePaginationUpdate"
           @request="onTableRequest"
         />
       </div>
@@ -121,24 +152,12 @@
         </q-card-section>
 
         <q-card-section>
-          <q-select
-            v-model="filterSegment"
-            :options="segmentFilterOptions"
-            label="Segment"
-            outlined
-            dense
-            emit-value
-            map-options
-            clearable
-          />
-
           <q-input
             v-model="filterDateFrom"
             type="date"
             label="Created From"
             outlined
             dense
-            class="q-mt-md"
           />
 
           <q-input
@@ -166,13 +185,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useQuasar } from "quasar";
 import ResourcesSidebar from "../components/ResourcesSidebar.vue";
 import ResourcesTable from "../components/ResourcesTable.vue";
 import { useResources } from "../composables/useResources";
-import { SEGMENTS } from "../types/resources";
 import type { ResourceType, Resource } from "../types/resources";
 
 const router = useRouter();
@@ -187,7 +205,6 @@ const {
   pagination,
   setCategory,
   setSearch,
-  setSegment,
   deleteResource,
   handleDownload: composableDownload,
   refreshResources,
@@ -196,9 +213,7 @@ const {
 
 // Local state for form inputs
 const searchQueryLocal = ref("");
-const selectedSegmentLocal = ref<string | null>("Global");
 const showFilterDialog = ref(false);
-const filterSegment = ref<string | null>(null);
 const filterDateFrom = ref("");
 const filterDateTo = ref("");
 
@@ -207,41 +222,45 @@ onMounted(() => {
   refreshCounts();
 });
 
-// Segment options
-const segmentOptions = computed(() => [
-  { label: "All Segments", value: null },
-  ...SEGMENTS.map((s) => ({ label: s, value: s })),
-]);
-
-const segmentFilterOptions = computed(() => [
-  { label: "All Segments", value: null },
-  ...SEGMENTS.map((s) => ({ label: s, value: s })),
-]);
-
 // Debounced search
 let searchTimeout: ReturnType<typeof setTimeout>;
-function debounceSearch(value: string | null) {
+function debounceSearch(value: string | number | null) {
   clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
-    setSearch(value || "");
+    setSearch(String(value || ""));
   }, 300);
 }
-
-// Watch segment changes
-watch(selectedSegmentLocal, (newVal) => {
-  setSegment(newVal);
-});
 
 // Navigate to create page
 function navigateToCreate() {
   const routeMap: Record<ResourceType, string> = {
+    all: "",
     script: "CreateScript",
     app: "CreateApp",
     book: "CreateBook",
     image: "CreateImage",
     certificate: "CreateCertificate",
   };
-  router.push({ name: routeMap[currentCategory.value] });
+  const route = routeMap[currentCategory.value];
+  if (route) {
+    router.push({ name: route });
+  }
+}
+
+// Navigate to create page for specific type (used in 'all' category dropdown)
+function navigateToCreateType(type: ResourceType) {
+  const routeMap: Record<ResourceType, string> = {
+    all: "",
+    script: "CreateScript",
+    app: "CreateApp",
+    book: "CreateBook",
+    image: "CreateImage",
+    certificate: "CreateCertificate",
+  };
+  const route = routeMap[type];
+  if (route) {
+    router.push({ name: route });
+  }
 }
 
 // Handle edit
@@ -288,6 +307,15 @@ async function handleDownload(resource: Resource) {
   }
 }
 
+// Handle pagination update
+function handlePaginationUpdate(newPagination: { page: number; rowsPerPage: number; rowsNumber?: number }) {
+  pagination.value = {
+    page: newPagination.page,
+    rowsPerPage: newPagination.rowsPerPage,
+    rowsNumber: newPagination.rowsNumber ?? pagination.value.rowsNumber,
+  };
+}
+
 // Handle table request (server-side pagination/sorting)
 function onTableRequest(requestProps: {
   pagination: {
@@ -304,16 +332,11 @@ function onTableRequest(requestProps: {
 
 // Filter functions
 function clearFilters() {
-  filterSegment.value = null;
   filterDateFrom.value = "";
   filterDateTo.value = "";
 }
 
 function applyFilters() {
-  // Apply segment filter
-  if (filterSegment.value) {
-    selectedSegmentLocal.value = filterSegment.value;
-  }
   // Date filters would be applied to the composable in a full implementation
 }
 </script>

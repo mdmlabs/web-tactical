@@ -12,9 +12,8 @@ const resources = ref<Resource[]>([]);
 const totalCount = ref(0);
 const categoryCounts = ref<Record<string, number>>({});
 
-const currentCategory = ref<ResourceType>("script");
+const currentCategory = ref<ResourceType>("all");
 const searchQuery = ref("");
-const selectedSegment = ref<string | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
 
@@ -46,17 +45,17 @@ export function useResources() {
 
     try {
       const params: Record<string, unknown> = {
-        type: currentCategory.value,
         page: pagination.value.page,
         per_page: pagination.value.rowsPerPage,
       };
 
-      if (searchQuery.value) {
-        params.search = searchQuery.value;
+      // Only add type filter if not 'all'
+      if (currentCategory.value !== "all") {
+        params.type = currentCategory.value;
       }
 
-      if (selectedSegment.value) {
-        params.segment = selectedSegment.value;
+      if (searchQuery.value) {
+        params.search = searchQuery.value;
       }
 
       const result = await apiFetchResources(params);
@@ -93,12 +92,6 @@ export function useResources() {
 
   function setSearch(query: string) {
     searchQuery.value = query;
-    pagination.value.page = 1;
-    refreshResources();
-  }
-
-  function setSegment(segment: string | null) {
-    selectedSegment.value = segment;
     pagination.value.page = 1;
     refreshResources();
   }
@@ -159,7 +152,6 @@ export function useResources() {
     // State
     currentCategory,
     searchQuery,
-    selectedSegment,
     loading,
     error,
     pagination,
@@ -172,7 +164,6 @@ export function useResources() {
     // Methods
     setCategory,
     setSearch,
-    setSegment,
     deleteResource,
     handleDownload,
     refreshResources,

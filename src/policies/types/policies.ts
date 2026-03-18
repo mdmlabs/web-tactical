@@ -98,6 +98,7 @@ export interface Device {
   employee: string;
   policiesCount: number;
   updated: string;
+  status?: string;
 }
 
 export interface DeviceGroup {

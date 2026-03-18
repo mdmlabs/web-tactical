@@ -1,4 +1,4 @@
-export type ResourceType = "script" | "app" | "book" | "image" | "certificate";
+export type ResourceType = "all" | "script" | "app" | "book" | "image" | "certificate";
 
 export type ScriptLanguage =
   | "PowerShell"
@@ -71,6 +71,7 @@ export interface ResourceCategory {
 }
 
 export const RESOURCE_CATEGORIES: ResourceCategory[] = [
+  { id: "all", label: "All Resources", icon: "folder", createLabel: "Create Resource" },
   {
     id: "script",
     label: "Scripts",
@@ -122,6 +123,7 @@ export const SCRIPT_EXTENSIONS: Record<string, ScriptLanguage> = {
 };
 
 export const ALLOWED_EXTENSIONS: Record<ResourceType, string[]> = {
+  all: [], // 'all' is a virtual category, no direct uploads
   script: ["ps1", "py", "sh", "bat", "cmd", "js"],
   app: ["exe", "msi", "dmg", "pkg", "deb", "rpm", "appimage"],
   book: ["pdf", "epub", "mobi", "djvu"],
@@ -130,6 +132,7 @@ export const ALLOWED_EXTENSIONS: Record<ResourceType, string[]> = {
 };
 
 export const RESOURCE_SIZE_LIMITS: Record<ResourceType, number> = {
+  all: 0, // 'all' is a virtual category, no direct uploads
   script: 10 * 1024 * 1024, // 10 MB
   app: 500 * 1024 * 1024, // 500 MB
   book: 100 * 1024 * 1024, // 100 MB

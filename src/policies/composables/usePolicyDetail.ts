@@ -260,6 +260,19 @@ export function usePolicyDetail(policyId: string) {
   // Initialize
   void loadPolicy();
 
+  // Preview items (first 3 for summary cards)
+  const appPreviewItems = computed(() =>
+    policy.value?.apps.slice(0, 3).map(app => ({ name: app.name, type: 'app' })) || []
+  );
+
+  const scriptPreviewItems = computed(() =>
+    policy.value?.scripts.slice(0, 3).map(script => ({ name: script.name, type: 'script' })) || []
+  );
+
+  const resourcePreviewItems = computed(() =>
+    policy.value?.resources.slice(0, 3).map(resource => ({ name: resource.name, type: resource.type })) || []
+  );
+
   return {
     policy,
     loading,
@@ -270,6 +283,9 @@ export function usePolicyDetail(policyId: string) {
     scriptCount,
     resourceCount,
     applicationControlCount,
+    appPreviewItems,
+    scriptPreviewItems,
+    resourcePreviewItems,
     lastDeliveryJobs,
     deployLoading,
     deployError,

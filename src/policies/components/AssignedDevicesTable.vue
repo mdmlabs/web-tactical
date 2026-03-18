@@ -83,19 +83,13 @@
         </q-td>
       </template>
 
-      <!-- Segment -->
-      <template v-slot:body-cell-segment="props">
+      <!-- Status -->
+      <template v-slot:body-cell-status="props">
         <q-td :props="props">
-          <q-chip
-            dense
-            outline
-            color="grey-7"
-            size="sm"
-            icon="public"
-            class="segment-chip"
-          >
-            {{ props.row.segment }}
-          </q-chip>
+          <q-badge
+            :color="getStatusColor(props.row.status)"
+            :label="props.row.status || 'Unknown'"
+          />
         </q-td>
       </template>
 
@@ -152,8 +146,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import type { Device } from '../types/policies';
+import { fetchDeliveryJobs, type DeliveryJob, type DeliveryResultStatus } from '@/api/fileDelivery';
 // import { formatRelativeTime } from '../mocks/policiesMockData';
 
 const props = defineProps<{
@@ -169,11 +164,79 @@ defineEmits<{
 }>();
 
 const searchQuery = ref("");
+const deliveryJobs = ref<DeliveryJob[]>([]);
+const loadingJobs = ref(false);
+
+// Fetch delivery jobs when devices change
+watch(() => props.devices, async (newDevices) => {
+  if (newDevices.length > 0) {
+    await loadDeliveryJobs();
+  }
+}, { immediate: true });
+
+async function loadDeliveryJobs() {
+  loadingJobs.value = true;
+  try {
+    deliveryJobs.value = await fetchDeliveryJobs();
+  } catch (err) {
+    console.error('[AssignedDevicesTable] failed to load delivery jobs:', err);
+  } finally {
+    loadingJobs.value = false;
+  }
+}
+
+// Get device status from delivery jobs
+function getDeviceStatus(deviceId: number): string {
+  // Find all jobs targeting this device
+  const deviceJobs = deliveryJobs.value.filter(job => 
+    job.targetAgents?.includes(deviceId)
+  );
+  
+  if (deviceJobs.length === 0) return '';
+  
+  // Get the most recent job
+  const latestJob = deviceJobs.sort((a, b) => 
+    new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime()
+  )[0];
+  
+  return latestJob.status;
+}
+
+// Get device delivery result status (more detailed)
+function getDeviceDeliveryResultStatus(deviceId: number): DeliveryResultStatus | null {
+  const deviceJobs = deliveryJobs.value.filter(job => 
+    job.targetAgents?.includes(deviceId)
+  );
+  
+  if (deviceJobs.length === 0) return null;
+  
+  // Find the most recent job with results
+  const latestJob = deviceJobs.sort((a, b) => 
+    new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime()
+  )[0];
+  
+  // If job is completed or failed, check individual result status
+  if (latestJob.status === 'completed' || latestJob.status === 'failed') {
+    // Return success if any succeeded, failed if all failed
+    if (latestJob.resultsSummary.success > 0) return 'success';
+    if (latestJob.resultsSummary.failed > 0) return 'failed';
+  }
+  
+  return latestJob.status as DeliveryResultStatus;
+}
 
 const filteredDevices = computed(() => {
-  if (!searchQuery.value) return props.devices;
+  let devices = props.devices;
+  
+  // Add status from delivery jobs
+  devices = devices.map(device => ({
+    ...device,
+    status: getDeviceStatus(device.id) || getDeviceDeliveryResultStatus(device.id) || undefined,
+  }));
+  
+  if (!searchQuery.value) return devices;
   const query = searchQuery.value.toLowerCase();
-  return props.devices.filter(
+  return devices.filter(
     (d) =>
       d.name.toLowerCase().includes(query) ||
       d.employee.toLowerCase().includes(query),
@@ -182,7 +245,7 @@ const filteredDevices = computed(() => {
 
 const columns = [
   { name: 'name', label: 'DEVICE', field: 'name', align: 'left' as const },
-  { name: 'segment', label: 'CLIENT', field: 'segment', align: 'left' as const },
+  { name: 'status', label: 'STATUS', field: 'status', align: 'center' as const },
   // { name: 'battery', label: 'BATTERY', field: 'battery', align: 'left' as const },
   // { name: 'employee', label: 'DEVICE EMPLOYEE', field: 'employee', align: 'left' as const },
   // { name: 'policiesCount', label: 'POLICIES', field: 'policiesCount', align: 'left' as const },
@@ -203,6 +266,22 @@ const columns = [
 //   if (level > 20) return 'warning';
 //   return 'negative';
 // }
+
+function getStatusColor(status: string | undefined): string {
+  if (!status) return 'grey';
+  const colors: Record<string, string> = {
+    pending: 'grey',
+    in_progress: 'blue',
+    downloading: 'blue',
+    installing: 'blue',
+    verifying: 'blue',
+    completed: 'positive',
+    failed: 'negative',
+    success: 'positive',
+    error: 'negative',
+  };
+  return colors[status] || 'grey';
+}
 </script>
 
 <style scoped>
@@ -301,10 +380,6 @@ const columns = [
 .device-name {
   font-weight: 500;
   color: var(--text-primary, #1a1a2e);
-}
-
-.segment-chip {
-  font-size: 12px;
 }
 
 .battery-cell {

@@ -46,22 +46,6 @@
           </div>
         </div>
 
-        <!-- Segment -->
-        <div class="segment-section" v-if="policy">
-          <label class="section-label">Segment</label>
-          <q-select
-            v-model="policy.segment"
-            :options="segments"
-            outlined
-            dense
-            class="segment-select"
-          >
-            <template v-slot:prepend>
-              <q-icon name="public" size="18px" />
-            </template>
-          </q-select>
-        </div>
-
         <!-- Save button -->
         <q-btn
           :disable="!hasChanges"
@@ -156,20 +140,23 @@
           <!-- Summary Cards Row -->
           <div class="summary-row">
             <PolicySectionCard
-              title="App"
+              title="Apps"
               :count="appCount"
+              :items="appPreviewItems"
               empty-text="No apps added yet"
               @view="setActiveSection('apps')"
             />
             <PolicySectionCard
               title="Scripts"
               :count="scriptCount"
+              :items="scriptPreviewItems"
               empty-text="No scripts added yet"
               @view="setActiveSection('scripts')"
             />
             <PolicySectionCard
               title="Resources"
               :count="resourceCount"
+              :items="resourcePreviewItems"
               empty-text="No resources added yet"
               @view="setActiveSection('resources')"
             />
@@ -552,7 +539,6 @@ import AssignDeviceDialog from "../components/dialogs/AssignDeviceDialog.vue";
 import DeliveryJobsDialog from "../components/dialogs/DeliveryJobsDialog.vue";
 
 import { usePolicyDetail } from "../composables/usePolicyDetail";
-import { SEGMENTS } from "../types/policies";
 import type {
   PolicyApp,
   PolicyScript,
@@ -574,6 +560,9 @@ const {
   appCount,
   scriptCount,
   resourceCount,
+  appPreviewItems,
+  scriptPreviewItems,
+  resourcePreviewItems,
   saveChanges: savePolicy,
   updateName,
   addApp,
@@ -599,8 +588,6 @@ const showAddResourceDialog = ref(false);
 const showAssignDeviceDialog = ref(false);
 const showDeliveryJobsDialog = ref(false);
 const applicationControlToken = ref("");
-
-const segments = SEGMENTS;
 
 // Navigation items
 const navItems = computed(() => [
@@ -965,22 +952,6 @@ function unassignDevice(deviceId: number) {
   margin-top: 2px;
 }
 
-.segment-section {
-  margin-bottom: 16px;
-}
-
-.section-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-secondary, #6b7280);
-  margin-bottom: 8px;
-}
-
-.segment-select {
-  width: 100%;
-}
-
 .save-btn {
   width: 100%;
   margin-bottom: 20px;
@@ -1046,6 +1017,12 @@ function unassignDevice(deviceId: number) {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
+}
+
+.view-all-resources {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -16px;
 }
 
 /* Config card (reusable section block) */

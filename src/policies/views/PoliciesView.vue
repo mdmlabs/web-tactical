@@ -13,21 +13,6 @@
         <!-- Header -->
         <div class="policies-header">
           <div class="header-left">
-            <!-- Segment Selector -->
-            <q-select
-              v-model="selectedSegmentLocal"
-              :options="segmentOptions"
-              outlined
-              dense
-              class="segment-select"
-              emit-value
-              map-options
-            >
-              <template v-slot:prepend>
-                <q-icon name="public" size="18px" />
-              </template>
-            </q-select>
-
             <!-- Create Button -->
             <q-btn
               color="primary"
@@ -135,17 +120,6 @@
         </q-card-section>
 
         <q-card-section>
-          <q-select
-            v-model="filterSegment"
-            :options="segmentFilterOptions"
-            label="Segment"
-            outlined
-            dense
-            emit-value
-            map-options
-            clearable
-          />
-
           <q-input
             v-model="filterDateFrom"
             type="date"
@@ -180,14 +154,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import PoliciesSidebar from '../components/PoliciesSidebar.vue';
 import PoliciesTable from '../components/PoliciesTable.vue';
 import CreatePolicyDialog from '../components/dialogs/CreatePolicyDialog.vue';
 import { usePolicies } from '../composables/usePolicies';
-import { SEGMENTS } from '../types/policies';
+
 import type { Policy, Platform } from '../types/policies';
 
 const router = useRouter();
@@ -199,7 +173,7 @@ const {
   selectedPlatform,
   platformCounts,
   setSearch,
-  setSegment,
+
   setPlatform,
   createPolicy,
   deletePolicy,
@@ -208,10 +182,8 @@ const {
 
 // Local state for form inputs
 const searchQueryLocal = ref("");
-const selectedSegmentLocal = ref<string | null>("Global");
 const showCreateDialog = ref(false);
 const showFilterDialog = ref(false);
-const filterSegment = ref<string | null>(null);
 const filterDateFrom = ref("");
 const filterDateTo = ref("");
 
@@ -242,20 +214,6 @@ const platformsWithCount = computed(() => [
   },
 ]);
 
-// Segment options
-const segmentOptions = computed(() => [
-  { label: "Global", value: "Global" },
-  ...SEGMENTS.filter((s) => s !== "Global").map((s) => ({
-    label: s,
-    value: s,
-  })),
-]);
-
-const segmentFilterOptions = computed(() => [
-  { label: "All Segments", value: null },
-  ...SEGMENTS.map((s) => ({ label: s, value: s })),
-]);
-
 // Debounced search
 let searchTimeout: ReturnType<typeof setTimeout>;
 function debounceSearch(value: string | null) {
@@ -265,15 +223,8 @@ function debounceSearch(value: string | null) {
   }, 300);
 }
 
-// Watch segment changes
-watch(selectedSegmentLocal, (newVal) => {
-  setSegment(newVal);
-});
-
 // Load policies on mount
 onMounted(() => {
-  // Sync segment from local state to composable
-  setSegment(selectedSegmentLocal.value);
   void refreshPolicies();
 });
 
@@ -359,15 +310,12 @@ async function handleDuplicate(policy: Policy) {
 
 // Filter functions
 function clearFilters() {
-  filterSegment.value = null;
   filterDateFrom.value = "";
   filterDateTo.value = "";
 }
 
 function applyFilters() {
-  if (filterSegment.value) {
-    selectedSegmentLocal.value = filterSegment.value;
-  }
+  // Date filters would be applied here
 }
 </script>
 
@@ -411,14 +359,6 @@ function applyFilters() {
   display: flex;
   align-items: center;
   gap: 4px;
-}
-
-.segment-select {
-  min-width: 140px;
-}
-
-.segment-select :deep(.q-field__control) {
-  background: var(--input-bg, #ffffff);
 }
 
 .create-btn {
@@ -496,7 +436,6 @@ function applyFilters() {
     width: 100%;
   }
 
-  .segment-select,
   .search-input {
     flex: 1;
     min-width: 140px;
