@@ -549,7 +549,7 @@ import AddAppDialog from "../components/dialogs/AddAppDialog.vue";
 import AddScriptDialog from "../components/dialogs/AddScriptDialog.vue";
 import AddResourceDialog from "../components/dialogs/AddResourceDialog.vue";
 import AssignDeviceDialog from "../components/dialogs/AssignDeviceDialog.vue";
-import DeliveryJobsDialog from "../components/dialogs/DeliveryJobsDialog.vue";
+
 import { usePolicyDetail } from "../composables/usePolicyDetail";
 import { SEGMENTS } from "../types/policies";
 import type {
