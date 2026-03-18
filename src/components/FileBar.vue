@@ -558,6 +558,40 @@
             <q-item-section>Resources</q-item-section>
           </q-item>
 
+          <!-- Policies -->
+          <template v-if="isMiniMode && !isMobile">
+            <q-item
+              clickable
+              class="filebar-menu-section-mini"
+              @click="navigateToPolicies"
+            >
+              <q-item-section avatar>
+                <q-icon name="security" size="24px">
+                  <q-tooltip
+                    anchor="center right"
+                    self="center left"
+                    :offset="[10, 0]"
+                  >
+                    Policies
+                  </q-tooltip>
+                </q-icon>
+              </q-item-section>
+            </q-item>
+          </template>
+
+          <q-item
+            v-else
+            clickable
+            v-ripple
+            @click="navigateToPolicies"
+            :class="['filebar-menu-section', { 'active-menu-item': isPoliciesActive }]"
+          >
+            <q-item-section avatar>
+              <q-icon name="security" />
+            </q-item-section>
+            <q-item-section>Policies</q-item-section>
+          </q-item>
+
           <!-- агент часть -->
           <template v-if="isMiniMode && !isMobile">
             <q-item clickable class="filebar-menu-section-mini">
@@ -1345,6 +1379,9 @@ export default {
     isResourcesActive() {
       return this.currentPath.startsWith("/resources");
     },
+    isPoliciesActive() {
+      return this.currentPath.startsWith("/policies");
+    },
     closeDrawer() {
       if (this.isMobile) {
         this.$store.commit("SET_FILEBAR_DRAWER", false);
@@ -1476,6 +1513,12 @@ export default {
         this.closeDrawer();
       }
       this.$router.push({ name: "Resources" });
+    },
+    navigateToPolicies() {
+      if (this.isMobile) {
+        this.closeDrawer();
+      }
+      this.$router.push({ name: "Policies" });
     },
     clearCache() {
       this.$axios
