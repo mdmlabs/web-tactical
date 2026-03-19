@@ -30,14 +30,14 @@ const routes = [
           requireAuth: true,
         },
       },
-      {
-        path: "/files",
-        name: "FileManagement",
-        component: () => import("@/views/FileManagementView.vue"),
-        meta: {
-          requireAuth: true,
-        },
-      },
+      // {
+      //   path: "/files",
+      //   name: "FileManagement",
+      //   component: () => import("@/views/FileManagementView.vue"),
+      //   meta: {
+      //     requireAuth: true,
+      //   },
+      // },
       {
         path: "/resources",
         name: "Resources",

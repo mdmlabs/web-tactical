@@ -487,7 +487,7 @@
             </q-list>
           </q-expansion-item>
 
-          <!-- File Management -->
+          <!-- File Management - commented out temporarily
           <template v-if="isMiniMode && !isMobile">
             <q-item
               clickable
@@ -520,6 +520,7 @@
             </q-item-section>
             <q-item-section>File Delivery</q-item-section>
           </q-item>
+          -->
 
           <!-- Resources -->
           <template v-if="isMiniMode && !isMobile">
