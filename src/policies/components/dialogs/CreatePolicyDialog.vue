@@ -9,9 +9,9 @@
       <div class="dialog-header">
         <span class="dialog-title">Create policy</span>
         <div class="header-right">
-          <q-chip dense outline color="grey-7" size="sm" icon="public">
+          <!-- <q-chip dense outline color="grey-7" size="sm" icon="public">
             Global
-          </q-chip>
+          </q-chip> -->
           <q-btn icon="close" flat round dense @click="close" />
         </div>
       </div>
@@ -89,18 +89,18 @@ const policyName = ref("");
 const selectedPlatform = ref<Platform>("windows");
 
 const platforms = [
-  {
-    id: "apple" as Platform,
-    label: "Apple",
-    icon: "mdi-apple",
-    disabled: true,
-  },
-  {
-    id: "android" as Platform,
-    label: "Android",
-    icon: "mdi-android",
-    disabled: true,
-  },
+  // {
+  //   id: "apple" as Platform,
+  //   label: "Apple",
+  //   icon: "mdi-apple",
+  //   disabled: true,
+  // },
+  // {
+  //   id: "android" as Platform,
+  //   label: "Android",
+  //   icon: "mdi-android",
+  //   disabled: true,
+  // },
   {
     id: "windows" as Platform,
     label: "Windows",

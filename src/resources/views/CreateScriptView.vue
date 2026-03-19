@@ -49,21 +49,6 @@
             />
           </div>
 
-          <!-- Segment -->
-          <div class="form-section">
-            <label class="form-label"
-              >Segment <span class="required">*</span></label
-            >
-            <q-select
-              v-model="formData.segment"
-              :options="segmentOptions"
-              outlined
-              dense
-              emit-value
-              map-options
-            />
-          </div>
-
           <!-- Language -->
           <div class="form-section">
             <label class="form-label"
@@ -123,7 +108,6 @@ import { useRouter } from "vue-router";
 import { useQuasar } from "quasar";
 import ResourceFileUpload from "../components/ResourceFileUpload.vue";
 import {
-  SEGMENTS,
   SCRIPT_LANGUAGES,
   SCRIPT_EXTENSIONS,
 } from "../types/resources";
@@ -141,18 +125,14 @@ const formData = ref({
   file: null as File | null,
   name: "",
   description: "",
-  segment: "Global",
   language: "PowerShell" as ScriptLanguage,
 });
-
-const segmentOptions = SEGMENTS.map((s) => ({ label: s, value: s }));
 const languageOptions = SCRIPT_LANGUAGES;
 
 const isFormValid = computed(() => {
   return (
     formData.value.file &&
     formData.value.name &&
-    formData.value.segment &&
     formData.value.language
   );
 });
@@ -180,7 +160,6 @@ async function handleSubmit() {
     await uploadResource(formData.value.file!, {
       name: formData.value.name,
       resource_type: "script",
-      segment: formData.value.segment,
       description: formData.value.description,
       language: formData.value.language,
     });

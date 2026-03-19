@@ -49,21 +49,6 @@
             />
           </div>
 
-          <!-- Segment -->
-          <div class="form-section">
-            <label class="form-label"
-              >Segment <span class="required">*</span></label
-            >
-            <q-select
-              v-model="formData.segment"
-              :options="segmentOptions"
-              outlined
-              dense
-              emit-value
-              map-options
-            />
-          </div>
-
           <!-- Author -->
           <div class="form-section">
             <label class="form-label">Author</label>
@@ -117,7 +102,6 @@ import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useQuasar } from "quasar";
 import ResourceFileUpload from "../components/ResourceFileUpload.vue";
-import { SEGMENTS } from "../types/resources";
 import { useResourceUpload } from "../composables/useResourceUpload";
 
 const router = useRouter();
@@ -131,14 +115,11 @@ const formData = ref({
   file: null as File | null,
   name: "",
   description: "",
-  segment: "Global",
   author: "",
 });
 
-const segmentOptions = SEGMENTS.map((s) => ({ label: s, value: s }));
-
 const isFormValid = computed(() => {
-  return formData.value.file && formData.value.name && formData.value.segment;
+  return formData.value.file && formData.value.name;
 });
 
 function onFileSelected(file: File) {
@@ -157,7 +138,6 @@ async function handleSubmit() {
     await uploadResource(formData.value.file!, {
       name: formData.value.name,
       resource_type: "book",
-      segment: formData.value.segment,
       description: formData.value.description,
       author: formData.value.author || undefined,
     });

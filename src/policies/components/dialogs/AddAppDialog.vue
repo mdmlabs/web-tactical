@@ -24,11 +24,11 @@
           align="left"
           no-caps
         >
-          <q-tab name="store" label="Microsoft Store" disable />
-          <q-tab name="applivery" label="Applivery" disable />
+          <!-- <q-tab name="store" label="Microsoft Store" disable />
+          <q-tab name="applivery" label="Applivery" disable /> -->
           <q-tab name="resource" label="Resource" />
         </q-tabs>
-        <span class="use-package-link">Use a resource package</span>
+        <!-- <span class="use-package-link">Use a resource package</span> -->
       </div>
 
       <q-separator />
@@ -40,7 +40,7 @@
         </p>
 
         <!-- Resource Selection -->
-        <div class="resource-selection">
+        <div v-if="!showUpload" class="resource-selection">
           <q-select
             v-model="selectedResource"
             :options="appResources"
@@ -74,11 +74,52 @@
             color="primary"
             label="Upload new resource"
             class="upload-btn"
+            @click="showUpload = true"
           />
         </div>
 
-        <!-- Installation Settings (shown when resource is selected) -->
-        <template v-if="selectedResource">
+        <!-- Upload New Resource -->
+        <div v-else class="upload-section">
+          <ResourceFileUpload
+            v-model="uploadFile"
+            resource-type="app"
+            @file-selected="onUploadFileSelected"
+          />
+          
+          <q-input
+            v-model="uploadName"
+            outlined
+            dense
+            label="Name"
+            placeholder="Enter app name"
+            class="q-mt-md"
+            :rules="[(val) => !!val || 'Name is required']"
+          />
+          
+          <q-btn
+            flat
+            label="Cancel upload"
+            color="grey-7"
+            class="q-mt-sm"
+            @click="resetUpload"
+          />
+          
+          <!-- Upload Progress -->
+          <div v-if="uploading" class="upload-progress q-mt-md">
+            <q-linear-progress
+              :value="uploadProgress / 100"
+              color="primary"
+              rounded
+              size="8px"
+            />
+            <div class="upload-phase-text">
+              {{ uploadPhase === 'hashing' ? 'Computing file hash...' : uploadPhase === 'uploading' ? `Uploading... ${uploadProgress}%` : uploadPhase === 'confirming' ? 'Finalizing...' : '' }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Installation Settings (shown when resource is selected or uploading) -->
+        <template v-if="selectedResource || (showUpload && uploadFile)">
           <q-separator class="q-my-lg" />
 
           <div class="settings-section">
@@ -180,8 +221,9 @@
         <q-btn
           unelevated
           color="primary"
-          label="Select"
-          :disable="!canAdd"
+          :label="showUpload ? 'Upload and Add' : 'Select'"
+          :disable="!canAdd || uploading"
+          :loading="uploading"
           @click="addApp"
           class="action-btn"
         />
@@ -195,6 +237,8 @@ import { ref, computed, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import type { PolicyApp, VerificationMethod } from '../../types/policies';
 import { fetchResourceList } from '@/api/resources';
+import { useResourceUpload } from '@/resources/composables/useResourceUpload';
+import ResourceFileUpload from '@/resources/components/ResourceFileUpload.vue';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -206,6 +250,13 @@ const emit = defineEmits<{
 }>();
 
 const $q = useQuasar();
+
+// Upload state
+const showUpload = ref(false);
+const uploadFile = ref<File | null>(null);
+const uploadName = ref('');
+const { uploading, uploadProgress, uploadPhase, uploadResource } =
+  useResourceUpload();
 
 // Form state
 const activeTab = ref('resource');
@@ -231,11 +282,77 @@ const verificationOptions = [
   { value: "script", label: "Script" },
 ];
 
-const canAdd = computed(() => selectedResource.value !== null);
+const canAdd = computed(() => selectedResource.value !== null || (showUpload.value && uploadFile.value && uploadName.value));
 
 const selectedResourceData = computed(() => 
   appResources.value.find(r => r.id === selectedResource.value)
 );
+
+// Reset upload form
+function resetUpload() {
+  showUpload.value = false;
+  uploadFile.value = null;
+  uploadName.value = '';
+}
+
+// Handle file selected for upload
+function onUploadFileSelected(file: File) {
+  if (!uploadName.value) {
+    uploadName.value = file.name.replace(/\.[^/.]+$/, '');
+  }
+}
+
+// Upload and add app
+async function uploadAndAddApp() {
+  if (!uploadFile.value || !uploadName.value) return;
+  
+  try {
+    const uploadedResource = await uploadResource(uploadFile.value, {
+      name: uploadName.value,
+      resource_type: 'app',
+      description: '',
+      version: '1.0.0',
+      platform: 'Windows',
+    });
+    
+    // Add the uploaded resource as an app
+    const app: PolicyApp = {
+      id: `app-${Date.now()}`,
+      resourceId: uploadedResource.id as number,
+      name: uploadName.value,
+      version: '1.0.0',
+      silentInstall: silentInstall.value,
+      arguments: installArguments.value,
+      timeout: timeout.value,
+      runAsUser: runAsUser.value,
+      verification: {
+        method: verificationMethod.value,
+        registryPath: verificationMethod.value === 'registry' ? registryPath.value : undefined,
+        registryKey: verificationMethod.value === 'registry' ? registryKey.value : undefined,
+        filePath: verificationMethod.value === 'file_exists' ? filePath.value : undefined,
+        scriptId: verificationMethod.value === 'script' ? verificationScript.value || undefined : undefined,
+      },
+    };
+    
+    emit('add', app);
+    close();
+    
+    $q.notify({
+      message: `App "${uploadName.value}" uploaded and added successfully`,
+      color: 'positive',
+      position: 'top',
+      icon: 'check_circle',
+    });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to upload app';
+    $q.notify({
+      message: msg,
+      color: 'negative',
+      position: 'top',
+      icon: 'error',
+    });
+  }
+}
 
 // Load resources from API
 async function loadResources() {
@@ -279,6 +396,7 @@ function resetForm() {
   registryKey.value = "";
   filePath.value = "";
   verificationScript.value = null;
+  resetUpload();
 }
 
 function close() {
@@ -286,6 +404,11 @@ function close() {
 }
 
 function addApp() {
+  if (showUpload.value && uploadFile.value) {
+    uploadAndAddApp();
+    return;
+  }
+  
   if (!canAdd.value || !selectedResourceData.value) return;
 
   const app: PolicyApp = {
@@ -430,5 +553,20 @@ function addApp() {
   --text-primary: #e4e6eb;
   --text-secondary: #9ca3af;
   --border-color: #2d2d3a;
+}
+
+.upload-section {
+  margin-top: 16px;
+}
+
+.upload-progress {
+  margin-top: 16px;
+}
+
+.upload-phase-text {
+  font-size: 13px;
+  color: var(--text-secondary, #6b7280);
+  margin-top: 8px;
+  text-align: center;
 }
 </style>

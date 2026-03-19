@@ -41,8 +41,8 @@ export function usePolicies() {
   });
 
   const platformCounts = computed(() => ({
-    apple: policies.value.filter((p) => p.platform === "apple").length,
-    android: policies.value.filter((p) => p.platform === "android").length,
+    // apple: policies.value.filter((p) => p.platform === "apple").length,
+    // android: policies.value.filter((p) => p.platform === "android").length,
     windows: policies.value.filter((p) => p.platform === "windows").length,
   }));
 

@@ -65,10 +65,10 @@ defineEmits<{
 
 function getPlatformIcon(platform: Platform): string {
   switch (platform) {
-    case "apple":
-      return "mdi-apple";
-    case "android":
-      return "mdi-android";
+    // case "apple":
+    //   return "mdi-apple";
+    // case "android":
+    //   return "mdi-android";
     case "windows":
       return "mdi-microsoft-windows";
     default:

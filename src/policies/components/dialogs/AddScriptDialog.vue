@@ -20,7 +20,7 @@
         </p>
 
         <!-- Script Selection -->
-        <div class="script-selection">
+        <div v-if="!showUpload" class="script-selection">
           <q-select
             v-model="selectedScript"
             :options="scriptResources"
@@ -50,11 +50,52 @@
             color="primary"
             label="Upload new script"
             class="upload-btn"
+            @click="showUpload = true"
           />
         </div>
 
-        <!-- Execution Settings -->
-        <template v-if="selectedScript">
+        <!-- Upload New Script -->
+        <div v-else class="upload-section">
+          <ResourceFileUpload
+            v-model="uploadFile"
+            resource-type="script"
+            @file-selected="onUploadFileSelected"
+          />
+          
+          <q-input
+            v-model="uploadName"
+            outlined
+            dense
+            label="Name"
+            placeholder="Enter script name"
+            class="q-mt-md"
+            :rules="[(val) => !!val || 'Name is required']"
+          />
+          
+          <q-btn
+            flat
+            label="Cancel upload"
+            color="grey-7"
+            class="q-mt-sm"
+            @click="resetUpload"
+          />
+          
+          <!-- Upload Progress -->
+          <div v-if="uploading" class="upload-progress q-mt-md">
+            <q-linear-progress
+              :value="uploadProgress / 100"
+              color="primary"
+              rounded
+              size="8px"
+            />
+            <div class="upload-phase-text">
+              {{ uploadPhase === 'hashing' ? 'Computing file hash...' : uploadPhase === 'uploading' ? `Uploading... ${uploadProgress}%` : uploadPhase === 'confirming' ? 'Finalizing...' : '' }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Execution Settings (shown when script is selected or uploading) -->
+        <template v-if="selectedScript || (showUpload && uploadFile)">
           <q-separator class="q-my-lg" />
 
           <div class="settings-section">
@@ -84,8 +125,9 @@
         <q-btn
           unelevated
           color="primary"
-          label="Add"
-          :disable="!canAdd"
+          :label="showUpload ? 'Upload and Add' : 'Add'"
+          :disable="!canAdd || uploading"
+          :loading="uploading"
           @click="addScript"
           class="action-btn"
         />
@@ -99,6 +141,8 @@ import { ref, computed, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import type { PolicyScript } from '../../types/policies';
 import { fetchResourceList } from '@/api/resources';
+import { useResourceUpload } from '@/resources/composables/useResourceUpload';
+import ResourceFileUpload from '@/resources/components/ResourceFileUpload.vue';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -111,6 +155,13 @@ const emit = defineEmits<{
 
 const $q = useQuasar();
 
+// Upload state
+const showUpload = ref(false);
+const uploadFile = ref<File | null>(null);
+const uploadName = ref('');
+const { uploading, uploadProgress, uploadPhase, uploadResource } =
+  useResourceUpload();
+
 // Form state
 const selectedScript = ref<number | null>(null);
 const timeout = ref(300);
@@ -120,11 +171,66 @@ const runAsUser = ref(false);
 const scriptResources = ref<Array<{ id: number; name: string; language?: string }>>([]);
 const loading = ref(false);
 
-const canAdd = computed(() => selectedScript.value !== null);
+const canAdd = computed(() => selectedScript.value !== null || (showUpload.value && uploadFile.value && uploadName.value));
 
 const selectedScriptData = computed(() => 
   scriptResources.value.find(s => s.id === selectedScript.value)
 );
+
+// Reset upload form
+function resetUpload() {
+  showUpload.value = false;
+  uploadFile.value = null;
+  uploadName.value = '';
+}
+
+// Handle file selected for upload
+function onUploadFileSelected(file: File) {
+  if (!uploadName.value) {
+    uploadName.value = file.name.replace(/\.[^/.]+$/, '');
+  }
+}
+
+// Upload and add script
+async function uploadAndAddScript() {
+  if (!uploadFile.value || !uploadName.value) return;
+  
+  try {
+    const uploadedResource = await uploadResource(uploadFile.value, {
+      name: uploadName.value,
+      resource_type: 'script',
+      description: '',
+      language: 'PowerShell',
+    });
+    
+    // Add the uploaded resource as a script
+    const script: PolicyScript = {
+      id: `script-${Date.now()}`,
+      resourceId: uploadedResource.id as number,
+      name: uploadName.value,
+      timeout: timeout.value,
+      runAsUser: runAsUser.value,
+    };
+    
+    emit('add', script);
+    close();
+    
+    $q.notify({
+      message: `Script "${uploadName.value}" uploaded and added successfully`,
+      color: 'positive',
+      position: 'top',
+      icon: 'check_circle',
+    });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to upload script';
+    $q.notify({
+      message: msg,
+      color: 'negative',
+      position: 'top',
+      icon: 'error',
+    });
+  }
+}
 
 // Load scripts from API
 async function loadScripts() {
@@ -156,6 +262,7 @@ function resetForm() {
   selectedScript.value = null;
   timeout.value = 300;
   runAsUser.value = false;
+  resetUpload();
 }
 
 function close() {
@@ -163,6 +270,11 @@ function close() {
 }
 
 function addScript() {
+  if (showUpload.value && uploadFile.value) {
+    uploadAndAddScript();
+    return;
+  }
+  
   if (!canAdd.value || !selectedScriptData.value) return;
 
   const script: PolicyScript = {
@@ -226,6 +338,21 @@ function addScript() {
 .upload-btn {
   text-transform: none;
   font-weight: 600;
+}
+
+.upload-section {
+  margin-top: 16px;
+}
+
+.upload-progress {
+  margin-top: 16px;
+}
+
+.upload-phase-text {
+  font-size: 13px;
+  color: var(--text-secondary, #6b7280);
+  margin-top: 8px;
+  text-align: center;
 }
 
 .settings-section {

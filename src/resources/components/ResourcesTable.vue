@@ -455,13 +455,13 @@ function getResourceIcon(resource: Resource): string {
 
 function getTypeColor(type: string): string {
   const colors: Record<string, string> = {
-    script: "blue",
-    app: "green",
-    book: "purple",
-    image: "orange",
-    certificate: "red",
+    script: "blue-7",
+    app: "green-7",
+    book: "blue-7",
+    image: "green-7",
+    certificate: "orange-7",
   };
-  return colors[type] || "grey";
+  return colors[type] || "grey-7";
 }
 
 function getTypeIcon(type: string): string {

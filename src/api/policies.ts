@@ -17,7 +17,7 @@ function mapPolicyFromApi(data: Record<string, unknown>): Policy {
   return {
     id: String(data.id),
     name: String(data.name),
-    platform: data.platform as "windows" | "apple" | "android",
+    platform: data.platform as "windows", // | "apple" | "android",
     version: Number(data.version),
     segment: String(data.segment),
     deviceCount: Number(data.device_count),

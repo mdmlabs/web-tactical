@@ -194,18 +194,18 @@ const pagination = ref({
 
 // Platforms with counts
 const platformsWithCount = computed(() => [
-  {
-    id: "apple" as Platform,
-    label: "Apple",
-    count: platformCounts.value.apple,
-    disabled: true,
-  },
-  {
-    id: "android" as Platform,
-    label: "Android",
-    count: platformCounts.value.android,
-    disabled: true,
-  },
+  // {
+  //   id: "apple" as Platform,
+  //   label: "Apple",
+  //   count: platformCounts.value.apple,
+  //   disabled: true,
+  // },
+  // {
+  //   id: "android" as Platform,
+  //   label: "Android",
+  //   count: platformCounts.value.android,
+  //   disabled: true,
+  // },
   {
     id: "windows" as Platform,
     label: "Windows",

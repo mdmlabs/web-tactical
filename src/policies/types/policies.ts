@@ -1,4 +1,4 @@
-export type Platform = "windows" | "apple" | "android";
+export type Platform = "windows"; // | "apple" | "android";
 export type Scope = "primary_user" | "all_users" | "system";
 export type VerificationMethod = "registry" | "file_exists" | "script";
 export type ResourceType = "book" | "certificate" | "image";
@@ -36,7 +36,7 @@ export interface PolicyResource {
   resourceId: number;
   name: string;
   type: ResourceType;
-  scope: Scope;
+  scope?: Scope;
   locations: string[];
 }
 
@@ -120,8 +120,8 @@ export const PLATFORMS: {
   icon: string;
   disabled: boolean;
 }[] = [
-  { id: "apple", label: "Apple", icon: "mdi-apple", disabled: true },
-  { id: "android", label: "Android", icon: "mdi-android", disabled: true },
+  // { id: "apple", label: "Apple", icon: "mdi-apple", disabled: true },
+  // { id: "android", label: "Android", icon: "mdi-android", disabled: true },
   {
     id: "windows",
     label: "Windows",

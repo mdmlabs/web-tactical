@@ -49,21 +49,6 @@
             />
           </div>
 
-          <!-- Segment -->
-          <div class="form-section">
-            <label class="form-label"
-              >Segment <span class="required">*</span></label
-            >
-            <q-select
-              v-model="formData.segment"
-              :options="segmentOptions"
-              outlined
-              dense
-              emit-value
-              map-options
-            />
-          </div>
-
           <!-- Version -->
           <div class="form-section">
             <label class="form-label"
@@ -133,7 +118,7 @@ import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useQuasar } from "quasar";
 import ResourceFileUpload from "../components/ResourceFileUpload.vue";
-import { SEGMENTS, APP_PLATFORMS } from "../types/resources";
+import { APP_PLATFORMS } from "../types/resources";
 import type { AppPlatform } from "../types/resources";
 import { useResourceUpload } from "../composables/useResourceUpload";
 
@@ -148,19 +133,15 @@ const formData = ref({
   file: null as File | null,
   name: "",
   description: "",
-  segment: "Global",
   version: "",
   platform: "Windows" as AppPlatform,
 });
-
-const segmentOptions = SEGMENTS.map((s) => ({ label: s, value: s }));
 const platformOptions = APP_PLATFORMS;
 
 const isFormValid = computed(() => {
   return (
     formData.value.file &&
     formData.value.name &&
-    formData.value.segment &&
     formData.value.version &&
     formData.value.platform
   );
@@ -192,7 +173,6 @@ async function handleSubmit() {
     await uploadResource(formData.value.file!, {
       name: formData.value.name,
       resource_type: "app",
-      segment: formData.value.segment,
       description: formData.value.description,
       version: formData.value.version,
       platform: formData.value.platform,

@@ -49,21 +49,6 @@
             />
           </div>
 
-          <!-- Segment -->
-          <div class="form-section">
-            <label class="form-label"
-              >Segment <span class="required">*</span></label
-            >
-            <q-select
-              v-model="formData.segment"
-              :options="segmentOptions"
-              outlined
-              dense
-              emit-value
-              map-options
-            />
-          </div>
-
           <!-- Password -->
           <div class="form-section">
             <label class="form-label">Password</label>
@@ -157,7 +142,6 @@ import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useQuasar } from "quasar";
 import ResourceFileUpload from "../components/ResourceFileUpload.vue";
-import { SEGMENTS } from "../types/resources";
 import { useResourceUpload } from "../composables/useResourceUpload";
 
 const router = useRouter();
@@ -172,19 +156,15 @@ const formData = ref({
   file: null as File | null,
   name: "",
   description: "",
-  segment: "Global",
   password: "",
   issuedTo: "",
   expiryDate: "",
 });
 
-const segmentOptions = SEGMENTS.map((s) => ({ label: s, value: s }));
-
 const isFormValid = computed(() => {
   return (
     formData.value.file &&
     formData.value.name &&
-    formData.value.segment &&
     formData.value.issuedTo &&
     formData.value.expiryDate
   );
@@ -206,7 +186,6 @@ async function handleSubmit() {
     await uploadResource(formData.value.file!, {
       name: formData.value.name,
       resource_type: "certificate",
-      segment: formData.value.segment,
       description: formData.value.description,
       issued_to: formData.value.issuedTo,
       expiry_date: formData.value.expiryDate,
