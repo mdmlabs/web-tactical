@@ -171,6 +171,45 @@
             /> -->
           </div>
         </q-card-section>
+        <!-- MDM Agent Installation Section -->
+        <q-card-section v-show="installMethod === 'exe' && agentOS === 'windows'">
+          <q-separator class="q-mb-md" />
+          <div class="text-subtitle2 q-mb-sm">Windows Policy Extension</div>
+          <q-checkbox
+            v-model="install_mdm"
+            dense
+            label="Install Windows Policy Extension (MDM Agent)"
+          />
+          <div v-show="install_mdm" class="q-mt-md q-ml-sm">
+            <div class="q-mb-sm">
+              <span class="text-body2">Architecture:</span>
+              <q-radio
+                v-model="mdm_arch"
+                val="x64"
+                label="x64"
+                dense
+                class="q-ml-md"
+              />
+              <q-radio
+                v-model="mdm_arch"
+                val="arm64"
+                label="ARM64"
+                dense
+                class="q-ml-sm"
+              />
+            </div>
+            <q-input
+              v-model="mdm_master_url"
+              dense
+              outlined
+              label="Master URL"
+              placeholder="https://api.example.com:5000"
+              hint="URL for MDM agent communication. Leave empty to use API URL."
+              class="q-mt-sm"
+              style="max-width: 400px"
+            />
+          </div>
+        </q-card-section>
         <q-card-actions align="left">
           <q-btn :label="installButtonText" color="primary" type="submit" />
         </q-card-actions>
@@ -219,6 +258,10 @@ export default {
       installMethod: "powershell",
       goarch: GOARCH_AMD64,
       agentOS: "windows",
+      // MDM agent fields
+      install_mdm: false,
+      mdm_arch: "x64",
+      mdm_master_url: "",
     };
   },
   methods: {
@@ -258,7 +301,8 @@ export default {
         .toLowerCase()
         .replace(/([^a-zA-Z0-9]+)/g, "");
 
-      const fileName = `trmm-${clientStripped}-${siteStripped}-${this.agenttype}-${this.goarch}.exe`;
+      const mdmSuffix = this.install_mdm ? "-with-mdm" : "";
+      const fileName = `trmm-${clientStripped}-${siteStripped}-${this.agenttype}-${this.goarch}${mdmSuffix}.exe`;
 
       const data = {
         installMethod: this.installMethod,
@@ -273,6 +317,10 @@ export default {
         api,
         fileName,
         plat: this.agentOS,
+        // MDM agent fields
+        install_mdm: this.install_mdm,
+        mdm_arch: this.install_mdm ? this.mdm_arch : undefined,
+        mdm_master_url: this.install_mdm ? this.mdm_master_url : undefined,
       };
 
       if (this.installMethod === "manual" || this.installMethod === "mac") {

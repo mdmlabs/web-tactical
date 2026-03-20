@@ -57,7 +57,7 @@ export function usePolicyDetail(policyId: string) {
       policy.value = JSON.parse(JSON.stringify(found));
       syncAssignedDeviceObjects(found.assignedDevices);
     } catch (err) {
-      console.error('[usePolicyDetail] loadPolicy error:', err);
+      console.error("[usePolicyDetail] loadPolicy error:", err);
     } finally {
       loading.value = false;
     }
@@ -84,7 +84,7 @@ export function usePolicyDetail(policyId: string) {
         originalPolicy.value = JSON.parse(JSON.stringify(updated));
         hasChanges.value = false;
       } catch (err) {
-        console.error('[usePolicyDetail] saveChanges error:', err);
+        console.error("[usePolicyDetail] saveChanges error:", err);
         throw err;
       }
     }
@@ -195,8 +195,8 @@ export function usePolicyDetail(policyId: string) {
 
         return result;
       } catch (err) {
-        console.error('[usePolicyDetail] deployToDevices error:', err);
-        deployError.value = 'Failed to deploy policy';
+        console.error("[usePolicyDetail] deployToDevices error:", err);
+        deployError.value = "Failed to deploy policy";
         throw err;
       } finally {
         deployLoading.value = false;
@@ -213,7 +213,7 @@ export function usePolicyDetail(policyId: string) {
         policy.value.deviceCount = result.deviceCount;
         syncAssignedDeviceObjects(result.assignedDevices);
       } catch (err) {
-        console.error('[usePolicyDetail] unassignDevice error:', err);
+        console.error("[usePolicyDetail] unassignDevice error:", err);
         throw err;
       }
     }
@@ -262,11 +262,11 @@ export function usePolicyDetail(policyId: string) {
 
   // Preview items (first 3 for summary cards)
   const appPreviewItems = computed(() =>
-    policy.value?.apps.slice(0, 3).map(app => ({ name: app.name, type: 'app' })) || []
+    policy.value?.apps.slice(0, 3).map(app => ({ name: app.name, type: "app" })) || []
   );
 
   const scriptPreviewItems = computed(() =>
-    policy.value?.scripts.slice(0, 3).map(script => ({ name: script.name, type: 'script' })) || []
+    policy.value?.scripts.slice(0, 3).map(script => ({ name: script.name, type: "script" })) || []
   );
 
   const resourcePreviewItems = computed(() =>

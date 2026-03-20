@@ -81,7 +81,7 @@ function mapPolicyToApi(policy: Partial<Policy>): Record<string, unknown> {
   if (policy.segment !== undefined) mapped.segment = policy.segment;
   if (policy.apps !== undefined) {
     mapped.apps = policy.apps.map((app) => ({
-      id: app.id.startsWith('app-') ? undefined : app.id,
+      id: app.id.startsWith("app-") ? undefined : app.id,
       resource_id: app.resourceId,
       name: app.name,
       version: app.version,
@@ -94,7 +94,7 @@ function mapPolicyToApi(policy: Partial<Policy>): Record<string, unknown> {
   }
   if (policy.scripts !== undefined) {
     mapped.scripts = policy.scripts.map((script) => ({
-      id: script.id.startsWith('script-') ? undefined : script.id,
+      id: script.id.startsWith("script-") ? undefined : script.id,
       resource_id: script.resourceId,
       name: script.name,
       timeout: script.timeout,
@@ -103,7 +103,7 @@ function mapPolicyToApi(policy: Partial<Policy>): Record<string, unknown> {
   }
   if (policy.resources !== undefined) {
     mapped.resources = policy.resources.map((res) => ({
-      id: res.id.startsWith('resource-') ? undefined : res.id,
+      id: res.id.startsWith("resource-") ? undefined : res.id,
       resource_id: res.resourceId,
       name: res.name,
       type: res.type,
@@ -151,7 +151,7 @@ export async function createPolicy(
   payload: CreatePolicyRequest,
 ): Promise<Policy> {
   const { data } = await axios.post(`${baseUrl}/`, payload);
-  console.log('[policies.ts] createPolicy response:', data);
+  console.log("[policies.ts] createPolicy response:", data);
   return mapPolicyFromApi(data);
 }
 
@@ -310,9 +310,9 @@ export async function fetchDevices(): Promise<Device[]> {
     name: String(d.hostname),
     segment: String(d.client),
     battery: 0,
-    employee: String(d.agent_id ?? ''),
+    employee: String(d.agent_id ?? ""),
     policiesCount: 0,
-    updated: '',
+    updated: "",
   }));
 }
 

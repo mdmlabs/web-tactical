@@ -99,33 +99,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import { useQuasar } from 'quasar';
-import { useAgentDropdown } from '@/composables/agents';
-import { useClientDropdown, useSiteDropdown } from '@/composables/clients';
-import TacticalDropdown from '@/components/ui/TacticalDropdown.vue';
+import { ref, computed, watch } from "vue";
+import { useQuasar } from "quasar";
+import { useAgentDropdown } from "@/composables/agents";
+import { useClientDropdown, useSiteDropdown } from "@/composables/clients";
+import TacticalDropdown from "@/components/ui/TacticalDropdown.vue";
 
 const props = defineProps<{
   modelValue: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: boolean): void;
+  (e: "update:modelValue", value: boolean): void;
   // (e: 'assign', deviceIds: number[]): void;  // TODO: will be re-enabled later
-  (e: 'deploy', deviceIds: number[]): void;
+  (e: "deploy", deviceIds: number[]): void;
 }>();
 
 const $q = useQuasar();
 const loading = ref(false);
 
 // Target selector
-const target = ref<'client' | 'site' | 'agents' | 'all'>('agents');
+const target = ref<"client" | "site" | "agents" | "all">("agents");
 
 const targetOptions = [
-  { label: 'Client', value: 'client' },
-  { label: 'Site', value: 'site' },
-  { label: 'Selected Agents', value: 'agents' },
-  { label: 'All', value: 'all' },
+  { label: "Client", value: "client" },
+  { label: "Site", value: "site" },
+  { label: "Selected Agents", value: "agents" },
+  { label: "All", value: "all" },
 ];
 
 // Dropdowns
@@ -137,10 +137,10 @@ const { site: selectedSite, siteOptions, getSiteOptions } = useSiteDropdown();
 const allAgentsRaw = ref<Array<{ id: number; hostname: string; client: string; site: string }>>([]);
 
 const canAssign = computed(() => {
-  if (target.value === 'all') return true;
-  if (target.value === 'agents') return Array.isArray(selectedAgents.value) && selectedAgents.value.length > 0;
-  if (target.value === 'client') return !!selectedClient.value;
-  if (target.value === 'site') return !!selectedSite.value;
+  if (target.value === "all") return true;
+  if (target.value === "agents") return Array.isArray(selectedAgents.value) && selectedAgents.value.length > 0;
+  if (target.value === "client") return !!selectedClient.value;
+  if (target.value === "site") return !!selectedSite.value;
   return false;
 });
 
@@ -157,9 +157,9 @@ watch(() => props.modelValue, async (isOpen) => {
     resetForm();
     loading.value = true;
     try {
-      await Promise.all([getAgentOptions(false, 'id'), getClientOptions(), getSiteOptions()]);
+      await Promise.all([getAgentOptions(false, "id"), getClientOptions(), getSiteOptions()]);
       // Also keep a raw list for client/site/all resolution
-      const { fetchAgents } = await import('@/api/agents');
+      const { fetchAgents } = await import("@/api/agents");
       const raw = await fetchAgents({ detail: false });
       allAgentsRaw.value = raw.map((a: Record<string, unknown>) => ({
         id: Number(a.id),
@@ -168,8 +168,8 @@ watch(() => props.modelValue, async (isOpen) => {
         site: String(a.site),
       }));
     } catch (err) {
-      console.error('[AssignDeviceDialog] failed to load options:', err);
-      $q.notify({ message: 'Failed to load agents', color: 'negative', position: 'top' });
+      console.error("[AssignDeviceDialog] failed to load options:", err);
+      $q.notify({ message: "Failed to load agents", color: "negative", position: "top" });
     } finally {
       loading.value = false;
     }
@@ -177,7 +177,7 @@ watch(() => props.modelValue, async (isOpen) => {
 });
 
 function resetForm() {
-  target.value = 'agents';
+  target.value = "agents";
   selectedAgents.value = [];
   selectedClient.value = null;
   selectedSite.value = null;
@@ -189,18 +189,18 @@ function close() {
 
 function resolveDeviceIds(): number[] {
   switch (target.value) {
-    case 'agents':
+    case "agents":
       return (selectedAgents.value as unknown as number[]) ?? [];
-    case 'all':
+    case "all":
       return allAgentsRaw.value.map(a => a.id);
-    case 'client': {
+    case "client": {
       const opts = clientOptions.value as Array<{ value: unknown; label: string }>;
       const clientLabel = opts.find(o => o.value === selectedClient.value)?.label;
       return allAgentsRaw.value
         .filter(a => a.client === clientLabel)
         .map(a => a.id);
     }
-    case 'site': {
+    case "site": {
       const opts = siteOptions.value as Array<{ value: unknown; label: string }>;
       const siteLabel = opts.find(o => o.value === selectedSite.value)?.label;
       return allAgentsRaw.value
@@ -231,11 +231,11 @@ function deploy() {
 
   const deviceIds = resolveDeviceIds();
   if (deviceIds.length === 0) {
-    $q.notify({ message: 'No agents found for selected target', color: 'warning', position: 'top' });
+    $q.notify({ message: "No agents found for selected target", color: "warning", position: "top" });
     return;
   }
 
-  emit('deploy', deviceIds);
+  emit("deploy", deviceIds);
   close();
 }
 </script>

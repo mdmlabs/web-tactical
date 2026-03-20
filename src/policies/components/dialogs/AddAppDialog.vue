@@ -233,12 +233,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import { useQuasar } from 'quasar';
-import type { PolicyApp, VerificationMethod } from '../../types/policies';
-import { fetchResourceList } from '@/api/resources';
-import { useResourceUpload } from '@/resources/composables/useResourceUpload';
-import ResourceFileUpload from '@/resources/components/ResourceFileUpload.vue';
+import { ref, computed, watch } from "vue";
+import { useQuasar } from "quasar";
+import type { PolicyApp, VerificationMethod } from "../../types/policies";
+import { fetchResourceList } from "@/api/resources";
+import { useResourceUpload } from "@/resources/composables/useResourceUpload";
+import ResourceFileUpload from "@/resources/components/ResourceFileUpload.vue";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -254,21 +254,21 @@ const $q = useQuasar();
 // Upload state
 const showUpload = ref(false);
 const uploadFile = ref<File | null>(null);
-const uploadName = ref('');
+const uploadName = ref("");
 const { uploading, uploadProgress, uploadPhase, uploadResource } =
   useResourceUpload();
 
 // Form state
-const activeTab = ref('resource');
+const activeTab = ref("resource");
 const selectedResource = ref<number | null>(null);
 const silentInstall = ref(true);
 const runAsUser = ref(false);
 const installArguments = ref("");
 const timeout = ref(900);
-const verificationMethod = ref<VerificationMethod>('registry');
-const registryPath = ref('');
-const registryKey = ref('');
-const filePath = ref('');
+const verificationMethod = ref<VerificationMethod>("registry");
+const registryPath = ref("");
+const registryKey = ref("");
+const filePath = ref("");
 const verificationScript = ref<number | null>(null);
 
 // API data
@@ -292,13 +292,13 @@ const selectedResourceData = computed(() =>
 function resetUpload() {
   showUpload.value = false;
   uploadFile.value = null;
-  uploadName.value = '';
+  uploadName.value = "";
 }
 
 // Handle file selected for upload
 function onUploadFileSelected(file: File) {
   if (!uploadName.value) {
-    uploadName.value = file.name.replace(/\.[^/.]+$/, '');
+    uploadName.value = file.name.replace(/\.[^/.]+$/, "");
   }
 }
 
@@ -309,10 +309,10 @@ async function uploadAndAddApp() {
   try {
     const uploadedResource = await uploadResource(uploadFile.value, {
       name: uploadName.value,
-      resource_type: 'app',
-      description: '',
-      version: '1.0.0',
-      platform: 'Windows',
+      resource_type: "app",
+      description: "",
+      version: "1.0.0",
+      platform: "Windows",
     });
     
     // Add the uploaded resource as an app
@@ -320,36 +320,36 @@ async function uploadAndAddApp() {
       id: `app-${Date.now()}`,
       resourceId: uploadedResource.id as number,
       name: uploadName.value,
-      version: '1.0.0',
+      version: "1.0.0",
       silentInstall: silentInstall.value,
       arguments: installArguments.value,
       timeout: timeout.value,
       runAsUser: runAsUser.value,
       verification: {
         method: verificationMethod.value,
-        registryPath: verificationMethod.value === 'registry' ? registryPath.value : undefined,
-        registryKey: verificationMethod.value === 'registry' ? registryKey.value : undefined,
-        filePath: verificationMethod.value === 'file_exists' ? filePath.value : undefined,
-        scriptId: verificationMethod.value === 'script' ? verificationScript.value || undefined : undefined,
+        registryPath: verificationMethod.value === "registry" ? registryPath.value : undefined,
+        registryKey: verificationMethod.value === "registry" ? registryKey.value : undefined,
+        filePath: verificationMethod.value === "file_exists" ? filePath.value : undefined,
+        scriptId: verificationMethod.value === "script" ? verificationScript.value || undefined : undefined,
       },
     };
     
-    emit('add', app);
+    emit("add", app);
     close();
     
     $q.notify({
       message: `App "${uploadName.value}" uploaded and added successfully`,
-      color: 'positive',
-      position: 'top',
-      icon: 'check_circle',
+      color: "positive",
+      position: "top",
+      icon: "check_circle",
     });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Failed to upload app';
+    const msg = error instanceof Error ? error.message : "Failed to upload app";
     $q.notify({
       message: msg,
-      color: 'negative',
-      position: 'top',
-      icon: 'error',
+      color: "negative",
+      position: "top",
+      icon: "error",
     });
   }
 }
@@ -359,17 +359,17 @@ async function loadResources() {
   loading.value = true;
   try {
     const [appsData, scriptsData] = await Promise.all([
-      fetchResourceList('app'),
-      fetchResourceList('script'),
+      fetchResourceList("app"),
+      fetchResourceList("script"),
     ]);
     appResources.value = Array.isArray(appsData) ? appsData : (appsData?.results ?? []);
     scriptResources.value = Array.isArray(scriptsData) ? scriptsData : (scriptsData?.results ?? []);
   } catch (error) {
-    console.error('Failed to load resources:', error);
+    console.error("Failed to load resources:", error);
     $q.notify({
-      message: 'Failed to load resources',
-      color: 'negative',
-      position: 'top',
+      message: "Failed to load resources",
+      color: "negative",
+      position: "top",
     });
   } finally {
     loading.value = false;

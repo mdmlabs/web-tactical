@@ -154,15 +154,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { useQuasar } from 'quasar';
-import PoliciesSidebar from '../components/PoliciesSidebar.vue';
-import PoliciesTable from '../components/PoliciesTable.vue';
-import CreatePolicyDialog from '../components/dialogs/CreatePolicyDialog.vue';
-import { usePolicies } from '../composables/usePolicies';
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { useQuasar } from "quasar";
+import PoliciesSidebar from "../components/PoliciesSidebar.vue";
+import PoliciesTable from "../components/PoliciesTable.vue";
+import CreatePolicyDialog from "../components/dialogs/CreatePolicyDialog.vue";
+import { usePolicies } from "../composables/usePolicies";
 
-import type { Policy, Platform } from '../types/policies';
+import type { Policy, Platform } from "../types/policies";
 
 const router = useRouter();
 const $q = useQuasar();

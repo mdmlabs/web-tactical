@@ -144,12 +144,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import { useQuasar } from 'quasar';
-import type { PolicyResource, ResourceType } from '../../types/policies';
-import { fetchResourceList } from '@/api/resources';
-import { useResourceUpload } from '@/resources/composables/useResourceUpload';
-import ResourceFileUpload from '@/resources/components/ResourceFileUpload.vue';
+import { ref, computed, watch } from "vue";
+import { useQuasar } from "quasar";
+import type { PolicyResource, ResourceType } from "../../types/policies";
+import { fetchResourceList } from "@/api/resources";
+import { useResourceUpload } from "@/resources/composables/useResourceUpload";
+import ResourceFileUpload from "@/resources/components/ResourceFileUpload.vue";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -165,14 +165,14 @@ const $q = useQuasar();
 // Upload state
 const showUpload = ref(false);
 const uploadFile = ref<File | null>(null);
-const uploadName = ref('');
+const uploadName = ref("");
 const { uploading, uploadProgress, uploadPhase, uploadResource } =
   useResourceUpload();
 
 // Form state
-const resourceType = ref<ResourceType>('book');
+const resourceType = ref<ResourceType>("book");
 const selectedResource = ref<number | null>(null);
-const location = ref('');
+const location = ref("");
 
 // API data
 const bookResources = ref<Array<{ id: number; name: string }>>([]);
@@ -190,11 +190,11 @@ const typeDescription = computed(() => typeDescriptions[resourceType.value]);
 
 const currentResources = computed(() => {
   switch (resourceType.value) {
-    case 'book':
+    case "book":
       return bookResources.value;
-    case 'certificate':
+    case "certificate":
       return certificateResources.value;
-    case 'image':
+    case "image":
       return imageResources.value;
     default:
       return [];
@@ -211,13 +211,13 @@ const canAdd = computed(() => selectedResource.value !== null || (showUpload.val
 function resetUpload() {
   showUpload.value = false;
   uploadFile.value = null;
-  uploadName.value = '';
+  uploadName.value = "";
 }
 
 // Handle file selected for upload
 function onUploadFileSelected(file: File) {
   if (!uploadName.value) {
-    uploadName.value = file.name.replace(/\.[^/.]+$/, '');
+    uploadName.value = file.name.replace(/\.[^/.]+$/, "");
   }
 }
 
@@ -229,7 +229,7 @@ async function uploadAndAddResource() {
     const uploadedResource = await uploadResource(uploadFile.value, {
       name: uploadName.value,
       resource_type: resourceType.value,
-      description: '',
+      description: "",
     });
 
     // Add the uploaded resource
@@ -241,22 +241,22 @@ async function uploadAndAddResource() {
       locations: location.value ? [location.value] : [],
     };
 
-    emit('add', resource);
+    emit("add", resource);
     close();
 
     $q.notify({
-      message: `${resourceType.value === 'book' ? 'Book' : resourceType.value === 'certificate' ? 'Certificate' : 'Image'} "${uploadName.value}" uploaded and added successfully`,
-      color: 'positive',
-      position: 'top',
-      icon: 'check_circle',
+      message: `${resourceType.value === "book" ? "Book" : resourceType.value === "certificate" ? "Certificate" : "Image"} "${uploadName.value}" uploaded and added successfully`,
+      color: "positive",
+      position: "top",
+      icon: "check_circle",
     });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Failed to upload resource';
+    const msg = error instanceof Error ? error.message : "Failed to upload resource";
     $q.notify({
       message: msg,
-      color: 'negative',
-      position: 'top',
-      icon: 'error',
+      color: "negative",
+      position: "top",
+      icon: "error",
     });
   }
 }
@@ -266,19 +266,19 @@ async function loadResources() {
   loading.value = true;
   try {
     const [booksData, imagesData, certificatesData] = await Promise.all([
-      fetchResourceList('book'),
-      fetchResourceList('image'),
-      fetchResourceList('certificate'),
+      fetchResourceList("book"),
+      fetchResourceList("image"),
+      fetchResourceList("certificate"),
     ]);
     bookResources.value = Array.isArray(booksData) ? booksData : (booksData?.results ?? []);
     imageResources.value = Array.isArray(imagesData) ? imagesData : (imagesData?.results ?? []);
     certificateResources.value = Array.isArray(certificatesData) ? certificatesData : (certificatesData?.results ?? []);
   } catch (error) {
-    console.error('Failed to load resources:', error);
+    console.error("Failed to load resources:", error);
     $q.notify({
-      message: 'Failed to load resources',
-      color: 'negative',
-      position: 'top',
+      message: "Failed to load resources",
+      color: "negative",
+      position: "top",
     });
   } finally {
     loading.value = false;

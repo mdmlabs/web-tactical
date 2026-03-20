@@ -49,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed } from "vue";
 
 interface PreviewItem {
   name: string;
@@ -80,17 +80,17 @@ function getItemIcon(item: PreviewItem): string {
   if (item.icon) return item.icon;
   // Default icons based on type
   const typeIcons: Record<string, string> = {
-    script: 'code',
-    app: 'apps',
-    book: 'menu_book',
-    image: 'image',
-    certificate: 'vpn_key',
+    script: "code",
+    app: "apps",
+    book: "menu_book",
+    image: "image",
+    certificate: "vpn_key",
   };
-  return typeIcons[item.type || ''] || 'folder';
+  return typeIcons[item.type || ""] || "folder";
 }
 
 function getItemName(item: PreviewItem): string {
-  return item.name || 'Unnamed';
+  return item.name || "Unnamed";
 }
 </script>
 

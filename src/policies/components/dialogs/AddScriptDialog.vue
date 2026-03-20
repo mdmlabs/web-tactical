@@ -137,12 +137,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import { useQuasar } from 'quasar';
-import type { PolicyScript } from '../../types/policies';
-import { fetchResourceList } from '@/api/resources';
-import { useResourceUpload } from '@/resources/composables/useResourceUpload';
-import ResourceFileUpload from '@/resources/components/ResourceFileUpload.vue';
+import { ref, computed, watch } from "vue";
+import { useQuasar } from "quasar";
+import type { PolicyScript } from "../../types/policies";
+import { fetchResourceList } from "@/api/resources";
+import { useResourceUpload } from "@/resources/composables/useResourceUpload";
+import ResourceFileUpload from "@/resources/components/ResourceFileUpload.vue";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -158,7 +158,7 @@ const $q = useQuasar();
 // Upload state
 const showUpload = ref(false);
 const uploadFile = ref<File | null>(null);
-const uploadName = ref('');
+const uploadName = ref("");
 const { uploading, uploadProgress, uploadPhase, uploadResource } =
   useResourceUpload();
 
@@ -181,13 +181,13 @@ const selectedScriptData = computed(() =>
 function resetUpload() {
   showUpload.value = false;
   uploadFile.value = null;
-  uploadName.value = '';
+  uploadName.value = "";
 }
 
 // Handle file selected for upload
 function onUploadFileSelected(file: File) {
   if (!uploadName.value) {
-    uploadName.value = file.name.replace(/\.[^/.]+$/, '');
+    uploadName.value = file.name.replace(/\.[^/.]+$/, "");
   }
 }
 
@@ -198,9 +198,9 @@ async function uploadAndAddScript() {
   try {
     const uploadedResource = await uploadResource(uploadFile.value, {
       name: uploadName.value,
-      resource_type: 'script',
-      description: '',
-      language: 'PowerShell',
+      resource_type: "script",
+      description: "",
+      language: "PowerShell",
     });
     
     // Add the uploaded resource as a script
@@ -212,22 +212,22 @@ async function uploadAndAddScript() {
       runAsUser: runAsUser.value,
     };
     
-    emit('add', script);
+    emit("add", script);
     close();
     
     $q.notify({
       message: `Script "${uploadName.value}" uploaded and added successfully`,
-      color: 'positive',
-      position: 'top',
-      icon: 'check_circle',
+      color: "positive",
+      position: "top",
+      icon: "check_circle",
     });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Failed to upload script';
+    const msg = error instanceof Error ? error.message : "Failed to upload script";
     $q.notify({
       message: msg,
-      color: 'negative',
-      position: 'top',
-      icon: 'error',
+      color: "negative",
+      position: "top",
+      icon: "error",
     });
   }
 }
@@ -236,14 +236,14 @@ async function uploadAndAddScript() {
 async function loadScripts() {
   loading.value = true;
   try {
-    const data = await fetchResourceList('script');
+    const data = await fetchResourceList("script");
     scriptResources.value = Array.isArray(data) ? data : (data?.results ?? []);
   } catch (error) {
-    console.error('Failed to load scripts:', error);
+    console.error("Failed to load scripts:", error);
     $q.notify({
-      message: 'Failed to load scripts',
-      color: 'negative',
-      position: 'top',
+      message: "Failed to load scripts",
+      color: "negative",
+      position: "top",
     });
   } finally {
     loading.value = false;

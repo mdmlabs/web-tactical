@@ -146,9 +146,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import type { Device } from '../types/policies';
-import { fetchDeliveryJobs, type DeliveryJob, type DeliveryResultStatus } from '@/api/fileDelivery';
+import { ref, computed, watch } from "vue";
+import type { Device } from "../types/policies";
+import { fetchDeliveryJobs, type DeliveryJob, type DeliveryResultStatus } from "@/api/fileDelivery";
 // import { formatRelativeTime } from '../mocks/policiesMockData';
 
 const props = defineProps<{
@@ -156,11 +156,11 @@ const props = defineProps<{
 }>();
 
 defineEmits<{
-  (e: 'assign'): void;
-  (e: 'unassign', deviceId: number): void;
-  (e: 'refresh'): void;
-  (e: 'view-all'): void;
-  (e: 'view-jobs'): void;
+  (e: "assign"): void;
+  (e: "unassign", deviceId: number): void;
+  (e: "refresh"): void;
+  (e: "view-all"): void;
+  (e: "view-jobs"): void;
 }>();
 
 const searchQuery = ref("");
@@ -179,7 +179,7 @@ async function loadDeliveryJobs() {
   try {
     deliveryJobs.value = await fetchDeliveryJobs();
   } catch (err) {
-    console.error('[AssignedDevicesTable] failed to load delivery jobs:', err);
+    console.error("[AssignedDevicesTable] failed to load delivery jobs:", err);
   } finally {
     loadingJobs.value = false;
   }
@@ -192,7 +192,7 @@ function getDeviceStatus(deviceId: number): string {
     job.targetAgents?.includes(deviceId)
   );
   
-  if (deviceJobs.length === 0) return '';
+  if (deviceJobs.length === 0) return "";
   
   // Get the most recent job
   const latestJob = deviceJobs.sort((a, b) => 
@@ -216,10 +216,10 @@ function getDeviceDeliveryResultStatus(deviceId: number): DeliveryResultStatus |
   )[0];
   
   // If job is completed or failed, check individual result status
-  if (latestJob.status === 'completed' || latestJob.status === 'failed') {
+  if (latestJob.status === "completed" || latestJob.status === "failed") {
     // Return success if any succeeded, failed if all failed
-    if (latestJob.resultsSummary.success > 0) return 'success';
-    if (latestJob.resultsSummary.failed > 0) return 'failed';
+    if (latestJob.resultsSummary.success > 0) return "success";
+    if (latestJob.resultsSummary.failed > 0) return "failed";
   }
   
   return latestJob.status as DeliveryResultStatus;
@@ -244,13 +244,13 @@ const filteredDevices = computed(() => {
 });
 
 const columns = [
-  { name: 'name', label: 'DEVICE', field: 'name', align: 'left' as const },
-  { name: 'status', label: 'STATUS', field: 'status', align: 'center' as const },
+  { name: "name", label: "DEVICE", field: "name", align: "left" as const },
+  { name: "status", label: "STATUS", field: "status", align: "center" as const },
   // { name: 'battery', label: 'BATTERY', field: 'battery', align: 'left' as const },
   // { name: 'employee', label: 'DEVICE EMPLOYEE', field: 'employee', align: 'left' as const },
   // { name: 'policiesCount', label: 'POLICIES', field: 'policiesCount', align: 'left' as const },
   // { name: 'updated', label: 'UPDATED', field: 'updated', align: 'left' as const, format: (val: string) => formatRelativeTime(val) },
-  { name: 'actions', label: '', field: 'actions', align: 'right' as const },
+  { name: "actions", label: "", field: "actions", align: "right" as const },
 ];
 
 // function getBatteryIcon(level: number): string {
@@ -268,19 +268,19 @@ const columns = [
 // }
 
 function getStatusColor(status: string | undefined): string {
-  if (!status) return 'grey';
+  if (!status) return "grey";
   const colors: Record<string, string> = {
-    pending: 'grey',
-    in_progress: 'blue',
-    downloading: 'blue',
-    installing: 'blue',
-    verifying: 'blue',
-    completed: 'positive',
-    failed: 'negative',
-    success: 'positive',
-    error: 'negative',
+    pending: "grey",
+    in_progress: "blue",
+    downloading: "blue",
+    installing: "blue",
+    verifying: "blue",
+    completed: "positive",
+    failed: "negative",
+    success: "positive",
+    error: "negative",
   };
-  return colors[status] || 'grey';
+  return colors[status] || "grey";
 }
 </script>
 
