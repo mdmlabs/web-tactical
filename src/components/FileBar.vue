@@ -1266,14 +1266,6 @@
     <q-dialog v-model="showInstallAgent">
       <InstallAgent @close="showInstallAgent = false" />
     </q-dialog>
-    <q-dialog
-      v-model="showUpdateAgentsModal"
-      maximized
-      transition-show="slide-up"
-      transition-hide="slide-down"
-    >
-      <UpdateAgents @close="showUpdateAgentsModal = false" />
-    </q-dialog>
     <q-dialog v-model="showAdminManager">
       <AdminManager @close="showAdminManager = false" />
     </q-dialog>
@@ -1294,7 +1286,6 @@ import PendingActions from "@/components/logs/PendingActions.vue";
 import ClientsManager from "@/components/clients/ClientsManager.vue";
 import ClientsForm from "@/components/clients/ClientsForm.vue";
 import SitesForm from "@/components/clients/SitesForm.vue";
-import UpdateAgents from "@/components/modals/agents/UpdateAgents.vue";
 import ScriptManager from "@/components/scripts/ScriptManager.vue";
 import EditCoreSettings from "@/components/modals/coresettings/EditCoreSettings.vue";
 import AlertsManager from "@/components/AlertsManager.vue";
@@ -1314,7 +1305,6 @@ export default {
   name: "FileBar",
   mixins: [mixins],
   components: {
-    UpdateAgents,
     EditCoreSettings,
     InstallAgent,
     AdminManager,
@@ -1324,7 +1314,6 @@ export default {
   data() {
     return {
       showServerMaintenance: false,
-      showUpdateAgentsModal: false,
       showEditCoreSettingsModal: false,
       showAdminManager: false,
       showInstallAgent: false,
@@ -1426,7 +1415,7 @@ export default {
           this.showDeployments();
           break;
         case "updateAgents":
-          this.showUpdateAgentsModal = true;
+          this.$router.push("/updates");
           break;
         case "clientsManager":
           this.showClientsManager();

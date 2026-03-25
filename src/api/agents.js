@@ -288,3 +288,36 @@ export async function updateAgents(payload) {
     throw e;
   }
 }
+
+// MDM agent versions
+export async function fetchMdmVersions() {
+  try {
+    const { data } = await axios.get(`${baseUrl}/mdm/versions/`);
+    return data;
+  } catch (e) {
+    console.error(e);
+    throw e;
+  }
+}
+
+// MDM agent update
+export async function updateMdmAgents(payload) {
+  try {
+    const { data } = await axios.post(`${baseUrl}/mdm/update/`, payload);
+    return data;
+  } catch (e) {
+    console.error(e);
+    throw e;
+  }
+}
+
+// MDM agent delete
+export async function deleteMdmAgents(payload) {
+  try {
+    const { data } = await axios.post(`${baseUrl}/mdm/delete/`, payload);
+    return data;
+  } catch (e) {
+    console.error(e);
+    throw e;
+  }
+}

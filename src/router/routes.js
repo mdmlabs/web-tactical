@@ -39,6 +39,14 @@ const routes = [
       //   },
       // },
       {
+        path: "/updates",
+        name: "AgentUpdates",
+        component: () => import("@/agent-updates/views/AgentUpdatesView.vue"),
+        meta: {
+          requireAuth: true,
+        },
+      },
+      {
         path: "/resources",
         name: "Resources",
         component: () => import("@/resources/views/ResourcesView.vue"),

@@ -161,6 +161,32 @@
       </q-menu>
     </q-item>
 
+    <!-- update MDM agent (Windows only) -->
+    <q-item
+      v-if="agent.plat === 'windows'"
+      clickable
+      v-close-popup
+      @click="showUpdateMdm()"
+    >
+      <q-item-section side>
+        <q-icon size="xs" name="system_update_alt" />
+      </q-item-section>
+      <q-item-section>Update MDM Agent</q-item-section>
+    </q-item>
+
+    <!-- delete MDM agent (Windows only) -->
+    <q-item
+      v-if="agent.plat === 'windows'"
+      clickable
+      v-close-popup
+      @click="confirmDeleteMdm(agent)"
+    >
+      <q-item-section side>
+        <q-icon size="xs" name="delete_outline" />
+      </q-item-section>
+      <q-item-section>Delete MDM Agent</q-item-section>
+    </q-item>
+
     <q-item clickable v-close-popup @click="runChecks(agent)">
       <q-item-section side>
         <q-icon size="xs" name="fas fa-check-double" />
@@ -268,6 +294,7 @@ import {
   runTakeControl,
   runWebVNC,
   wakeUpWOL,
+  deleteMdmAgents,
 } from "@/api/agents";
 import { runAgentUpdateScan, runAgentUpdateInstall } from "@/api/winupdates";
 import { runAgentChecks } from "@/api/checks";
@@ -283,6 +310,7 @@ import EditAgent from "@/components/modals/agents/EditAgent.vue";
 import SendCommand from "@/components/modals/agents/SendCommand.vue";
 import RunScript from "@/components/modals/agents/RunScript.vue";
 import IntegrationsContextMenu from "@/components/ui/IntegrationsContextMenu.vue";
+import UpdateMdmAgents from "@/components/modals/agents/UpdateMdmAgents.vue";
 
 import DOMPurify from "dompurify";
 
@@ -527,6 +555,38 @@ export default {
       });
     }
 
+    function showUpdateMdm() {
+      $q.dialog({
+        component: UpdateMdmAgents,
+      });
+    }
+
+    function confirmDeleteMdm(agent) {
+      $q.dialog({
+        title: "Delete MDM Agent",
+        message: `Are you sure you want to uninstall MDM agent from ${agent.hostname}? This will remove LaboratoMDM Agent and its data from the machine.`,
+        cancel: true,
+        persistent: true,
+        ok: { label: "Delete", color: "negative" },
+      }).onOk(async () => {
+        $q.loading.show();
+        try {
+          const response = await deleteMdmAgents({
+            agent_ids: [agent.agent_id],
+          });
+          $q.loading.hide();
+          notifySuccess(response.message || "MDM agent deletion started");
+        } catch (error) {
+          $q.loading.hide();
+          notifyError(
+            error.response?.data?.error ||
+              error.response?.data ||
+              "Failed to start MDM deletion",
+          );
+        }
+      });
+    }
+
     async function pingAgent(agent) {
       try {
         $q.loading.show();
@@ -614,6 +674,8 @@ export default {
       shutdown,
       showPolicyAdd,
       showAgentRecovery,
+      showUpdateMdm,
+      confirmDeleteMdm,
       pingAgent,
       wakeUp,
       launchWebVNC,
