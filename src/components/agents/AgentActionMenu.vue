@@ -164,9 +164,7 @@
     <!-- update MDM agent (Windows only) -->
     <q-item
       v-if="agent.plat === 'windows'"
-      clickable
-      v-close-popup
-      @click="showUpdateMdm()"
+      disable
     >
       <q-item-section side>
         <q-icon size="xs" name="system_update_alt" />
@@ -177,9 +175,7 @@
     <!-- delete MDM agent (Windows only) -->
     <q-item
       v-if="agent.plat === 'windows'"
-      clickable
-      v-close-popup
-      @click="confirmDeleteMdm(agent)"
+      disable
     >
       <q-item-section side>
         <q-icon size="xs" name="delete_outline" />

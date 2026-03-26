@@ -18,15 +18,8 @@
         </q-input>
       </div>
       <div class="au-devices-header__right">
-        <!-- MDM: arch selector + selection counter + select all -->
+        <!-- MDM: selection counter + select all -->
         <template v-if="mode === 'mdm'">
-          <span
-            v-for="opt in archOptions"
-            :key="opt.value"
-            class="au-arch-tag"
-            :class="{ 'au-arch-tag--active': selectedArch === opt.value }"
-            @click="$emit('update:selectedArch', opt.value)"
-          >{{ opt.label }}</span>
           <span class="au-devices-count">{{ selectedAgents.length }} of {{ agents.length }} selected</span>
           <button
             v-if="agents.length > 0"
@@ -73,7 +66,6 @@
             class="au-card"
             :class="{
               'au-card--selected': selectedAgents.includes(agent.agent_id),
-              'au-card--same': getOperationLabel(agent) === 'Same',
             }"
             @click="$emit('toggle-agent', agent.agent_id)"
           >
@@ -94,14 +86,6 @@
                 :class="agent.status === 'online' ? 'au-card__status--online' : 'au-card__status--offline'"
               ></span>
               <span class="au-card__status-label">{{ agent.status === 'online' ? 'Online' : 'Offline' }}</span>
-            </div>
-            <div class="au-card__bottom">
-              <span class="au-card__arch">{{ agent.goarch || 'x64' }}</span>
-              <span
-                v-if="selectedVersion"
-                class="au-card__op"
-                :class="'au-card__op--' + getOperationColor(agent)"
-              >{{ getOperationLabel(agent) }}</span>
             </div>
           </div>
         </template>
@@ -114,7 +98,6 @@
             class="au-card"
             :class="{
               'au-card--selected': selectedAgents.includes(agent.agent_id),
-              'au-card--same': selectedVersion && agent.version === selectedVersion.value,
             }"
             @click="$emit('toggle-agent', agent.agent_id)"
           >
@@ -129,20 +112,11 @@
               />
             </div>
             <div class="au-card__meta">
-              <span class="au-card__version">{{ agent.version || 'N/A' }}</span>
               <span
                 class="au-card__status"
                 :class="agent.status === 'online' ? 'au-card__status--online' : 'au-card__status--offline'"
               ></span>
               <span class="au-card__status-label">{{ agent.status === 'online' ? 'Online' : 'Offline' }}</span>
-            </div>
-            <div class="au-card__bottom">
-              <span class="au-card__arch-inline">{{ selectedArch }}</span>
-              <span
-                v-if="selectedVersion"
-                class="au-card__op"
-                :class="'au-card__op--' + getOperationColor(agent)"
-              >{{ getOperationLabel(agent) }}</span>
             </div>
           </div>
         </template>
@@ -162,49 +136,10 @@ export default {
     loading: { type: Boolean, default: false },
     allSelected: { type: Boolean, default: false },
     mode: { type: String, default: "main" },
-    selectedArch: { type: String, default: "x64" },
     updatingAgents: { type: Object, default: () => ({}) },
     deletingAgents: { type: Object, default: () => ({}) },
   },
-  emits: ["toggle-agent", "toggle-select-all", "update:searchFilter", "update:selectedArch", "update-agent", "delete-agent"],
-  data() {
-    return {
-      archOptions: [
-        { label: "x64", value: "x64" },
-        { label: "ARM64", value: "arm64" },
-      ],
-    };
-  },
-  methods: {
-    compareVersions(v1, v2) {
-      if (v1 === v2) return 0;
-      if (!v1 || v1 === "unknown") return -1;
-      if (!v2 || v2 === "unknown") return 1;
-      const parts1 = v1.split(".").map(Number);
-      const parts2 = v2.split(".").map(Number);
-      for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
-        const p1 = parts1[i] || 0;
-        const p2 = parts2[i] || 0;
-        if (p1 > p2) return 1;
-        if (p1 < p2) return -1;
-      }
-      return 0;
-    },
-    getOperationColor(agent) {
-      if (!this.selectedVersion) return "neutral";
-      const cmp = this.compareVersions(agent.version, this.selectedVersion.value);
-      if (cmp < 0) return "success";
-      if (cmp > 0) return "warning";
-      return "neutral";
-    },
-    getOperationLabel(agent) {
-      if (!this.selectedVersion) return "";
-      const cmp = this.compareVersions(agent.version, this.selectedVersion.value);
-      if (cmp < 0) return "Upgrade";
-      if (cmp > 0) return "Downgrade";
-      return "Same";
-    },
-  },
+  emits: ["toggle-agent", "toggle-select-all", "update:searchFilter", "update-agent", "delete-agent"],
 };
 </script>
 
@@ -362,10 +297,6 @@ export default {
   background: var(--active-bg, #eef6fc);
 }
 
-.au-card--same {
-  opacity: 0.5;
-}
-
 .au-card__top {
   display: flex;
   align-items: flex-start;
@@ -434,29 +365,6 @@ export default {
   font-weight: 600;
   color: var(--text-secondary, #6b7280);
   text-transform: uppercase;
-}
-
-.au-card__op {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  padding: 2px 7px;
-  border-radius: 4px;
-}
-
-.au-card__op--success {
-  background: rgba(5,150,105,0.08);
-  color: #059669;
-}
-
-.au-card__op--warning {
-  background: rgba(217,119,6,0.08);
-  color: #D97706;
-}
-
-.au-card__op--neutral {
-  background: rgba(107,114,128,0.08);
-  color: #6b7280;
 }
 
 /* ── Per-agent delete button (MDM) ── */

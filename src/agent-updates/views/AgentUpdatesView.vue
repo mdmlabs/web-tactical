@@ -68,13 +68,11 @@
           :loading="currentLoading"
           :all-selected="selectAll"
           :mode="activeTab"
-          :selected-arch="mdmArch"
           :updating-agents="mdmUpdatingAgents"
           :deleting-agents="mdmDeletingAgents"
           @toggle-agent="toggleAgentSelection"
           @toggle-select-all="toggleSelectAll(!selectAll)"
           @update:search-filter="searchFilter = $event"
-          @update:selected-arch="mdmArch = $event"
           @update-agent="handleMdmUpdate"
           @delete-agent="handleMdmDelete"
         />
@@ -120,7 +118,6 @@ export default {
       mdmLoading: true,
       mdmVersionsData: null,
       mdmSelectedVersion: null,
-      mdmArch: "x64",
       mdmUpdatingAgents: {},
       mdmDeletingAgents: {},
     };
@@ -132,11 +129,35 @@ export default {
     },
 
     currentAgents() {
-      if (this.activeTab === "main") return this.mainAgents;
       const store = useAgentsStore();
-      return store.agents.filter(
-        (a) => a.plat === "windows" && a.windows_policy_status !== null,
+      const storeMap = new Map(
+        store.agents.map((a) => [a.agent_id, a]),
       );
+      if (this.activeTab === "main") {
+        // Enrich mainAgents with live status and version from the dashboard store
+        return this.mainAgents.map((a) => {
+          const storeAgent = storeMap.get(a.agent_id);
+          if (!storeAgent) return a;
+          return {
+            ...a,
+            status: storeAgent.status,
+            version: a.version || storeAgent.version,
+          };
+        });
+      }
+      // MDM: use store agents enriched with version from mainAgents if missing
+      const versionMap = new Map(
+        this.mainAgents.map((a) => [a.agent_id, a.version]),
+      );
+      return store.agents
+        .filter(
+          (a) => a.plat === "windows" && a.windows_policy_status !== null,
+        )
+        .map((a) => {
+          if (a.version) return a;
+          const ver = versionMap.get(a.agent_id);
+          return ver ? { ...a, version: ver } : a;
+        });
     },
 
     currentSelectedVersion() {
@@ -174,8 +195,10 @@ export default {
     // ── Main Agent computed ──
     mainVersionOptions() {
       if (!this.mainVersionInfo) return [];
-      const versions = this.mainVersionInfo.available_versions || [];
       const stats = this.mainVersionInfo.version_stats || {};
+      const versions = this.mainVersionInfo.available_versions?.length
+        ? this.mainVersionInfo.available_versions
+        : Object.keys(stats);
       const latest = this.mainVersionInfo.latest_version;
       return versions
         .map((version) => ({
@@ -383,7 +406,6 @@ export default {
         const response = await updateMdmAgents({
           agent_ids: this.selectedAgents,
           version: this.mdmSelectedVersion.value,
-          arch: this.mdmArch,
         });
 
         this.$q.loading.hide();
@@ -414,7 +436,6 @@ export default {
         const response = await updateMdmAgents({
           agent_ids: [agentId],
           version: this.mdmSelectedVersion.value,
-          arch: this.mdmArch,
         });
         this.notifySuccess(response.message || "MDM agent update started");
       } catch (error) {
@@ -460,6 +481,12 @@ export default {
   mounted() {
     this.loadMainVersions();
     this.loadMdmVersions();
+
+    // Ensure the agents store is populated for the MDM tab
+    const store = useAgentsStore();
+    if (store.agents.length === 0) {
+      store.loadAgents();
+    }
   },
 };
 </script>
