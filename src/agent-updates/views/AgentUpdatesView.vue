@@ -3,11 +3,9 @@
     <div class="au-layout">
       <!-- Sidebar -->
       <AgentUpdatesSidebar
-        :version-stats="currentVersionStats"
-        :active-version-filter="activeVersionFilter"
-        :latest-version="currentLatestVersion"
-        :total-agents="currentAgents.length"
-        @filter-version="toggleVersionFilter"
+        :version-options="currentVersionOptions"
+        :selected-version="currentSelectedVersion"
+        @select-version="handleSelectVersion"
       />
 
       <!-- Main content -->
@@ -40,6 +38,19 @@
             >
               <q-icon name="system_update" size="18px" class="q-mr-xs" />
               {{ mainActionLabel }}
+            </q-btn>
+
+            <!-- MDM Agent: bulk update button -->
+            <q-btn
+              v-if="activeTab === 'mdm'"
+              color="primary"
+              unelevated
+              class="au-update-btn"
+              :disable="!canExecuteMdm"
+              @click="executeMdmBulkUpdate"
+            >
+              <q-icon name="system_update" size="18px" class="q-mr-xs" />
+              {{ mdmActionLabel }}
             </q-btn>
 
             <q-btn flat round dense icon="refresh" @click="refreshData">
@@ -85,17 +96,6 @@ import { useAgentsStore } from "@/stores/agents";
 import AgentUpdatesSidebar from "../components/AgentUpdatesSidebar.vue";
 import AgentUpdatesDevices from "../components/AgentUpdatesDevices.vue";
 
-const CHART_COLORS = [
-  "#3B82F6",
-  "#10B981",
-  "#F59E0B",
-  "#06B6D4",
-  "#8B5CF6",
-  "#EC4899",
-  "#EF4444",
-  "#64748B",
-];
-
 export default {
   name: "AgentUpdatesView",
   mixins: [mixins],
@@ -107,7 +107,6 @@ export default {
     return {
       activeTab: "main",
       searchFilter: "",
-      activeVersionFilter: null,
 
       // Main Agent state
       mainLoading: true,
@@ -135,7 +134,9 @@ export default {
     currentAgents() {
       if (this.activeTab === "main") return this.mainAgents;
       const store = useAgentsStore();
-      return store.agents.filter((a) => a.plat === "windows");
+      return store.agents.filter(
+        (a) => a.plat === "windows" && a.windows_policy_status !== null,
+      );
     },
 
     currentSelectedVersion() {
@@ -144,58 +145,16 @@ export default {
         : this.mdmSelectedVersion;
     },
 
-    currentLatestVersion() {
+    currentVersionOptions() {
       if (this.activeTab === "main") {
-        return this.mainVersionInfo?.latest_version || null;
+        return this.mainVersionOptions;
       }
-      if (this.mdmVersionsData?.versions?.length > 0) {
-        return this.mdmVersionsData.versions[0];
-      }
-      return null;
-    },
-
-    // ── Version stats (sidebar) ──
-    currentVersionStats() {
-      if (this.activeTab === "main") {
-        return this.mainVersionStats;
-      }
-      return this.mdmVersionStats;
-    },
-
-    mainVersionStats() {
-      if (!this.mainVersionInfo?.version_stats) return [];
-      const stats = this.mainVersionInfo.version_stats;
-      return Object.entries(stats)
-        .map(([version, count], i) => ({
-          version,
-          count,
-          color: CHART_COLORS[i % CHART_COLORS.length],
-        }))
-        .sort((a, b) => this.compareVersions(b.version, a.version));
-    },
-
-    mdmVersionStats() {
-      const counts = {};
-      this.currentAgents.forEach((a) => {
-        const v = a.version || "unknown";
-        counts[v] = (counts[v] || 0) + 1;
-      });
-      return Object.entries(counts)
-        .sort(([, a], [, b]) => b - a)
-        .map(([version, count], i) => ({
-          version,
-          count,
-          color: CHART_COLORS[i % CHART_COLORS.length],
-        }));
+      return this.mdmVersionOptions;
     },
 
     // ── Filtered agents ──
     currentFilteredAgents() {
       let list = this.currentAgents;
-
-      if (this.activeVersionFilter) {
-        list = list.filter((a) => (a.version || "unknown") === this.activeVersionFilter);
-      }
 
       if (this.searchFilter) {
         const q = this.searchFilter.toLowerCase();
@@ -228,6 +187,17 @@ export default {
         .sort((a, b) => this.compareVersions(b.value, a.value));
     },
 
+    mdmVersionOptions() {
+      if (!this.mdmVersionsData?.versions) return [];
+      const versions = this.mdmVersionsData.versions;
+      const latest = versions.length > 0 ? versions[0] : null;
+      return versions.map((version) => ({
+        label: version,
+        value: version,
+        isLatest: version === latest,
+      }));
+    },
+
     hasOnlyDowngrades() {
       if (!this.mainSelectedVersion) return false;
       const upgradeCount = this.selectedAgents.filter((id) => {
@@ -251,6 +221,10 @@ export default {
       return !!(this.mainSelectedVersion && this.selectedAgents.length > 0);
     },
 
+    canExecuteMdm() {
+      return !!(this.mdmSelectedVersion && this.selectedAgents.length > 0);
+    },
+
     mainActionLabel() {
       if (this.selectedAgents.length === 0) return "Update Agents";
       if (this.hasOnlyDowngrades) {
@@ -258,21 +232,28 @@ export default {
       }
       return `Update ${this.selectedAgents.length} Agent(s)`;
     },
+
+    mdmActionLabel() {
+      if (this.selectedAgents.length === 0) return "Update Agents";
+      return `Update ${this.selectedAgents.length} Agent(s)`;
+    },
   },
   watch: {
     activeTab() {
       // Reset shared state on tab switch
       this.searchFilter = "";
-      this.activeVersionFilter = null;
       this.selectedAgents = [];
       this.selectAll = false;
     },
   },
   methods: {
     // ── Shared ──
-    toggleVersionFilter(version) {
-      this.activeVersionFilter =
-        this.activeVersionFilter === version ? null : version;
+    handleSelectVersion(opt) {
+      if (this.activeTab === "main") {
+        this.mainSelectedVersion = opt;
+      } else {
+        this.mdmSelectedVersion = opt;
+      }
     },
 
     compareVersions(v1, v2) {
@@ -391,6 +372,35 @@ export default {
         this.notifyError("Failed to fetch MDM versions");
       } finally {
         this.mdmLoading = false;
+      }
+    },
+
+    async executeMdmBulkUpdate() {
+      if (!this.canExecuteMdm) return;
+
+      this.$q.loading.show();
+      try {
+        const response = await updateMdmAgents({
+          agent_ids: this.selectedAgents,
+          version: this.mdmSelectedVersion.value,
+          arch: this.mdmArch,
+        });
+
+        this.$q.loading.hide();
+        this.notifySuccess(
+          response.message ||
+            `${this.selectedAgents.length} MDM agent(s) update started to version ${this.mdmSelectedVersion.value}`,
+        );
+
+        this.selectedAgents = [];
+        this.selectAll = false;
+      } catch (error) {
+        this.$q.loading.hide();
+        this.notifyError(
+          error.response?.data?.error ||
+            error.response?.data ||
+            "Failed to update MDM agents",
+        );
       }
     },
 

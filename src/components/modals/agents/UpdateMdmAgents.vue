@@ -243,7 +243,9 @@ export default defineComponent({
 
     // All Windows agents from store
     const targetAgents = computed(() => {
-      return agentsStore.agents.filter((a) => a.plat === "windows");
+      return agentsStore.agents.filter(
+        (a) => a.plat === "windows" && a.windows_policy_status !== null,
+      );
     });
 
     const filteredAgentsList = computed(() => {

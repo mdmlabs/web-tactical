@@ -18,7 +18,7 @@
         </q-input>
       </div>
       <div class="au-devices-header__right">
-        <!-- MDM: arch selector -->
+        <!-- MDM: arch selector + selection counter + select all -->
         <template v-if="mode === 'mdm'">
           <span
             v-for="opt in archOptions"
@@ -27,6 +27,14 @@
             :class="{ 'au-arch-tag--active': selectedArch === opt.value }"
             @click="$emit('update:selectedArch', opt.value)"
           >{{ opt.label }}</span>
+          <span class="au-devices-count">{{ selectedAgents.length }} of {{ agents.length }} selected</span>
+          <button
+            v-if="agents.length > 0"
+            class="au-select-all-btn"
+            @click="$emit('toggle-select-all')"
+          >
+            {{ allSelected ? 'Deselect All' : 'Select All' }}
+          </button>
         </template>
         <!-- Main: selection counter + select all -->
         <template v-else>
@@ -104,37 +112,37 @@
             v-for="agent in agents"
             :key="agent.agent_id"
             class="au-card"
+            :class="{
+              'au-card--selected': selectedAgents.includes(agent.agent_id),
+              'au-card--same': selectedVersion && agent.version === selectedVersion.value,
+            }"
+            @click="$emit('toggle-agent', agent.agent_id)"
           >
             <div class="au-card__top">
               <div class="au-card__name">{{ agent.hostname }}</div>
+              <q-checkbox
+                :model-value="selectedAgents.includes(agent.agent_id)"
+                dense
+                size="sm"
+                @update:model-value="$emit('toggle-agent', agent.agent_id)"
+                @click.stop
+              />
+            </div>
+            <div class="au-card__meta">
+              <span class="au-card__version">{{ agent.version || 'N/A' }}</span>
               <span
                 class="au-card__status"
                 :class="agent.status === 'online' ? 'au-card__status--online' : 'au-card__status--offline'"
               ></span>
-            </div>
-            <div class="au-card__meta">
-              <span class="au-card__version">{{ agent.version || 'N/A' }}</span>
-              <span class="au-card__arch-inline">{{ selectedArch }}</span>
+              <span class="au-card__status-label">{{ agent.status === 'online' ? 'Online' : 'Offline' }}</span>
             </div>
             <div class="au-card__bottom">
-              <button
-                class="au-card-delete-btn"
-                :disabled="deletingAgents[agent.agent_id]"
-                @click.stop="$emit('delete-agent', agent.agent_id)"
-              >
-                <q-spinner v-if="deletingAgents[agent.agent_id]" size="14px" />
-                <q-icon v-else name="delete_outline" size="14px" />
-                Delete
-              </button>
-              <button
-                class="au-card-update-btn"
-                :disabled="(selectedVersion && agent.version === selectedVersion.value) || updatingAgents[agent.agent_id]"
-                @click.stop="$emit('update-agent', agent.agent_id)"
-              >
-                <q-spinner v-if="updatingAgents[agent.agent_id]" size="14px" />
-                <q-icon v-else name="refresh" size="14px" class="au-card-update-btn__icon" />
-                Update
-              </button>
+              <span class="au-card__arch-inline">{{ selectedArch }}</span>
+              <span
+                v-if="selectedVersion"
+                class="au-card__op"
+                :class="'au-card__op--' + getOperationColor(agent)"
+              >{{ getOperationLabel(agent) }}</span>
             </div>
           </div>
         </template>

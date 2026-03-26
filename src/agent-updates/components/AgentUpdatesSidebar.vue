@@ -12,23 +12,20 @@
       <h3 class="au-sidebar-block__title">Distribution</h3>
       <div class="au-distrib">
         <div
-          v-for="stat in versionStats"
-          :key="stat.version"
+          v-for="opt in versionOptions"
+          :key="opt.value"
           class="au-distrib__item"
-          :class="{
-            'au-distrib__item--active': activeVersionFilter === stat.version,
-            'au-distrib__item--dimmed': activeVersionFilter && activeVersionFilter !== stat.version,
-          }"
-          @click="$emit('filter-version', stat.version)"
+          :class="{ 'au-distrib__item--active': selectedVersion && selectedVersion.value === opt.value }"
+          @click="$emit('select-version', opt)"
         >
-          <span class="au-distrib__dot" :style="{ backgroundColor: stat.color }"></span>
-          <span class="au-distrib__version">{{ stat.version }}</span>
-          <span class="au-distrib__count">{{ stat.count }} agent{{ stat.count !== 1 ? 's' : '' }}</span>
-          <span v-if="stat.version === latestVersion" class="au-distrib__badge">Latest</span>
+          <span class="au-distrib__radio">
+            <span v-if="selectedVersion && selectedVersion.value === opt.value" class="au-distrib__radio-dot"></span>
+          </span>
+          <span class="au-distrib__version">{{ opt.label }}</span>
+          <span v-if="opt.isLatest" class="au-distrib__badge">Latest</span>
         </div>
-        <div v-if="versionStats.length === 0" class="au-distrib__empty">No agents found</div>
+        <div v-if="versionOptions.length === 0" class="au-distrib__empty">No versions available</div>
       </div>
-      <div class="au-distrib__total">Total: {{ totalAgents }} agents</div>
     </div>
   </div>
 </template>
@@ -37,12 +34,10 @@
 export default {
   name: "AgentUpdatesSidebar",
   props: {
-    versionStats: { type: Array, default: () => [] },
-    activeVersionFilter: { type: String, default: null },
-    latestVersion: { type: String, default: null },
-    totalAgents: { type: Number, default: 0 },
+    versionOptions: { type: Array, default: () => [] },
+    selectedVersion: { type: Object, default: null },
   },
-  emits: ["filter-version"],
+  emits: ["select-version"],
 };
 </script>
 
@@ -121,15 +116,27 @@ export default {
   background: var(--active-bg, #eef6fc);
 }
 
-.au-distrib__item--dimmed {
-  opacity: 0.4;
+.au-distrib__radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--radio-border, #d1d5db);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.15s;
 }
 
-.au-distrib__dot {
+.au-distrib__item--active .au-distrib__radio {
+  border-color: var(--primary-color, #1089d3);
+}
+
+.au-distrib__radio-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  flex-shrink: 0;
+  background: var(--primary-color, #1089d3);
 }
 
 .au-distrib__version {
@@ -137,12 +144,6 @@ export default {
   font-weight: 500;
   color: var(--text-primary, #1a1a2e);
   flex: 1;
-}
-
-.au-distrib__count {
-  font-size: 12px;
-  color: var(--text-secondary, #6b7280);
-  white-space: nowrap;
 }
 
 .au-distrib__badge {
@@ -160,15 +161,6 @@ export default {
   color: var(--text-secondary, #6b7280);
   font-style: italic;
   padding: 8px 10px;
-}
-
-.au-distrib__total {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-color, #e8e8e8);
-  font-size: 12px;
-  color: var(--text-secondary, #6b7280);
-  font-weight: 500;
 }
 
 /* ── Dark theme ── */

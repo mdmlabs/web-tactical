@@ -551,6 +551,12 @@
 </style>
 
 <style>
+.q-page-container {
+  height: 100vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
 .q-tooltip {
   background: linear-gradient(
     135deg,
