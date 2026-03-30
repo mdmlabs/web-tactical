@@ -18,28 +18,14 @@
         </q-input>
       </div>
       <div class="au-devices-header__right">
-        <!-- MDM: selection counter + select all -->
-        <template v-if="mode === 'mdm'">
-          <span class="au-devices-count">{{ selectedAgents.length }} of {{ agents.length }} selected</span>
-          <button
-            v-if="agents.length > 0"
-            class="au-select-all-btn"
-            @click="$emit('toggle-select-all')"
-          >
-            {{ allSelected ? 'Deselect All' : 'Select All' }}
-          </button>
-        </template>
-        <!-- Main: selection counter + select all -->
-        <template v-else>
-          <span class="au-devices-count">{{ selectedAgents.length }} of {{ agents.length }} selected</span>
-          <button
-            v-if="agents.length > 0"
-            class="au-select-all-btn"
-            @click="$emit('toggle-select-all')"
-          >
-            {{ allSelected ? 'Deselect All' : 'Select All' }}
-          </button>
-        </template>
+        <span class="au-devices-count">{{ selectedAgents.length }} of {{ agents.length }} selected</span>
+        <button
+          v-if="agents.length > 0"
+          class="au-select-all-btn"
+          @click="$emit('toggle-select-all')"
+        >
+          {{ allSelected ? 'Deselect All' : 'Select All' }}
+        </button>
       </div>
     </div>
 
@@ -55,73 +41,145 @@
       <p class="au-devices-empty__desc">Try adjusting the version filter or search query.</p>
     </div>
 
-    <!-- Cards grid -->
-    <div v-else class="au-cards-scroll">
-      <div class="au-cards-grid">
-        <!-- Main Agent card -->
-        <template v-if="mode === 'main'">
-          <div
-            v-for="agent in agents"
-            :key="agent.agent_id"
-            class="au-card"
-            :class="{
-              'au-card--selected': selectedAgents.includes(agent.agent_id),
-            }"
-            @click="$emit('toggle-agent', agent.agent_id)"
-          >
-            <div class="au-card__top">
-              <div class="au-card__name">{{ agent.hostname }}</div>
-              <q-checkbox
-                :model-value="selectedAgents.includes(agent.agent_id)"
-                dense
-                size="sm"
-                @update:model-value="$emit('toggle-agent', agent.agent_id)"
-                @click.stop
-              />
-            </div>
-            <div class="au-card__meta">
-              <span class="au-card__version">{{ agent.version || 'N/A' }}</span>
-              <span
-                class="au-card__status"
-                :class="agent.status === 'online' ? 'au-card__status--online' : 'au-card__status--offline'"
-              ></span>
-              <span class="au-card__status-label">{{ agent.status === 'online' ? 'Online' : 'Offline' }}</span>
-            </div>
-          </div>
-        </template>
+    <!-- Table -->
+    <q-table
+      v-else
+      flat
+      :rows="agents"
+      :columns="columns"
+      row-key="agent_id"
+      :pagination="pagination"
+      :rows-per-page-options="[10, 20, 50, 100]"
+      class="au-table"
+      @row-click="onRowClick"
+    >
+      <!-- Checkbox Column -->
+      <template v-slot:body-cell-select="props">
+        <q-td :props="props" class="select-cell">
+          <q-checkbox
+            :model-value="selectedAgents.includes(props.row.agent_id)"
+            dense
+            @update:model-value="$emit('toggle-agent', props.row.agent_id)"
+            @click.stop
+          />
+        </q-td>
+      </template>
 
-        <!-- MDM Agent card -->
-        <template v-else>
-          <div
-            v-for="agent in agents"
-            :key="agent.agent_id"
-            class="au-card"
-            :class="{
-              'au-card--selected': selectedAgents.includes(agent.agent_id),
-            }"
-            @click="$emit('toggle-agent', agent.agent_id)"
-          >
-            <div class="au-card__top">
-              <div class="au-card__name">{{ agent.hostname }}</div>
-              <q-checkbox
-                :model-value="selectedAgents.includes(agent.agent_id)"
-                dense
-                size="sm"
-                @update:model-value="$emit('toggle-agent', agent.agent_id)"
-                @click.stop
-              />
-            </div>
-            <div class="au-card__meta">
-              <span
-                class="au-card__status"
-                :class="agent.status === 'online' ? 'au-card__status--online' : 'au-card__status--offline'"
-              ></span>
-              <span class="au-card__status-label">{{ agent.status === 'online' ? 'Online' : 'Offline' }}</span>
-            </div>
+      <!-- Hostname Column -->
+      <template v-slot:body-cell-hostname="props">
+        <q-td :props="props" class="hostname-cell">
+          <div class="hostname-wrapper">
+            <q-icon name="computer" size="20px" class="hostname-icon" />
+            <span class="hostname-text">{{ props.row.hostname }}</span>
           </div>
-        </template>
-      </div>
-    </div>
+        </q-td>
+      </template>
+
+      <!-- Version Column (Main mode) -->
+      <template v-slot:body-cell-version="props">
+        <q-td :props="props">
+          <span class="version-text">{{ props.row.version || 'N/A' }}</span>
+        </q-td>
+      </template>
+
+      <!-- Status Column -->
+      <template v-slot:body-cell-status="props">
+        <q-td :props="props">
+          <div class="status-wrapper">
+            <span
+              class="status-dot"
+              :class="props.row.status === 'online' ? 'status-dot--online' : 'status-dot--offline'"
+            ></span>
+            <span class="status-label">{{ props.row.status === 'online' ? 'Online' : 'Offline' }}</span>
+          </div>
+        </q-td>
+      </template>
+
+      <!-- Architecture Column (Main mode) -->
+      <template v-slot:body-cell-arch="props">
+        <q-td :props="props">
+          <span class="arch-text">{{ props.row.goarch || 'x64' }}</span>
+        </q-td>
+      </template>
+
+      <!-- Actions Column (MDM mode) -->
+      <template v-slot:body-cell-actions="props">
+        <q-td :props="props" class="actions-cell">
+          <button
+            class="au-table-btn au-table-btn--delete"
+            :disabled="deletingAgents[props.row.agent_id]"
+            @click.stop="$emit('delete-agent', props.row.agent_id)"
+          >
+            <q-spinner v-if="deletingAgents[props.row.agent_id]" size="14px" />
+            <q-icon v-else name="delete_outline" size="14px" />
+            Delete
+          </button>
+          <button
+            class="au-table-btn au-table-btn--update"
+            :disabled="isSameVersion(props.row) || updatingAgents[props.row.agent_id]"
+            @click.stop="$emit('update-agent', props.row.agent_id)"
+          >
+            <q-spinner v-if="updatingAgents[props.row.agent_id]" size="14px" />
+            <template v-else>
+              <q-icon name="system_update" size="14px" class="update-icon" />
+              Update
+            </template>
+          </button>
+        </q-td>
+      </template>
+
+      <!-- Pagination -->
+      <template v-slot:bottom="props">
+        <div class="table-pagination">
+          <span class="pagination-info">
+            Showing
+            {{
+              props.pagination.page > 1
+                ? (props.pagination.page - 1) * props.pagination.rowsPerPage + 1
+                : 1
+            }}
+            -
+            {{
+              Math.min(
+                props.pagination.page * props.pagination.rowsPerPage,
+                props.pagination.rowsNumber || agents.length,
+              )
+            }}
+            of {{ props.pagination.rowsNumber || agents.length }}
+          </span>
+          <div class="pagination-controls">
+            <span class="page-label">Page</span>
+            <q-input
+              :model-value="props.pagination.page"
+              type="number"
+              dense
+              outlined
+              class="page-input"
+              min="1"
+              :max="props.pagesNumber"
+              @update:model-value="goToPage($event, props)"
+            />
+            <span class="page-total">of {{ props.pagesNumber }}</span>
+            <q-btn
+              flat
+              dense
+              round
+              icon="chevron_left"
+              :disable="props.pagination.page <= 1"
+              @click="props.prevPage"
+            />
+            <q-btn
+              flat
+              dense
+              round
+              icon="chevron_right"
+              :disable="props.pagination.page >= props.pagesNumber"
+              @click="props.nextPage"
+            />
+          </div>
+        </div>
+      </template>
+    </q-table>
   </div>
 </template>
 
@@ -140,6 +198,98 @@ export default {
     deletingAgents: { type: Object, default: () => ({}) },
   },
   emits: ["toggle-agent", "toggle-select-all", "update:searchFilter", "update-agent", "delete-agent"],
+  data() {
+    return {
+      pagination: {
+        sortBy: "hostname",
+        descending: false,
+        page: 1,
+        rowsPerPage: 20,
+        rowsNumber: null,
+      },
+    };
+  },
+  computed: {
+    columns() {
+      const baseColumns = [
+        {
+          name: "select",
+          label: "",
+          field: "select",
+          align: "left",
+          sortable: false,
+        },
+        {
+          name: "hostname",
+          label: "HOSTNAME",
+          field: "hostname",
+          align: "left",
+          sortable: true,
+        },
+      ];
+
+      // Main mode: show version and arch columns
+      if (this.mode === "main") {
+        return [
+          ...baseColumns,
+          {
+            name: "version",
+            label: "VERSION",
+            field: "version",
+            align: "left",
+            sortable: true,
+          },
+          {
+            name: "status",
+            label: "STATUS",
+            field: "status",
+            align: "left",
+            sortable: true,
+          },
+          {
+            name: "arch",
+            label: "ARCH",
+            field: "goarch",
+            align: "left",
+            sortable: true,
+          },
+        ];
+      }
+
+      // MDM mode: show status and actions columns
+      return [
+        ...baseColumns,
+        {
+          name: "status",
+          label: "STATUS",
+          field: "status",
+          align: "left",
+          sortable: true,
+        },
+        {
+          name: "actions",
+          label: "ACTIONS",
+          field: "actions",
+          align: "right",
+          sortable: false,
+        },
+      ];
+    },
+  },
+  methods: {
+    onRowClick(evt, row) {
+      this.$emit("toggle-agent", row.agent_id);
+    },
+    isSameVersion(agent) {
+      if (!this.selectedVersion) return false;
+      return agent.version === this.selectedVersion.value;
+    },
+    goToPage(page, props) {
+      if (page && typeof page === "number") {
+        this.pagination = { ...props.pagination, page };
+      }
+    },
+  },
 };
 </script>
 
@@ -208,27 +358,6 @@ export default {
   color: var(--primary-color, #1089d3);
 }
 
-/* ── Arch tags ── */
-.au-arch-tag {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s;
-  background: var(--badge-bg, #f3f4f6);
-  color: var(--text-secondary, #6b7280);
-}
-
-.au-arch-tag:hover {
-  color: var(--text-primary, #1a1a2e);
-}
-
-.au-arch-tag--active {
-  background: var(--primary-color, #1089d3);
-  color: #fff;
-}
-
 /* ── States ── */
 .au-devices-loading {
   flex: 1;
@@ -257,122 +386,113 @@ export default {
   color: var(--text-secondary, #6b7280);
 }
 
-/* ── Cards ── */
-.au-cards-scroll {
+/* ── Table ── */
+.au-table {
   flex: 1;
-  overflow-y: auto;
 }
 
-.au-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  padding: 20px 24px;
+.au-table :deep(.q-table__top) {
+  display: none;
 }
 
-@media (min-width: 1200px) {
-  .au-cards-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
+.au-table :deep(thead th) {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #6b7280);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--table-header-bg, #f9fafb);
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
 }
 
-.au-card {
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 10px;
-  padding: 14px 16px;
+.au-table :deep(tbody td) {
+  font-size: 14px;
+  color: var(--text-primary, #1a1a2e);
+  border-bottom: 1px solid var(--border-color, #f3f4f6);
+}
+
+.au-table :deep(tbody tr) {
   cursor: pointer;
-  transition: all 0.15s;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
 
-.au-card:hover {
-  border-color: var(--border-hover, #d1d5db);
+.au-table :deep(tbody tr:hover) {
   background: var(--row-hover-bg, #f9fafb);
 }
 
-.au-card--selected {
-  border-color: var(--primary-color, #1089d3);
-  background: var(--active-bg, #eef6fc);
+.select-cell {
+  width: 48px;
 }
 
-.au-card__top {
+.hostname-cell {
+  max-width: 300px;
+}
+
+.hostname-wrapper {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
 }
 
-.au-card__name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary, #1a1a2e);
+.hostname-icon {
+  color: var(--text-secondary, #6b7280);
+}
+
+.hostname-text {
+  font-weight: 500;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
 }
 
-.au-card__meta {
+.version-text {
+  font-family: monospace;
+  font-size: 13px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.status-wrapper {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.au-card__version {
-  font-size: 13px;
-  color: var(--text-secondary, #6b7280);
-  font-family: monospace;
-}
-
-.au-card__status {
+.status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-.au-card__status--online {
+.status-dot--online {
   background: #059669;
-  box-shadow: 0 0 6px rgba(5,150,105,0.4);
+  box-shadow: 0 0 6px rgba(5, 150, 105, 0.4);
 }
 
-.au-card__status--offline {
+.status-dot--offline {
   background: #9ca3af;
 }
 
-.au-card__status-label {
+.status-label {
+  font-size: 13px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.arch-text {
   font-size: 12px;
-  color: var(--text-secondary, #6b7280);
-}
-
-.au-card__arch-inline {
-  font-size: 11px;
   font-weight: 600;
   color: var(--text-secondary, #6b7280);
   text-transform: uppercase;
 }
 
-.au-card__bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.actions-cell {
+  white-space: nowrap;
 }
 
-.au-card__arch {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary, #6b7280);
-  text-transform: uppercase;
-}
-
-/* ── Per-agent delete button (MDM) ── */
-.au-card-delete-btn {
+.au-table-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 5px 14px;
+  padding: 5px 12px;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
@@ -385,51 +505,71 @@ export default {
   white-space: nowrap;
 }
 
-.au-card-delete-btn:hover:not(:disabled) {
-  border-color: #EF4444;
-  color: #EF4444;
+.au-table-btn--delete:hover:not(:disabled) {
+  border-color: #ef4444;
+  color: #ef4444;
 }
 
-.au-card-delete-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-/* ── Per-agent update button (MDM) ── */
-.au-card-update-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 14px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  font-family: inherit;
-  border: 1px solid var(--border-color, #e5e7eb);
-  background: transparent;
+.au-table-btn--update {
   color: var(--text-primary, #1a1a2e);
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-  margin-left: auto;
+  margin-left: 8px;
 }
 
-.au-card-update-btn:hover:not(:disabled) {
+.au-table-btn--update:hover:not(:disabled) {
   border-color: var(--primary-color, #1089d3);
   color: var(--primary-color, #1089d3);
 }
 
-.au-card-update-btn__icon {
+.au-table-btn--update .update-icon {
   transition: transform 0.4s ease;
 }
 
-.au-card-update-btn:hover:not(:disabled) .au-card-update-btn__icon {
+.au-table-btn--update:hover:not(:disabled) .update-icon {
   transform: rotate(180deg);
 }
 
-.au-card-update-btn:disabled {
+.au-table-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+/* ── Pagination ── */
+.table-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+}
+
+.pagination-info {
+  font-size: 13px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-label,
+.page-total {
+  font-size: 13px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.page-input {
+  width: 50px;
+}
+
+.page-input :deep(.q-field__control) {
+  height: 28px;
+}
+
+.page-input :deep(input) {
+  text-align: center;
+  font-size: 13px;
 }
 
 /* ── Dark theme ── */
@@ -440,9 +580,7 @@ export default {
   --text-secondary: #9ca3af;
   --input-bg: #2a2a3d;
   --row-hover-bg: #2a2a3d;
-  --active-bg: #1a3a5c;
-  --border-hover: #3d3d4d;
-  --primary-color: #3B9AE8;
-  --badge-bg: #3d3d4d;
+  --table-header-bg: #1e1e2d;
+  --primary-color: #3b9ae8;
 }
 </style>

@@ -207,18 +207,21 @@ export default {
           count: stats[version] || 0,
           isLatest: version === latest,
         }))
-        .sort((a, b) => this.compareVersions(b.value, a.value));
+        .sort((a, b) => this.compareVersions(b.value, a.value))
+        .slice(0, 5);
     },
 
     mdmVersionOptions() {
       if (!this.mdmVersionsData?.versions) return [];
       const versions = this.mdmVersionsData.versions;
       const latest = versions.length > 0 ? versions[0] : null;
-      return versions.map((version) => ({
-        label: version,
-        value: version,
-        isLatest: version === latest,
-      }));
+      return versions
+        .slice(0, 5)
+        .map((version) => ({
+          label: version,
+          value: version,
+          isLatest: version === latest,
+        }));
     },
 
     hasOnlyDowngrades() {
