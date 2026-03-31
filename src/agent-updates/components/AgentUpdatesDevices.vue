@@ -95,6 +95,13 @@
         </q-td>
       </template>
 
+      <!-- MDM Version Column -->
+      <template v-slot:body-cell-mdm_version="props">
+        <q-td :props="props">
+          <span class="version-text">{{ props.row.mdm_agent_version || 'N/A' }}</span>
+        </q-td>
+      </template>
+
       <!-- Architecture Column (Main mode) -->
       <template v-slot:body-cell-arch="props">
         <q-td :props="props">
@@ -256,13 +263,20 @@ export default {
         ];
       }
 
-      // MDM mode: show status and actions columns
+      // MDM mode: show status, mdm version and actions columns
       return [
         ...baseColumns,
         {
           name: "status",
           label: "STATUS",
           field: "status",
+          align: "left",
+          sortable: true,
+        },
+        {
+          name: "mdm_version",
+          label: "MDM VERSION",
+          field: "mdm_agent_version",
           align: "left",
           sortable: true,
         },
@@ -282,6 +296,10 @@ export default {
     },
     isSameVersion(agent) {
       if (!this.selectedVersion) return false;
+      // For MDM mode, compare mdm_agent_version
+      if (this.mode === "mdm") {
+        return agent.mdm_agent_version === this.selectedVersion.value;
+      }
       return agent.version === this.selectedVersion.value;
     },
     goToPage(page, props) {
