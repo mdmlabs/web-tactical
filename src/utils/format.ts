@@ -4,7 +4,7 @@ import trmmLogo from "@/assets/trmm_256.png";
 
 import type { Script } from "@/types/scripts";
 import type { Agent } from "@/types/agents";
-import type { Client, ClientWithSites } from "@/types/clients";
+import type { Site } from "@/types/clients";
 import type { User } from "@/types/accounts";
 import type { Check } from "@/types/checks";
 import { CustomField, CustomFieldValue } from "@/types/core/customfields";
@@ -164,7 +164,7 @@ export function formatAgentOptions(
     const agents = data.map((agent) => ({
       label: agent.hostname,
       value: agent[value_field],
-      cat: `${agent.client} > ${agent.site}`,
+      cat: `${agent.ancestors || agent.site}`,
     }));
 
     const categories = [...new Set(agents.map((agent) => agent.cat))].sort();
@@ -193,7 +193,7 @@ export function formatCustomFieldOptions(
     return _formatOptions(data, { label: "name", flat: true });
   } else {
     // Predefined categories for organizing the custom fields
-    const categories = ["Client", "Site", "Agent"];
+    const categories = ["Site", "Agent"];
     const options: Option[] = [];
 
     categories.forEach((cat) => {
@@ -220,21 +220,37 @@ export function formatCustomFieldOptions(
   }
 }
 
-export function formatClientOptions(data: Client[], flat = false) {
-  return _formatOptions(data, { label: "name", flat: flat });
-}
+export function formatSiteOptions(data: Site[], flat = false) {
+  if (flat) {
+    return _formatOptions(data, { label: "name", flat: true });
+  }
 
-export function formatSiteOptions(data: ClientWithSites[], flat = false) {
   const options = [] as Option[];
-  data.forEach((client) => {
-    options.push({ category: client.name });
-    options.push(
-      ..._formatOptions(client.sites, {
-        label: "name",
-        flat: flat,
-        appendToOptionObject: { cat: client.name },
-      }),
-    );
+  const sitesWithCat = data.map((site) => ({
+    label: site.name,
+    value: site.id,
+    cat: site.ancestors || "",
+  }));
+
+  const categories = [
+    ...new Set(sitesWithCat.map((s) => s.cat).filter(Boolean)),
+  ].sort();
+
+  // Sites without ancestors (root sites)
+  const rootSites = sitesWithCat
+    .filter((s) => !s.cat)
+    .sort((a, b) => a.label.localeCompare(b.label));
+  if (rootSites.length > 0) {
+    options.push(...rootSites);
+  }
+
+  // Sites grouped by ancestors
+  categories.forEach((cat) => {
+    options.push({ category: cat });
+    const sitesInCategory = sitesWithCat
+      .filter((s) => s.cat === cat)
+      .sort((a, b) => a.label.localeCompare(b.label));
+    options.push(...sitesInCategory);
   });
 
   return options;

@@ -11,13 +11,14 @@
       <q-form @submit="submit">
         <q-card-section>
           <tactical-dropdown
-            v-model="state.client"
-            label="Client"
-            :options="clientOptions"
+            v-model="state.parent"
+            label="Parent Site"
+            :options="parentSiteOptions"
             outlined
             mapOptions
-            :rules="[(val) => !!val || 'Client is required']"
+            clearable
             filterable
+            hint="Leave empty for root-level site"
           />
         </q-card-section>
         <q-card-section>
@@ -27,6 +28,14 @@
             dense
             v-model="state.name"
             label="Name"
+          />
+        </q-card-section>
+        <q-card-section>
+          <q-input
+            outlined
+            dense
+            v-model="state.description"
+            label="Description"
           />
         </q-card-section>
 
@@ -58,7 +67,7 @@
 // composition imports
 import { ref, onMounted } from "vue";
 import { useQuasar, useDialogPluginComponent } from "quasar";
-import { useClientDropdown } from "@/composables/clients";
+import { useParentSiteDropdown } from "@/composables/clients";
 import { fetchSite, saveSite, editSite } from "@/api/clients";
 import { fetchCustomFields } from "@/api/core";
 import { formatCustomFields } from "@/utils/format";
@@ -77,7 +86,7 @@ export default {
   },
   props: {
     site: Object,
-    client: Number,
+    parent: Number,
   },
   setup(props) {
     // setup quasar dialog
@@ -85,12 +94,12 @@ export default {
     const { dialogRef, onDialogOK, onDialogHide } = useDialogPluginComponent();
 
     // setup dropdowns
-    const { clientOptions } = useClientDropdown(true);
+    const { parentSiteOptions } = useParentSiteDropdown(true);
 
     // sites for logic
     const state = !!props.site
       ? ref(Object.assign({}, props.site))
-      : ref({ client: props.client, name: "" });
+      : ref({ parent: props.parent || null, name: "", description: "" });
     const custom_fields = ref({});
     const customFields = ref([]);
     const loading = ref(false);
@@ -157,7 +166,7 @@ export default {
       loading,
       custom_fields,
       customFields,
-      clientOptions,
+      parentSiteOptions,
 
       // methods
       submit,

@@ -11,18 +11,6 @@
       <q-form ref="form" @submit.prevent="onSubmit">
         <q-card-section>
           <tactical-dropdown
-            label="Excluded Clients"
-            outlined
-            multiple
-            v-model="localTemplate.excluded_clients"
-            :options="clientOptions"
-            use-chips
-            mapOptions
-            filterable
-          />
-        </q-card-section>
-        <q-card-section>
-          <tactical-dropdown
             label="Excluded Sites"
             outlined
             multiple
@@ -80,13 +68,11 @@ export default {
   data() {
     return {
       localTemplate: {
-        excluded_clients: [],
         excluded_sites: [],
         excluded_agents: [],
         exclude_servers: false,
         exclude_workstations: false,
       },
-      clientOptions: [],
       siteOptions: [],
       agentOptions: [],
     };
@@ -105,22 +91,16 @@ export default {
           this.$q.loading.hide();
         });
     },
-    getClientsandSites() {
+    getSites() {
       this.$q.loading.show();
       this.$axios
-        .get("/clients/")
+        .get("/clients/sites/")
         .then((r) => {
-          this.clientOptions = r.data.map((client) => ({
-            label: client.name,
-            value: client.id,
+          this.siteOptions = r.data.map((site) => ({
+            label: site.name,
+            value: site.id,
+            category: site.ancestors,
           }));
-
-          r.data.forEach((client) => {
-            this.siteOptions.push({ category: client.name });
-            client.sites.forEach((site) =>
-              this.siteOptions.push({ label: site.name, value: site.id }),
-            );
-          });
           this.$q.loading.hide();
         })
         .catch(() => {
@@ -131,7 +111,7 @@ export default {
       this.getAgentOptions("id").then(
         (options) => (this.agentOptions = Object.freeze(options)),
       );
-      this.getClientsandSites();
+      this.getSites();
     },
     show() {
       this.$refs.dialog.show();
@@ -150,7 +130,6 @@ export default {
   created() {
     // copy prop data locally
     this.localTemplate.id = this.template.id;
-    this.localTemplate.excluded_clients = this.template.excluded_clients;
     this.localTemplate.excluded_sites = this.template.excluded_sites;
     this.localTemplate.excluded_agents = this.template.excluded_agents;
     this.localTemplate.exclude_servers = this.template.exclude_servers;

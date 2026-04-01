@@ -14,13 +14,13 @@
           <q-item-section avatar>
             <q-icon name="dashboard" />
           </q-item-section>
-          <q-item-section>All Clients</q-item-section>
+          <q-item-section>All Sites</q-item-section>
         </q-item>
         <q-tree
           ref="tree"
           :nodes="clientsStore.clientsTree"
           node-key="raw"
-          no-nodes-label="No Clients"
+          no-nodes-label="No Sites"
           selected-color="primary"
           v-model:selected="selectedTree"
           @update:selected="agentsStore.refreshDashboard()"
@@ -37,11 +37,7 @@
                 <q-tooltip :delay="600">
                   ID: {{ props.node.id }}<br />
                   Agent Count:
-                  {{
-                    props.node.children
-                      ? props.node.client.agent_count
-                      : props.node.site.agent_count
-                  }}
+                  {{ props.node.site.agent_count }}
                 </q-tooltip>
               </div>
 
@@ -67,13 +63,12 @@
                   <q-separator />
 
                   <q-item
-                    v-if="props.node.children"
                     clickable
                     v-close-popup
                     @click="showAddSiteModal(props.node)"
                   >
                     <q-item-section side><q-icon name="add_circle_outline" /></q-item-section>
-                    <q-item-section>Add Site</q-item-section>
+                    <q-item-section>Add Sub-Site</q-item-section>
                   </q-item>
 
                   <q-item
@@ -88,7 +83,6 @@
                   </q-item>
 
                   <q-item
-                    v-if="props.node.children === undefined"
                     clickable
                     v-close-popup
                     @click="$emit('installAgent', props.node)"
@@ -147,7 +141,6 @@ import { useClientsStore } from "@/stores/clients";
 import { useAgentsStore } from "@/stores/agents";
 import { useNotification } from "@/composables/useNotification";
 
-import ClientsForm from "@/components/clients/ClientsForm.vue";
 import SitesForm from "@/components/clients/SitesForm.vue";
 import DeleteClient from "@/components/clients/DeleteClient.vue";
 import PolicyAdd from "@/components/automation/modals/PolicyAdd.vue";
@@ -159,7 +152,6 @@ interface TreeNode {
   raw: string;
   color?: string;
   children?: TreeNode[];
-  client?: Record<string, unknown>;
   site?: Record<string, unknown>;
   [key: string]: unknown;
 }
@@ -184,38 +176,30 @@ function clearTreeSelected() {
 
 function showEditModal(node: TreeNode) {
   $q.dialog({
-    component: node.children ? ClientsForm : SitesForm,
-    componentProps: node.children
-      ? { client: node.client }
-      : { site: node.site },
+    component: SitesForm,
+    componentProps: { site: node.site },
   }).onOk(() => clientsStore.loadTree());
 }
 
 function showDeleteModal(node: TreeNode) {
-  if (
-    (node.children && node.client.agent_count > 0) ||
-    (!node.children && node.site.agent_count > 0)
-  ) {
+  if (node.site.agent_count > 0) {
     $q.dialog({
       component: DeleteClient,
       componentProps: {
-        object: node.children ? node.client : node.site,
-        type: node.children ? "client" : "site",
+        object: node.site,
+        type: "site",
       },
     }).onOk(clearTreeSelected);
   } else {
     $q.dialog({
       title: "Are you sure?",
-      message: `Delete ${node.children ? "client" : "site"}: ${node.label}.`,
+      message: `Delete site: ${node.label}.`,
       cancel: true,
       ok: { label: "Delete", color: "negative" },
     }).onOk(async () => {
       $q.loading.show();
       try {
-        const endpoint = node.children
-          ? `/clients/${node.id}/client/`
-          : `/clients/sites/${node.id}/`;
-        const { data } = await axios.delete(endpoint);
+        const { data } = await axios.delete(`/clients/sites/${node.id}/`);
         notifySuccess(data);
         clearTreeSelected();
       } catch (e) {
@@ -229,7 +213,7 @@ function showDeleteModal(node: TreeNode) {
 function showAddSiteModal(node: TreeNode) {
   $q.dialog({
     component: SitesForm,
-    componentProps: { client: node.id },
+    componentProps: { parent: node.id },
   }).onOk(() => clientsStore.loadTree());
 }
 
@@ -237,8 +221,8 @@ function showPolicyAdd(node: TreeNode) {
   $q.dialog({
     component: PolicyAdd,
     componentProps: {
-      type: node.children ? "client" : "site",
-      object: node.children ? node.client : node.site,
+      type: "site",
+      object: node.site,
     },
   }).onOk(() => clientsStore.loadTree());
 }
@@ -247,8 +231,8 @@ function showAlertTemplateAdd(node: TreeNode) {
   $q.dialog({
     component: AlertTemplateAdd,
     componentProps: {
-      type: node.children ? "client" : "site",
-      object: node.children ? node.client : node.site,
+      type: "site",
+      object: node.site,
     },
   }).onOk(() => agentsStore.refreshDashboard());
 }
@@ -270,9 +254,8 @@ function showToggleMaintenance(node: TreeNode) {
 }
 
 function runChecks(node: TreeNode) {
-  const target = node.children ? "client" : "site";
   axios
-    .post(`/checks/${target}/${node.id}/csbulkrun/`)
+    .post(`/checks/site/${node.id}/csbulkrun/`)
     .then((r) => notifySuccess(r.data))
     .catch(console.error);
 }

@@ -17,17 +17,7 @@ For details, see: https://license.tacticalrmm.com/ee
 
       <q-card-section v-for="(_, label) in dependencies" :key="label">
         <tactical-dropdown
-          v-if="label === 'client'"
-          v-model="dependencies[label]"
-          :label="`${capitalize(label)}`"
-          :options="clientOptions"
-          outlined
-          mapOptions
-          filterable
-        />
-
-        <tactical-dropdown
-          v-else-if="label === 'site'"
+          v-if="label === 'site'"
           v-model="dependencies[label]"
           :label="`${capitalize(label)}`"
           :options="siteOptions"
@@ -76,7 +66,7 @@ import { useDialogPluginComponent } from "quasar";
 import { notifyError } from "@/utils/notify";
 import { capitalize } from "@/utils/format";
 import { useAgentDropdown } from "@/composables/agents";
-import { useClientDropdown, useSiteDropdown } from "@/composables/clients";
+import { useSiteDropdown } from "@/composables/clients";
 
 // ui imports
 import TacticalDropdown from "@/components/ui/TacticalDropdown.vue";
@@ -96,7 +86,6 @@ const { dialogRef, onDialogHide, onDialogOK } = useDialogPluginComponent();
 
 // setup dropdown options
 const { agentOptions, getAgentOptions } = useAgentDropdown();
-const { clientOptions, getClientOptions } = useClientDropdown();
 const { siteOptions, getSiteOptions } = useSiteDropdown();
 
 // logic
@@ -125,10 +114,6 @@ function submit() {
 }
 
 onBeforeMount(() => {
-  if (props.dependsOn.includes("client")) {
-    getClientOptions();
-  }
-
   if (props.dependsOn.includes("site")) {
     getSiteOptions();
   }

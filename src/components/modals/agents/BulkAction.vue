@@ -23,17 +23,7 @@
 
         <q-card-section>
           <tactical-dropdown
-            v-if="state.target === 'client'"
-            :rules="[(val) => !!val || '*Required']"
-            v-model="state.client"
-            :options="clientOptions"
-            label="Select Client"
-            outlined
-            mapOptions
-            filterable
-          />
-          <tactical-dropdown
-            v-else-if="state.target === 'site'"
+            v-if="state.target === 'site'"
             :rules="[(val) => !!val || '*Required']"
             v-model="state.site"
             :options="siteOptions"
@@ -302,7 +292,7 @@ import { useDialogPluginComponent, openURL, useQuasar } from "quasar";
 import axios from "axios";
 import { useScriptDropdown } from "@/composables/scripts";
 import { useAgentDropdown, cmdPlaceholder } from "@/composables/agents";
-import { useClientDropdown, useSiteDropdown } from "@/composables/clients";
+import { useSiteDropdown } from "@/composables/clients";
 import { useCustomFieldDropdown } from "@/composables/core";
 import { runBulkAction } from "@/api/agents";
 import { fetchChocosSoftware, bulkSoftwareInstall } from "@/api/software";
@@ -328,7 +318,6 @@ const osTypeOptions = [
 ];
 
 const targetOptions = [
-  { label: "Client", value: "client" },
   { label: "Site", value: "site" },
   { label: "Selected Agents", value: "agents" },
   { label: "All", value: "all" },
@@ -388,7 +377,6 @@ export default defineComponent({
     } = useScriptDropdown();
     const { agents, agentOptions, getAgentOptions } = useAgentDropdown();
     const { site, siteOptions, getSiteOptions } = useSiteDropdown();
-    const { client, clientOptions, getClientOptions } = useClientDropdown();
     const { customFieldOptions } = useCustomFieldDropdown({ onMount: true });
 
     function openScriptURL() {
@@ -398,7 +386,7 @@ export default defineComponent({
     // bulk action logic
     const state = reactive({
       mode: props.mode,
-      target: "client",
+      target: "site",
       monType: "all",
       osType: "windows",
       cmd: "",
@@ -409,7 +397,6 @@ export default defineComponent({
       save_to_agent_note: false,
       patchMode: "scan",
       offlineAgents: false,
-      client,
       site,
       agents,
       script,
@@ -426,7 +413,6 @@ export default defineComponent({
     watch(
       () => state.target,
       () => {
-        client.value = null;
         site.value = null;
         agents.value = [];
       },
@@ -541,15 +527,6 @@ export default defineComponent({
               ].filter((id) => !Number.isNaN(id))
             : [];
 
-        const clientIds =
-          state.target === "client" && state.client != null
-            ? [
-                typeof state.client === "string"
-                  ? Number.parseInt(state.client)
-                  : state.client,
-              ].filter((id) => !Number.isNaN(id))
-            : [];
-
         const templatePayload = {
           name: nameDialog.name,
           description: nameDialog.description,
@@ -560,7 +537,6 @@ export default defineComponent({
           actions: {},
           agents: agentIds,
           sites: siteIds,
-          clients: clientIds,
         };
 
         if (state.mode === "command") {
@@ -623,7 +599,6 @@ export default defineComponent({
     onMounted(async () => {
       getAgentOptions();
       getSiteOptions();
-      getClientOptions();
       if (props.mode === "script") getScriptOptions();
       if (props.mode === "software") {
         const packages = await fetchChocosSoftware();
@@ -638,7 +613,6 @@ export default defineComponent({
       // reactive data
       state,
       agentOptions,
-      clientOptions,
       collector,
       customFieldOptions,
       siteOptions,

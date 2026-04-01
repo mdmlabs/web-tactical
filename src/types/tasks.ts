@@ -167,7 +167,7 @@ export interface TemplateActions {
   software?: TemplateSoftwareAction[];
 }
 
-export type TemplateTargetType = "client" | "site" | "agents" | "all";
+export type TemplateTargetType = "site" | "agents" | "all";
 
 export interface TemplateCommandActionBackend {
   type: "cmd";

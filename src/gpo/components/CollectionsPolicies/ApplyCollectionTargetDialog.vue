@@ -78,7 +78,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { fetchClients } from "@/api/clients";
+import { fetchSitesFlat } from "@/api/clients";
 import { fetchAgents } from "@/api/agents";
 import {
   policyAssignmentClient,
@@ -94,8 +94,7 @@ import type {
 import { notifyError, notifySuccess } from "@/utils/notify";
 
 export interface TargetSelection {
-  targetType: "client" | "site" | "agent" | "user";
-  clientId?: string;
+  targetType: "site" | "agent" | "user";
   siteId?: string;
   agentId?: string;
   userId?: string;
@@ -108,8 +107,7 @@ interface TreeNode {
   children?: TreeNode[];
   lazy?: boolean;
   tickable?: boolean;
-  targetType?: "client" | "site" | "agent" | "user";
-  clientId?: string;
+  targetType?: "site" | "agent" | "user";
   siteId?: string;
   agentId?: string;
   userId?: string;
@@ -154,7 +152,6 @@ const selectedTarget = computed((): TargetSelection | null => {
   if (!node || !node.targetType) return null;
   return {
     targetType: node.targetType,
-    clientId: node.clientId,
     siteId: node.siteId,
     agentId: node.agentId,
     userId: node.userId,
@@ -164,11 +161,10 @@ const selectedTarget = computed((): TargetSelection | null => {
 
 function buildCombinedFromTicked(): {
   targetType: "combined";
-  targetParams: { clientIds: string[]; siteIds: string[]; agentIds: string[] };
+  targetParams: { siteIds: string[]; agentIds: string[] };
   label: string;
 } | null {
   if (tickedNodeIds.value.length === 0) return null;
-  const clientIds: string[] = [];
   const siteIds: string[] = [];
   const agentIds: string[] = [];
   const labels: string[] = [];
@@ -176,10 +172,7 @@ function buildCombinedFromTicked(): {
     const node = findNodeById(treeNodes.value, id);
     if (!node || !node.targetType) continue;
     if (node.targetType === "user") continue;
-    if (node.targetType === "client" && node.clientId) {
-      clientIds.push(node.clientId);
-      labels.push(node.label);
-    } else if (node.targetType === "site" && node.siteId) {
+    if (node.targetType === "site" && node.siteId) {
       siteIds.push(node.siteId);
       labels.push(node.label);
     } else if (node.targetType === "agent" && node.agentId) {
@@ -187,12 +180,12 @@ function buildCombinedFromTicked(): {
       labels.push(node.label);
     }
   }
-  if (clientIds.length === 0 && siteIds.length === 0 && agentIds.length === 0) {
+  if (siteIds.length === 0 && agentIds.length === 0) {
     return null;
   }
   return {
     targetType: "combined",
-    targetParams: { clientIds, siteIds, agentIds },
+    targetParams: { siteIds, agentIds },
     label: labels.join(", ") || "Combined",
   };
 }
@@ -214,8 +207,7 @@ function findNodeById(nodes: TreeNode[], id: string): TreeNode | null {
 }
 
 function getNodeIcon(node: TreeNode): string {
-  if (node.targetType === "client") return "business";
-  if (node.targetType === "site") return "location_on";
+  if (node.targetType === "site") return "business";
   if (node.targetType === "agent") return "computer";
   if (node.targetType === "user") return "person";
   return "folder";
@@ -260,8 +252,8 @@ async function loadTree() {
   agentsBySiteKey.value = new Map();
   sidToUserIdMap.value = new Map();
   try {
-    const [clientsData, agentsData, allUsersRes] = await Promise.all([
-      fetchClients(),
+    const [sitesData, agentsData, allUsersRes] = await Promise.all([
+      fetchSitesFlat(),
       fetchAgents({ detail: false }).catch(() => null),
       userControlClient.getAllUsers().catch(() => ({ usersList: [] })),
     ]);
@@ -278,7 +270,7 @@ async function loadTree() {
       if (sid && uid) map.set(sid, uid);
     }
     sidToUserIdMap.value = map;
-    const clients = Array.isArray(clientsData) ? clientsData : [];
+    const sites = Array.isArray(sitesData) ? sitesData : [];
     const rawAgents = agentsData ?? [];
     let agents: Array<Record<string, unknown>> = [];
     if (Array.isArray(rawAgents)) {
@@ -293,9 +285,8 @@ async function loadTree() {
       Array<{ agent_id: string; hostname: string }>
     >();
     for (const a of agents) {
-      const clientName = a.client ?? a.client_name;
       const siteName = a.site ?? a.site_name;
-      const key = `${String(clientName)}::${String(siteName)}`;
+      const key = String(siteName);
       if (!agentsBySite.has(key)) agentsBySite.set(key, []);
       agentsBySite.get(key)!.push({
         agent_id: String(a.agent_id ?? a.id ?? ""),
@@ -304,57 +295,36 @@ async function loadTree() {
     }
     agentsBySiteKey.value = agentsBySite;
 
-    const nodes: TreeNode[] = clients.map(
-      (client: {
-        id: number;
-        name: string;
-        sites?: Array<{ id: number; name: string }>;
-      }) => {
-        const clientId = String(client.id);
-        const sites = client.sites ?? [];
-        const siteNodes: TreeNode[] = sites.map(
-          (site: { id: number; name: string }) => {
-            const siteId = String(site.id);
-            const siteKey = `${client.name}::${site.name}`;
-            const siteAgents = agentsBySite.get(siteKey) ?? [];
-            const agentNodes: TreeNode[] = siteAgents.map((ag) => ({
-              id: `agent-${ag.agent_id}`,
-              label: ag.hostname,
-              targetType: "agent" as const,
-              clientId,
-              siteId,
-              agentId: ag.agent_id,
-              lazy: true,
-              tickable: true,
-              children: [],
-            }));
-            const siteLabel =
-              site.name + (siteAgents.length ? ` (${siteAgents.length})` : "");
-            return {
-              id: `site-${siteId}`,
-              label: siteLabel,
-              targetType: "site" as const,
-              clientId,
-              siteId,
-              tickable: true,
-              children: agentNodes.length > 0 ? agentNodes : undefined,
-            };
-          },
-        );
-        return {
-          id: `client-${clientId}`,
-          label: client.name,
-          targetType: "client" as const,
-          clientId,
+    const nodes: TreeNode[] = sites.map(
+      (site: { id: number; name: string }) => {
+        const siteId = String(site.id);
+        const siteAgents = agentsBySite.get(site.name) ?? [];
+        const agentNodes: TreeNode[] = siteAgents.map((ag) => ({
+          id: `agent-${ag.agent_id}`,
+          label: ag.hostname,
+          targetType: "agent" as const,
+          siteId,
+          agentId: ag.agent_id,
+          lazy: true,
           tickable: true,
-          children: siteNodes.length > 0 ? siteNodes : undefined,
+          children: [],
+        }));
+        const siteLabel =
+          site.name + (siteAgents.length ? ` (${siteAgents.length})` : "");
+        return {
+          id: `site-${siteId}`,
+          label: siteLabel,
+          targetType: "site" as const,
+          siteId,
+          tickable: true,
+          children: agentNodes.length > 0 ? agentNodes : undefined,
         };
       },
     );
     treeNodes.value = nodes;
   } catch (e) {
     console.error("Load target tree failed:", e);
-    notifyError("Failed to load clients/sites");
+    notifyError("Failed to load sites");
   } finally {
     treeLoading.value = false;
   }
@@ -380,9 +350,7 @@ async function onSubmit() {
     targetType = target.targetType;
     label = target.label ?? target.targetType;
     targetParams = {};
-    if (target.targetType === "client" && target.clientId) {
-      targetParams.clientId = target.clientId;
-    } else if (target.targetType === "site" && target.siteId) {
+    if (target.targetType === "site" && target.siteId) {
       targetParams.siteId = target.siteId;
     } else if (target.targetType === "agent" && target.agentId) {
       targetParams.agentId = target.agentId;

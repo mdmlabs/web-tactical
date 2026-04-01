@@ -27,7 +27,7 @@
 
 <script setup lang="ts">
 defineProps<{
-  type: "client" | "agent" | "site";
+  type: "agent" | "site";
   id: string | number;
 }>();
 </script>

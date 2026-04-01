@@ -2,37 +2,34 @@ import axios from "axios";
 
 const baseUrl = "/clients";
 
-// client endpoints
-export async function fetchClients() {
+// tree endpoint
+export async function fetchTree() {
   try {
-    const { data } = await axios.get(`${baseUrl}/`);
+    const { data } = await axios.get("/apiv3/tree/");
     return data;
   } catch (e) {
     console.error(e);
   }
 }
 
-export async function fetchClient(id) {
+// flat site list for dropdowns
+export async function fetchSitesFlat() {
   try {
-    const { data } = await axios.get(`${baseUrl}/${id}/`);
+    const { data } = await axios.get(`${baseUrl}/sites/`);
     return data;
   } catch (e) {
     console.error(e);
   }
 }
 
-export async function saveClient(payload) {
-  const { data } = await axios.post(`${baseUrl}/`, payload);
+// sync endpoints
+export async function syncSiteTree() {
+  const { data } = await axios.post(`${baseUrl}/sites/sync/`);
   return data;
 }
 
-export async function editClient(id, payload) {
-  const { data } = await axios.put(`${baseUrl}/${id}/`, payload);
-  return data;
-}
-
-export async function removeClient(id, params = {}) {
-  const { data } = await axios.delete(`${baseUrl}/${id}/`, { params: params });
+export async function syncAgents() {
+  const { data } = await axios.post(`${baseUrl}/sites/sync-agents/`);
   return data;
 }
 

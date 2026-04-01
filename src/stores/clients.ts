@@ -8,6 +8,15 @@ interface TreeNode {
   [key: string]: unknown;
 }
 
+interface SiteApiData {
+  id: number;
+  name: string;
+  maintenance_mode: boolean;
+  agent_count: number;
+  children?: SiteApiData[];
+  [key: string]: unknown;
+}
+
 export const useClientsStore = defineStore("clients", () => {
   const tree = ref<unknown[]>([]);
   const treeReady = ref(false);
@@ -20,57 +29,50 @@ export const useClientsStore = defineStore("clients", () => {
 
   async function loadTree() {
     try {
-      const { data } = await axios.get("/clients/");
+      const { data } = await axios.get("/apiv3/tree/");
 
       if (data.length === 0) {
         treeReady.value = true;
         return;
       }
 
-      const output: TreeNode[] = [];
-      for (const client of data) {
-        const childSites: TreeNode[] = [];
-        for (const site of client.sites) {
+      function buildSiteNodes(sites: SiteApiData[]): TreeNode[] {
+        const nodes: TreeNode[] = [];
+        for (const site of sites) {
+          let childNodes: TreeNode[] = [];
+          if (site.children && site.children.length > 0) {
+            childNodes = buildSiteNodes(site.children);
+          }
+
           const siteNode: Record<string, unknown> = {
             label: site.name,
             id: site.id,
             raw: `Site|${site.id}`,
-            header: "generic",
-            icon: "business_center",
+            header: childNodes.length > 0 ? "root" : "generic",
+            icon:
+              childNodes.length > 0 ? "corporate_fare" : "business_center",
             selectable: true,
             site: site,
           };
 
+          if (childNodes.length > 0) {
+            siteNode.children = childNodes;
+          }
+
           if (site.maintenance_mode) {
             siteNode.color = "green";
-          } else if (site.failing_checks.error) {
+          } else if (site.failing_checks?.error) {
             siteNode.color = "negative";
-          } else if (site.failing_checks.warning) {
+          } else if (site.failing_checks?.warning) {
             siteNode.color = "warning";
           }
 
-          childSites.push(siteNode);
+          nodes.push(siteNode);
         }
-
-        const clientNode: Record<string, unknown> = {
-          label: client.name,
-          id: client.id,
-          raw: `Client|${client.id}`,
-          header: "root",
-          icon: "corporate_fare",
-          children: childSites,
-          client: client,
-        };
-
-        if (client.maintenance_mode) clientNode.color = "green";
-        else if (client.failing_checks.error) {
-          clientNode.color = "negative";
-        } else if (client.failing_checks.warning) {
-          clientNode.color = "warning";
-        }
-
-        output.push(clientNode);
+        return nodes;
       }
+
+      const output = buildSiteNodes(data);
 
       const sorted = output.sort((a: TreeNode, b: TreeNode) =>
         a.label.localeCompare(b.label),

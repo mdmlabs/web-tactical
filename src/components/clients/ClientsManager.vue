@@ -3,20 +3,20 @@
     <q-card class="q-dialog-plugin" style="width: 70vw">
       <q-bar>
         <q-btn
-          @click="getClients"
+          @click="getSites"
           class="q-mr-sm"
           dense
           flat
           push
           icon="refresh"
-        />Clients Manager
+        />Sites Manager
         <q-space />
         <q-btn dense flat icon="close" v-close-popup>
           <q-tooltip class="bg-white text-primary">Close</q-tooltip>
         </q-btn>
       </q-bar>
       <q-table
-        :rows="clients"
+        :rows="sites"
         :columns="columns"
         :table-class="{
           'table-bgcolor': !$q.dark.isActive,
@@ -30,7 +30,7 @@
         binary-state-sort
         virtual-scroll
         :rows-per-page-options="[0]"
-        no-data-label="No Clients"
+        no-data-label="No Sites"
         :loading="loading"
       >
         <!-- top slot -->
@@ -42,7 +42,7 @@
             push
             no-caps
             icon="add"
-            @click="showAddClient"
+            @click="showAddSite"
           />
         </template>
 
@@ -56,7 +56,7 @@
           <q-tr
             :props="props"
             class="cursor-pointer"
-            @dblclick="showEditClient(props.row)"
+            @dblclick="showEditSite(props.row)"
           >
             <!-- context menu -->
             <q-menu context-menu>
@@ -64,7 +64,7 @@
                 <q-item
                   clickable
                   v-close-popup
-                  @click="showEditClient(props.row)"
+                  @click="showEditSite(props.row)"
                 >
                   <q-item-section side>
                     <q-icon name="edit" />
@@ -74,7 +74,7 @@
                 <q-item
                   clickable
                   v-close-popup
-                  @click="showClientDeleteModal(props.row)"
+                  @click="showSiteDeleteModal(props.row)"
                 >
                   <q-item-section side>
                     <q-icon name="delete" />
@@ -84,11 +84,15 @@
 
                 <q-separator></q-separator>
 
-                <q-item clickable v-close-popup @click="showAddSite(props.row)">
+                <q-item
+                  clickable
+                  v-close-popup
+                  @click="showAddChildSite(props.row)"
+                >
                   <q-item-section side>
                     <q-icon name="add" />
                   </q-item-section>
-                  <q-item-section>Add Site</q-item-section>
+                  <q-item-section>Add Child Site</q-item-section>
                 </q-item>
 
                 <q-separator></q-separator>
@@ -102,14 +106,7 @@
             <q-td>
               {{ props.row.name }}
             </q-td>
-            <q-td>
-              <span
-                style="cursor: pointer; text-decoration: underline"
-                class="text-primary"
-                @click="showSitesTable(props.row)"
-                >Show Sites ({{ props.row.sites.length }})</span
-              >
-            </q-td>
+            <q-td>{{ props.row.ancestors || "—" }}</q-td>
             <q-td>{{ props.row.agent_count }}</q-td>
           </q-tr>
         </template>
@@ -122,19 +119,17 @@
 // composition imports
 import { ref, onMounted } from "vue";
 import { useQuasar, useDialogPluginComponent } from "quasar";
-import { fetchClients, removeClient } from "@/api/clients";
+import { fetchSitesFlat, removeSite } from "@/api/clients";
 import { notifySuccess } from "@/utils/notify";
 
 // ui imports
-import ClientsForm from "@/components/clients/ClientsForm.vue";
 import SitesForm from "@/components/clients/SitesForm.vue";
 import DeleteClient from "@/components/clients/DeleteClient.vue";
-import SitesTable from "@/components/clients/SitesTable.vue";
 
 // static data
 const columns = [
   { name: "name", label: "Name", field: "name", align: "left" },
-  { name: "sites", label: "Sites", field: "sites", align: "left" },
+  { name: "ancestors", label: "Path", field: "ancestors", align: "left" },
   {
     name: "agent_count",
     label: "Total Agents",
@@ -151,40 +146,36 @@ export default {
     const $q = useQuasar();
     const { dialogRef, onDialogHide } = useDialogPluginComponent();
 
-    // clients manager logic
-    const clients = ref([]);
+    // sites manager logic
+    const sites = ref([]);
     const loading = ref(false);
 
-    async function getClients() {
+    async function getSites() {
       loading.value = true;
-      clients.value = await fetchClients();
+      sites.value = await fetchSitesFlat();
       loading.value = false;
     }
 
-    function showClientDeleteModal(client) {
-      // agents are still assigned to client. Need to open modal to select which site to move to
-      if (client.agent_count > 0) {
+    function showSiteDeleteModal(site) {
+      if (site.agent_count > 0) {
         $q.dialog({
           component: DeleteClient,
           componentProps: {
-            object: client,
-            type: "client",
+            object: site,
           },
-        }).onOk(getClients);
-
-        // can delete the client since there are no agents
+        }).onOk(getSites);
       } else {
         $q.dialog({
           title: "Are you sure?",
-          message: `Delete client: ${client.name}.`,
+          message: `Delete site: ${site.name}.`,
           cancel: true,
           ok: { label: "Delete", color: "negative" },
         }).onOk(async () => {
           loading.value = true;
           try {
-            const result = await removeClient(client.id);
+            const result = await removeSite(site.id);
             notifySuccess(result);
-            await getClients();
+            await getSites();
           } catch (e) {
             console.error(e);
           }
@@ -193,56 +184,46 @@ export default {
       }
     }
 
-    function showEditClient(client) {
-      $q.dialog({
-        component: ClientsForm,
-        componentProps: {
-          client: client,
-        },
-      }).onOk(getClients);
-    }
-
-    function showAddClient() {
-      $q.dialog({
-        component: ClientsForm,
-      }).onOk(getClients);
-    }
-
-    function showAddSite(client) {
+    function showEditSite(site) {
       $q.dialog({
         component: SitesForm,
         componentProps: {
-          client: client.id,
+          site: site,
         },
-      }).onOk(getClients);
+      }).onOk(getSites);
     }
 
-    function showSitesTable(client) {
+    function showAddSite() {
       $q.dialog({
-        component: SitesTable,
-        componentProps: {
-          client: client,
-        },
-      });
+        component: SitesForm,
+      }).onOk(getSites);
     }
 
-    onMounted(getClients);
+    function showAddChildSite(site) {
+      $q.dialog({
+        component: SitesForm,
+        componentProps: {
+          parent: site.id,
+        },
+      }).onOk(getSites);
+    }
+
+    onMounted(getSites);
 
     return {
       // reactive data
-      clients,
+      sites,
       loading,
 
       // non-reactive data
       columns,
 
       // methods
-      getClients,
-      showClientDeleteModal,
-      showEditClient,
-      showAddClient,
+      getSites,
+      showSiteDeleteModal,
+      showEditSite,
       showAddSite,
-      showSitesTable,
+      showAddChildSite,
 
       // quasar dialog
       dialogRef,

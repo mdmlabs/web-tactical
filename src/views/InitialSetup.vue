@@ -18,19 +18,6 @@
           </q-card-section>
           <q-form @submit.prevent="finish">
             <q-card-section>
-              <div>Add Client:</div>
-              <q-input
-                dense
-                outlined
-                v-model="client.name"
-                :rules="[(val) => !!val || '*Required']"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="business" />
-                </template>
-              </q-input>
-            </q-card-section>
-            <q-card-section>
               <div>Add Site:</div>
               <q-input
                 dense
@@ -100,9 +87,6 @@ export default {
   mixins: [mixins],
   data() {
     return {
-      client: {
-        name: "",
-      },
       site: {
         name: "",
       },
@@ -116,14 +100,13 @@ export default {
     finish() {
       this.$q.loading.show();
       const data = {
-        client: this.client,
         site: this.site,
         timezone: this.timezone,
         companyname: this.companyname,
         initialsetup: true,
       };
       this.$axios
-        .post("/clients/", data)
+        .post("/clients/sites/", data)
         .then(() => {
           this.$q.loading.hide();
           this.$router.push({ name: "Dashboard" });

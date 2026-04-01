@@ -35,7 +35,6 @@
           narrow-indicator
           no-caps
         >
-          <q-tab name="clients" label="Clients" />
           <q-tab name="sites" label="Sites" />
           <q-tab name="agents" label="Agents" />
         </q-tabs>
@@ -82,7 +81,7 @@
                 >
                   <q-item-section>
                     <q-item-label>{{ item.name }}</q-item-label>
-                    <q-item-label caption>{{ item.client_name }}</q-item-label>
+                    <q-item-label caption>{{ item.ancestors }}</q-item-label>
                   </q-item-section>
                   <q-item-section side>
                     <q-item-label>
@@ -96,7 +95,7 @@
                 >
                   <q-item-section>
                     <q-item-label>{{ item.name }}</q-item-label>
-                    <q-item-label caption>{{ item.client_name }}</q-item-label>
+                    <q-item-label caption>{{ item.ancestors }}</q-item-label>
                   </q-item-section>
                   <q-item-section side>
                     <q-item-label>
@@ -139,7 +138,7 @@ export default {
   },
   data() {
     return {
-      tab: "clients",
+      tab: "sites",
       related: {},
       thumbStyle: {
         right: "2px",

@@ -25,7 +25,6 @@
         narrow-indicator
         no-caps
       >
-        <q-tab name="client" label="Clients" />
         <q-tab name="site" label="Sites" />
         <q-tab name="agent" label="Agents" />
       </q-tabs>
@@ -33,13 +32,6 @@
       <q-separator />
       <q-scroll-area :thumb-style="thumbStyle" style="height: 50vh">
         <q-tab-panels v-model="tab" :animated="false">
-          <q-tab-panel name="client">
-            <CustomFieldsTable
-              @refresh="getCustomFields"
-              :data="clientFields"
-            />
-          </q-tab-panel>
-
           <q-tab-panel name="site">
             <CustomFieldsTable @refresh="getCustomFields" :data="siteFields" />
           </q-tab-panel>
@@ -64,7 +56,7 @@ export default {
   },
   data() {
     return {
-      tab: "client",
+      tab: "site",
       customFields: [],
       thumbStyle: {
         right: "2px",
@@ -81,9 +73,6 @@ export default {
     },
     siteFields() {
       return this.customFields.filter((field) => field.model === "site");
-    },
-    clientFields() {
-      return this.customFields.filter((field) => field.model === "client");
     },
   },
   methods: {

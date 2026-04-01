@@ -233,7 +233,6 @@
                       >{{
                         `Show Policy Exclusions (${
                           props.row.excluded_agents.length +
-                          props.row.excluded_clients.length +
                           props.row.excluded_sites.length
                         })`
                       }}</span

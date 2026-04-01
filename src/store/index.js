@@ -220,11 +220,7 @@ export default function () {
           else localParams = `?monitoring_type=${state.defaultAgentTblTab}`;
         }
 
-        if (state.selectedTree && state.selectedTree.includes("Client")) {
-          if (localParams)
-            localParams += `&client=${state.selectedTree.split("|")[1]}`;
-          else localParams = `?client=${state.selectedTree.split("|")[1]}`;
-        } else if (state.selectedTree && state.selectedTree.includes("Site")) {
+        if (state.selectedTree && state.selectedTree.includes("Site")) {
           if (localParams)
             localParams += `&site=${state.selectedTree.split("|")[1]}`;
           else localParams = `?site=${state.selectedTree.split("|")[1]}`;
@@ -413,62 +409,53 @@ export default function () {
       loadTree({ commit, state }) {
         setTimeout(() => {
           axios
-            .get("/clients/")
+            .get("/apiv3/tree/")
             .then((r) => {
               if (r.data.length === 0) {
                 this.$router.push({ name: "InitialSetup" });
               }
 
-              let output = [];
-              for (let client of r.data) {
-                let childSites = [];
-                for (let site of client.sites) {
+              function buildSiteNodes(sites) {
+                let nodes = [];
+                for (let site of sites) {
+                  let childNodes = [];
+                  if (site.children && site.children.length > 0) {
+                    childNodes = buildSiteNodes(site.children);
+                  }
+
                   let siteNode = {
                     label: site.name,
                     id: site.id,
                     raw: `Site|${site.id}`,
-                    header: "generic",
-                    icon: "business_center",
+                    header: childNodes.length > 0 ? "root" : "generic",
+                    icon: childNodes.length > 0 ? "corporate_fare" : "business_center",
                     selectable: true,
                     site: site,
                   };
 
+                  if (childNodes.length > 0) {
+                    siteNode.children = childNodes;
+                  }
+
                   if (site.maintenance_mode) {
                     siteNode["color"] = "green";
-                  } else if (site.failing_checks.error) {
+                  } else if (site.failing_checks && site.failing_checks.error) {
                     siteNode["color"] = "negative";
-                  } else if (site.failing_checks.warning) {
+                  } else if (site.failing_checks && site.failing_checks.warning) {
                     siteNode["color"] = "warning";
                   }
 
-                  childSites.push(siteNode);
+                  nodes.push(siteNode);
                 }
-
-                let clientNode = {
-                  label: client.name,
-                  id: client.id,
-                  raw: `Client|${client.id}`,
-                  header: "root",
-                  icon: "corporate_fare",
-                  children: childSites,
-                  client: client,
-                };
-
-                if (client.maintenance_mode) clientNode["color"] = "green";
-                else if (client.failing_checks.error) {
-                  clientNode["color"] = "negative";
-                } else if (client.failing_checks.warning) {
-                  clientNode["color"] = "warning";
-                }
-
-                output.push(clientNode);
+                return nodes;
               }
+
+              let output = buildSiteNodes(r.data);
 
               const sorted = output.sort((a, b) =>
                 a.label.localeCompare(b.label),
               );
               if (state.clientTreeSort === "alphafail") {
-                // move failing clients to the top
                 const failing = sorted.filter(
                   (i) => i.color === "negative" || i.color === "warning",
                 );

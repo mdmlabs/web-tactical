@@ -39,12 +39,6 @@ export const useAgentsStore = defineStore("agents", () => {
 
     if (
       clientsStore.selectedTree &&
-      clientsStore.selectedTree.includes("Client")
-    ) {
-      const sep = params ? "&" : "?";
-      params += `${sep}client=${clientsStore.selectedTree.split("|")[1]}`;
-    } else if (
-      clientsStore.selectedTree &&
       clientsStore.selectedTree.includes("Site")
     ) {
       const sep = params ? "&" : "?";

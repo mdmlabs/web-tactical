@@ -21,9 +21,9 @@
       <div class="row">
         <div class="q-pa-sm col-3">
           <q-select
-            v-model="clientFilter"
-            :options="clientsOptions"
-            label="Clients"
+            v-model="siteFilter"
+            :options="sitesOptions"
+            label="Sites"
             multiple
             outlined
             dense
@@ -220,12 +220,12 @@ export default {
       alerts: [],
       selectedAlerts: [],
       severityFilter: [],
-      clientFilter: [],
+      siteFilter: [],
       timeFilter: 30,
       includeResolved: false,
       includeSnoozed: false,
       searched: false,
-      clientsOptions: [],
+      sitesOptions: [],
       severityOptions: [
         { label: "Informational", value: "info" },
         { label: "Warning", value: "warning" },
@@ -250,8 +250,8 @@ export default {
           format: (a) => this.formatDate(a),
         },
         {
-          name: "client",
-          label: "Client",
+          name: "path",
+          label: "Path",
           field: "client",
           align: "left",
           sortable: true,
@@ -336,10 +336,10 @@ export default {
     },
   },
   methods: {
-    getClients() {
-      this.$axios.get("/clients/").then((r) => {
-        this.clientsOptions = Object.freeze(
-          r.data.map((client) => ({ label: client.name, value: client.id })),
+    getSites() {
+      this.$axios.get("/clients/sites/").then((r) => {
+        this.sitesOptions = Object.freeze(
+          r.data.map((site) => ({ label: site.name, value: site.id })),
         );
       });
     },
@@ -354,8 +354,8 @@ export default {
         resolvedFilter: this.includeResolved,
       };
 
-      if (this.clientFilter.length > 0)
-        data["clientFilter"] = this.clientFilter;
+      if (this.siteFilter.length > 0)
+        data["siteFilter"] = this.siteFilter;
       if (this.timeFilter) data["timeFilter"] = this.timeFilter;
       if (this.severityFilter.length > 0)
         data["severityFilter"] = this.severityFilter;
@@ -540,7 +540,7 @@ export default {
     },
   },
   mounted() {
-    this.getClients();
+    this.getSites();
   },
 };
 </script>

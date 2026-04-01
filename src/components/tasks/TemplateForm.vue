@@ -78,18 +78,7 @@
                 />
 
                 <tactical-dropdown
-                  v-if="state.target === 'client'"
-                  :rules="[(val) => !!val || '*Required']"
-                  v-model="state.client"
-                  :options="clientOptions"
-                  label="Select Client"
-                  outlined
-                  mapOptions
-                  filterable
-                  class="q-mb-md"
-                />
-                <tactical-dropdown
-                  v-else-if="state.target === 'site'"
+                  v-if="state.target === 'site'"
                   :rules="[(val) => !!val || '*Required']"
                   v-model="state.site"
                   :options="siteOptions"
@@ -470,7 +459,7 @@ import { ref, reactive, computed, onMounted, defineComponent } from "vue";
 import { useDialogPluginComponent } from "quasar";
 import { useScriptDropdown } from "@/composables/scripts";
 import { useAgentDropdown, cmdPlaceholder } from "@/composables/agents";
-import { useClientDropdown, useSiteDropdown } from "@/composables/clients";
+import { useSiteDropdown } from "@/composables/clients";
 import { useCustomFieldDropdown } from "@/composables/core";
 import { createTemplate, updateTemplate } from "@/api/tasks";
 import { fetchChocosSoftware } from "@/api/software";
@@ -478,7 +467,6 @@ import { notifySuccess, notifyError } from "@/utils/notify";
 import TacticalDropdown from "@/components/ui/TacticalDropdown.vue";
 
 const targetOptions = [
-  { label: "Client", value: "client" },
   { label: "Site", value: "site" },
   { label: "Selected Agents", value: "agents" },
   { label: "All", value: "all" },
@@ -563,16 +551,10 @@ export default defineComponent({
     }
 
     function determineTarget(template) {
-      if (!template) return "client";
+      if (!template) return "site";
 
       if (template.agents && template.agents.length > 0) {
         return "agents";
-      }
-      if (
-        template.client != null ||
-        (template.clients && template.clients.length > 0)
-      ) {
-        return "client";
       }
       if (template.site || (template.sites && template.sites.length > 0)) {
         return "site";
@@ -588,7 +570,6 @@ export default defineComponent({
       collector_all_output: props.template?.collector_all_output ?? false,
       task_supported_platforms: "windows",
       target: determineTarget(props.template),
-      client: props.template?.clients?.[0] ?? props.template?.client ?? null,
       site: props.template?.site || props.template?.sites?.[0] || null,
       agents: props.template?.agents || [],
       actions: parseActionsFromBackend(props.template?.actions),
@@ -600,7 +581,6 @@ export default defineComponent({
     const { scriptOptions, getScriptOptions } = useScriptDropdown();
     const { agentOptions, getAgentOptions } = useAgentDropdown();
     const { siteOptions, getSiteOptions } = useSiteDropdown();
-    const { clientOptions, getClientOptions } = useClientDropdown();
     const { customFieldOptions } = useCustomFieldDropdown({ onMount: true });
 
     function addCommand() {
@@ -732,15 +712,6 @@ export default defineComponent({
               ].filter((id) => !Number.isNaN(id))
             : [];
 
-        const clientIds =
-          state.target === "client" && state.client != null
-            ? [
-                typeof state.client === "string"
-                  ? Number.parseInt(state.client)
-                  : state.client,
-              ].filter((id) => !Number.isNaN(id))
-            : [];
-
         const payload = {
           name: state.name,
           description: state.description,
@@ -751,7 +722,6 @@ export default defineComponent({
           actions: actions,
           agents: agentIds,
           sites: siteIds,
-          clients: clientIds,
         };
 
         if (state.target === "site" && state.site) {
@@ -781,7 +751,6 @@ export default defineComponent({
       getScriptOptions();
       getAgentOptions(false, "id");
       getSiteOptions();
-      getClientOptions();
 
       const packages = await fetchChocosSoftware();
       softwareOptions.value = packages.map((pkg) => ({
@@ -802,7 +771,6 @@ export default defineComponent({
       scriptOptions,
       agentOptions,
       siteOptions,
-      clientOptions,
       customFieldOptions,
       softwareOptions,
       addCommand,

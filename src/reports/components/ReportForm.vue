@@ -66,7 +66,7 @@
         </q-card-section>
         <q-card-section>
           <q-btn-dropdown
-            v-on:show="getClients"
+            v-on:show="getSites"
             label="Filters"
             class="q-pa-md"
             unelevated
@@ -145,25 +145,8 @@
                 <q-select
                   clearable
                   outlined
-                  v-model="filters.client_id"
-                  :options="clientsList"
-                  :label="filterClientSelectLabel"
-                  option-value="id"
-                  :option-label="(client) => `[${client.id}] ${client.name}`"
-                  emit-value
-                  map-options
-                  style="width: 100%; display: block"
-                />
-              </q-item>
-              <q-item>
-                <q-select
-                  :disable="
-                    !filters.client_id || sitesListByClient.length === 0
-                  "
-                  clearable
-                  outlined
                   v-model="filters.site_id"
-                  :options="sitesListByClient"
+                  :options="sitesList"
                   :label="filterSiteSelectLabel"
                   option-value="id"
                   :option-label="(site) => `[${site.id}] ${site.name}`"
@@ -213,7 +196,7 @@
 <script>
 import { fetchRoles } from "@/api/accounts";
 import { fetchAgents } from "@/api/agents";
-import { fetchClients } from "@/api/clients";
+import { fetchSitesFlat } from "@/api/clients";
 import {
   createReport,
   fetchReportFieldsBySourceType,
@@ -242,19 +225,9 @@ export default defineComponent({
 
     const { dialogRef, onDialogOK, onDialogHide } = useDialogPluginComponent();
 
-    const filterClientSelectLabel = computed(() => {
-      if (clientsList.value.length > 0) return "Client";
-      else {
-        return "No clients in system";
-      }
-    });
-
     const filterSiteSelectLabel = computed(() => {
-      if (!filters.client_id) return "Choose client first";
-
-      return sitesListByClient.value.length === 0
-        ? "No sites for this client"
-        : "Site";
+      if (sitesList.value.length > 0) return "Site";
+      else return "No sites in system";
     });
 
     const filterAgentsSelectLabel = computed(() => {
@@ -271,14 +244,12 @@ export default defineComponent({
     const systemRolesList = ref([]);
     const localRolesList = ref({});
 
-    const clientsList = ref([]);
-    const sitesListByClient = ref([]);
+    const sitesList = ref([]);
     const agentsBySite = ref([]);
 
     const reportPropSelectedFields = ref(props.report?.selected_fields || []);
 
     const filters = reactive({
-      client_id: null,
       site_id: null,
       agent_ids: [],
       date_from: null,
@@ -431,14 +402,14 @@ export default defineComponent({
       }
     }
 
-    async function getClients() {
+    async function getSites() {
       loading.value = true;
       try {
-        const data = await fetchClients();
-        clientsList.value = data || [];
+        const data = await fetchSitesFlat();
+        sitesList.value = data || [];
       } catch (e) {
         console.error(e);
-        notifyError("Something went wrong while fetching clients.");
+        notifyError("Something went wrong while fetching sites.");
       } finally {
         loading.value = false;
       }
@@ -497,24 +468,6 @@ export default defineComponent({
     );
 
     watch(
-      () => filters.client_id,
-      (newVal) => {
-        if (initializing.value) {
-          return;
-        }
-        filters.site_id = null;
-        if (newVal) {
-          const client = clientsList.value.find((c) => c.id == newVal);
-          if (client) {
-            sitesListByClient.value = client.sites;
-          }
-        } else {
-          sitesListByClient.value = [];
-        }
-      },
-    );
-
-    watch(
       () => filters.site_id,
       (newVal) => {
         filters.agent_ids = [];
@@ -525,30 +478,18 @@ export default defineComponent({
     );
 
     onMounted(async () => {
-      await getClients();
+      await getSites();
       loadFieldsByType(sourceTypeOption.value);
       loadRoles();
 
       if (isEdit.value && props.report?.filters) {
         const savedFilters = props.report.filters;
 
-        filters.client_id = savedFilters.client_id || null;
+        filters.site_id = savedFilters.site_id || null;
 
-        if (filters.client_id) {
-          const client = clientsList.value.find(
-            (c) => c.id === filters.client_id,
-          );
-
-          if (client) {
-            sitesListByClient.value = client.sites || [];
-          }
-
-          filters.site_id = savedFilters.site_id || null;
-
-          if (filters.site_id) {
-            await fetchAgentsBySiteId(filters.site_id);
-            filters.agent_ids = savedFilters.agent_ids || [];
-          }
+        if (filters.site_id) {
+          await fetchAgentsBySiteId(filters.site_id);
+          filters.agent_ids = savedFilters.agent_ids || [];
         }
 
         filters.date_from = savedFilters.date_from || null;
@@ -571,16 +512,14 @@ export default defineComponent({
       systemRolesList,
       localRolesList,
       filters,
-      clientsList,
-      sitesListByClient,
+      sitesList,
       agentsBySite,
 
-      filterClientSelectLabel,
       filterAgentsSelectLabel,
       filterSiteSelectLabel,
 
       onSubmit,
-      getClients,
+      getSites,
       fetchAgentsBySiteId,
 
       dialogRef,

@@ -58,7 +58,7 @@
                 </q-item>
               </q-list>
             </q-menu>
-            <q-td key="client" :props="props">{{ props.row.client_name }}</q-td>
+            <q-td key="path" :props="props">{{ props.row.ancestors }}</q-td>
             <q-td key="site" :props="props">{{ props.row.site_name }}</q-td>
             <q-td key="mon_type" :props="props">{{ props.row.mon_type }}</q-td>
             <q-td key="goarch" :props="props">{{ props.row.goarch }}</q-td>
@@ -107,9 +107,9 @@ import NewDeployment from "@/components/clients/NewDeployment.vue";
 // static data
 const columns = [
   {
-    name: "client",
-    label: "Client",
-    field: "client_name",
+    name: "path",
+    label: "Path",
+    field: "ancestors",
     align: "left",
     sortable: true,
   },

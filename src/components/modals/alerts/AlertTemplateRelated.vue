@@ -38,16 +38,6 @@
               </q-list>
             </q-tab-panel>
 
-            <q-tab-panel name="clients">
-              <q-list separator padding>
-                <q-item v-for="client in related.clients" :key="client.id">
-                  <q-item-section>
-                    <q-item-label>{{ client.name }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </q-tab-panel>
-
             <q-tab-panel name="sites">
               <q-list separator padding>
                 <q-item v-for="site in related.sites" :key="site.id">

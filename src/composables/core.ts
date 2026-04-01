@@ -24,7 +24,7 @@ export interface UseCustomFieldDropdownParams {
 export function useCustomFieldDropdown(opts: UseCustomFieldDropdownParams) {
   const customFieldOptions = ref([] as CustomFieldOption[]);
 
-  // type can be "client", "site", or "agent"
+  // type can be "site" or "agent"
   async function getCustomFieldOptions(model = null, flat = false) {
     const params = {};
 
@@ -57,7 +57,7 @@ export interface UseURLActionDropdownParams {
 export function useURLActionDropdown(opts: UseURLActionDropdownParams) {
   const urlActionOptions = ref([] as URLActionOption[]);
 
-  // type can be "client", "site", or "agent"
+  // type can be "site" or "agent"
   async function getURLActionOptions(flat = false) {
     const params = {};
 

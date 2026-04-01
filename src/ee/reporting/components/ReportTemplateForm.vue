@@ -430,7 +430,7 @@ watch(
 );
 
 // initial set of depends on options
-const dependsOnOptions = ["client", "site", "agent"];
+const dependsOnOptions = ["site", "agent"];
 
 // will add any custom added depend_on options to the list
 state.depends_on?.forEach((item) =>

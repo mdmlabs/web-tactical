@@ -222,18 +222,10 @@
             </div>
           </q-card-section>
 
-          <div class="text-subtitle2">Clients</div>
+          <div class="text-subtitle2">Sites</div>
           <q-separator />
           <q-card-section class="row">
             <div class="q-gutter-sm">
-              <q-checkbox
-                v-model="localRole.can_list_clients"
-                label="List Clients"
-              />
-              <q-checkbox
-                v-model="localRole.can_manage_clients"
-                label="Manage Clients"
-              />
               <q-checkbox
                 v-model="localRole.can_list_sites"
                 label="List Sites"
@@ -253,19 +245,6 @@
             </div>
           </q-card-section>
 
-          <q-card-section class="row">
-            <tactical-dropdown
-              class="col-6"
-              label="Allowed Clients"
-              :options="clientOptions"
-              v-model="localRole.can_view_clients"
-              hint="Empty means all clients are allowed"
-              outlined
-              mapOptions
-              multiple
-              filterable
-            />
-          </q-card-section>
           <q-card-section class="row">
             <tactical-dropdown
               class="col-6"
@@ -439,7 +418,7 @@ import { computed, ref, watch } from "vue";
 import { useStore } from "vuex";
 import { useDialogPluginComponent } from "quasar";
 import { saveRole, editRole } from "@/api/accounts";
-import { useClientDropdown, useSiteDropdown } from "@/composables/clients";
+import { useSiteDropdown } from "@/composables/clients";
 import { notifySuccess } from "@/utils/notify";
 
 // ui imports
@@ -459,7 +438,6 @@ export default {
     const hosted = computed(() => store.state.hosted);
 
     // dropdown setup
-    const { clientOptions } = useClientDropdown(true);
     const { siteOptions } = useSiteDropdown(true);
 
     const role = props.role
@@ -544,7 +522,6 @@ export default {
           can_manage_accounts: false,
           can_list_roles: false,
           can_manage_roles: false,
-          can_view_clients: [],
           can_view_sites: [],
           // server scripts and web terminal
           can_run_server_scripts: false,
@@ -586,7 +563,6 @@ export default {
       // reactive data
       localRole: role,
       loading,
-      clientOptions,
       siteOptions,
       hosted,
 

@@ -24,7 +24,7 @@
               (val) =>
                 !!val || 'Select the site that the agents should be moved to',
             ]"
-            hint="The client you are deleting has agents assigned to it. Select a Site below to move the agents to."
+            hint="The site you are deleting has agents assigned to it. Select a Site below to move the agents to."
             filterable
           />
         </q-card-section>
@@ -51,7 +51,7 @@
 import { ref, onMounted } from "vue";
 import { useQuasar, useDialogPluginComponent } from "quasar";
 import { notifySuccess } from "@/utils/notify";
-import { fetchClients, removeClient, removeSite } from "@/api/clients";
+import { fetchSitesFlat, removeSite } from "@/api/clients";
 import { formatSiteOptions } from "@/utils/format";
 
 // ui imports
@@ -65,14 +65,13 @@ export default {
   },
   props: {
     object: !Object,
-    type: !String,
   },
   setup(props) {
     // setup quasar dialog
     const $q = useQuasar();
     const { dialogRef, onDialogOK, onDialogHide } = useDialogPluginComponent();
 
-    // delete client logic
+    // delete site logic
     const loading = ref(false);
     const site = ref(null);
     const siteOptions = ref([]);
@@ -80,18 +79,15 @@ export default {
     function submit() {
       $q.dialog({
         title: "Are you sure?",
-        message: `Deleting ${props.type} ${props.object.name}. ${props.object.agent_count} agents will be moved to the selected site`,
+        message: `Deleting site ${props.object.name}. ${props.object.agent_count} agents will be moved to the selected site`,
         cancel: true,
         ok: { label: "Delete", color: "negative" },
       }).onOk(async () => {
         loading.value = true;
         try {
-          const result =
-            props.type === "client"
-              ? await removeClient(props.object.id, {
-                  move_to_site: site.value,
-                })
-              : await removeSite(props.object.id, { move_to_site: site.value });
+          const result = await removeSite(props.object.id, {
+            move_to_site: site.value,
+          });
           notifySuccess(result);
           onDialogOK();
         } catch (e) {
@@ -103,26 +99,12 @@ export default {
 
     async function getSiteOptions() {
       $q.loading.show();
-      const clients = await fetchClients();
+      const sites = await fetchSitesFlat();
       $q.loading.hide();
 
-      if (props.type === "client") {
-        // filter out client that is being deleted
-        siteOptions.value = Object.freeze(
-          formatSiteOptions(
-            clients.filter((client) => client.id !== props.object.id),
-          ),
-        );
-      } else {
-        // filter out site that is being dleted
-        clients.forEach(
-          (client) =>
-            (client.sites = client.sites.filter(
-              (site) => site.id !== props.object.id,
-            )),
-        );
-        siteOptions.value = Object.freeze(formatSiteOptions(clients));
-      }
+      // filter out site that is being deleted
+      const filtered = sites.filter((s) => s.id !== props.object.id);
+      siteOptions.value = Object.freeze(formatSiteOptions(filtered));
     }
 
     onMounted(getSiteOptions);

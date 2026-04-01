@@ -1,36 +1,19 @@
 import { ref, onMounted } from "vue";
-import { fetchClients } from "@/api/clients";
-import { formatClientOptions, formatSiteOptions } from "@/utils/format";
-
-export function useClientDropdown(onMount = false) {
-  const client = ref(null);
-  const clients = ref([]);
-  const clientOptions = ref([]);
-
-  async function getClientOptions(flat = false) {
-    clientOptions.value = formatClientOptions(await fetchClients(), flat);
-  }
-
-  if (onMount) onMounted(getClientOptions);
-
-  return {
-    //data
-    client,
-    clients,
-    clientOptions,
-
-    //methods
-    getClientOptions,
-  };
-}
+import { fetchSitesFlat } from "@/api/clients";
+import { formatSiteOptions } from "@/utils/format";
 
 export function useSiteDropdown(onMount = false) {
   const site = ref(null);
   const sites = ref([]);
   const siteOptions = ref([]);
 
-  async function getSiteOptions() {
-    siteOptions.value = formatSiteOptions(await fetchClients());
+  async function getSiteOptions(flat = false) {
+    const data = await fetchSitesFlat();
+    if (flat) {
+      siteOptions.value = data.map((s) => ({ label: s.name, value: s.id }));
+    } else {
+      siteOptions.value = formatSiteOptions(data);
+    }
   }
 
   if (onMount) onMounted(getSiteOptions);
@@ -43,5 +26,26 @@ export function useSiteDropdown(onMount = false) {
 
     //methods
     getSiteOptions,
+  };
+}
+
+export function useParentSiteDropdown(onMount = false) {
+  const parentSite = ref(null);
+  const parentSiteOptions = ref([]);
+
+  async function getParentSiteOptions() {
+    const data = await fetchSitesFlat();
+    parentSiteOptions.value = data.map((s) => ({
+      label: s.ancestors ? `${s.ancestors} / ${s.name}` : s.name,
+      value: s.id,
+    }));
+  }
+
+  if (onMount) onMounted(getParentSiteOptions);
+
+  return {
+    parentSite,
+    parentSiteOptions,
+    getParentSiteOptions,
   };
 }

@@ -11,17 +11,6 @@
       <q-form ref="form" @submit.prevent="onSubmit">
         <q-card-section>
           <tactical-dropdown
-            v-model="localPolicy.excluded_clients"
-            :options="clientOptions"
-            label="Excluded Clients"
-            outlined
-            multiple
-            mapOptions
-            filterable
-          />
-        </q-card-section>
-        <q-card-section>
-          <tactical-dropdown
             v-model="localPolicy.excluded_sites"
             :options="siteOptions"
             label="Excluded Sites"
@@ -64,11 +53,9 @@ export default {
   data() {
     return {
       localPolicy: {
-        excluded_clients: [],
         excluded_sites: [],
         excluded_agents: [],
       },
-      clientOptions: [],
       siteOptions: [],
       agentOptions: [],
     };
@@ -86,22 +73,16 @@ export default {
           this.$q.loading.hide();
         });
     },
-    getClientsandSites() {
+    getSites() {
       this.$q.loading.show();
       this.$axios
-        .get("/clients/")
+        .get("/clients/sites/")
         .then((r) => {
-          this.clientOptions = r.data.map((client) => ({
-            label: client.name,
-            value: client.id,
+          this.siteOptions = r.data.map((site) => ({
+            label: site.name,
+            value: site.id,
+            category: site.ancestors,
           }));
-
-          r.data.forEach((client) => {
-            this.siteOptions.push({ category: client.name });
-            client.sites.forEach((site) =>
-              this.siteOptions.push({ label: site.name, value: site.id }),
-            );
-          });
           this.$q.loading.hide();
         })
         .catch(() => {
@@ -112,7 +93,7 @@ export default {
       this.getAgentOptions("id").then(
         (options) => (this.agentOptions = Object.freeze(options)),
       );
-      this.getClientsandSites();
+      this.getSites();
     },
     show() {
       this.$refs.dialog.show();
@@ -131,7 +112,6 @@ export default {
   created() {
     // copy prop data locally
     this.localPolicy.id = this.policy.id;
-    this.localPolicy.excluded_clients = this.policy.excluded_clients;
     this.localPolicy.excluded_sites = this.policy.excluded_sites;
     this.localPolicy.excluded_agents = this.policy.excluded_agents;
 

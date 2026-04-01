@@ -11,7 +11,7 @@
       <q-form @submit="submit">
         <q-card-section v-if="options.length > 0">
           <tactical-dropdown
-            v-if="type === 'client' || type === 'site'"
+            v-if="type === 'site'"
             class="q-mb-md"
             v-model="selectedServerPolicy"
             :options="options"
@@ -22,7 +22,7 @@
             filterable
           />
           <tactical-dropdown
-            v-if="type === 'client' || type === 'site'"
+            v-if="type === 'site'"
             v-model="selectedWorkstationPolicy"
             :options="options"
             label="Workstation Policy"
@@ -85,8 +85,7 @@ export default {
       required: true,
       type: String,
       validator: function (value) {
-        // The value must match one of these strings
-        return ["agent", "site", "client"].includes(value);
+        return ["agent", "site"].includes(value);
       },
     },
   },
@@ -103,7 +102,7 @@ export default {
   methods: {
     submit() {
       // check if data was changed
-      if (this.type === "client" || this.type === "site") {
+      if (this.type === "site") {
         if (
           this.object.workstation_policy === this.selectedWorkstationPolicy &&
           this.object.server_policy === this.selectedServerPolicy &&
@@ -127,16 +126,7 @@ export default {
 
       let data = {};
       let url = "";
-      if (this.type === "client") {
-        url = `/clients/${this.object.id}/`;
-        data = {
-          client: {
-            server_policy: this.selectedServerPolicy,
-            workstation_policy: this.selectedWorkstationPolicy,
-            block_policy_inheritance: this.blockInheritance,
-          },
-        };
-      } else if (this.type === "site") {
+      if (this.type === "site") {
         url = `/clients/sites/${this.object.id}/`;
         data = {
           site: {

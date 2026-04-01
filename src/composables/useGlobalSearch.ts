@@ -5,7 +5,7 @@ import axios from "axios";
 interface SearchResultAgent {
   agent_id: string;
   hostname: string;
-  clientName?: string;
+  ancestors?: string;
 }
 
 interface SearchResultPolicy {
@@ -50,20 +50,20 @@ export function useGlobalSearch() {
         const agentData = agentsRes.value.data as Array<{
           agent_id: string;
           hostname: string;
-          client_name?: string;
+          ancestors?: string;
         }>;
         const ql = q.toLowerCase();
         results.value.agents = agentData
           .filter(
             (a) =>
               a.hostname.toLowerCase().includes(ql) ||
-              (a.client_name && a.client_name.toLowerCase().includes(ql)),
+              (a.ancestors && a.ancestors.toLowerCase().includes(ql)),
           )
           .slice(0, 8)
           .map((a) => ({
             agent_id: a.agent_id,
             hostname: a.hostname,
-            clientName: a.client_name,
+            ancestors: a.ancestors,
           }));
       }
     } catch {

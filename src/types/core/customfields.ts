@@ -1,6 +1,6 @@
 export interface CustomField {
   id: number;
-  model: "agent" | "client" | "site";
+  model: "agent" | "site";
   name: string;
   type: string;
   required: boolean;

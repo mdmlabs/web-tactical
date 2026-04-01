@@ -294,8 +294,8 @@
             </q-icon>
           </q-td>
 
-          <q-td key="client_name" :props="props">{{
-            props.row.client_name
+          <q-td key="ancestors" :props="props">{{
+            props.row.ancestors
           }}</q-td>
           <q-td key="site_name" :props="props">{{ props.row.site_name }}</q-td>
           <q-td key="hostname" :props="props">

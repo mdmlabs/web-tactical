@@ -62,12 +62,12 @@
           filterable
         />
         <tactical-dropdown
-          v-if="filterType === 'clients' && !agent"
+          v-if="filterType === 'sites' && !agent"
           class="q-pr-sm"
           style="width: 200px"
-          v-model="clientFilter"
-          :options="clientOptions"
-          label="Clients"
+          v-model="siteFilter"
+          :options="siteOptions"
+          label="Sites"
           clearable
           multiple
           filled
@@ -131,9 +131,9 @@
           </div>
         </q-td>
       </template>
-      <template v-slot:body-cell-client="props">
+      <template v-slot:body-cell-path="props">
         <q-td :props="props">
-          <span v-if="props.value">{{ props.value.client_name }}</span>
+          <span v-if="props.value">{{ props.value.ancestors }}</span>
         </q-td>
       </template>
       <template v-slot:body-cell-site="props">
@@ -155,7 +155,7 @@
 // composition imports
 import { ref, computed, watch, onMounted } from "vue";
 import { useStore } from "vuex";
-import { useClientDropdown } from "@/composables/clients";
+import { useSiteDropdown } from "@/composables/clients";
 import { useAgentDropdown } from "@/composables/agents";
 import { useUserDropdown } from "@/composables/accounts";
 import { useQuasar } from "quasar";
@@ -191,8 +191,8 @@ const columns = [
     sortable: true,
   },
   {
-    name: "client",
-    label: "Client",
+    name: "path",
+    label: "Path",
     field: "site",
     align: "left",
     sortable: true,
@@ -255,9 +255,8 @@ const objectOptions = [
   { value: "bulk", label: "Bulk Actions" },
   { value: "coresettings", label: "Core Settings" },
   { value: "check", label: "Check" },
-  { value: "client", label: "Client" },
-  { value: "policy", label: "Policy" },
   { value: "site", label: "Site" },
+  { value: "policy", label: "Policy" },
   { value: "script", label: "Script" },
   { value: "user", label: "User" },
   { value: "winupdatepolicy", label: "Patch Policy" },
@@ -282,8 +281,8 @@ const timeOptions = [
 
 const filterTypeOptions = [
   {
-    label: "Clients",
-    value: "clients",
+    label: "Sites",
+    value: "sites",
   },
   {
     label: "Agents",
@@ -311,7 +310,7 @@ export default {
     const dash_warning_color = computed(() => store.state.dash_warning_color);
 
     // setup dropdowns
-    const { clientOptions, getClientOptions } = useClientDropdown();
+    const { siteOptions, getSiteOptions } = useSiteDropdown();
     const { agentOptions, getAgentOptions } = useAgentDropdown();
     const { userOptions, getUserOptions } = useUserDropdown();
 
@@ -320,10 +319,10 @@ export default {
     const agentFilter = ref(null);
     const userFilter = ref(null);
     const actionFilter = ref(null);
-    const clientFilter = ref(null);
+    const siteFilter = ref(null);
     const objectFilter = ref(null);
     const timeFilter = ref(7);
-    const filterType = ref("clients");
+    const filterType = ref("sites");
     const loading = ref(false);
     const searched = ref(false);
 
@@ -345,8 +344,8 @@ export default {
 
       if (agentFilter.value && agentFilter.value.length > 0)
         data["agentFilter"] = agentFilter.value;
-      else if (clientFilter.value && clientFilter.value.length > 0)
-        data["clientFilter"] = clientFilter.value;
+      else if (siteFilter.value && siteFilter.value.length > 0)
+        data["siteFilter"] = siteFilter.value;
       if (userFilter.value && userFilter.value.length > 0)
         data["userFilter"] = userFilter.value;
       if (timeFilter.value) data["timeFilter"] = timeFilter.value;
@@ -403,7 +402,7 @@ export default {
     // watchers
     watch(filterType, () => {
       agentFilter.value = null;
-      clientFilter.value = null;
+      siteFilter.value = null;
     });
 
     if (props.agent) {
@@ -423,7 +422,7 @@ export default {
     // vue component hooks
     onMounted(() => {
       if (!props.agent) {
-        getClientOptions();
+        getSiteOptions();
         getAgentOptions();
       } else {
         search();
@@ -438,7 +437,7 @@ export default {
       agentFilter,
       userFilter,
       actionFilter,
-      clientFilter,
+      siteFilter,
       objectFilter,
       timeFilter,
       filterType,
@@ -448,7 +447,7 @@ export default {
       userOptions,
 
       // non-reactive data
-      clientOptions,
+      siteOptions,
       agentOptions,
       columns,
       actionOptions: props.agent

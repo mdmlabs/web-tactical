@@ -77,7 +77,7 @@ defineEmits([...useDialogPluginComponent.emits]);
 // props
 const props = defineProps<{
   id: string | number;
-  type: "client" | "site" | "agent";
+  type: "site" | "agent";
   download: boolean;
 }>();
 

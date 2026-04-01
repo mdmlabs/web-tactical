@@ -115,13 +115,6 @@ export default {
       const d = date.extractDate(drfString, "MM DD YYYY HH:mm");
       return date.formatDate(d, "MMM-DD-YYYY - HH:mm");
     },
-    formatClientOptions(clients) {
-      return clients.map((client) => ({
-        label: client.name,
-        value: client.id,
-        sites: client.sites,
-      }));
-    },
     formatSiteOptions(sites) {
       return sites.map((site) => ({ label: site.name, value: site.id }));
     },
@@ -132,17 +125,8 @@ export default {
       return axios.patch("/core/customfields/", { model: model });
     },
     getAgentCount(data, type, id) {
-      if (type === "client") {
-        return data.find((i) => id === i.id).agent_count;
-      } else {
-        const sites = data.map((i) => i.sites);
-        for (let i of sites) {
-          for (let k of i) {
-            if (k.id === id) return k.agent_count;
-          }
-        }
-        return 0;
-      }
+      const site = data.find((i) => id === i.id);
+      return site ? site.agent_count : 0;
     },
     formatCustomFields(fields, values) {
       let tempArray = [];

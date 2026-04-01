@@ -7,7 +7,7 @@ export interface AgentColumnDef {
 
 export const agentColumns: AgentColumnDef[] = [
   { id: "hostname", label: "Hostname", visible: true, sortable: true },
-  { id: "client_name", label: "Client", visible: true, sortable: true },
+  { id: "ancestors", label: "Path", visible: true, sortable: true },
   { id: "site_name", label: "Site", visible: true, sortable: true },
   { id: "operating_system", label: "OS", visible: true, sortable: true },
   { id: "checks", label: "Checks", visible: true },

@@ -52,8 +52,7 @@ export default {
       required: true,
       type: String,
       validator: function (value) {
-        // The value must match one of these strings
-        return ["site", "client", "policy"].includes(value);
+        return ["site", "policy"].includes(value);
       },
     },
   },
@@ -76,12 +75,7 @@ export default {
 
       let url = "";
       let data = {};
-      if (this.type === "client") {
-        url = `/clients/${this.object.id}/`;
-        data = {
-          client: { id: this.object.id, alert_template: this.selectedTemplate },
-        };
-      } else if (this.type === "site") {
+      if (this.type === "site") {
         url = `/clients/sites/${this.object.id}/`;
         data = {
           site: { id: this.object.id, alert_template: this.selectedTemplate },

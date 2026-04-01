@@ -144,11 +144,11 @@ function copy(content: string, is_for = false, block = false) {
 async function getVariables() {
   variableWarnings.value = [];
 
-  // don't send variable analysis if client, site, or agent dependency isn't selected
+  // don't send variable analysis if site or agent dependency isn't selected
   if (props.dependsOn) {
     for (let i = 0; i < props.dependsOn.length; i++) {
       let dep = props.dependsOn[i];
-      if (dep === "client" || dep === "site" || dep === "agent") {
+      if (dep === "site" || dep === "agent") {
         if (!props.dependencies?.[dep]) return;
       }
     }

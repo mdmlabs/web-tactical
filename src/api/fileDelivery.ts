@@ -3,7 +3,7 @@ import axios from "axios";
 const baseUrl = "/files/deliver";
 
 export type DeliveryJobStatus = "pending" | "in_progress" | "completed" | "failed";
-export type DeliveryTargetType = "agents" | "site" | "client";
+export type DeliveryTargetType = "agents" | "site";
 export type DeliveryResultStatus =
   | "pending"
   | "downloading"
@@ -61,12 +61,11 @@ export interface CreateDeliveryJobRequest {
   targetType: DeliveryTargetType;
   targetAgents?: number[];
   targetSite?: number;
-  targetClient?: number;
 }
 
 /**
  * Create a new file delivery job
- * Delivers a single file asset to specified agents/site/client
+ * Delivers a single file asset to specified agents/site
  */
 export async function createDeliveryJob(
   request: CreateDeliveryJobRequest,
@@ -81,8 +80,6 @@ export async function createDeliveryJob(
     payload.target_agents = request.targetAgents;
   } else if (request.targetType === "site" && request.targetSite) {
     payload.target_site = request.targetSite;
-  } else if (request.targetType === "client" && request.targetClient) {
-    payload.target_client = request.targetClient;
   }
 
   const { data } = await axios.post(`${baseUrl}/`, payload);

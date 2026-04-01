@@ -29,20 +29,9 @@
         </div>
 
         <div class="q-mt-md">
-          <!-- Client -->
-          <tactical-dropdown
-            v-if="target === 'client'"
-            v-model="selectedClient"
-            :options="clientOptions"
-            label="Select Client"
-            outlined
-            mapOptions
-            filterable
-            :rules="[(val: unknown) => !!val || '*Required']"
-          />
           <!-- Site -->
           <tactical-dropdown
-            v-else-if="target === 'site'"
+            v-if="target === 'site'"
             v-model="selectedSite"
             :options="siteOptions"
             label="Select Site"
@@ -74,16 +63,6 @@
       <!-- Actions -->
       <q-card-actions align="right" class="dialog-actions">
         <q-btn flat label="Cancel" @click="close" class="action-btn" />
-        <!-- TODO: Assign button - will be re-enabled later -->
-        <!-- <q-btn
-          flat
-          color="primary"
-          label="Assign"
-          :disable="!canAssign"
-          :loading="loading"
-          @click="assign"
-          class="action-btn"
-        /> -->
         <q-btn
           unelevated
           color="primary"
@@ -102,7 +81,7 @@
 import { ref, computed, watch } from "vue";
 import { useQuasar } from "quasar";
 import { useAgentDropdown } from "@/composables/agents";
-import { useClientDropdown, useSiteDropdown } from "@/composables/clients";
+import { useSiteDropdown } from "@/composables/clients";
 import TacticalDropdown from "@/components/ui/TacticalDropdown.vue";
 
 const props = defineProps<{
@@ -111,7 +90,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "update:modelValue", value: boolean): void;
-  // (e: 'assign', deviceIds: number[]): void;  // TODO: will be re-enabled later
   (e: "deploy", deviceIds: number[]): void;
 }>();
 
@@ -119,10 +97,9 @@ const $q = useQuasar();
 const loading = ref(false);
 
 // Target selector
-const target = ref<"client" | "site" | "agents" | "all">("agents");
+const target = ref<"site" | "agents" | "all">("agents");
 
 const targetOptions = [
-  { label: "Client", value: "client" },
   { label: "Site", value: "site" },
   { label: "Selected Agents", value: "agents" },
   { label: "All", value: "all" },
@@ -130,16 +107,14 @@ const targetOptions = [
 
 // Dropdowns
 const { agents: selectedAgents, agentOptions, getAgentOptions } = useAgentDropdown();
-const { client: selectedClient, clientOptions, getClientOptions } = useClientDropdown();
 const { site: selectedSite, siteOptions, getSiteOptions } = useSiteDropdown();
 
-// All agents raw list (for resolving client/site/all → agent IDs)
-const allAgentsRaw = ref<Array<{ id: number; hostname: string; client: string; site: string }>>([]);
+// All agents raw list (for resolving site/all → agent IDs)
+const allAgentsRaw = ref<Array<{ id: number; hostname: string; site: string }>>([]);
 
 const canAssign = computed(() => {
   if (target.value === "all") return true;
   if (target.value === "agents") return Array.isArray(selectedAgents.value) && selectedAgents.value.length > 0;
-  if (target.value === "client") return !!selectedClient.value;
   if (target.value === "site") return !!selectedSite.value;
   return false;
 });
@@ -147,7 +122,6 @@ const canAssign = computed(() => {
 // Reset selections when target changes
 watch(target, () => {
   selectedAgents.value = [];
-  selectedClient.value = null;
   selectedSite.value = null;
 });
 
@@ -157,14 +131,13 @@ watch(() => props.modelValue, async (isOpen) => {
     resetForm();
     loading.value = true;
     try {
-      await Promise.all([getAgentOptions(false, "id"), getClientOptions(), getSiteOptions()]);
-      // Also keep a raw list for client/site/all resolution
+      await Promise.all([getAgentOptions(false, "id"), getSiteOptions()]);
+      // Also keep a raw list for site/all resolution
       const { fetchAgents } = await import("@/api/agents");
       const raw = await fetchAgents({ detail: false });
       allAgentsRaw.value = raw.map((a: Record<string, unknown>) => ({
         id: Number(a.id),
         hostname: String(a.hostname),
-        client: String(a.client),
         site: String(a.site),
       }));
     } catch (err) {
@@ -179,7 +152,6 @@ watch(() => props.modelValue, async (isOpen) => {
 function resetForm() {
   target.value = "agents";
   selectedAgents.value = [];
-  selectedClient.value = null;
   selectedSite.value = null;
 }
 
@@ -193,13 +165,6 @@ function resolveDeviceIds(): number[] {
       return (selectedAgents.value as unknown as number[]) ?? [];
     case "all":
       return allAgentsRaw.value.map(a => a.id);
-    case "client": {
-      const opts = clientOptions.value as Array<{ value: unknown; label: string }>;
-      const clientLabel = opts.find(o => o.value === selectedClient.value)?.label;
-      return allAgentsRaw.value
-        .filter(a => a.client === clientLabel)
-        .map(a => a.id);
-    }
     case "site": {
       const opts = siteOptions.value as Array<{ value: unknown; label: string }>;
       const siteLabel = opts.find(o => o.value === selectedSite.value)?.label;
@@ -211,20 +176,6 @@ function resolveDeviceIds(): number[] {
       return [];
   }
 }
-
-// TODO: assign function - will be re-enabled later
-// function assign() {
-//   if (!canAssign.value) return;
-//
-//   const deviceIds = resolveDeviceIds();
-//   if (deviceIds.length === 0) {
-//     $q.notify({ message: 'No agents found for selected target', color: 'warning', position: 'top' });
-//     return;
-//   }
-//
-//   emit('assign', deviceIds);
-//   close();
-// }
 
 function deploy() {
   if (!canAssign.value) return;

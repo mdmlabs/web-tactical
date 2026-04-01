@@ -50,11 +50,7 @@
                     <q-tooltip :delay="600">
                       ID: {{ props.node.id }}<br />
                       Agent Count:
-                      {{
-                        props.node.children
-                          ? props.node.client.agent_count
-                          : props.node.site.agent_count
-                      }}
+                      {{ props.node.site?.agent_count ?? 0 }}
                     </q-tooltip>
                   </div>
 
@@ -84,7 +80,6 @@
                       <q-separator></q-separator>
 
                       <q-item
-                        v-if="props.node.children"
                         clickable
                         v-close-popup
                         @click="showAddSiteModal(props.node)"
@@ -92,7 +87,7 @@
                         <q-item-section side>
                           <q-icon name="add_circle_outline" />
                         </q-item-section>
-                        <q-item-section>Add Site</q-item-section>
+                        <q-item-section>Add Child Site</q-item-section>
                       </q-item>
 
                       <q-item
@@ -111,7 +106,6 @@
                       </q-item>
 
                       <q-item
-                        v-if="props.node.children === undefined"
                         clickable
                         v-close-popup
                         @click="showInstallAgent(props.node)"
@@ -166,7 +160,7 @@
                                 runURLAction(
                                   props.node.id,
                                   action.id,
-                                  props.node.children ? 'client' : 'site',
+                                  'site',
                                 )
                               "
                             >
@@ -191,11 +185,7 @@
                       <q-item
                         clickable
                         v-if="
-                          (props.node.children &&
-                            $integrations?.clientMenuIntegrations?.length >
-                              0) ||
-                          (!props.node.children &&
-                            $integrations?.siteMenuIntegrations.length > 0)
+                          $integrations?.siteMenuIntegrations?.length > 0
                         "
                       >
                         <q-item-section side>
@@ -206,7 +196,7 @@
                           <q-icon name="chevron_right" />
                         </q-item-section>
                         <integrations-context-menu
-                          :type="props.node.children ? 'client' : 'site'"
+                          type="site"
                           :id="props.node.id"
                         />
                       </q-item>
@@ -432,14 +422,13 @@ import { openURL } from "quasar";
 import { mapState } from "vuex";
 import AgentTable from "@/components/AgentTable.vue";
 import PolicyAdd from "@/components/automation/modals/PolicyAdd.vue";
-import ClientsForm from "@/components/clients/ClientsForm.vue";
 import SitesForm from "@/components/clients/SitesForm.vue";
 import DeleteClient from "@/components/clients/DeleteClient.vue";
 import InstallAgent from "@/components/modals/agents/InstallAgent.vue";
 import AlertTemplateAdd from "@/components/modals/alerts/AlertTemplateAdd.vue";
 import IntegrationsContextMenu from "@/components/ui/IntegrationsContextMenu.vue";
 
-import { removeClient, removeSite } from "@/api/clients";
+import { removeSite } from "@/api/clients";
 
 export default {
   name: "DashboardView",
@@ -508,9 +497,9 @@ export default {
             parseInt(b.info) - parseInt(a.info),
         },
         {
-          name: "client_name",
-          label: "Client",
-          field: "client_name",
+          name: "ancestors",
+          label: "Path",
+          field: "ancestors",
           sortable: true,
           align: "left",
         },
@@ -608,7 +597,7 @@ export default {
         "emailalert",
         "dashboardalert",
         "checks-status",
-        "client_name",
+        "ancestors",
         "site_name",
         "hostname",
         "description",
@@ -649,8 +638,8 @@ export default {
         .dialog({
           component: PolicyAdd,
           componentProps: {
-            type: node.children ? "client" : "site",
-            object: node.children ? node.client : node.site,
+            type: "site",
+            object: node.site,
           },
         })
         .onOk(() => this.$store.dispatch("loadTree"));
@@ -660,39 +649,26 @@ export default {
         .dialog({
           component: SitesForm,
           componentProps: {
-            client: node.id,
+            parent: node.id,
           },
         })
         .onOk(() => this.$store.dispatch("loadTree"));
     },
     showEditModal(node) {
-      let props = {};
-      if (node.children) {
-        props.client = { id: node.id, name: node.label };
-      } else {
-        props.site = { id: node.id, name: node.label, client: node.client };
-      }
-
       this.$q
         .dialog({
-          component: node.children ? ClientsForm : SitesForm,
-          componentProps: node.children
-            ? { client: node.client }
-            : { site: node.site },
+          component: SitesForm,
+          componentProps: { site: node.site },
         })
         .onOk(() => this.$store.dispatch("loadTree"));
     },
     showDeleteModal(node) {
-      if (
-        (node.children && node.client.agent_count > 0) ||
-        (!node.children && node.site.agent_count > 0)
-      ) {
+      if (node.site && node.site.agent_count > 0) {
         this.$q
           .dialog({
             component: DeleteClient,
             componentProps: {
-              object: node.children ? node.client : node.site,
-              type: node.children ? "client" : "site",
+              object: node.site,
             },
           })
           .onOk(this.clearTreeSelected);
@@ -700,16 +676,14 @@ export default {
         this.$q
           .dialog({
             title: "Are you sure?",
-            message: `Delete ${node.children ? "client" : "site"}: ${node.label}.`,
+            message: `Delete site: ${node.label}.`,
             cancel: true,
             ok: { label: "Delete", color: "negative" },
           })
           .onOk(async () => {
             this.$q.loading.show();
             try {
-              const result = node.children
-                ? await removeClient(node.id)
-                : await removeSite(node.id);
+              const result = await removeSite(node.id);
               this.notifySuccess(result);
               this.clearTreeSelected();
             } catch (e) {
@@ -732,16 +706,15 @@ export default {
         .dialog({
           component: AlertTemplateAdd,
           componentProps: {
-            type: node.children ? "client" : "site",
-            object: node.children ? node.client : node.site,
+            type: "site",
+            object: node.site,
           },
         })
         .onOk(() => this.$store.dispatch("refreshDashboard"));
     },
     runChecks(node) {
-      const target = node.children ? "client" : "site";
       this.$axios
-        .post(`/checks/${target}/${node.id}/csbulkrun/`)
+        .post(`/checks/site/${node.id}/csbulkrun/`)
         .then((r) => {
           this.notifySuccess(r.data);
         })

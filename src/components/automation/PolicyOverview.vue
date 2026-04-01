@@ -20,7 +20,7 @@
           <div class="q-pa-md">
             <q-tree
               ref="tree"
-              :nodes="clientSiteTree"
+              :nodes="siteTree"
               node-key="key"
               selected-color="primary"
               v-model:selected="selectedPolicyId"
@@ -86,7 +86,7 @@ export default {
       splitterModel: 25,
       selectedPolicyId: null,
       selectedTab: "checks",
-      clientSiteTree: [],
+      siteTree: [],
     };
   },
   methods: {
@@ -103,136 +103,55 @@ export default {
         });
     },
     processTreeDataFromApi(data) {
-      /* Structure
-       * [{
-       *   client: Client Name 1,
-       *   policy: {
-       *     id: 1,
-       *     name: "Policy Name 1"
-       *   },
-       *   sites: [{
-       *     name: "Site Name 1",
-       *     policy: {
-       *       id: 2,
-       *       name: "Policy Name 2"
-       *     }
-       *   }]
-       * }]
-       */
-
       var result = [];
-
-      // Used by tree for unique identification
       let unique_id = 0;
 
-      for (let client of data) {
-        var client_temp = {};
-
-        client_temp["label"] = client.name;
-        client_temp["id"] = unique_id;
-        client_temp["icon"] = "business";
-        client_temp["selectable"] = false;
-        client_temp["children"] = [];
-        client_temp["key"] = `${unique_id}${client.name}`;
+      for (let site of data) {
+        var site_temp = {};
+        site_temp["label"] = site.name;
+        site_temp["id"] = unique_id;
+        site_temp["icon"] = "apartment";
+        site_temp["selectable"] = false;
+        site_temp["children"] = [];
+        site_temp["key"] = `${unique_id}${site.name}`;
 
         unique_id--;
 
-        // Add any server policies assigned to client
-        if (!!client.server_policy) {
+        // Add any server policies assigned to site
+        if (!!site.server_policy) {
           let disabled = "";
-
-          // Indicate if the policy is active or not
-          if (!client.server_policy.active) {
+          if (!site.server_policy.active) {
             disabled = " (disabled)";
           }
-
-          const label = client.server_policy.name + " (Servers)" + disabled;
-          client_temp["children"].push({
+          const label = site.server_policy.name + " (Servers)" + disabled;
+          site_temp["children"].push({
             label: label,
             icon: "policy",
-            id: client.server_policy.id,
-            key: `${client.server_policy.id}${label}`,
+            id: site.server_policy.id,
+            key: `${site.server_policy.id}${label}`,
           });
         }
 
-        // Add any workstation policies assigned to client
-        if (!!client.workstation_policy) {
+        // Add any workstation policies assigned to site
+        if (!!site.workstation_policy) {
           let disabled = "";
-
-          // Indicate if the policy is active or not
-          if (!client.workstation_policy.active) {
+          if (!site.workstation_policy.active) {
             disabled = " (disabled)";
           }
-
           const label =
-            client.workstation_policy.name + " (Workstations)" + disabled;
-          client_temp["children"].push({
+            site.workstation_policy.name + " (Workstations)" + disabled;
+          site_temp["children"].push({
             label: label,
             icon: "policy",
-            id: client.workstation_policy.id,
-            key: `${client.workstation_policy.id}${label}`,
+            id: site.workstation_policy.id,
+            key: `${site.workstation_policy.id}${label}`,
           });
         }
 
-        // Iterate through Sites
-        for (let site of client.sites) {
-          var site_temp = {};
-          site_temp["label"] = site.name;
-          site_temp["id"] = unique_id;
-          site_temp["icon"] = "apartment";
-          site_temp["selectable"] = false;
-          site_temp["key"] = `${unique_id}${site.name}`;
-
-          unique_id--;
-
-          // Add any server policies assigned to site
-          if (!!site.server_policy) {
-            site_temp["children"] = [];
-
-            // Indicate if the policy is active or not
-            let disabled = "";
-            if (!site.server_policy.active) {
-              disabled = " (disabled)";
-            }
-
-            const label = site.server_policy.name + " (Servers)" + disabled;
-            site_temp["children"].push({
-              label: label,
-              icon: "policy",
-              id: site.server_policy.id,
-              key: `${site.server_policy.id}${label}`,
-            });
-          }
-
-          // Add any server policies assigned to site
-          if (!!site.workstation_policy) {
-            site_temp["children"] = [];
-
-            // Indicate if the policy is active or not
-            let disabled = "";
-            if (!site.workstation_policy.active) {
-              disabled = " (disabled)";
-            }
-
-            const label =
-              site.workstation_policy.name + " (Workstations)" + disabled;
-            site_temp["children"].push({
-              label: label,
-              icon: "policy",
-              id: site.workstation_policy.id,
-              key: `${site.workstation_policy.id}${label}`,
-            });
-          }
-
-          // Add Site to Client children array
-          client_temp.children.push(site_temp);
-        }
-
-        // Add Client and it's Sites to result array
-        result.push(client_temp);
+        result.push(site_temp);
       }
 
-      this.clientSiteTree = result;
+      this.siteTree = result;
     },
     show() {
       this.$refs.dialog.show();

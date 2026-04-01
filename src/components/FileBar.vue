@@ -62,18 +62,6 @@
                     <q-item
                       clickable
                       v-ripple
-                      @click="handleMenuAction('addClient')"
-                      class="filebar-popup-item"
-                      v-close-popup
-                    >
-                      <q-item-section avatar>
-                        <q-icon name="business" size="sm" />
-                      </q-item-section>
-                      <q-item-section>Client</q-item-section>
-                    </q-item>
-                    <q-item
-                      clickable
-                      v-ripple
                       @click="handleMenuAction('addSite')"
                       class="filebar-popup-item"
                       v-close-popup
@@ -128,17 +116,6 @@
                 class="filebar-menu-subsection"
               >
                 <q-list>
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('addClient')"
-                    class="filebar-menu-item"
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="business" />
-                    </q-item-section>
-                    <q-item-section>Client</q-item-section>
-                  </q-item>
                   <q-item
                     clickable
                     v-ripple
@@ -739,7 +716,7 @@
                     <q-item-section avatar>
                       <q-icon name="people" size="sm" />
                     </q-item-section>
-                    <q-item-section>Clients Manager</q-item-section>
+                    <q-item-section>Sites Manager</q-item-section>
                   </q-item>
 
                   <q-item
@@ -1284,7 +1261,6 @@ import DialogWrapper from "@/components/ui/DialogWrapper.vue";
 import DebugLog from "@/components/logs/DebugLog.vue";
 import PendingActions from "@/components/logs/PendingActions.vue";
 import ClientsManager from "@/components/clients/ClientsManager.vue";
-import ClientsForm from "@/components/clients/ClientsForm.vue";
 import SitesForm from "@/components/clients/SitesForm.vue";
 import ScriptManager from "@/components/scripts/ScriptManager.vue";
 import EditCoreSettings from "@/components/modals/coresettings/EditCoreSettings.vue";
@@ -1384,9 +1360,6 @@ export default {
       }
 
       switch (action) {
-        case "addClient":
-          this.showAddClientModal();
-          break;
         case "addSite":
           this.showAddSiteModal();
           break;
@@ -1568,13 +1541,6 @@ export default {
           component: ClientsManager,
         })
         .onDismiss(() => this.$store.dispatch("refreshDashboard", true));
-    },
-    showAddClientModal() {
-      this.$q
-        .dialog({
-          component: ClientsForm,
-        })
-        .onOk(() => this.$store.dispatch("loadTree"));
     },
     showAddSiteModal() {
       this.$q

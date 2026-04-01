@@ -182,8 +182,7 @@ export default {
         list = list.filter(
           (a) =>
             a.hostname?.toLowerCase().includes(q) ||
-            a.client?.toLowerCase().includes(q) ||
-            a.client_name?.toLowerCase().includes(q) ||
+            a.ancestors?.toLowerCase().includes(q) ||
             a.site?.toLowerCase().includes(q) ||
             a.site_name?.toLowerCase().includes(q),
         );

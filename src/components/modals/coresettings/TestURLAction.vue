@@ -42,18 +42,6 @@
         />
       </q-card-section>
 
-      <q-card-section v-else-if="runAgainst === 'client'">
-        <tactical-dropdown
-          v-model="client"
-          :options="clientOptions"
-          label="Client"
-          mapOptions
-          filterable
-          dense
-          filled
-        />
-      </q-card-section>
-
       <q-card-section style="height: 60vh" class="scroll">
         <div>
           URL:
@@ -92,7 +80,7 @@
 import { ref, reactive, computed } from "vue";
 import { useDialogPluginComponent } from "quasar";
 import { useAgentDropdown } from "@/composables/agents";
-import { useSiteDropdown, useClientDropdown } from "@/composables/clients";
+import { useSiteDropdown } from "@/composables/clients";
 import { runTestURLAction } from "@/api/core";
 import { URLAction } from "@/types/core/urlactions";
 
@@ -110,15 +98,13 @@ const { dialogRef, onDialogHide } = useDialogPluginComponent();
 
 // setup dropdowns
 const { agent, agentOptions } = useAgentDropdown({ onMount: true });
-const { client, clientOptions } = useClientDropdown(true);
 const { site, siteOptions } = useSiteDropdown(true);
 
-const runAgainst = ref<"agent" | "site" | "client" | "none">("none");
+const runAgainst = ref<"agent" | "site" | "none">("none");
 
 const runAgainstOptions = [
   { label: "Agent", value: "agent" },
   { label: "Site", value: "site" },
-  { label: "Client", value: "client" },
   { label: "None", value: "none" },
 ];
 const loading = ref(false);
@@ -126,7 +112,6 @@ const loading = ref(false);
 const runAgainstID = computed(() => {
   if (runAgainst.value === "agent") return agent.value;
   else if (runAgainst.value === "site") return site.value;
-  else if (runAgainst.value === "client") return client.value;
   else return 0;
 });
 const state = reactive({

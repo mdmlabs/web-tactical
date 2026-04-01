@@ -457,16 +457,13 @@ export default {
       });
     },
     getSiteOptions() {
-      this.$axios.get("/clients/").then((r) => {
-        r.data.forEach((client) => {
-          this.siteOptions.push({ category: client.name });
-          client.sites.forEach((site) =>
-            this.siteOptions.push({
-              label: site.name,
-              value: site.id,
-              cat: client.name,
-            }),
-          );
+      this.$axios.get("/clients/sites/").then((r) => {
+        r.data.forEach((site) => {
+          this.siteOptions.push({
+            label: site.name,
+            value: site.id,
+            category: site.ancestors,
+          });
         });
       });
     },
@@ -510,7 +507,6 @@ export default {
         "block_policy_inheritance",
         "maintenance_mode",
         "alert_template",
-        "client",
         "site_name",
       ];
       for (const elem of toRemove) {

@@ -13,23 +13,12 @@
       <q-form @submit.prevent="addAgent">
         <q-card-section class="q-gutter-sm">
           <q-select
-            outlined
-            dense
-            options-dense
-            label="Client"
-            v-model="client"
-            :options="client_options"
-            @update:model-value="site = sites[0]"
-          />
-        </q-card-section>
-        <q-card-section class="q-gutter-sm">
-          <q-select
             dense
             options-dense
             outlined
             label="Site"
             v-model="site"
-            :options="sites"
+            :options="siteOptions"
           />
         </q-card-section>
         <q-card-section>
@@ -245,8 +234,7 @@ export default {
       GOARCH_i386: GOARCH_i386,
       GOARCH_ARM64: GOARCH_ARM64,
       GOARCH_ARM32: GOARCH_ARM32,
-      client_options: [],
-      client: null,
+      siteOptions: [],
       site: null,
       agenttype: "server",
       expires: 24,
@@ -265,24 +253,23 @@ export default {
     };
   },
   methods: {
-    getClients() {
+    getSites() {
       this.$q.loading.show();
       this.$axios
-        .get("/clients/")
+        .get("/clients/sites/")
         .then((r) => {
-          this.client_options = this.formatClientOptions(r.data);
+          this.siteOptions = r.data.map((site) => ({
+            label: site.ancestors ? `${site.ancestors} / ${site.name}` : site.name,
+            value: site.id,
+            sites: [],
+          }));
           if (this.sitepk !== undefined && this.sitepk !== null) {
-            this.client_options.forEach((client) => {
-              let site = client.sites.find((site) => site.id === this.sitepk);
-
-              if (site !== undefined) {
-                this.client = client;
-                this.site = { value: site.id, label: site.name };
-              }
-            });
-          } else {
-            this.client = this.client_options[0];
-            this.site = this.sites[0];
+            const found = this.siteOptions.find((s) => s.value === this.sitepk);
+            if (found) {
+              this.site = found;
+            }
+          } else if (this.siteOptions.length > 0) {
+            this.site = this.siteOptions[0];
           }
           this.$q.loading.hide();
         })
@@ -292,21 +279,16 @@ export default {
     },
     addAgent() {
       const api = getBaseUrl();
-      const clientStripped = this.client.label
-        .replace(/\s/g, "")
-        .toLowerCase()
-        .replace(/([^a-zA-Z0-9]+)/g, "");
       const siteStripped = this.site.label
         .replace(/\s/g, "")
         .toLowerCase()
         .replace(/([^a-zA-Z0-9]+)/g, "");
 
       const mdmSuffix = this.install_mdm ? "-with-mdm" : "";
-      const fileName = `trmm-${clientStripped}-${siteStripped}-${this.agenttype}-${this.goarch}${mdmSuffix}.exe`;
+      const fileName = `trmm-${siteStripped}-${this.agenttype}-${this.goarch}${mdmSuffix}.exe`;
 
       const data = {
         installMethod: this.installMethod,
-        client: this.client.value,
         site: this.site.value,
         expires: this.expires,
         agenttype: this.agenttype,
@@ -377,15 +359,12 @@ export default {
     },
     showDLMessage() {
       this.$q.dialog({
-        message: `Installer for ${this.client.label}, ${this.site.label} (${this.agenttype}) will now be downloaded.
+        message: `Installer for ${this.site.label} (${this.agenttype}) will now be downloaded.
               You may reuse this installer for ${this.expires} hours before it expires. No command line arguments are needed.`,
       });
     },
   },
   computed: {
-    sites() {
-      return !!this.client ? this.formatSiteOptions(this.client.sites) : [];
-    },
     installButtonText() {
       let text;
       switch (this.installMethod) {
@@ -410,7 +389,7 @@ export default {
     },
   },
   mounted() {
-    this.getClients();
+    this.getSites();
   },
 };
 </script>

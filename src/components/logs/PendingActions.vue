@@ -161,8 +161,8 @@ const columns = [
     sortable: true,
   },
   {
-    name: "client",
-    label: "Client",
+    name: "path",
+    label: "Path",
     field: "client",
     align: "left",
     sortable: true,
@@ -202,7 +202,7 @@ export default {
 
     const visibleColumns = computed(() => {
       if (props.agent) return ["type", "due", "desc", "details"];
-      else return ["type", "due", "desc", "agent", "client", "site", "details"];
+      else return ["type", "due", "desc", "agent", "path", "site", "details"];
     });
 
     const filteredActions = computed(() => {
