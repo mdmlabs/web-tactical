@@ -23,7 +23,7 @@
           <q-select
             v-model="siteFilter"
             :options="sitesOptions"
-            label="Sites"
+            label="Categories"
             multiple
             outlined
             dense
@@ -258,7 +258,7 @@ export default {
         },
         {
           name: "site",
-          label: "Site",
+          label: "Category",
           field: "site",
           align: "left",
           sortable: true,

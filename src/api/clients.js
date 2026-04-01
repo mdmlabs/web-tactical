@@ -5,7 +5,7 @@ const baseUrl = "/clients";
 // tree endpoint
 export async function fetchTree() {
   try {
-    const { data } = await axios.get("/apiv3/tree/");
+    const { data } = await axios.get("/api/v3/tree/");
     return data;
   } catch (e) {
     console.error(e);

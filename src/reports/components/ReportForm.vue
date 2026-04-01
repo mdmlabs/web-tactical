@@ -226,12 +226,12 @@ export default defineComponent({
     const { dialogRef, onDialogOK, onDialogHide } = useDialogPluginComponent();
 
     const filterSiteSelectLabel = computed(() => {
-      if (sitesList.value.length > 0) return "Site";
-      else return "No sites in system";
+      if (sitesList.value.length > 0) return "Category";
+      else return "No categories in system";
     });
 
     const filterAgentsSelectLabel = computed(() => {
-      if (!filters.site_id) return "Choose site first";
+      if (!filters.site_id) return "Choose category first";
       return agentsBySite.value.length === 0 ? "No agents found" : "Agents";
     });
 

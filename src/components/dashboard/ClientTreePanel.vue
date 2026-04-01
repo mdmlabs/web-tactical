@@ -14,13 +14,13 @@
           <q-item-section avatar>
             <q-icon name="dashboard" />
           </q-item-section>
-          <q-item-section>All Sites</q-item-section>
+          <q-item-section>All Categories</q-item-section>
         </q-item>
         <q-tree
           ref="tree"
           :nodes="clientsStore.clientsTree"
           node-key="raw"
-          no-nodes-label="No Sites"
+          no-nodes-label="No Categories"
           selected-color="primary"
           v-model:selected="selectedTree"
           @update:selected="agentsStore.refreshDashboard()"
@@ -68,7 +68,7 @@
                     @click="showAddSiteModal(props.node)"
                   >
                     <q-item-section side><q-icon name="add_circle_outline" /></q-item-section>
-                    <q-item-section>Add Sub-Site</q-item-section>
+                    <q-item-section>Add Sub-Category</q-item-section>
                   </q-item>
 
                   <q-item
@@ -193,7 +193,7 @@ function showDeleteModal(node: TreeNode) {
   } else {
     $q.dialog({
       title: "Are you sure?",
-      message: `Delete site: ${node.label}.`,
+      message: `Delete category: ${node.label}.`,
       cancel: true,
       ok: { label: "Delete", color: "negative" },
     }).onOk(async () => {

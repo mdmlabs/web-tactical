@@ -34,7 +34,7 @@
             v-if="target === 'site'"
             v-model="selectedSite"
             :options="siteOptions"
-            label="Select Site"
+            label="Select Category"
             outlined
             mapOptions
             filterable
@@ -100,7 +100,7 @@ const loading = ref(false);
 const target = ref<"site" | "agents" | "all">("agents");
 
 const targetOptions = [
-  { label: "Site", value: "site" },
+  { label: "Category", value: "site" },
   { label: "Selected Agents", value: "agents" },
   { label: "All", value: "all" },
 ];

@@ -167,7 +167,7 @@ const columns = [
     align: "left",
     sortable: true,
   },
-  { name: "site", label: "Site", field: "site", align: "left", sortable: true },
+  { name: "site", label: "Category", field: "site", align: "left", sortable: true },
   { name: "details", field: "details", align: "left", sortable: false },
 ];
 

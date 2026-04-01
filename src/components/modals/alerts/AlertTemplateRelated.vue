@@ -21,8 +21,7 @@
           no-caps
         >
           <q-tab name="policies" label="Policies" />
-          <q-tab name="clients" label="Clients" />
-          <q-tab name="sites" label="Sites" />
+          <q-tab name="sites" label="Categories" />
         </q-tabs>
 
         <q-separator />

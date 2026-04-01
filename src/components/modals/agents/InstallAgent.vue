@@ -16,7 +16,7 @@
             dense
             options-dense
             outlined
-            label="Site"
+            label="Category"
             v-model="site"
             :options="siteOptions"
           />

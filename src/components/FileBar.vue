@@ -69,7 +69,7 @@
                       <q-item-section avatar>
                         <q-icon name="business_center" size="sm" />
                       </q-item-section>
-                      <q-item-section>Site</q-item-section>
+                      <q-item-section>Category</q-item-section>
                     </q-item>
                   </q-expansion-item>
 
@@ -125,7 +125,7 @@
                     <q-item-section avatar>
                       <q-icon name="business_center" />
                     </q-item-section>
-                    <q-item-section>Site</q-item-section>
+                    <q-item-section>Category</q-item-section>
                   </q-item>
                 </q-list>
               </q-expansion-item>
@@ -716,7 +716,7 @@
                     <q-item-section avatar>
                       <q-icon name="people" size="sm" />
                     </q-item-section>
-                    <q-item-section>Sites Manager</q-item-section>
+                    <q-item-section>Categories Manager</q-item-section>
                   </q-item>
 
                   <q-item

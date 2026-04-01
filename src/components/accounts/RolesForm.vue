@@ -222,17 +222,17 @@
             </div>
           </q-card-section>
 
-          <div class="text-subtitle2">Sites</div>
+          <div class="text-subtitle2">Categories</div>
           <q-separator />
           <q-card-section class="row">
             <div class="q-gutter-sm">
               <q-checkbox
                 v-model="localRole.can_list_sites"
-                label="List Sites"
+                label="List Categories"
               />
               <q-checkbox
                 v-model="localRole.can_manage_sites"
-                label="Manage Sites"
+                label="Manage Categories"
               />
               <q-checkbox
                 v-model="localRole.can_list_deployments"
@@ -248,7 +248,7 @@
           <q-card-section class="row">
             <tactical-dropdown
               class="col-6"
-              label="Allowed Sites"
+              label="Allowed Categories"
               :options="siteOptions"
               v-model="localRole.can_view_sites"
               hint="Empty means all sites are allowed"

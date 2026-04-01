@@ -82,7 +82,7 @@
                   :rules="[(val) => !!val || '*Required']"
                   v-model="state.site"
                   :options="siteOptions"
-                  label="Select Site"
+                  label="Select Category"
                   outlined
                   mapOptions
                   filterable
@@ -467,7 +467,7 @@ import { notifySuccess, notifyError } from "@/utils/notify";
 import TacticalDropdown from "@/components/ui/TacticalDropdown.vue";
 
 const targetOptions = [
-  { label: "Site", value: "site" },
+  { label: "Category", value: "site" },
   { label: "Selected Agents", value: "agents" },
   { label: "All", value: "all" },
 ];

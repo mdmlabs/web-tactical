@@ -505,7 +505,7 @@ export default {
         },
         {
           name: "site_name",
-          label: "Site",
+          label: "Category",
           field: "site_name",
           sortable: true,
           align: "left",

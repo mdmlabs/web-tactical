@@ -2,7 +2,7 @@
   <q-dialog ref="dialogRef" @hide="onDialogHide">
     <q-card class="q-dialog-plugin" style="width: 60vw">
       <q-bar>
-        {{ !!site ? `Editing ${site.name}` : "Adding Site" }}
+        {{ !!site ? `Editing ${site.name}` : "Adding Category" }}
         <q-space />
         <q-btn dense flat icon="close" v-close-popup>
           <q-tooltip class="bg-white text-primary">Close</q-tooltip>
@@ -10,24 +10,25 @@
       </q-bar>
       <q-form @submit="submit">
         <q-card-section>
-          <tactical-dropdown
-            v-model="state.parent"
-            label="Parent Site"
-            :options="parentSiteOptions"
-            outlined
-            mapOptions
-            clearable
-            filterable
-            hint="Leave empty for root-level site"
-          />
-        </q-card-section>
-        <q-card-section>
           <q-input
             :rules="[(val) => !!val || 'Name is required']"
             outlined
             dense
             v-model="state.name"
             label="Name"
+            autofocus
+          />
+        </q-card-section>
+        <q-card-section>
+          <tactical-dropdown
+            v-model="state.parent"
+            label="Parent Category"
+            :options="parentSiteOptions"
+            outlined
+            mapOptions
+            clearable
+            filterable
+            hint="Leave empty for root-level category"
           />
         </q-card-section>
         <q-card-section>

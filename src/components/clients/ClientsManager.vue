@@ -30,7 +30,7 @@
         binary-state-sort
         virtual-scroll
         :rows-per-page-options="[0]"
-        no-data-label="No Sites"
+        no-data-label="No Categories"
         :loading="loading"
       >
         <!-- top slot -->

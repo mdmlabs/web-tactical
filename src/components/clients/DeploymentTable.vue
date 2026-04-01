@@ -115,7 +115,7 @@ const columns = [
   },
   {
     name: "site",
-    label: "Site",
+    label: "Category",
     field: "site_name",
     align: "left",
     sortable: true,

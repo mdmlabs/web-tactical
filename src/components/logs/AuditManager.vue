@@ -67,7 +67,7 @@
           style="width: 200px"
           v-model="siteFilter"
           :options="siteOptions"
-          label="Sites"
+          label="Categories"
           clearable
           multiple
           filled
@@ -197,7 +197,7 @@ const columns = [
     align: "left",
     sortable: true,
   },
-  { name: "site", label: "Site", field: "site", align: "left", sortable: true },
+  { name: "site", label: "Category", field: "site", align: "left", sortable: true },
   {
     name: "action",
     label: "Action",
@@ -255,7 +255,7 @@ const objectOptions = [
   { value: "bulk", label: "Bulk Actions" },
   { value: "coresettings", label: "Core Settings" },
   { value: "check", label: "Check" },
-  { value: "site", label: "Site" },
+  { value: "site", label: "Category" },
   { value: "policy", label: "Policy" },
   { value: "script", label: "Script" },
   { value: "user", label: "User" },
@@ -281,7 +281,7 @@ const timeOptions = [
 
 const filterTypeOptions = [
   {
-    label: "Sites",
+    label: "Categories",
     value: "sites",
   },
   {

@@ -180,7 +180,7 @@ export default {
         hide_in_summary: false,
       },
       modelOptions: [
-        { label: "Site", value: "site" },
+        { label: "Category", value: "site" },
         { label: "Agent", value: "agent" },
       ],
       typeOptions: [

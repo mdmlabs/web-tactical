@@ -34,7 +34,7 @@
         <tactical-dropdown
           v-model="site"
           :options="siteOptions"
-          label="Sites"
+          label="Categories"
           mapOptions
           filterable
           dense
@@ -104,7 +104,7 @@ const runAgainst = ref<"agent" | "site" | "none">("none");
 
 const runAgainstOptions = [
   { label: "Agent", value: "agent" },
-  { label: "Site", value: "site" },
+  { label: "Category", value: "site" },
   { label: "None", value: "none" },
 ];
 const loading = ref(false);

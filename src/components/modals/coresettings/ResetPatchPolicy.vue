@@ -28,7 +28,7 @@
         <q-card-section v-if="target == 'site'">
           <tactical-dropdown
             :rules="[(val) => !!val || '*Required']"
-            label="Sites"
+            label="Categories"
             mapOptions
             filterable
             clearable
@@ -72,7 +72,7 @@ import TacticalDropdown from "@/components/ui/TacticalDropdown.vue";
 // static data
 const targetOptions = [
   { label: "All", value: "all" },
-  { label: "Site", value: "site" },
+  { label: "Category", value: "site" },
 ];
 
 export default {

@@ -29,7 +29,7 @@ export const useClientsStore = defineStore("clients", () => {
 
   async function loadTree() {
     try {
-      const { data } = await axios.get("/apiv3/tree/");
+      const { data } = await axios.get("/api/v3/tree/");
 
       if (data.length === 0) {
         treeReady.value = true;

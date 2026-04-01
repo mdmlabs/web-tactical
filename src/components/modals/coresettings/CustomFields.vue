@@ -25,7 +25,7 @@
         narrow-indicator
         no-caps
       >
-        <q-tab name="site" label="Sites" />
+        <q-tab name="site" label="Categories" />
         <q-tab name="agent" label="Agents" />
       </q-tabs>
 

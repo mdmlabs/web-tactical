@@ -27,7 +27,7 @@
             :rules="[(val) => !!val || '*Required']"
             v-model="state.site"
             :options="siteOptions"
-            label="Select Site"
+            label="Select Category"
             outlined
             mapOptions
             filterable
@@ -318,7 +318,7 @@ const osTypeOptions = [
 ];
 
 const targetOptions = [
-  { label: "Site", value: "site" },
+  { label: "Category", value: "site" },
   { label: "Selected Agents", value: "agents" },
   { label: "All", value: "all" },
 ];

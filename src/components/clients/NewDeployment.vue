@@ -12,7 +12,7 @@
         <tactical-dropdown
           :rules="[(val) => !!val || '*Required']"
           outlined
-          label="Site"
+          label="Category"
           v-model="state.site"
           :options="siteOptions"
           mapOptions

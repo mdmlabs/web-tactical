@@ -409,7 +409,7 @@ export default function () {
       loadTree({ commit, state }) {
         setTimeout(() => {
           axios
-            .get("/apiv3/tree/")
+            .get("/api/v3/tree/")
             .then((r) => {
               if (r.data.length === 0) {
                 this.$router.push({ name: "InitialSetup" });
