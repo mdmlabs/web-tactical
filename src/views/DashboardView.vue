@@ -27,7 +27,7 @@
               <q-item-section avatar>
                 <q-icon name="dashboard" />
               </q-item-section>
-              <q-item-section>All Clients</q-item-section>
+              <q-item-section>All Groups</q-item-section>
             </q-item>
             <q-tree
               ref="tree"
@@ -157,11 +157,7 @@
                               clickable
                               v-close-popup
                               @click="
-                                runURLAction(
-                                  props.node.id,
-                                  action.id,
-                                  'site',
-                                )
+                                runURLAction(props.node.id, action.id, 'site')
                               "
                             >
                               {{ action.name }}
@@ -184,9 +180,7 @@
 
                       <q-item
                         clickable
-                        v-if="
-                          $integrations?.siteMenuIntegrations?.length > 0
-                        "
+                        v-if="$integrations?.siteMenuIntegrations?.length > 0"
                       >
                         <q-item-section side>
                           <q-icon name="assessment" />
@@ -229,9 +223,9 @@
               align="left"
               narrow-indicator
             >
-              <q-tab name="server" icon="dns" label="Servers" />
-              <q-tab name="workstation" icon="laptop" label="Workstations" />
-              <q-tab name="mixed" icon="view_module" label="Mixed" />
+              <!-- <q-tab name="server" icon="dns" label="Servers" /> -->
+              <!-- <q-tab name="workstation"  label="Workstations" /> -->
+              <!-- <q-tab name="mixed" icon="view_module" label="Mixed" /> -->
             </q-tabs>
             <q-space />
             <q-btn
@@ -472,20 +466,20 @@ export default {
           name: "dashboardalert",
           align: "left",
         },
-        {
-          name: "plat",
-          label: "",
-          field: "plat",
-          sortable: true,
-          align: "left",
-        },
-        {
-          name: "mon-type",
-          label: "",
-          field: "monitoring_type",
-          sortable: true,
-          align: "left",
-        },
+        // {
+        //   name: "plat",
+        //   label: "",
+        //   field: "plat",
+        //   sortable: true,
+        //   align: "left",
+        // },
+        // {
+        //   name: "mon-type",
+        //   label: "",
+        //   field: "monitoring_type",
+        //   sortable: true,
+        //   align: "left",
+        // },
         {
           name: "checks-status",
           align: "left",
@@ -592,8 +586,8 @@ export default {
       ],
       visibleColumns: [
         "smsalert",
-        "plat",
-        "mon-type",
+        // "plat",
+        // "mon-type",
         "emailalert",
         "dashboardalert",
         "checks-status",

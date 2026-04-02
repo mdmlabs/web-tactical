@@ -14,6 +14,10 @@ interface SiteApiData {
   maintenance_mode: boolean;
   agent_count: number;
   children?: SiteApiData[];
+  failing_checks?: {
+    error?: boolean;
+    warning?: boolean;
+  };
   [key: string]: unknown;
 }
 
@@ -49,8 +53,7 @@ export const useClientsStore = defineStore("clients", () => {
             id: site.id,
             raw: `Site|${site.id}`,
             header: childNodes.length > 0 ? "root" : "generic",
-            icon:
-              childNodes.length > 0 ? "corporate_fare" : "business_center",
+            icon: childNodes.length > 0 ? "corporate_fare" : "business_center",
             selectable: true,
             site: site,
           };
