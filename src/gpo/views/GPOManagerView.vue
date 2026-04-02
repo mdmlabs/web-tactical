@@ -11,7 +11,7 @@ npm
           <div
             :class="
               mainTab === 'dashboard'
-                ? 'gpo-main-content col-9'
+                ? 'gpo-main-content col-10'
                 : 'gpo-main-content col-12'
             "
           >
@@ -185,204 +185,272 @@ npm
                     <div class="text-h6 q-mb-md">System information</div>
                     <q-card v-if="agentDetails?.nodeInfo">
                       <q-card-section>
-                        <q-scroll-area style="height: 800px">
-                          <q-list>
-                            <q-item>
-                              <q-item-section>
-                                <q-item-label>Hostname</q-item-label>
-                                <q-item-label caption>{{
-                                  agentSystemHostname
-                                }}</q-item-label>
-                              </q-item-section>
-                            </q-item>
-                            <q-item>
-                              <q-item-section>
-                                <q-item-label>Operating system</q-item-label>
-                                <q-item-label caption>{{
-                                  agentOsVersion
-                                }}</q-item-label>
-                              </q-item-section>
-                            </q-item>
-                            <q-item>
-                              <q-item-section>
-                                <q-item-label>CPU</q-item-label>
-                                <q-item-label caption>{{
-                                  agentDetails.nodeInfo.systeminfo?.cpu || "N/A"
-                                }}</q-item-label>
-                              </q-item-section>
-                            </q-item>
-                            <q-item>
-                              <q-item-section>
-                                <q-item-label>RAM</q-item-label>
-                                <q-item-label caption>{{
-                                  agentDetails.nodeInfo.systeminfo?.ramgb
-                                    ? `${agentDetails.nodeInfo.systeminfo.ramgb} GB`
-                                    : "N/A"
-                                }}</q-item-label>
-                              </q-item-section>
-                            </q-item>
-                            <q-item>
-                              <q-item-section>
-                                <q-item-label>Motherboard</q-item-label>
-                                <q-item-label caption>{{
-                                  agentDetails.nodeInfo.systeminfo
-                                    ?.motherboard || "N/A"
-                                }}</q-item-label>
-                              </q-item-section>
-                            </q-item>
-                            <q-item
-                              v-if="
-                                agentDetails.nodeInfo.systeminfo?.disksList
-                                  ?.length
-                              "
-                            >
-                              <q-item-section>
-                                <q-item-label>Disks</q-item-label>
-                                <q-item-label caption>
-                                  <div
-                                    v-for="(disk, index) in agentDetails
-                                      .nodeInfo?.systeminfo?.disksList || []"
-                                    :key="index"
-                                  >
-                                    {{ disk }}
+                        <q-scroll-area class="system-info-scroll">
+                          <div class="system-info-wrap">
+                            <div class="system-info-summary q-mb-md">
+                              <div class="row q-col-gutter-md">
+                                <div class="col-12 col-md-6">
+                                  <div class="system-info-kv">
+                                    <div class="system-info-k">Hostname</div>
+                                    <div class="system-info-v">
+                                      {{ agentSystemHostname }}
+                                    </div>
                                   </div>
-                                </q-item-label>
-                              </q-item-section>
-                            </q-item>
-                            <q-item
-                              v-if="
-                                agentDetails.nodeInfo.systeminfo?.gpuList
-                                  ?.length
-                              "
-                            >
-                              <q-item-section>
-                                <q-item-label>GPU</q-item-label>
-                                <q-item-label caption>
+                                  <div class="system-info-kv">
+                                    <div class="system-info-k">
+                                      Operating system
+                                    </div>
+                                    <div class="system-info-v">
+                                      {{ agentOsVersion }}
+                                    </div>
+                                  </div>
+                                  <div class="system-info-kv">
+                                    <div class="system-info-k">OS build</div>
+                                    <div class="system-info-v">
+                                      {{ agentDetails.nodeInfo.osbuild || "N/A" }}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                  <div class="system-info-kv">
+                                    <div class="system-info-k">Online</div>
+                                    <div class="system-info-v">
+                                      <q-badge
+                                        :color="
+                                          agentDetails.isOnline
+                                            ? 'positive'
+                                            : 'negative'
+                                        "
+                                        :label="
+                                          agentDetails.isOnline
+                                            ? 'Online'
+                                            : 'Offline'
+                                        "
+                                      />
+                                    </div>
+                                  </div>
+                                  <div class="system-info-kv">
+                                    <div class="system-info-k">In the domain</div>
+                                    <div class="system-info-v">
+                                      {{
+                                        agentDetails.nodeInfo.isdomainjoined
+                                          ? "Yes"
+                                          : "No"
+                                      }}
+                                    </div>
+                                  </div>
+                                  <div class="system-info-kv">
+                                    <div class="system-info-k">Last boot</div>
+                                    <div class="system-info-v">
+                                      {{
+                                        agentDetails.nodeInfo?.lastboottime?.seconds
+                                          ? formatDate(
+                                              new Date(
+                                                agentDetails.nodeInfo.lastboottime
+                                                  .seconds * 1000,
+                                              ).toISOString(),
+                                            )
+                                          : "N/A"
+                                      }}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <q-list bordered separator dense class="system-info-accordion">
+                              <q-expansion-item
+                                default-opened
+                                expand-separator
+                                dense
+                                icon="memory"
+                                label="Hardware"
+                              >
+                                <div class="q-pa-sm">
+                                  <div class="system-info-kv">
+                                    <div class="system-info-k">CPU</div>
+                                    <div class="system-info-v">
+                                      {{
+                                        agentDetails.nodeInfo.systeminfo?.cpu ||
+                                        "N/A"
+                                      }}
+                                    </div>
+                                  </div>
+                                  <div class="system-info-kv">
+                                    <div class="system-info-k">RAM</div>
+                                    <div class="system-info-v">
+                                      {{
+                                        agentDetails.nodeInfo.systeminfo?.ramgb
+                                          ? `${agentDetails.nodeInfo.systeminfo.ramgb} GB`
+                                          : "N/A"
+                                      }}
+                                    </div>
+                                  </div>
+                                  <div class="system-info-kv">
+                                    <div class="system-info-k">Motherboard</div>
+                                    <div class="system-info-v">
+                                      {{
+                                        agentDetails.nodeInfo.systeminfo
+                                          ?.motherboard || "N/A"
+                                      }}
+                                    </div>
+                                  </div>
+                                  <div class="system-info-kv">
+                                    <div class="system-info-k">Manufacturer</div>
+                                    <div class="system-info-v">
+                                      {{
+                                        agentDetails.nodeInfo.manufacturer ||
+                                        "N/A"
+                                      }}
+                                    </div>
+                                  </div>
+                                  <div class="system-info-kv">
+                                    <div class="system-info-k">Model</div>
+                                    <div class="system-info-v">
+                                      {{ agentDetails.nodeInfo.model || "N/A" }}
+                                    </div>
+                                  </div>
+                                  <div class="system-info-kv">
+                                    <div class="system-info-k">Firmware</div>
+                                    <div class="system-info-v">
+                                      {{
+                                        agentDetails.nodeInfo.firmwareversion ||
+                                        "N/A"
+                                      }}
+                                    </div>
+                                  </div>
+                                </div>
+                              </q-expansion-item>
+
+                              <q-expansion-item
+                                expand-separator
+                                dense
+                                icon="lan"
+                                label="Network"
+                              >
+                                <div class="q-pa-sm">
+                                  <div class="system-info-kv">
+                                    <div class="system-info-k">Time zone</div>
+                                    <div class="system-info-v">
+                                      {{ agentDetails.nodeInfo.timezone || "N/A" }}
+                                    </div>
+                                  </div>
+
                                   <div
+                                    v-if="agentSystemIpAddresses.length"
+                                    class="q-mt-sm"
+                                  >
+                                    <div class="system-info-k q-mb-xs">
+                                      IP addresses
+                                    </div>
+                                    <div class="row q-col-gutter-xs">
+                                      <div
+                                        v-for="(ip, index) in agentSystemIpAddresses"
+                                        :key="`ip-${index}`"
+                                        class="col-auto"
+                                      >
+                                        <q-chip dense square color="grey-3">
+                                          {{ ip }}
+                                        </q-chip>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div
+                                    v-if="agentSystemMacAddresses.length"
+                                    class="q-mt-sm"
+                                  >
+                                    <div class="system-info-k q-mb-xs">
+                                      MAC addresses
+                                    </div>
+                                    <div class="row q-col-gutter-xs">
+                                      <div
+                                        v-for="(mac, index) in agentSystemMacAddresses"
+                                        :key="`mac-${index}`"
+                                        class="col-auto"
+                                      >
+                                        <q-chip dense square color="grey-3">
+                                          {{ mac || "" }}
+                                        </q-chip>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </q-expansion-item>
+
+                              <q-expansion-item
+                                v-if="
+                                  agentDetails.nodeInfo.systeminfo?.disksList
+                                    ?.length
+                                "
+                                expand-separator
+                                dense
+                                icon="storage"
+                                label="Storage"
+                              >
+                                <q-list dense padding>
+                                  <q-item
+                                    v-for="(disk, index) in agentDetails.nodeInfo
+                                      ?.systeminfo?.disksList || []"
+                                    :key="`disk-${index}`"
+                                    class="system-info-list-item"
+                                  >
+                                    <q-item-section>
+                                      <q-item-label class="system-info-v">
+                                        {{ disk }}
+                                      </q-item-label>
+                                    </q-item-section>
+                                  </q-item>
+                                </q-list>
+                              </q-expansion-item>
+
+                              <q-expansion-item
+                                v-if="
+                                  agentDetails.nodeInfo.systeminfo?.gpuList?.length
+                                "
+                                expand-separator
+                                dense
+                                icon="graphic_eq"
+                                label="Graphics"
+                              >
+                                <q-list dense padding>
+                                  <q-item
                                     v-for="(gpu, index) in agentDetails.nodeInfo
                                       ?.systeminfo?.gpuList || []"
-                                    :key="index"
+                                    :key="`gpu-${index}`"
+                                    class="system-info-list-item"
                                   >
-                                    {{ gpu }}
+                                    <q-item-section>
+                                      <q-item-label class="system-info-v">
+                                        {{ gpu }}
+                                      </q-item-label>
+                                    </q-item-section>
+                                  </q-item>
+                                </q-list>
+                              </q-expansion-item>
+
+                              <q-expansion-item
+                                expand-separator
+                                dense
+                                icon="shield"
+                                label="Security & status"
+                              >
+                                <div class="q-pa-sm">
+                                  <div class="system-info-kv">
+                                    <div class="system-info-k">
+                                      Antivirus status
+                                    </div>
+                                    <div class="system-info-v">
+                                      {{
+                                        agentDetails.nodeInfo.antivirusstatus ||
+                                        "N/A"
+                                      }}
+                                    </div>
                                   </div>
-                                </q-item-label>
-                              </q-item-section>
-                            </q-item>
-                            <q-item v-if="agentSystemIpAddresses.length">
-                              <q-item-section>
-                                <q-item-label>IP address</q-item-label>
-                                <q-item-label caption>
-                                  <div
-                                    v-for="(
-                                      ip, index
-                                    ) in agentSystemIpAddresses"
-                                    :key="index"
-                                    class="q-mb-xs"
-                                  >
-                                    {{ ip }}
-                                  </div>
-                                </q-item-label>
-                              </q-item-section>
-                            </q-item>
-                            <q-item v-if="agentSystemMacAddresses.length">
-                              <q-item-section>
-                                <q-item-label>MAC address</q-item-label>
-                                <q-item-label caption>
-                                  <div
-                                    v-for="(
-                                      mac, index
-                                    ) in agentSystemMacAddresses"
-                                    :key="index"
-                                    class="q-mb-xs"
-                                  >
-                                    {{ mac || "" }}
-                                  </div>
-                                </q-item-label>
-                              </q-item-section>
-                            </q-item>
-                            <q-separator />
-                            <q-item>
-                              <q-item-section>
-                                <q-item-label>Manufacturer</q-item-label>
-                                <q-item-label caption>{{
-                                  agentDetails.nodeInfo.manufacturer || "N/A"
-                                }}</q-item-label>
-                              </q-item-section>
-                            </q-item>
-                            <q-item>
-                              <q-item-section>
-                                <q-item-label>Model</q-item-label>
-                                <q-item-label caption>{{
-                                  agentDetails.nodeInfo.model || "N/A"
-                                }}</q-item-label>
-                              </q-item-section>
-                            </q-item>
-                            <q-item>
-                              <q-item-section>
-                                <q-item-label>Firmware version</q-item-label>
-                                <q-item-label caption>{{
-                                  agentDetails.nodeInfo.firmwareversion || "N/A"
-                                }}</q-item-label>
-                              </q-item-section>
-                            </q-item>
-                            <q-item>
-                              <q-item-section>
-                                <q-item-label>Assembling ОС</q-item-label>
-                                <q-item-label caption>{{
-                                  agentDetails.nodeInfo.osbuild || "N/A"
-                                }}</q-item-label>
-                              </q-item-section>
-                            </q-item>
-                            <q-item>
-                              <q-item-section>
-                                <q-item-label>Time zone</q-item-label>
-                                <q-item-label caption>{{
-                                  agentDetails.nodeInfo.timezone || "N/A"
-                                }}</q-item-label>
-                              </q-item-section>
-                            </q-item>
-                            <q-item>
-                              <q-item-section>
-                                <q-item-label>In the domain</q-item-label>
-                                <q-item-label caption>{{
-                                  agentDetails.nodeInfo.isdomainjoined
-                                    ? "Yes"
-                                    : "No"
-                                }}</q-item-label>
-                              </q-item-section>
-                            </q-item>
-                            <q-item>
-                              <q-item-section>
-                                <q-item-label>Antivirus status</q-item-label>
-                                <q-item-label caption>{{
-                                  agentDetails.nodeInfo.antivirusstatus || "N/A"
-                                }}</q-item-label>
-                              </q-item-section>
-                            </q-item>
-                            <q-item>
-                              <q-item-section>
-                                <q-item-label>Online status</q-item-label>
-                                <q-item-label caption>{{
-                                  agentDetails.isOnline ? "Online" : "Offline"
-                                }}</q-item-label>
-                              </q-item-section>
-                            </q-item>
-                            <q-item>
-                              <q-item-section>
-                                <q-item-label>Last download</q-item-label>
-                                <q-item-label caption>{{
-                                  agentDetails.nodeInfo?.lastboottime?.seconds
-                                    ? formatDate(
-                                        new Date(
-                                          agentDetails.nodeInfo.lastboottime
-                                            .seconds * 1000,
-                                        ).toISOString(),
-                                      )
-                                    : "N/A"
-                                }}</q-item-label>
-                              </q-item-section>
-                            </q-item>
-                          </q-list>
+                                </div>
+                              </q-expansion-item>
+                            </q-list>
+                          </div>
                         </q-scroll-area>
                       </q-card-section>
                     </q-card>
@@ -615,9 +683,9 @@ npm
                                 <span>
                                   {{
                                     typeof col.value === "string" &&
-                                    col.value.length > 80
-                                      ? col.value.slice(0, 80) + "..."
-                                      : col.value ?? ""
+                                    col.value.length > 40
+                                      ? col.value.slice(0, 40) + "..."
+                                      : (col.value ?? "")
                                   }}
                                 </span>
                               </template>
@@ -724,9 +792,9 @@ npm
                                 <span>
                                   {{
                                     typeof col.value === "string" &&
-                                    col.value.length > 80
-                                      ? col.value.slice(0, 80) + "..."
-                                      : col.value ?? ""
+                                    col.value.length > 40
+                                      ? col.value.slice(0, 40) + "..."
+                                      : (col.value ?? "")
                                   }}
                                 </span>
                               </template>
@@ -837,316 +905,9 @@ npm
 
             <div
               v-else-if="mainTab === 'windows'"
-              :key="`windows-${windowsTab}`"
               class="gpo-content-panels"
             >
-              <div class="gpo-content-header">
-                <q-tabs
-                  v-model="windowsTab"
-                  dense
-                  inline-label
-                  class="text-grey"
-                  active-color="primary"
-                  indicator-color="primary"
-                  align="left"
-                  narrow-indicator
-                  no-caps
-                >
-                  <q-tab
-                    v-for="group in admxGroups"
-                    :key="group.group"
-                    :name="`admx-${group.group}`"
-                    :icon="getAdmxGroupIcon(group.group)"
-                    :label="group.ui_name"
-                  />
-                </q-tabs>
-                <q-separator />
-              </div>
-
-              <q-tab-panels v-model="windowsTab" class="gpo-content-panels">
-                <q-tab-panel
-                  v-for="group in admxGroups"
-                  :key="`admx-${group.group}`"
-                  :name="`admx-${group.group}`"
-                  class="q-pa-none admx-tab-panel"
-                >
-                  <q-scroll-area class="admx-scroll-area">
-                    <div class="q-pa-md">
-                      <div class="text-h6 q-mb-md">{{ group.ui_name }}</div>
-                      <div class="text-caption text-grey-7 q-mb-md">
-                        {{ group.description }}
-                      </div>
-
-                      <div v-if="admxLoading" class="text-center q-pa-lg">
-                        <q-spinner color="primary" size="3em" />
-                        <div class="q-mt-md">Uploading policies...</div>
-                      </div>
-
-                      <div v-else>
-                        <div
-                          class="row q-col-gutter-md"
-                          style="height: calc(100vh - 300px)"
-                        >
-                          <div
-                            :class="
-                              selectedAdmxFile &&
-                              selectedAdmxFileGroup === group.group
-                                ? 'col-3'
-                                : 'col-12'
-                            "
-                          >
-                            <q-card flat bordered class="full-height">
-                              <q-card-section>
-                                <!-- <div class="text-subtitle2 q-mb-md">
-                                  ADMX file
-                                </div> -->
-                                <q-scroll-area
-                                  :style="
-                                    selectedAdmxFile &&
-                                    selectedAdmxFileGroup === group.group
-                                      ? 'height: calc(100vh - 400px)'
-                                      : 'height: calc(100vh - 200px)'
-                                  "
-                                >
-                                  <div class="q-gutter-sm">
-                                    <q-card
-                                      v-for="admxFile in group.admx_files"
-                                      :key="admxFile.file"
-                                      class="cursor-pointer"
-                                      @click="
-                                        onAdmxFileClick(
-                                          admxFile.file,
-                                          group.group,
-                                        )
-                                      "
-                                      :class="{
-                                        'bg-primary text-white':
-                                          selectedAdmxFile === admxFile.file,
-                                      }"
-                                    >
-                                      <q-card-section>
-                                        <div class="text-subtitle2 q-mb-xs">
-                                          {{ admxFile.ui_name }}
-                                        </div>
-                                        <div
-                                          class="text-caption"
-                                          :class="{
-                                            'text-grey-3':
-                                              selectedAdmxFile ===
-                                              admxFile.file,
-                                            'text-grey-7':
-                                              selectedAdmxFile !==
-                                              admxFile.file,
-                                          }"
-                                        >
-                                          {{ admxFile.description }}
-                                        </div>
-                                      </q-card-section>
-                                    </q-card>
-                                  </div>
-                                </q-scroll-area>
-                              </q-card-section>
-                            </q-card>
-                          </div>
-
-                          <div
-                            v-if="
-                              selectedAdmxFile &&
-                              selectedAdmxFileGroup === group.group
-                            "
-                            class="col-9"
-                          >
-                            <div
-                              v-if="loadingAdmxPolicies"
-                              class="text-center q-pa-lg"
-                            >
-                              <q-spinner color="primary" size="2em" />
-                              <div class="q-mt-sm">Uploading policies...</div>
-                            </div>
-
-                            <div
-                              v-else-if="admxPoliciesError"
-                              class="text-center q-pa-lg text-negative"
-                            >
-                              <q-icon name="error" size="2em" />
-                              <div class="q-mt-sm">{{ admxPoliciesError }}</div>
-                              <q-btn
-                                flat
-                                dense
-                                color="primary"
-                                label="Repeat"
-                                @click="loadPoliciesByAdmx(selectedAdmxFile)"
-                                class="q-mt-sm"
-                              />
-                            </div>
-
-                            <div
-                              v-else-if="admxPolicies.length === 0"
-                              class="text-center q-pa-lg text-grey-6"
-                            >
-                              <q-icon name="info" size="2em" />
-                              <div class="q-mt-sm">
-                                There are no policies in this file
-                              </div>
-                            </div>
-
-                            <div v-else class="row q-col-gutter-md full-height">
-                              <div class="col-3">
-                                <q-card flat bordered class="full-height">
-                                  <q-card-section>
-                                    <div class="text-subtitle2 q-mb-md">
-                                      Policies
-                                    </div>
-                                    <q-scroll-area
-                                      style="height: calc(100vh - 400px)"
-                                    >
-                                      <q-list separator>
-                                        <q-item
-                                          v-for="policy in admxPolicies"
-                                          :key="policy.id"
-                                          clickable
-                                          v-ripple
-                                          :active="
-                                            selectedAdmxPolicy?.id === policy.id
-                                          "
-                                          @click="onAdmxPolicySelect(policy)"
-                                          class="q-mb-xs"
-                                        >
-                                          <q-item-section>
-                                            <q-item-label
-                                              class="text-weight-medium"
-                                            >
-                                              {{
-                                                policy.display_name ||
-                                                policy.name
-                                              }}
-                                            </q-item-label>
-                                          </q-item-section>
-                                        </q-item>
-                                      </q-list>
-                                    </q-scroll-area>
-                                  </q-card-section>
-                                </q-card>
-                              </div>
-
-                              <div class="col-9">
-                                <q-card flat bordered class="full-height">
-                                  <q-card-section
-                                    v-if="selectedAdmxPolicy"
-                                    class="q-pa-none"
-                                  >
-                                    <q-tabs
-                                      v-model="admxPolicySettingsTab"
-                                      dense
-                                      inline-label
-                                      class="text-grey q-px-md q-pt-md"
-                                      active-color="primary"
-                                      indicator-color="primary"
-                                      align="left"
-                                      narrow-indicator
-                                      no-caps
-                                    >
-                                      <q-tab
-                                        name="description"
-                                        icon="description"
-                                        label="Description"
-                                      />
-                                    </q-tabs>
-
-                                    <q-separator class="q-mt-sm" />
-
-                                    <q-tab-panels
-                                      v-model="admxPolicySettingsTab"
-                                      class="q-mt-md"
-                                      style="
-                                        height: calc(100vh - 500px);
-                                        overflow-y: auto;
-                                      "
-                                    >
-                                      <q-tab-panel
-                                        name="description"
-                                        class="q-pa-md"
-                                      >
-                                        <div
-                                          v-if="loadingAdmxPolicyDetails"
-                                          class="text-center q-pa-lg"
-                                        >
-                                          <q-spinner
-                                            color="primary"
-                                            size="2em"
-                                          />
-                                          <div class="q-mt-sm">
-                                            Uploading the description...
-                                          </div>
-                                        </div>
-
-                                        <div
-                                          v-else-if="selectedAdmxPolicy"
-                                          class="policy-description"
-                                        >
-                                          <div class="text-h6 q-mb-md">
-                                            {{
-                                              selectedAdmxPolicy.display_name ||
-                                              selectedAdmxPolicy.name
-                                            }}
-                                          </div>
-
-                                          <div
-                                            v-if="
-                                              admxPolicyFullDescription ||
-                                              selectedAdmxPolicy.explain_text
-                                            "
-                                            class="text-body2 text-grey-8 q-mb-md"
-                                            style="
-                                              white-space: normal;
-                                              line-height: 1.6;
-                                            "
-                                          >
-                                            {{
-                                              admxPolicyFullDescription ||
-                                              selectedAdmxPolicy.explain_text
-                                            }}
-                                          </div>
-                                          <div
-                                            v-else
-                                            class="text-body2 text-grey-5 q-mb-md text-italic"
-                                          >
-                                            The description is missing
-                                          </div>
-                                        </div>
-                                      </q-tab-panel>
-                                    </q-tab-panels>
-                                  </q-card-section>
-
-                                  <q-card-section
-                                    v-else
-                                    class="text-center q-pa-lg text-grey-6"
-                                  >
-                                    <q-icon name="info" size="3em" />
-                                    <div class="q-mt-md">
-                                      Select a policy to configure
-                                    </div>
-                                  </q-card-section>
-                                </q-card>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div
-                        v-if="group.admx_files.length === 0"
-                        class="text-center q-pa-lg text-grey-6"
-                      >
-                        <q-icon name="info" size="3em" class="q-mb-md" />
-                        <div>
-                          There are no ADMX files available in this group.
-                        </div>
-                      </div>
-                    </div>
-                  </q-scroll-area>
-                </q-tab-panel>
-              </q-tab-panels>
+              <WindowsAdmxPolicies />
             </div>
 
             <div
@@ -1175,7 +936,7 @@ npm
           <div
             v-if="mainTab === 'dashboard'"
             :key="`devices-${mainTab}`"
-            class="gpo-devices-panel col-3"
+            class="gpo-devices-panel col-2"
           >
             <div class="gpo-devices-header">
               <div class="row items-center justify-between">
@@ -1372,6 +1133,7 @@ npm
                       :rows="filteredPoliciesByCategory('all')"
                       :columns="policyColumns"
                       row-key="id"
+                      :pagination="{ rowsPerPage: 20 }"
                       :loading="policiesStore.isLoading.value"
                       flat
                       bordered
@@ -1384,8 +1146,8 @@ npm
                           <span>
                             {{
                               props.row.description &&
-                              props.row.description.length > 80
-                                ? props.row.description.slice(0, 80) + "..."
+                              props.row.description.length > 40
+                                ? props.row.description.slice(0, 40) + "..."
                                 : props.row.description || ""
                             }}
                           </span>
@@ -1466,6 +1228,7 @@ npm
                       :rows="filteredPoliciesByCategory('templates')"
                       :columns="policyColumns"
                       row-key="id"
+                      :pagination="{ rowsPerPage: 20 }"
                       :loading="policiesStore.isLoading.value"
                       flat
                       bordered
@@ -1478,8 +1241,8 @@ npm
                           <span>
                             {{
                               props.row.description &&
-                              props.row.description.length > 80
-                                ? props.row.description.slice(0, 80) + "..."
+                              props.row.description.length > 40
+                                ? props.row.description.slice(0, 40) + "..."
                                 : props.row.description || ""
                             }}
                           </span>
@@ -1560,6 +1323,7 @@ npm
                       :rows="filteredPoliciesByCategory('archive')"
                       :columns="policyColumns"
                       row-key="id"
+                      :pagination="{ rowsPerPage: 20 }"
                       :loading="policiesStore.isLoading.value"
                       flat
                       bordered
@@ -1572,8 +1336,8 @@ npm
                           <span>
                             {{
                               props.row.description &&
-                              props.row.description.length > 80
-                                ? props.row.description.slice(0, 80) + "..."
+                              props.row.description.length > 40
+                                ? props.row.description.slice(0, 40) + "..."
                                 : props.row.description || ""
                             }}
                           </span>
@@ -1608,138 +1372,7 @@ npm
             </q-tab-panel>
 
             <q-tab-panel name="management" class="q-pa-none">
-              <q-scroll-area
-                class="management-scroll-area"
-                :style="{ height: 'calc(100vh - 200px)' }"
-              >
-                <div class="q-pa-md">
-                  <div class="text-h6 q-mb-md">Policy management</div>
-                  <q-card class="q-mb-md">
-                    <q-card-section>
-                      <div class="text-subtitle1 q-mb-sm">
-                        Import ADMX Files
-                      </div>
-                      <div class="text-caption text-grey-7 q-mb-md">
-                        Upload a ZIP archive containing ADMX files (max 50MB)
-                      </div>
-                      <q-file
-                        v-model="admxZipFile"
-                        label="Select ZIP archive with ADMX files"
-                        accept=".zip,application/zip,application/x-zip-compressed"
-                        outlined
-                        dense
-                        :clearable="!admxZipUploading"
-                        :disable="admxZipUploading"
-                        :error="!!fileError"
-                        :error-message="fileError"
-                        :hint="
-                          admxZipFile ? formatFileSize(admxZipFile.size) : ''
-                        "
-                        class="q-mb-md"
-                        @update:model-value="handleFileChange"
-                      >
-                        <template v-slot:prepend>
-                          <q-icon name="archive" />
-                        </template>
-                      </q-file>
-                      <q-linear-progress
-                        v-if="admxZipUploading && uploadProgress > 0"
-                        :value="uploadProgress / 100"
-                        color="primary"
-                        size="8px"
-                        class="q-mb-md"
-                      >
-                        <div class="absolute-full flex flex-center">
-                          <q-badge
-                            color="white"
-                            text-color="primary"
-                            :label="`${uploadProgress}%`"
-                          />
-                        </div>
-                      </q-linear-progress>
-                      <div class="row q-gutter-sm">
-                        <q-btn
-                          color="primary"
-                          icon="cloud_upload"
-                          label="Import ADMX ZIP"
-                          :loading="admxZipUploading"
-                          :disable="!canUpload"
-                          @click="handleImportAdmxZip"
-                        />
-                        <q-btn
-                          v-if="admxZipUploading"
-                          flat
-                          color="negative"
-                          icon="cancel"
-                          label="Cancel"
-                          @click="handleCancelUpload"
-                        />
-                      </div>
-                    </q-card-section>
-                  </q-card>
-
-                  <q-card class="q-mb-md">
-                    <q-card-section>
-                      <div class="row items-center justify-between q-mb-md">
-                        <div class="text-subtitle1">Loaded ADMX Files</div>
-                        <q-btn
-                          icon="refresh"
-                          label="Refresh"
-                          color="primary"
-                          outline
-                          dense
-                          :loading="loadingAdmxFiles"
-                          @click="loadAdmxFilesList"
-                        />
-                      </div>
-                      <q-scroll-area
-                        class="admx-files-table-scroll"
-                        style="height: 400px"
-                      >
-                        <q-table
-                          :rows="loadedAdmxFiles"
-                          :columns="admxFilesColumns"
-                          :loading="loadingAdmxFiles"
-                          row-key="file_hash"
-                          flat
-                          :pagination="{ rowsPerPage: 0 }"
-                          hide-pagination
-                          no-data-label="No ADMX files loaded"
-                        >
-                          <template v-slot:body-cell-file_name="props">
-                            <q-td :props="props">
-                              <div class="text-weight-medium">
-                                {{ props.value }}
-                              </div>
-                            </q-td>
-                          </template>
-                          <template v-slot:body-cell-file_hash="props">
-                            <q-td :props="props">
-                              <div
-                                class="text-caption text-grey-7"
-                                style="font-family: monospace"
-                              >
-                                {{ props.value }}
-                              </div>
-                            </q-td>
-                          </template>
-                          <template v-slot:body-cell-loaded_at_unix="props">
-                            <q-td :props="props">
-                              {{
-                                formatAdmxFileDate(
-                                  props.value as number | string,
-                                )
-                              }}
-                            </q-td>
-                          </template>
-                        </q-table>
-                      </q-scroll-area>
-                    </q-card-section>
-                  </q-card>
-
-                  <!-- management tab: only ADMX ZIP import and loaded files table are kept -->
-                </div>
-              </q-scroll-area>
+              <AdmxManagementTab />
             </q-tab-panel>
           </q-tab-panels>
         </div>
@@ -2434,7 +2067,7 @@ npm
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import { formatDate } from "@/utils/format";
 import { useGPOPolicies, useGPOPolicyTree } from "../api/gpo";
@@ -2446,13 +2079,8 @@ import {
   createUserGroupTargetForAgent,
   createAgentTarget,
   // userServiceClient,
-  createGrpcMetadata,
-  operator_pb,
   policyCatalogClient,
-  policyCatalogServiceClient,
   policyStateClient,
-  admxServiceClientWrapper,
-  AdmxUploadError,
 } from "../api/grpc-client";
 import { fetchAgents as fetchTacticalAgents } from "@/api/agents";
 import GPOPolicyForm from "../components/GPOPolicyForm.vue";
@@ -2463,6 +2091,8 @@ import GPOCollectionsTable from "../components/CollectionsPolicies/GPOCollection
 import UsersManagerModal from "../components/UsersManager/UsersManagerModal.vue";
 import GroupsManagerModal from "../components/GroupsManager/GroupsManagerModal.vue";
 import GroupsMachinesModal from "../components/GroupsMachines/GroupsMachinesModal.vue";
+import AdmxManagementTab from "../components/PolicyLibrary/AdmxManagementTab.vue";
+import WindowsAdmxPolicies from "../components/WindowsPolicies/WindowsAdmxPolicies.vue";
 import type {
   GPOPolicy,
   CreateGPOPolicyRequest,
@@ -2505,19 +2135,6 @@ interface User {
   employeeId?: string;
 }
 
-interface AdmxFile {
-  file: string;
-  ui_name: string;
-  description: string;
-}
-
-interface AdmxGroup {
-  group: string;
-  ui_name: string;
-  description: string;
-  admx_files: AdmxFile[];
-}
-
 const $q = useQuasar();
 const route = useRoute();
 
@@ -2529,71 +2146,6 @@ const subTab = ref("status");
 const contentTab = ref("overview");
 const libraryTab = ref("policies");
 const policiesSubTab = ref("all");
-const windowsTab = ref<string>("");
-const admxGroups = ref<AdmxGroup[]>([]);
-const admxLoading = ref(false);
-const selectedAdmxGroup = ref<string | null>(null);
-const selectedAdmxFile = ref<string | null>(null);
-const selectedAdmxFileGroup = ref<string | null>(null);
-
-interface AdmxPolicy {
-  id: string;
-  name: string;
-  display_name: string;
-  explain_text: string;
-}
-
-const admxPolicies = ref<AdmxPolicy[]>([]);
-const selectedAdmxPolicy = ref<AdmxPolicy | null>(null);
-const loadingAdmxPolicies = ref(false);
-const admxPoliciesError = ref<string | null>(null);
-const admxPolicySettingsTab = ref("description");
-const loadingAdmxPolicyDetails = ref(false);
-
-interface PolicyDetailsElement {
-  id: number;
-  element_id: string;
-  type: string;
-  display_name?: string;
-  description?: string;
-  presentation_type?: string;
-  value_name?: string;
-  registry_key?: string;
-  required?: boolean;
-  max_length?: number;
-  min_value?: number;
-  max_value?: number;
-  value_type?: string;
-  items?: Array<{
-    id: number;
-    name: string;
-    display_name?: string;
-    value_type?: string;
-  }>;
-}
-
-const admxPolicyDetailsElements = ref<PolicyDetailsElement[]>([]);
-const admxPolicySettingsValues = ref<Record<string, unknown>>({});
-const admxPolicyFullDescription = ref<string>("");
-const admxZipFile = ref<File | null>(null);
-const admxZipUploading = ref(false);
-const uploadProgress = ref(0);
-const uploadAbortController = ref<AbortController | null>(null);
-const fileError = ref("");
-const MAX_FILE_SIZE = 50 * 1024 * 1024;
-
-const canUpload = computed(() => {
-  return admxZipFile.value && !fileError.value && !admxZipUploading.value;
-});
-
-interface LoadedAdmxFile {
-  file_name: string;
-  file_hash: string;
-  loaded_at_unix: number | string;
-}
-
-const loadedAdmxFiles = ref<LoadedAdmxFile[]>([]);
-const loadingAdmxFiles = ref(false);
 
 const selectedAgent = ref<Agent | null>(null);
 const usersLoading = ref(false);
@@ -2711,416 +2263,6 @@ const gpoAgents = ref<Agent[]>([]);
 const agentsList = computed<Agent[]>(() => {
   return gpoAgents.value;
 });
-
-async function loadAdmxData() {
-  admxLoading.value = true;
-  try {
-    const lang = "en";
-    const fileName = `admx_full_grouped_${lang}.json`;
-    const response = await fetch(`/${fileName}`);
-    if (!response.ok) {
-      const fallbackResponse = await fetch("/admx_full_grouped_en.json");
-      if (!fallbackResponse.ok) {
-        throw new Error(`Failed to load ADMX data: ${response.statusText}`);
-      }
-      const fallbackData = await fallbackResponse.json();
-      admxGroups.value = fallbackData as AdmxGroup[];
-    } else {
-      const data = await response.json();
-      admxGroups.value = data as AdmxGroup[];
-    }
-
-    if (admxGroups.value.length > 0 && !selectedAdmxGroup.value) {
-      selectedAdmxGroup.value = admxGroups.value[0].group;
-      if (
-        !windowsTab.value ||
-        windowsTab.value === "security" ||
-        windowsTab.value === "system"
-      ) {
-        windowsTab.value = `admx-${admxGroups.value[0].group}`;
-      }
-    }
-  } catch (error) {
-    notifyError("Data loading error ADMX files");
-  } finally {
-    admxLoading.value = false;
-  }
-}
-
-async function loadPoliciesByAdmx(admxFile: string) {
-  loadingAdmxPolicies.value = true;
-  admxPoliciesError.value = null;
-  selectedAdmxPolicy.value = null;
-  try {
-    const langCode = "en-US";
-    const response = await policyCatalogClient.getPoliciesByAdmx(
-      admxFile,
-      langCode,
-    );
-
-    const responseObj = response as {
-      policiesList?: unknown[];
-      policies?: unknown[];
-    };
-    const policiesList = responseObj.policiesList || responseObj.policies || [];
-
-    admxPolicies.value = [];
-    for (const policy of policiesList) {
-      if (policy && typeof policy === "object") {
-        const p = policy as {
-          id?: number | string;
-          name?: string;
-          display_name?: string;
-          displayName?: string;
-          explain_text?: string;
-          explainText?: string;
-        };
-
-        admxPolicies.value.push({
-          id: String(p.id || ""),
-          name: p.name || "",
-          display_name: p.displayName || p.display_name || p.name || "",
-          explain_text: p.explainText || p.explain_text || "",
-        });
-      }
-    }
-  } catch (error) {
-    admxPoliciesError.value =
-      error instanceof Error ? error.message : "Policy loading error";
-    admxPolicies.value = [];
-  } finally {
-    loadingAdmxPolicies.value = false;
-  }
-}
-
-function onAdmxFileClick(admxFile: string, groupName: string) {
-  if (
-    selectedAdmxFile.value !== admxFile ||
-    selectedAdmxFileGroup.value !== groupName
-  ) {
-    selectedAdmxFile.value = admxFile;
-    selectedAdmxFileGroup.value = groupName;
-    selectedAdmxPolicy.value = null;
-    admxPolicies.value = [];
-    admxPolicyDetailsElements.value = [];
-    admxPolicySettingsValues.value = {};
-    admxPolicyFullDescription.value = "";
-    loadPoliciesByAdmx(admxFile);
-  }
-}
-
-async function onAdmxPolicySelect(policy: AdmxPolicy) {
-  selectedAdmxPolicy.value = policy;
-  admxPolicySettingsTab.value = "description";
-  await loadAdmxPolicyDetails(policy);
-}
-
-async function loadAdmxPolicyDetails(policy: AdmxPolicy) {
-  if (!policy || !policy.id) {
-    return;
-  }
-
-  loadingAdmxPolicyDetails.value = true;
-  admxPolicyDetailsElements.value = [];
-  admxPolicySettingsValues.value = {};
-  admxPolicyFullDescription.value = "";
-
-  try {
-    const policyId = Number.parseInt(policy.id, 10);
-    if (Number.isNaN(policyId)) {
-      throw new TypeError(`Invalid Policy ID: ${policy.id}`);
-    }
-
-    const metadata = createGrpcMetadata();
-    const request = new operator_pb.GetPolicyDetailsRequest();
-    request.setPolicyId(policyId);
-    request.setLangCode("en-US");
-
-    const response = await policyCatalogServiceClient.getPolicyDetails(
-      request,
-      metadata,
-    );
-
-    if (!response) {
-      throw new Error("An empty response from the server");
-    }
-
-    admxPolicyFullDescription.value = policy.explain_text || "";
-
-    const policyElementsList = response.getPolicyElementsList?.() || [];
-
-    const extractWrapperValue = (
-      value: unknown,
-    ): string | number | boolean | undefined => {
-      if (value === null || value === undefined) {
-        return undefined;
-      }
-      if (
-        typeof value === "string" ||
-        typeof value === "number" ||
-        typeof value === "boolean"
-      ) {
-        return value;
-      }
-      if (typeof value === "object") {
-        if (
-          typeof (value as { getValue?: () => unknown }).getValue === "function"
-        ) {
-          const extracted = (value as { getValue: () => unknown }).getValue();
-          return extracted as string | number | boolean | undefined;
-        }
-        if (
-          "value" in value &&
-          typeof (value as { value: unknown }).value !== "undefined"
-        ) {
-          return (value as { value: string | number | boolean }).value;
-        }
-      }
-      return undefined;
-    };
-
-    const processedPolicyElements = policyElementsList
-      .map((el: unknown) => {
-        if (el && typeof el === "object") {
-          const elem = el as {
-            getId?: () => number;
-            getElementId?: () => string;
-            getType?: () => string;
-            getValueName?: () => unknown;
-            getRegistryKey?: () => unknown;
-            getRequired?: () => unknown;
-            getMaxLength?: () => unknown;
-            getMinValue?: () => unknown;
-            getMaxValue?: () => unknown;
-            getItemsList?: () => unknown[];
-          };
-
-          const itemsList = elem.getItemsList?.() || [];
-          const items = itemsList
-            .map((item: unknown) => {
-              if (item && typeof item === "object") {
-                try {
-                  const it = item as {
-                    getId?: () => number;
-                    getName?: () => string;
-                    getParentType?: () => string;
-                    getType?: () => string;
-                    getValueType?: () => string;
-                    getValueName?: () => string;
-                    getRequired?: () => boolean;
-                    getParentId?: () => number;
-                    getDisplayName?: () => string;
-                  };
-                  return {
-                    id: it.getId?.() || 0,
-                    name: it.getName?.() || "",
-                    display_name: (() => {
-                      try {
-                        const value = it.getDisplayName?.();
-                        return extractWrapperValue(value) as string | undefined;
-                      } catch {
-                        return undefined;
-                      }
-                    })(),
-                    value_type: it.getValueType?.() || "",
-                  };
-                } catch {
-                  return null;
-                }
-              }
-              return null;
-            })
-            .filter((item): item is NonNullable<typeof item> => item !== null)
-            .filter((item, index, self) => {
-              return (
-                index ===
-                self.findIndex((t) => t.display_name === item.display_name)
-              );
-            });
-
-          return {
-            id: elem.getId?.() || 0,
-            element_id: elem.getElementId?.() || "",
-            type: elem.getType?.() || "",
-            value_name: (() => {
-              try {
-                const value = elem.getValueName?.();
-                return extractWrapperValue(value) as string | undefined;
-              } catch {
-                return undefined;
-              }
-            })(),
-            registry_key: (() => {
-              try {
-                const value = elem.getRegistryKey?.();
-                return extractWrapperValue(value) as string | undefined;
-              } catch {
-                return undefined;
-              }
-            })(),
-            required: (() => {
-              try {
-                const value = elem.getRequired?.();
-                return extractWrapperValue(value) as boolean | undefined;
-              } catch {
-                return undefined;
-              }
-            })(),
-            max_length: (() => {
-              try {
-                const value = elem.getMaxLength?.();
-                return extractWrapperValue(value) as number | undefined;
-              } catch {
-                return undefined;
-              }
-            })(),
-            min_value: (() => {
-              try {
-                const value = elem.getMinValue?.();
-                return extractWrapperValue(value) as number | undefined;
-              } catch {
-                return undefined;
-              }
-            })(),
-            max_value: (() => {
-              try {
-                const value = elem.getMaxValue?.();
-                return extractWrapperValue(value) as number | undefined;
-              } catch {
-                return undefined;
-              }
-            })(),
-            items: items,
-          };
-        }
-        return null;
-      })
-      .filter((el): el is NonNullable<typeof el> => el !== null);
-
-    const presentation = response.getPresentation?.();
-    const presentationMap = new Map<string, { text?: string; type?: string }>();
-
-    if (presentation) {
-      const elementsList = presentation.getElementsList?.() || [];
-      for (const presEl of elementsList) {
-        if (presEl && typeof presEl === "object") {
-          const p = presEl as {
-            getRefId?: () => string;
-            getText?: () => unknown;
-            getType?: () => string;
-          };
-          const refId = p.getRefId?.() || "";
-          if (refId) {
-            const extractStringValue = (value: unknown): string | undefined => {
-              if (value === null || value === undefined) {
-                return undefined;
-              }
-              if (typeof value === "string") {
-                return value;
-              }
-              if (typeof value === "object") {
-                if (
-                  "value" in value &&
-                  typeof (value as { value: unknown }).value === "string"
-                ) {
-                  return (value as { value: string }).value;
-                }
-                if (
-                  typeof (value as { getValue?: () => unknown }).getValue ===
-                  "function"
-                ) {
-                  const extracted = (
-                    value as { getValue: () => unknown }
-                  ).getValue();
-                  return typeof extracted === "string" ? extracted : undefined;
-                }
-              }
-              return undefined;
-            };
-            presentationMap.set(refId, {
-              text: extractStringValue(p.getText?.()),
-              type: p.getType?.() || "",
-            });
-          }
-        }
-      }
-    }
-
-    admxPolicyDetailsElements.value = processedPolicyElements.map((el) => {
-      const presentationEl = presentationMap.get(el.element_id);
-      return {
-        ...el,
-        display_name: presentationEl?.text || el.element_id,
-        presentation_type: presentationEl?.type || "",
-        description: "",
-      };
-    });
-
-    for (const element of admxPolicyDetailsElements.value) {
-      if (!(element.element_id in admxPolicySettingsValues.value)) {
-        if (
-          (element.type === "list" ||
-            element.type === "LIST" ||
-            element.type === "List") &&
-          (!element.items || element.items.length === 0)
-        ) {
-          admxPolicySettingsValues.value[element.element_id] = [];
-        } else if (
-          element.type === "CHECKBOX" ||
-          element.type === "BOOL" ||
-          element.type === "boolean"
-        ) {
-          admxPolicySettingsValues.value[element.element_id] = false;
-        } else if (
-          element.type === "TEXT" ||
-          element.type === "STRING" ||
-          element.type === "string"
-        ) {
-          admxPolicySettingsValues.value[element.element_id] = "";
-        } else if (
-          element.type === "NUMERIC" ||
-          element.type === "INT" ||
-          element.type === "int" ||
-          element.type === "number"
-        ) {
-          admxPolicySettingsValues.value[element.element_id] =
-            element.min_value || 0;
-        }
-      }
-    }
-  } catch (error) {
-    notifyError("Error uploading policy details");
-    console.error("Error loading policy details:", error);
-  } finally {
-    loadingAdmxPolicyDetails.value = false;
-  }
-}
-
-function getAdmxGroupIcon(groupName: string): string {
-  const iconMap: Record<string, string> = {
-    Безопасность: "security",
-    Аутентификация: "vpn_key",
-    "Сеть и удалённый доступ": "router",
-    Обновления: "system_update",
-    Интерфейс: "desktop_windows",
-    Приложения: "apps",
-    Диагностика: "bug_report",
-    Хранилище: "storage",
-    Система: "computer",
-
-    "Security and Threat Protection": "security",
-    "Authentication and Identity": "vpn_key",
-    "Networking and Remote Access": "router",
-    "Windows Update and Servicing": "system_update",
-    "User Interface and Shell": "desktop_windows",
-    "Applications and Store": "apps",
-    "Diagnostics and Telemetry": "bug_report",
-    "Storage and File Systems": "storage",
-    "System and Core Components": "computer",
-  };
-
-  return iconMap[groupName] || "policy";
-}
 
 async function loadAgents() {
   agentsLoading.value = true;
@@ -3322,7 +2464,6 @@ const usersColumns: QTableColumn[] = [
     field: "description",
     sortable: true,
   },
-
 ];
 
 const policyColumns: QTableColumn[] = [
@@ -3402,31 +2543,6 @@ const filteredPoliciesByCategory = (
 
   return policies;
 };
-
-const admxFilesColumns: QTableColumn[] = [
-  {
-    name: "file_name",
-    required: true,
-    label: "File Name",
-    align: "left",
-    field: "file_name",
-    sortable: true,
-  },
-  {
-    name: "file_hash",
-    label: "Hash",
-    align: "left",
-    field: "file_hash",
-    sortable: true,
-  },
-  {
-    name: "loaded_at_unix",
-    label: "Loaded At",
-    align: "left",
-    field: "loaded_at_unix",
-    sortable: true,
-  },
-];
 
 interface AgentDetails {
   agentId?: string;
@@ -3658,9 +2774,6 @@ const selectAgent = async (agent: Agent) => {
 const loadAgentDetails = async (agentId: string) => {
   try {
     const details = await agentServiceClientWrapper.getAgent(agentId);
-    console.log("Agent details loaded:", details);
-    console.log("NodeInfo:", details?.nodeInfo);
-    console.log("SystemInfo:", details?.nodeInfo?.systeminfo);
     agentDetails.value = details;
   } catch (error) {
     console.error("Error loading agent details:", error);
@@ -3711,154 +2824,6 @@ const clearAgentSelection = () => {
 //   }
 // }
 
-function handleFileChange(file: File | null) {
-  fileError.value = "";
-
-  if (!file) return;
-  if (!file.name.toLowerCase().endsWith(".zip")) {
-    fileError.value = "Please select a ZIP file";
-    admxZipFile.value = null;
-    return;
-  }
-
-  if (file.size > MAX_FILE_SIZE) {
-    fileError.value = `File too large (max ${MAX_FILE_SIZE / (1024 * 1024)}MB)`;
-    admxZipFile.value = null;
-    return;
-  }
-
-  if (file.size === 0) {
-    fileError.value = "File is empty";
-    admxZipFile.value = null;
-    return;
-  }
-}
-
-async function handleImportAdmxZip() {
-  if (!admxZipFile.value || !canUpload.value) return;
-  uploadAbortController.value = new AbortController();
-  admxZipUploading.value = true;
-  uploadProgress.value = 0;
-
-  try {
-    const response = await admxServiceClientWrapper.importAdmxZip(
-      admxZipFile.value,
-      {
-        signal: uploadAbortController.value.signal,
-        maxFileSize: MAX_FILE_SIZE,
-        onProgress: (progress) => {
-          uploadProgress.value = Math.round(progress.percentage);
-        },
-      },
-    );
-
-    if (response.success) {
-      notifySuccess(response.message || "ADMX files successfully imported");
-      admxZipFile.value = null;
-      uploadProgress.value = 0;
-      fileError.value = "";
-      await loadAdmxFilesList();
-    } else {
-      notifyError(response.message || "Failed to import ADMX files");
-    }
-  } catch (error) {
-    handleUploadError(error);
-  } finally {
-    admxZipUploading.value = false;
-    uploadAbortController.value = null;
-  }
-}
-
-function handleCancelUpload() {
-  if (uploadAbortController.value) {
-    uploadAbortController.value.abort();
-  }
-}
-
-function handleUploadError(error: unknown) {
-  if (error instanceof AdmxUploadError) {
-    switch (error.code) {
-      case "CANCELLED":
-        break;
-      case "FILE_TOO_LARGE":
-        notifyError(error.message);
-        fileError.value = error.message;
-        break;
-      case "INVALID_FORMAT":
-        notifyError(error.message);
-        fileError.value = error.message;
-        break;
-      case "UPLOAD_FAILED":
-        notifyError(error.message);
-        console.error("ADMX upload failed:", error);
-        break;
-    }
-  } else {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unexpected error during upload";
-    notifyError(errorMessage);
-    console.error("ADMX ZIP import error:", error);
-  }
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return "0 Bytes";
-  const k = 1024;
-  const sizes = ["Bytes", "KB", "MB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
-}
-
-async function loadAdmxFilesList() {
-  loadingAdmxFiles.value = true;
-  try {
-    const response = await admxServiceClientWrapper.listAdmxFiles();
-    const filesList =
-      response.filesList || (response as { files?: unknown[] }).files || [];
-    loadedAdmxFiles.value = filesList.map((file: unknown) => {
-      const f = file as {
-        fileName?: string;
-        file_name?: string;
-        fileHash?: string;
-        file_hash?: string;
-        loadedAtUnix?: number | string;
-        loaded_at_unix?: number | string;
-      };
-      return {
-        file_name: f.fileName || f.file_name || "",
-        file_hash: f.fileHash || f.file_hash || "",
-        loaded_at_unix: f.loadedAtUnix || f.loaded_at_unix || 0,
-      };
-    });
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Error loading ADMX files list";
-    notifyError(errorMessage);
-    console.error("Error loading ADMX files list:", error);
-    loadedAdmxFiles.value = [];
-  } finally {
-    loadingAdmxFiles.value = false;
-  }
-}
-
-function formatAdmxFileDate(timestamp: number | string): string {
-  if (!timestamp) return "-";
-  const date = new Date(
-    typeof timestamp === "string"
-      ? Number.parseInt(timestamp, 10) * 1000
-      : timestamp * 1000,
-  );
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleString("ru-RU", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-}
-
 const onEditPolicy = (policy: unknown) => {
   policyToEdit.value = policy as GPOPolicy;
   policyDialogMode.value = "edit";
@@ -3884,19 +2849,6 @@ const onDeletePolicy = (policy: unknown) => {
     }
   });
 };
-
-watch(windowsTab, (newTab) => {
-  if (newTab && newTab.startsWith("admx-")) {
-    const groupName = newTab.replace("admx-", "");
-    if (selectedAdmxFileGroup.value !== groupName) {
-      selectedAdmxFile.value = null;
-      selectedAdmxFileGroup.value = null;
-      selectedAdmxPolicy.value = null;
-      admxPolicies.value = [];
-      admxPoliciesError.value = null;
-    }
-  }
-});
 
 const onPolicyFormSubmit = async (
   data: CreateGPOPolicyRequest | UpdateGPOPolicyRequest,
@@ -3973,15 +2925,6 @@ watch(mainTab, (newTab) => {
     if (!treeStore.tree.value) {
       treeStore.fetchPolicyTree();
     }
-  } else if (newTab === "windows") {
-    if (
-      admxGroups.value.length > 0 &&
-      (!windowsTab.value || !windowsTab.value.startsWith("admx-"))
-    ) {
-      windowsTab.value = `admx-${admxGroups.value[0].group}`;
-    }
-  } else if (newTab === "management") {
-    loadAdmxFilesList();
   }
 });
 
@@ -4778,15 +3721,8 @@ function onPolicySettingsDisabled(policyId: string) {
   }
 }
 
-onBeforeUnmount(() => {
-  if (uploadAbortController.value) {
-    uploadAbortController.value.abort();
-  }
-});
-
 onMounted(async () => {
   await loadAgents();
-  loadAdmxData();
 
   const tabFromQuery = route.query.tab as string | undefined;
   if (
@@ -4996,7 +3932,7 @@ onMounted(async () => {
   overflow: hidden
 
 .table-container
-  max-height: 600px
+  max-height: 750px
   overflow-y: auto
   overflow-x: hidden
 
@@ -5021,4 +3957,58 @@ onMounted(async () => {
 
 .policies-table-scroll
   width: 100%
+
+.system-info-scroll
+  height: calc(100vh - 260px)
+  min-height: 700px
+  width: 100%
+
+.system-info-wrap
+  padding: 4px
+
+.system-info-summary
+  background: rgba(16, 137, 211, 0.04)
+  border: 1px solid rgba(18, 177, 209, 0.18)
+  border-radius: 10px
+  padding: 8px 12px
+
+.body--dark .system-info-summary
+  background: rgba(18, 177, 209, 0.06)
+  border: 1px solid rgba(18, 177, 209, 0.28)
+
+.system-info-accordion
+  border-radius: 10px
+  overflow: hidden
+
+.system-info-kv
+  display: flex
+  gap: 10px
+  padding: 6px 0
+
+.system-info-kv + .system-info-kv
+  border-top: 1px dashed rgba(18, 177, 209, 0.18)
+
+.system-info-k
+  min-width: 140px
+  color: rgba(0, 0, 0, 0.55)
+  font-size: 12px
+  line-height: 16px
+
+.body--dark .system-info-k
+  color: rgba(255, 255, 255, 0.65)
+
+.system-info-v
+  flex: 1
+  min-width: 0
+  color: rgba(0, 0, 0, 0.88)
+  font-size: 13px
+  line-height: 18px
+  word-break: break-word
+
+.body--dark .system-info-v
+  color: rgba(255, 255, 255, 0.88)
+
+.system-info-list-item
+  padding-left: 10px
+  padding-right: 0
 </style>
