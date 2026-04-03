@@ -142,6 +142,7 @@ import {
   policyAssignmentClient,
   collectionsClient,
   agentServiceClientWrapper,
+  policyStateClient,
 } from "@/gpo/api/grpc-client";
 import type { Target } from "@/gpo/api/grpc-client";
 import type { TargetRef } from "@/gpo/composables/useTargetSelection";
@@ -261,14 +262,163 @@ const groupAppliedCollections = ref<
     name: string;
     explainText?: string;
     policies?: { id: number; name: string }[];
+    compliance?: {
+      assignedAndApplied: number;
+      assignedNotApplied: number;
+      notAssigned: number;
+      loading: boolean;
+    };
   }[]
 >([]);
 const groupAppliedCollectionsLoading = ref(false);
+
+const complianceCache = new Map<string, { assignedAndApplied: number; assignedNotApplied: number; notAssigned: number; timestamp: number }>();
+const COMPLIANCE_CACHE_TTL = 5 * 60 * 1000;
 
 const canRemoveGroupCollection = computed(
   () =>
     !!selectedGroupId.value && (groupAppliedCollections.value?.length ?? 0) > 0,
 );
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let i = 0;
+
+  const workers = Array.from(
+    { length: Math.max(1, Math.min(concurrency, items.length)) },
+    async () => {
+      while (i < items.length) {
+        const idx = i;
+        i += 1;
+        results[idx] = await mapper(items[idx]);
+      }
+    },
+  );
+
+  await Promise.all(workers);
+  return results;
+}
+
+async function calculateGroupCompliance(
+  groupId: string,
+  collectionPolicies: { id: number; name: string }[],
+  agentsInGroup: AgentRow[],
+): Promise<{ assignedAndApplied: number; assignedNotApplied: number; notAssigned: number }> {
+  if (!collectionPolicies || collectionPolicies.length === 0) {
+    return { assignedAndApplied: 0, assignedNotApplied: 0, notAssigned: 0 };
+  }
+
+  if (!agentsInGroup || agentsInGroup.length === 0) {
+    return { assignedAndApplied: 0, assignedNotApplied: 0, notAssigned: collectionPolicies.length };
+  }
+
+  const cacheKey = `${groupId}_${collectionPolicies.map((p) => p.id).join(",")}_${agentsInGroup.length}`;
+  const cached = complianceCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < COMPLIANCE_CACHE_TTL) {
+    return { 
+      assignedAndApplied: cached.assignedAndApplied, 
+      assignedNotApplied: cached.assignedNotApplied,
+      notAssigned: cached.notAssigned
+    };
+  }
+
+  try {
+    const results = await mapWithConcurrency(
+      agentsInGroup,
+      3,
+      async (agent: AgentRow) => {
+        try {
+          const target = createAgentTarget(agent.id);
+          if (!target) {
+            return {
+              assignments: [],
+              effectivePolicies: [],
+            };
+          }
+          
+          const [assignmentsResponse, effectivePoliciesResponse] = await Promise.all([
+            policyStateClient.getAssignments(target, "en-US").catch(() => {
+              return { assignmentsList: [] };
+            }),
+            policyStateClient.getEffectivePolicies(target, "en-US").catch(() => {
+              return { policiesList: [] };
+            }),
+          ]);
+
+          return {
+            assignments: assignmentsResponse.assignmentsList || [],
+            effectivePolicies: effectivePoliciesResponse.policiesList || [],
+          };
+        } catch {
+          return {
+            assignments: [],
+            effectivePolicies: [],
+          };
+        }
+      },
+    );
+
+    const assignedPolicyHashes = new Set<string>();
+    const effectivePolicyHashes = new Set<string>();
+
+    for (const result of results) {
+      for (const assignment of result.assignments) {
+        if (assignment.summary?.id) {
+          const policyId = String(assignment.summary.id);
+          assignedPolicyHashes.add(policyId);
+          assignedPolicyHashes.add(`policy_${policyId}`);
+        }
+        if (assignment.policyHash) {
+          assignedPolicyHashes.add(assignment.policyHash);
+        }
+      }
+      
+      for (const policy of result.effectivePolicies) {
+        if (policy.summary?.id) {
+          const policyId = String(policy.summary.id);
+          effectivePolicyHashes.add(policyId);
+          effectivePolicyHashes.add(`policy_${policyId}`);
+        }
+        if (policy.policyHash) {
+          effectivePolicyHashes.add(policy.policyHash);
+        }
+      }
+    }
+
+    let assignedAndApplied = 0;
+    let assignedNotApplied = 0;
+    let notAssigned = 0;
+
+    for (const policy of collectionPolicies) {
+      const policyIdStr = String(policy.id);
+      const policyHash = `policy_${policyIdStr}`;
+      
+      const isAssigned = assignedPolicyHashes.has(policyIdStr) || 
+                        assignedPolicyHashes.has(policyHash);
+      const isApplied = effectivePolicyHashes.has(policyIdStr) || 
+                       effectivePolicyHashes.has(policyHash);
+      
+      if (isAssigned && isApplied) {
+        assignedAndApplied++;
+      } else if (isAssigned && !isApplied) {
+        assignedNotApplied++;
+      } else {
+        notAssigned++;
+      }
+    }
+
+    const result = { assignedAndApplied, assignedNotApplied, notAssigned };
+    complianceCache.set(cacheKey, { ...result, timestamp: Date.now() });
+    return result;
+  } catch (err) {
+    console.error("Error calculating group compliance:", err);
+    return { assignedAndApplied: 0, assignedNotApplied: 0, notAssigned: collectionPolicies.length };
+  }
+}
 
 const showRemoveCollectionDialog = ref(false);
 const removeCollectionSelectedId = ref<number | null>(null);
@@ -440,8 +590,9 @@ async function loadGroups() {
 watch(
   selectedGroupId,
   (id) => {
-    if (id) loadGroupAppliedCollections();
-    else groupAppliedCollections.value = [];
+    if (!id) {
+      groupAppliedCollections.value = [];
+    }
   },
   { immediate: true },
 );
@@ -582,6 +733,7 @@ async function loadGroupDetails(groupId: string) {
     }
   } finally {
     detailLoading.value = false;
+    await loadGroupAppliedCollections();
   }
 }
 
@@ -863,6 +1015,7 @@ async function doApplyCollectionToGroup() {
       `Collection applied to group "${selectedGroupSam.value ?? groupId}"`,
     );
     showApplyCollectionDialog.value = false;
+    complianceCache.clear();
     await loadGroupAppliedCollections();
   } catch (err) {
     notifyError(
@@ -908,6 +1061,7 @@ async function doRemoveCollectionFromGroup() {
     });
     notifySuccess(`Collection removed from group "${groupLabel}"`);
     showRemoveCollectionDialog.value = false;
+    complianceCache.clear();
     await loadGroupAppliedCollections();
   } catch (err) {
     notifyError(
@@ -944,6 +1098,7 @@ function handleRemoveCollectionById(collectionId: number) {
         { groupId },
       );
       notifySuccess(`Collection removed from group "${groupLabel}"`);
+      complianceCache.clear();
       await loadGroupAppliedCollections();
     } catch (err) {
       notifyError(
@@ -1001,8 +1156,46 @@ async function loadGroupAppliedCollections() {
           id: p.id ?? 0,
           name: p.displayName ?? p.display_name ?? p.name ?? String(p.id ?? ""),
         })),
+        compliance: {
+          assignedAndApplied: 0,
+          assignedNotApplied: 0,
+          notAssigned: 0,
+          loading: true,
+        },
       };
     });
+
+    await mapWithConcurrency(
+      groupAppliedCollections.value,
+      3,
+      async (collection) => {
+        try {
+          const result = await calculateGroupCompliance(
+            groupId,
+            collection.policies || [],
+            groupAgents.value,
+          );
+          collection.compliance = {
+            assignedAndApplied: result.assignedAndApplied,
+            assignedNotApplied: result.assignedNotApplied,
+            notAssigned: result.notAssigned,
+            loading: false,
+          };
+        } catch (err) {
+          console.error(
+            `Failed to calculate compliance for collection ${collection.id}:`,
+            err,
+          );
+          collection.compliance = {
+            assignedAndApplied: 0,
+            assignedNotApplied: 0,
+            notAssigned: collection.policies?.length || 0,
+            loading: false,
+          };
+        }
+        return true;
+      },
+    );
   } catch {
     groupAppliedCollections.value = [];
   } finally {

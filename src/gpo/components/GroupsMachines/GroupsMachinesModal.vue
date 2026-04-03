@@ -11,7 +11,7 @@
           color="primary"
           @click="goBack"
         />
-        <q-icon name="laptop" size="sm" class="q-mr-sm" color="primary" />
+        <q-icon name="devices" size="sm" class="q-mr-sm" color="primary" />
         <q-toolbar-title>Groups Machines</q-toolbar-title>
 
         <q-btn
@@ -156,7 +156,8 @@
       v-model="showCollectionDetailsDialog"
       :collection="selectedCollection"
       :policy-search-query="policySearchQuery"
-      :filtered-policies="filteredPolicies"
+      :category-agents="categoryAgents"
+      :selected-category-id="selectedCategoryId"
       @update:policy-search-query="policySearchQuery = $event"
     />
   </div>
@@ -172,6 +173,8 @@ import {
   policyAssignmentClient,
   collectionsClient,
   agentServiceClientWrapper,
+  policyStateClient,
+  createAgentTarget,
 } from "@/gpo/api/grpc-client";
 import operator_pb from "@/generated/operator_pb";
 import type { TargetRef } from "@/gpo/composables/useTargetSelection";
@@ -253,6 +256,8 @@ const agentNameInflight = new Map<string, Promise<string>>();
 
 const categoryAgentsCache = new Map<number, Set<string>>();
 const agentCategoryLookupCache = new Map<string, number[]>();
+const complianceCache = new Map<string, { assignedAndApplied: number; assignedNotApplied: number; notAssigned: number; timestamp: number }>();
+const COMPLIANCE_CACHE_TTL = 5 * 60 * 1000;
 
 async function mapWithConcurrency<T, R>(
   items: T[],
@@ -346,6 +351,121 @@ async function findAgentCategories(agentId: string): Promise<number[]> {
 
   agentCategoryLookupCache.set(agentId, hits);
   return hits;
+}
+
+async function calculateCollectionCompliance(
+  categoryId: number,
+  collectionPolicies: { id: number; name: string }[],
+): Promise<{ assignedAndApplied: number; assignedNotApplied: number; notAssigned: number }> {
+  if (!collectionPolicies || collectionPolicies.length === 0) {
+    return { assignedAndApplied: 0, assignedNotApplied: 0, notAssigned: 0 };
+  }
+
+  const cacheKey = `${categoryId}_${collectionPolicies.map((p) => p.id).join(",")}`;
+  const cached = complianceCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < COMPLIANCE_CACHE_TTL) {
+    return {
+      assignedAndApplied: cached.assignedAndApplied,
+      assignedNotApplied: cached.assignedNotApplied,
+      notAssigned: cached.notAssigned
+    };
+  }
+
+  try {
+    const agentsRes = await agentCategoryClient.getCategoryAgents(categoryId);
+    if (agentsRes.status !== 0 || !agentsRes.agentIdsList?.length) {
+      return { assignedAndApplied: 0, assignedNotApplied: 0, notAssigned: collectionPolicies.length };
+    }
+
+    const agentIds = agentsRes.agentIdsList;
+
+    const results = await mapWithConcurrency(
+      agentIds,
+      3,
+      async (agentId: string) => {
+        try {
+          const target = createAgentTarget(agentId);
+          if (!target) {
+            return {
+              assignments: [],
+              effectivePolicies: [],
+            };
+          }
+
+          const [assignmentsResponse, effectivePoliciesResponse] = await Promise.all([
+            policyStateClient.getAssignments(target, "en-US").catch(() => ({ assignmentsList: [] })),
+            policyStateClient.getEffectivePolicies(target, "en-US").catch(() => ({ policiesList: [] })),
+          ]);
+
+          return {
+            assignments: assignmentsResponse.assignmentsList || [],
+            effectivePolicies: effectivePoliciesResponse.policiesList || [],
+          };
+        } catch {
+          return {
+            assignments: [],
+            effectivePolicies: [],
+          };
+        }
+      },
+    );
+
+    const assignedPolicyHashes = new Set<string>();
+    const effectivePolicyHashes = new Set<string>();
+
+    for (const result of results) {
+      for (const assignment of result.assignments) {
+        if (assignment.summary?.id) {
+          const policyId = String(assignment.summary.id);
+          assignedPolicyHashes.add(policyId);
+          assignedPolicyHashes.add(`policy_${policyId}`);
+        }
+        if (assignment.policyHash) {
+          assignedPolicyHashes.add(assignment.policyHash);
+        }
+      }
+
+      for (const policy of result.effectivePolicies) {
+        if (policy.summary?.id) {
+          const policyId = String(policy.summary.id);
+          effectivePolicyHashes.add(policyId);
+          effectivePolicyHashes.add(`policy_${policyId}`);
+        }
+        if (policy.policyHash) {
+          effectivePolicyHashes.add(policy.policyHash);
+        }
+      }
+    }
+
+    let assignedAndApplied = 0;
+    let assignedNotApplied = 0;
+    let notAssigned = 0;
+
+    for (const policy of collectionPolicies) {
+      const policyIdStr = String(policy.id);
+      const policyHash = `policy_${policyIdStr}`;
+
+      const isAssigned = assignedPolicyHashes.has(policyIdStr) ||
+                        assignedPolicyHashes.has(policyHash);
+      const isApplied = effectivePolicyHashes.has(policyIdStr) ||
+                       effectivePolicyHashes.has(policyHash);
+
+      if (isAssigned && isApplied) {
+        assignedAndApplied++;
+      } else if (isAssigned && !isApplied) {
+        assignedNotApplied++;
+      } else {
+        notAssigned++;
+      }
+    }
+
+    const result = { assignedAndApplied, assignedNotApplied, notAssigned };
+    complianceCache.set(cacheKey, { ...result, timestamp: Date.now() });
+    return result;
+  } catch (err) {
+    console.error("Error calculating compliance:", err);
+    return { assignedAndApplied: 0, assignedNotApplied: 0, notAssigned: collectionPolicies.length };
+  }
 }
 
 const deleteLoading = ref(false);
@@ -463,6 +583,12 @@ const categoryAppliedCollections = ref<
     name: string;
     explainText?: string;
     policies?: { id: number; name: string }[];
+    compliance?: {
+      assignedAndApplied: number;
+      assignedNotApplied: number;
+      notAssigned: number;
+      loading: boolean;
+    };
   }[]
 >([]);
 const categoryAppliedCollectionsLoading = ref(false);
@@ -478,21 +604,17 @@ type CollectionType = {
   name: string;
   explainText?: string;
   policies?: { id: number; name: string }[];
+  compliance?: {
+    assignedAndApplied: number;
+    assignedNotApplied: number;
+    notAssigned: number;
+    loading: boolean;
+  };
 };
 
 const showCollectionDetailsDialog = ref(false);
 const selectedCollection = ref<CollectionType | null>(null);
 const policySearchQuery = ref("");
-
-const filteredPolicies = computed(() => {
-  if (!selectedCollection.value?.policies) return [];
-  if (!policySearchQuery.value) return selectedCollection.value.policies;
-
-  const query = policySearchQuery.value.toLowerCase();
-  return selectedCollection.value.policies.filter((p) =>
-    p.name.toLowerCase().includes(query),
-  );
-});
 
 function openCollectionDetailsDialog(collection: CollectionType) {
   selectedCollection.value = collection;
@@ -521,6 +643,13 @@ const collectionsColumns = [
     field: (row: { policies?: unknown[] }) => row.policies?.length || 0,
     align: "center" as const,
     sortable: true,
+  },
+  {
+    name: "compliance",
+    label: "Compliance",
+    field: "compliance",
+    align: "left" as const,
+    sortable: false,
   },
   {
     name: "actions",
@@ -746,6 +875,7 @@ async function doApplyCollectionToCategory() {
       `Collection applied to category "${selectedCategory.value?.name ?? categoryId}"`,
     );
     showApplyCollectionDialog.value = false;
+    complianceCache.clear();
     await loadCategoryAppliedCollections();
   } catch (err) {
     notifyError(
@@ -798,6 +928,7 @@ async function doRemoveCollectionFromCategory() {
     );
     notifySuccess(`Collection removed from category "${categoryLabel}"`);
     showRemoveCollectionDialog.value = false;
+    complianceCache.clear();
     await loadCategoryAppliedCollections();
   } catch (err) {
     notifyError(
@@ -831,6 +962,7 @@ function handleRemoveCollectionById(collectionId: number) {
       notifySuccess(
         `Collection removed from category "${selectedCategory.value?.name ?? categoryId}"`,
       );
+      complianceCache.clear();
       await loadCategoryAppliedCollections();
     } catch (err) {
       notifyError(
@@ -851,8 +983,8 @@ async function loadCategoryAppliedCollections() {
   try {
     const response =
       await collectionsClient.getAppliedCollectionsByAgentCategory(
-        categoryId,
-        "en-US",
+      categoryId,
+      "en-US",
       );
     type CollectionItem = {
       id?: number;
@@ -887,8 +1019,45 @@ async function loadCategoryAppliedCollections() {
           id: p.id ?? 0,
           name: p.displayName ?? p.display_name ?? p.name ?? String(p.id ?? ""),
         })),
+        compliance: {
+          assignedAndApplied: 0,
+          assignedNotApplied: 0,
+          notAssigned: 0,
+          loading: true,
+        },
       };
     });
+
+    await mapWithConcurrency(
+      categoryAppliedCollections.value,
+      3,
+      async (collection) => {
+        try {
+          const result = await calculateCollectionCompliance(
+            categoryId,
+            collection.policies || [],
+          );
+          collection.compliance = {
+            assignedAndApplied: result.assignedAndApplied,
+            assignedNotApplied: result.assignedNotApplied,
+            notAssigned: result.notAssigned,
+            loading: false,
+          };
+        } catch (err) {
+          console.error(
+            `Failed to calculate compliance for collection ${collection.id}:`,
+            err,
+          );
+          collection.compliance = {
+            assignedAndApplied: 0,
+            assignedNotApplied: 0,
+            notAssigned: collection.policies?.length || 0,
+            loading: false,
+          };
+        }
+        return true;
+      },
+    );
   } catch {
     categoryAppliedCollections.value = [];
   } finally {
