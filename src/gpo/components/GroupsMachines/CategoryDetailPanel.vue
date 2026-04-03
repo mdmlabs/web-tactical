@@ -4,7 +4,7 @@
       v-if="selectedCategoryId == null"
       class="column items-center justify-center full-height text-grey-6"
     >
-      <q-icon name="laptop" size="3rem" class="q-mb-md" />
+      <q-icon name="devices" size="3rem" class="q-mb-md" />
       <div class="text-h6">Select a category</div>
       <div class="text-caption q-mt-xs">
         Click on a category in the tree to see its details
@@ -293,6 +293,16 @@
                         />
                         <span v-else class="text-grey-5">0</span>
                       </q-td>
+                      <q-td key="compliance" :props="props">
+                        <ComplianceBar
+                          v-if="props.row.compliance"
+                          :assigned-and-applied="props.row.compliance.assignedAndApplied"
+                          :assigned-not-applied="props.row.compliance.assignedNotApplied"
+                          :not-assigned="props.row.compliance.notAssigned"
+                          :loading="props.row.compliance.loading"
+                        />
+                        <span v-else class="text-grey-5">—</span>
+                      </q-td>
                       <q-td key="actions" :props="props">
                         <q-btn
                           flat
@@ -326,6 +336,7 @@
 
 <script setup lang="ts">
 import type { QTableColumn } from "quasar";
+import ComplianceBar from "@/gpo/components/shared/ComplianceBar.vue";
 
 defineProps<{
   selectedCategoryId: number | null;

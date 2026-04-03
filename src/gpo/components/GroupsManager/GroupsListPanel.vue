@@ -82,7 +82,7 @@
         <template v-slot:default-header="prop">
           <div class="row items-center full-width groups-tree-item">
             <q-icon
-              :name="prop.node.isCategory ? 'folder' : 'group'"
+              :name="prop.node.isCategory ? 'groups' : 'group'"
               :color="prop.node.isCategory ? 'warning' : 'primary'"
               size="xs"
               class="q-mr-xs"

@@ -79,7 +79,7 @@
         <template v-slot:default-header="prop">
           <div class="row items-center full-width groups-tree-item">
             <q-icon
-              :name="prop.node.id === '__root__' ? 'folder' : 'laptop'"
+              :name="prop.node.id === '__root__' ? 'laptop' : 'devices'"
               :color="prop.node.id === '__root__' ? 'warning' : 'primary'"
               size="xs"
               class="q-mr-xs"
