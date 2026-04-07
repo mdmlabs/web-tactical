@@ -59,6 +59,7 @@ function getImportsForFile(filePath) {
     empty: false,
     user: false,
     node: false,
+    policy: false,
     operator: false,
   };
 
@@ -66,6 +67,7 @@ function getImportsForFile(filePath) {
     imports.wrappers = true;
     imports.user = true;
     imports.node = true;
+    imports.policy = true;
   } else if (inMeshDir && fileName === "user_service_pb.js") {
     imports.wrappers = true;
     imports.user = true;
@@ -78,6 +80,10 @@ function getImportsForFile(filePath) {
     imports.empty = true;
   } else if (fileName === "mesh_pb.js") {
     imports.node = true;
+    imports.policy = true;
+    imports.timestamp = true;
+    imports.empty = true;
+  } else if (fileName === "policy_pb.js") {
     imports.timestamp = true;
     imports.empty = true;
   } else if (fileName === "user_pb.js") {
@@ -120,6 +126,9 @@ function generateES6Imports(imports, packageName, filePath) {
   }
   if (imports.node) {
     lines.push(`import * as common_node_pb from "${base}common/node_pb.js";`);
+  }
+  if (imports.policy) {
+    lines.push(`import * as common_policy_pb from "${base}common/policy_pb.js";`);
   }
   if (imports.operator) {
     lines.push(`import "${base}operator_pb.js";`);
@@ -312,6 +321,28 @@ function generateES6Imports(imports, packageName, filePath) {
     if (imports.empty) {
       lines.push("goog.object.extend(proto, google_protobuf_empty_pb);");
     }
+  } else if (packageName.startsWith("laborato.common.policy")) {
+    lines.push("proto.laborato = proto.laborato || {};");
+    lines.push("proto.laborato.common = proto.laborato.common || {};");
+    lines.push(
+      "proto.laborato.common.policy = proto.laborato.common.policy || {};",
+    );
+
+    if (imports.timestamp || imports.empty) {
+      lines.push("");
+      lines.push("proto.google = proto.google || {};");
+      lines.push("proto.google.protobuf = proto.google.protobuf || {};");
+    }
+
+    if (imports.timestamp) {
+      lines.push("goog.object.extend(proto, google_protobuf_timestamp_pb);");
+      lines.push(
+        "if (google_protobuf_timestamp_pb.Timestamp) { proto.google.protobuf.Timestamp = google_protobuf_timestamp_pb.Timestamp; }",
+      );
+    }
+    if (imports.empty) {
+      lines.push("goog.object.extend(proto, google_protobuf_empty_pb);");
+    }
   } else if (packageName.startsWith("laborato.mesh.service")) {
     lines.push("proto.laborato = proto.laborato || {};");
     lines.push("proto.laborato.mesh = proto.laborato.mesh || {};");
@@ -337,6 +368,12 @@ function generateES6Imports(imports, packageName, filePath) {
       lines.push("proto.laborato.common = proto.laborato.common || {};");
       lines.push("proto.laborato.common.user = common_user_pb;");
     }
+
+    if (imports.policy) {
+      lines.push("");
+      lines.push("proto.laborato.common = proto.laborato.common || {};");
+      lines.push("proto.laborato.common.policy = common_policy_pb;");
+    }
   } else if (packageName === "laborato.mesh") {
     lines.push("proto.laborato = proto.laborato || {};");
     lines.push("proto.laborato.mesh = proto.laborato.mesh || {};");
@@ -345,6 +382,12 @@ function generateES6Imports(imports, packageName, filePath) {
       lines.push("");
       lines.push("proto.laborato.common = proto.laborato.common || {};");
       lines.push("proto.laborato.common.node = common_node_pb;");
+    }
+
+    if (imports.policy) {
+      lines.push("");
+      lines.push("proto.laborato.common = proto.laborato.common || {};");
+      lines.push("proto.laborato.common.policy = common_policy_pb;");
     }
 
     if (imports.timestamp || imports.empty) {
@@ -501,6 +544,10 @@ function main() {
     {
       path: path.join(GENERATED_DIR, "common/target_pb.js"),
       package: "laborato.common.target",
+    },
+    {
+      path: path.join(GENERATED_DIR, "common/policy_pb.js"),
+      package: "laborato.common.policy",
     },
     {
       path: path.join(GENERATED_DIR, "operator_pb.js"),
