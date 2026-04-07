@@ -1916,6 +1916,7 @@ async function applySelectedPolicy() {
             userSid: String(user.sid),
           },
           processedSettings,
+          policyDetailsElements.value,
         ),
       );
     }
