@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@quasar/extras": "1.16.17",
+    "@vue-leaflet/vue-leaflet": "^0.10.1",
     "@vueuse/core": "11.2.0",
     "@vueuse/integrations": "11.2.0",
     "@vueuse/shared": "11.2.0",
@@ -24,6 +25,7 @@
     "dotenv": "16.4.5",
     "google-protobuf": "^4.0.1",
     "grpc-web": "^2.0.2",
+    "leaflet": "^1.9.4",
     "monaco-editor": "0.50.0",
     "pinia": "2.2.6",
     "protobufjs": "^8.0.0",

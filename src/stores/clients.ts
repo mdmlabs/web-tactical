@@ -1,10 +1,31 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import axios from "axios";
+import { fetchAgents } from "@/api/agents";
 
 interface TreeNode {
   label: string;
   color?: string;
+  icon?: string;
+  raw?: string;
+  id?: number | string;
+  site?: Record<string, unknown>;
+  agent?: {
+    agent_id: string;
+    hostname: string;
+    status: string;
+  [key: string]: unknown;
+  };
+  children?: TreeNode[];
+  [key: string]: unknown;
+}
+
+interface AgentData {
+  agent_id: string;
+  hostname: string;
+  status: string;
+  site_id?: number;
+  site?: number;
   [key: string]: unknown;
 }
 
@@ -15,8 +36,8 @@ interface SiteApiData {
   agent_count: number;
   children?: SiteApiData[];
   failing_checks?: {
-    error?: boolean;
-    warning?: boolean;
+    error?: number;
+    warning?: number;
   };
   [key: string]: unknown;
 }
@@ -33,34 +54,69 @@ export const useClientsStore = defineStore("clients", () => {
 
   async function loadTree() {
     try {
-      const { data } = await axios.get("/api/v3/tree/");
+      const [treeResponse, agentsData] = await Promise.all([
+        axios.get("/api/v3/tree/"),
+        fetchAgents({ detail: false }),
+      ]);
 
+      const data = treeResponse.data;
       if (data.length === 0) {
         treeReady.value = true;
         return;
       }
 
-      function buildSiteNodes(sites: SiteApiData[]): TreeNode[] {
+      // Group agents by site_id
+      const agentsBySite = new Map<number, AgentData[]>();
+      if (Array.isArray(agentsData)) {
+        for (const agent of agentsData as AgentData[]) {
+          const siteId = agent.site_id || agent.site;
+          if (siteId !== undefined) {
+            const siteIdNum =
+              typeof siteId === "number" ? siteId : Number(siteId);
+            if (!agentsBySite.has(siteIdNum)) {
+              agentsBySite.set(siteIdNum, []);
+            }
+            agentsBySite.get(siteIdNum)!.push(agent);
+          }
+        }
+      }
+
+      function buildSiteNodes(
+        sites: SiteApiData[],
+        agentsBySite: Map<number, AgentData[]>,
+      ): TreeNode[] {
         const nodes: TreeNode[] = [];
         for (const site of sites) {
           let childNodes: TreeNode[] = [];
           if (site.children && site.children.length > 0) {
-            childNodes = buildSiteNodes(site.children);
+            childNodes = buildSiteNodes(site.children, agentsBySite);
           }
 
-          const siteNode: Record<string, unknown> = {
+          // Add agents as children
+          const siteAgents = agentsBySite.get(site.id) || [];
+          const agentNodes: TreeNode[] = siteAgents.map((agent) => ({
+            label: agent.hostname,
+            id: `agent-${agent.agent_id}`,
+            raw: `Agent|${agent.agent_id}`,
+            icon: "computer",
+            agent: agent,
+            color: agent.status === "online" ? "positive" : "grey",
+          }));
+
+          // Combine child sites and agents
+          const allChildren = [...childNodes, ...agentNodes];
+
+          const siteNode: TreeNode = {
             label: site.name,
             id: site.id,
             raw: `Site|${site.id}`,
-            header: childNodes.length > 0 ? "root" : "generic",
-            icon: childNodes.length > 0 ? "corporate_fare" : "business_center",
+            header: allChildren.length > 0 ? "root" : "generic",
+            icon:
+              childNodes.length > 0 ? "corporate_fare" : "location_on",
             selectable: true,
             site: site,
+            children: allChildren.length > 0 ? allChildren : undefined,
           };
-
-          if (childNodes.length > 0) {
-            siteNode.children = childNodes;
-          }
 
           if (site.maintenance_mode) {
             siteNode.color = "green";
@@ -75,7 +131,7 @@ export const useClientsStore = defineStore("clients", () => {
         return nodes;
       }
 
-      const output = buildSiteNodes(data);
+      const output = buildSiteNodes(data, agentsBySite);
 
       const sorted = output.sort((a: TreeNode, b: TreeNode) =>
         a.label.localeCompare(b.label),

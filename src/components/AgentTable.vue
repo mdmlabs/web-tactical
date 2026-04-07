@@ -112,6 +112,13 @@
           Windows Agent Last Seen
         </q-th>
       </template>
+      <template v-slot:header-cell-geolocation="props">
+        <q-th auto-width :props="props">
+          <q-icon name="mdi-map-marker" size="1.5em">
+            <q-tooltip>Geolocation</q-tooltip>
+          </q-icon>
+        </q-th>
+      </template>
       <!-- body slots -->
       <template v-slot:body="props">
         <q-tr
@@ -427,6 +434,51 @@
               {{ formatDate(props.row.windows_policy_last_seen) }}
             </div>
             <div v-else class="text-grey-7">—</div>
+          </q-td>
+          <q-td key="geolocation">
+            <q-icon
+              v-if="props.row.last_geolocation"
+              name="mdi-map-marker"
+              size="1.4em"
+              color="primary"
+              class="cursor-pointer"
+            >
+              <q-tooltip>
+                {{ props.row.last_geolocation.latitude }},
+                {{ props.row.last_geolocation.longitude }}
+              </q-tooltip>
+              <q-popup-proxy>
+                <q-card style="min-width: 220px">
+                  <q-card-section class="q-pa-sm">
+                    <div class="text-weight-bold q-mb-xs">
+                      {{ props.row.hostname }}
+                    </div>
+                    <div class="text-caption">
+                      Lat: {{ props.row.last_geolocation.latitude }}<br />
+                      Lon: {{ props.row.last_geolocation.longitude }}<br />
+                      Source: {{ props.row.last_geolocation.source }}
+                    </div>
+                  </q-card-section>
+                  <q-card-actions align="right" class="q-pa-xs">
+                    <q-btn
+                      flat
+                      dense
+                      no-caps
+                      size="sm"
+                      color="primary"
+                      label="View Details"
+                      @click.stop="
+                        $router.push({
+                          name: 'Agent',
+                          params: { agent_id: props.row.agent_id },
+                          query: { tab: 'geolocation' },
+                        })
+                      "
+                    />
+                  </q-card-actions>
+                </q-card>
+              </q-popup-proxy>
+            </q-icon>
           </q-td>
           <q-td key="boot_time" :props="props">{{
             bootTime(props.row.boot_time)
