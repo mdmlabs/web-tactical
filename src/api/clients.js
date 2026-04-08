@@ -2,6 +2,26 @@ import axios from "axios";
 
 const baseUrl = "/clients";
 
+// client endpoints
+export async function fetchClient(id) {
+  try {
+    const { data } = await axios.get(`${baseUrl}/${id}/`);
+    return data;
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+export async function saveClient(payload) {
+  const { data } = await axios.post(`${baseUrl}/`, payload);
+  return data;
+}
+
+export async function editClient(id, payload) {
+  const { data } = await axios.put(`${baseUrl}/${id}/`, payload);
+  return data;
+}
+
 // tree endpoint
 export async function fetchTree() {
   try {

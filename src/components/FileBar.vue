@@ -62,6 +62,18 @@
                     <q-item
                       clickable
                       v-ripple
+                      @click="handleMenuAction('addClient')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="business" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Client</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
                       @click="handleMenuAction('addSite')"
                       class="filebar-popup-item"
                       v-close-popup
@@ -69,7 +81,7 @@
                       <q-item-section avatar>
                         <q-icon name="business_center" size="sm" />
                       </q-item-section>
-                      <q-item-section>Category</q-item-section>
+                      <q-item-section>Site</q-item-section>
                     </q-item>
                   </q-expansion-item>
 
@@ -119,13 +131,24 @@
                   <q-item
                     clickable
                     v-ripple
+                    @click="handleMenuAction('addClient')"
+                    class="filebar-menu-item"
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="business" />
+                    </q-item-section>
+                    <q-item-section>Client</q-item-section>
+                  </q-item>
+                  <q-item
+                    clickable
+                    v-ripple
                     @click="handleMenuAction('addSite')"
                     class="filebar-menu-item"
                   >
                     <q-item-section avatar>
                       <q-icon name="business_center" />
                     </q-item-section>
-                    <q-item-section>Category</q-item-section>
+                    <q-item-section>Site</q-item-section>
                   </q-item>
                 </q-list>
               </q-expansion-item>
@@ -597,6 +620,78 @@
             <q-item-section>Policies</q-item-section>
           </q-item>
 
+          <!-- Security (SIEM / Wazuh) -->
+          <template v-if="isMiniMode && !isMobile">
+            <q-item clickable class="filebar-menu-section-mini">
+              <q-item-section avatar>
+                <q-icon name="shield" size="24px">
+                  <q-tooltip
+                    anchor="center right"
+                    self="center left"
+                    :offset="[10, 0]"
+                  >
+                    Security
+                  </q-tooltip>
+                </q-icon>
+              </q-item-section>
+              <q-menu
+                anchor="top end"
+                self="top start"
+                :offset="[8, 0]"
+                class="sidebar-popup-menu"
+              >
+                <q-list class="filebar-popup-list">
+                  <q-item-label header class="text-weight-bold">Security</q-item-label>
+                  <q-item clickable v-ripple @click="navigateToSecurity('dashboard')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="dashboard" size="sm" /></q-item-section>
+                    <q-item-section>Dashboard</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('agents')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="dns" size="sm" /></q-item-section>
+                    <q-item-section>Agents</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('alerts')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="notification_important" size="sm" /></q-item-section>
+                    <q-item-section>Alerts / Rules</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('groups')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="folder" size="sm" /></q-item-section>
+                    <q-item-section>Groups</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('wazuh')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="open_in_new" size="sm" /></q-item-section>
+                    <q-item-section>Wazuh Dashboard</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-item>
+          </template>
+
+          <q-expansion-item v-else icon="shield" label="Security" class="filebar-menu-section">
+            <q-list>
+              <q-item clickable v-ripple @click="navigateToSecurity('dashboard')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('dashboard') }]">
+                <q-item-section avatar><q-icon name="dashboard" /></q-item-section>
+                <q-item-section>Dashboard</q-item-section>
+              </q-item>
+              <q-item clickable v-ripple @click="navigateToSecurity('agents')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('agents') }]">
+                <q-item-section avatar><q-icon name="dns" /></q-item-section>
+                <q-item-section>Agents</q-item-section>
+              </q-item>
+              <q-item clickable v-ripple @click="navigateToSecurity('alerts')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('alerts') }]">
+                <q-item-section avatar><q-icon name="notification_important" /></q-item-section>
+                <q-item-section>Alerts / Rules</q-item-section>
+              </q-item>
+              <q-item clickable v-ripple @click="navigateToSecurity('groups')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('groups') }]">
+                <q-item-section avatar><q-icon name="folder" /></q-item-section>
+                <q-item-section>Groups</q-item-section>
+              </q-item>
+              <q-item clickable v-ripple @click="navigateToSecurity('wazuh')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('wazuh') }]">
+                <q-item-section avatar><q-icon name="open_in_new" /></q-item-section>
+                <q-item-section>Wazuh Dashboard</q-item-section>
+              </q-item>
+            </q-list>
+          </q-expansion-item>
+
           <!-- агент часть -->
           <!-- Security (SIEM) -->
           <template v-if="isMiniMode && !isMobile">
@@ -899,7 +994,7 @@
                     <q-item-section avatar>
                       <q-icon name="people" size="sm" />
                     </q-item-section>
-                    <q-item-section>Categories Manager</q-item-section>
+                    <q-item-section>Clients Manager</q-item-section>
                   </q-item>
 
                   <q-item
@@ -1444,6 +1539,7 @@ import DialogWrapper from "@/components/ui/DialogWrapper.vue";
 import DebugLog from "@/components/logs/DebugLog.vue";
 import PendingActions from "@/components/logs/PendingActions.vue";
 import ClientsManager from "@/components/clients/ClientsManager.vue";
+import ClientsForm from "@/components/clients/ClientsForm.vue";
 import SitesForm from "@/components/clients/SitesForm.vue";
 import ScriptManager from "@/components/scripts/ScriptManager.vue";
 import EditCoreSettings from "@/components/modals/coresettings/EditCoreSettings.vue";
@@ -1543,6 +1639,9 @@ export default {
       }
 
       switch (action) {
+        case "addClient":
+          this.showAddClientModal();
+          break;
         case "addSite":
           this.showAddSiteModal();
           break;
@@ -1689,6 +1788,28 @@ export default {
       if (tab === "wazuh") return path === "/security/wazuh";
       return false;
     },
+    navigateToSecurity(tab = "dashboard") {
+      if (this.isMobile) {
+        this.closeDrawer();
+      }
+      const routeMap = {
+        dashboard: "SecurityDashboard",
+        agents: "SecurityAgents",
+        alerts: "SecurityAlerts",
+        groups: "SecurityGroups",
+        wazuh: "WazuhDashboard",
+      };
+      this.$router.push({ name: routeMap[tab] || "SecurityDashboard" });
+    },
+    isActiveSecurityTab(tab) {
+      const path = this.$route?.path || "";
+      if (tab === "dashboard") return path === "/security/dashboard" || path === "/security";
+      if (tab === "agents") return path.startsWith("/security/agents");
+      if (tab === "alerts") return path === "/security/alerts";
+      if (tab === "groups") return path === "/security/groups";
+      if (tab === "wazuh") return path === "/security/wazuh";
+      return false;
+    },
     clearCache() {
       this.$axios
         .get("/core/clearcache/")
@@ -1747,6 +1868,13 @@ export default {
           component: ClientsManager,
         })
         .onDismiss(() => this.$store.dispatch("refreshDashboard", true));
+    },
+    showAddClientModal() {
+      this.$q
+        .dialog({
+          component: ClientsForm,
+        })
+        .onOk(() => this.$store.dispatch("loadTree"));
     },
     showAddSiteModal() {
       this.$q
