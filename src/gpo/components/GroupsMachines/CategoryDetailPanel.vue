@@ -230,6 +230,32 @@
             <q-btn
               flat
               dense
+              color="secondary"
+              icon="download"
+              label=""
+              :disable="!categoryAppliedCollections.length"
+              class="q-mr-sm"
+            >
+              <q-menu>
+                <q-list dense style="min-width: 120px">
+                  <q-item clickable v-close-popup @click="exportCollections('csv')">
+                    <q-item-section avatar>
+                      <q-icon name="table_chart" color="primary" />
+                    </q-item-section>
+                    <q-item-section>CSV</q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="exportCollections('xlsx')">
+                    <q-item-section avatar>
+                      <q-icon name="description" color="green" />
+                    </q-item-section>
+                    <q-item-section>XLSX</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-btn>
+            <q-btn
+              flat
+              dense
               color="primary"
               icon="add_circle_outline"
               label=""
@@ -337,8 +363,22 @@
 <script setup lang="ts">
 import type { QTableColumn } from "quasar";
 import ComplianceBar from "@/gpo/components/shared/ComplianceBar.vue";
+import { exportPolicyCollections } from "@/utils/csv";
 
-defineProps<{
+interface PolicyCollection {
+  id: number;
+  name?: string;
+  explainText?: string;
+  policies?: Array<{ name: string }>;
+  compliance?: {
+    assignedAndApplied: number;
+    assignedNotApplied: number;
+    notAssigned: number;
+    loading: boolean;
+  };
+}
+
+const props = defineProps<{
   selectedCategoryId: number | null;
   selectedCategory: { name: string; description?: string } | null;
   detailTab: string;
@@ -347,7 +387,7 @@ defineProps<{
   categoryAgents: Array<{ id: string; name: string }>;
   categoryChildren: unknown[];
   childrenColumns: QTableColumn[];
-  categoryAppliedCollections: unknown[];
+  categoryAppliedCollections: PolicyCollection[];
   categoryAppliedCollectionsLoading: boolean;
   collectionsColumns: QTableColumn[];
 }>();
@@ -366,4 +406,8 @@ defineEmits<{
   "remove-collection-by-id": [collectionId: number];
   "open-collection-details": [row: unknown];
 }>();
+
+function exportCollections(format: "csv" | "xlsx") {
+  exportPolicyCollections(props.categoryAppliedCollections, format);
+}
 </script>

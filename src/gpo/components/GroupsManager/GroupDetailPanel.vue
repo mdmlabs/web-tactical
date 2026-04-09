@@ -323,6 +323,32 @@
             <q-btn
               flat
               dense
+              color="secondary"
+              icon="download"
+              label=""
+              :disable="!groupAppliedCollections.length"
+              class="q-mr-sm"
+            >
+              <q-menu>
+                <q-list dense style="min-width: 120px">
+                  <q-item clickable v-close-popup @click="exportCollections('csv')">
+                    <q-item-section avatar>
+                      <q-icon name="table_chart" color="primary" />
+                    </q-item-section>
+                    <q-item-section>CSV</q-item-section>
+                  </q-item>
+                  <q-item clickable v-close-popup @click="exportCollections('xlsx')">
+                    <q-item-section avatar>
+                      <q-icon name="description" color="green" />
+                    </q-item-section>
+                    <q-item-section>XLSX</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-btn>
+            <q-btn
+              flat
+              dense
               color="primary"
               icon="add_circle_outline"
               label=""
@@ -550,6 +576,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import ComplianceBar from "@/gpo/components/shared/ComplianceBar.vue";
+import { exportPolicyCollections } from "@/utils/csv";
 import {
   policyStateClient,
   createAgentTarget,
@@ -717,7 +744,7 @@ async function calculatePolicyCompliance(
   agentsInGroup: AgentRow[],
 ): Promise<{ appliedAgents: number; pendingAgents: number; notAssignedAgents: number; totalAgents: number }> {
   const totalAgents = agentsInGroup.length;
-  
+
   if (totalAgents === 0) {
     return { appliedAgents: 0, pendingAgents: 0, notAssignedAgents: 0, totalAgents: 0 };
   }
@@ -809,7 +836,7 @@ const filteredPolicies = computed(() => {
 function getPolicyStatusColor(compliance: PolicyWithCompliance["compliance"]): string {
   if (!compliance) return "grey";
   const { appliedAgents, pendingAgents, totalAgents } = compliance;
-  
+
   if (appliedAgents === totalAgents) return "positive";
   if (appliedAgents > 0 || pendingAgents > 0) return "warning";
   return "negative";
@@ -818,7 +845,7 @@ function getPolicyStatusColor(compliance: PolicyWithCompliance["compliance"]): s
 function getPolicyStatusLabel(compliance: PolicyWithCompliance["compliance"]): string {
   if (!compliance) return "Unknown";
   const { appliedAgents, pendingAgents, totalAgents } = compliance;
-  
+
   if (appliedAgents === totalAgents) return "Applied";
   if (appliedAgents > 0 || pendingAgents > 0) return "Pending";
   return "Not Applied";
@@ -894,6 +921,10 @@ defineEmits<{
   "open-agent-dashboard": [agentId: string];
   "manage-child-groups": [];
 }>();
+
+function exportCollections(format: "csv" | "xlsx") {
+  exportPolicyCollections(props.groupAppliedCollections, format);
+}
 </script>
 
 <style scoped lang="sass">
@@ -963,13 +994,13 @@ defineEmits<{
 
 .tooltip-icon
   font-size: 14px
-  
+
   &.success
     color: #4caf50
-  
+
   &.pending
     color: #ff9800
-  
+
   &.error
     color: #f44336
 
