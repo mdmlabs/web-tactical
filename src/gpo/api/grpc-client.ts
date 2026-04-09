@@ -38,6 +38,9 @@ import {
   PolicyElementItemSelection,
 } from "@/generated/common/policy_pb";
 
+import export_pb from "@/generated/common/export_pb";
+import type * as export_pb_types from "@/generated/common/export_pb";
+
 import type * as operator_pb_types from "@/generated/operator_pb";
 import type * as user_service_pb_types from "@/generated/user_service_pb";
 import * as wrappers_pb from "google-protobuf/google/protobuf/wrappers_pb";
@@ -229,6 +232,20 @@ export const policyCatalogClient = {
     request.setLangCode(langCode);
 
     const response = await policyCatalogServiceClient.getPoliciesByAdmx(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async exportAllPolicies(
+    exportFormat: export_pb_types.ExportFormat = export_pb.ExportFormat.CSV,
+  ): Promise<export_pb_types.ExportResponse.AsObject> {
+    const request = new operator_pb.ExportAllPoliciesRequest();
+    request.setExportFormat(exportFormat);
+
+    const response = await policyCatalogServiceClient.exportAllPolicies(
       request,
       createGrpcMetadata(),
     );
@@ -910,11 +927,10 @@ export const userControlClient = {
     req.setPasswordNotRequired(false);
     req.setUserCannotChangePassword(false);
     req.setSmartcardLogonRequired(false);
-    const response =
-      await operatorUserControlServiceClient.removeUserAgent(
-        req,
-        createGrpcMetadata(),
-      );
+    const response = await operatorUserControlServiceClient.removeUserAgent(
+      req,
+      createGrpcMetadata(),
+    );
     return response.toObject();
   },
 
@@ -925,11 +941,10 @@ export const userControlClient = {
     const req = new SetGroupAgentRequest();
     req.setTarget(target);
     req.setGroupId(groupId);
-    const response =
-      await operatorUserControlServiceClient.removeGroupAgent(
-        req,
-        createGrpcMetadata(),
-      );
+    const response = await operatorUserControlServiceClient.removeGroupAgent(
+      req,
+      createGrpcMetadata(),
+    );
     return response.toObject();
   },
 
@@ -1335,7 +1350,9 @@ export function getAgentIdsFromTarget(target: Target | null): string[] {
   if (!target) return [];
   const t = target as {
     getAgent?: () => { getAgentId?: () => string };
-    getAgents?: () => { getAgentsList?: () => Array<{ getAgentId?: () => string }> };
+    getAgents?: () => {
+      getAgentsList?: () => Array<{ getAgentId?: () => string }>;
+    };
     toObject?: () => {
       agent?: { agentId?: string };
       agents?: { agentsList?: Array<{ agentId?: string }> };
@@ -1345,10 +1362,12 @@ export function getAgentIdsFromTarget(target: Target | null): string[] {
   if (single?.getAgentId) return [single.getAgentId()].filter(Boolean);
   const agents = t.getAgents?.();
   const list = agents?.getAgentsList?.();
-  if (list?.length) return list.map((a) => a.getAgentId?.() ?? "").filter(Boolean);
+  if (list?.length)
+    return list.map((a) => a.getAgentId?.() ?? "").filter(Boolean);
   const o = t.toObject?.();
   if (o?.agent?.agentId) return [o.agent.agentId];
-  const ids = o?.agents?.agentsList?.map((a) => a.agentId ?? "").filter(Boolean) ?? [];
+  const ids =
+    o?.agents?.agentsList?.map((a) => a.agentId ?? "").filter(Boolean) ?? [];
   return ids;
 }
 
@@ -1487,7 +1506,10 @@ export function createPolicyTargetFromParams(
           "agentId и userSid обязательны для типа 'user_on_agent'",
         );
       }
-      return createUserOnAgentTarget(targetParams.agentId, targetParams.userSid);
+      return createUserOnAgentTarget(
+        targetParams.agentId,
+        targetParams.userSid,
+      );
     case "client":
       if (!targetParams.clientId) {
         throw new Error("clientId обязателен для типа 'client'");
@@ -1590,7 +1612,6 @@ export function createPolicySelection(
   const listKeys: string[] = [];
   const settingsKeys = Object.keys(settings);
   if (settingsKeys.length === 0) {
-    selection.setValue("1");
     return selection;
   }
 
@@ -1615,17 +1636,19 @@ export function createPolicySelection(
       elementType === "multitextbox" ||
       elementType === "multi_textbox" ||
       elementType === "multitext" ||
-      (elementType === "list" && (!metadata?.items || metadata.items.length === 0));
+      (elementType === "list" &&
+        (!metadata?.items || metadata.items.length === 0));
 
-
-    if (Array.isArray(value)) {
-      console.log(`[createPolicySelection] Array element: ${elementId}`, {
-        elementType,
-        isMultitext,
-        metadata: metadata ? { type: metadata.type, items: metadata.items?.length } : null,
-        valueLength: value.length,
-      });
-    }
+    // if (Array.isArray(value)) {
+    //   console.log(`[createPolicySelection] Array element: ${elementId}`, {
+    //     elementType,
+    //     isMultitext,
+    //     metadata: metadata
+    //       ? { type: metadata.type, items: metadata.items?.length }
+    //       : null,
+    //     valueLength: value.length,
+    //   });
+    // }
 
     if (Array.isArray(value) && isMultitext) {
       const elementSelection = new PolicyElementSelection();
@@ -1633,18 +1656,21 @@ export function createPolicySelection(
 
       const childs: PolicyElementItemSelection[] = [];
       for (const item of value) {
-        if (item === null || item === undefined || String(item).trim() === "") continue;
+        if (item === null || item === undefined || String(item).trim() === "")
+          continue;
 
         const childSelection = new PolicyElementItemSelection();
-        childSelection.setIdName("");
+        childSelection.setIdName(elementId);
         childSelection.setValue(String(item));
         childs.push(childSelection);
       }
 
       if (childs.length > 0) {
         elementSelection.setChildsList(childs);
+        elementSelection.setValue("1");
+      } else {
+        elementSelection.setValue("");
       }
-      elementSelection.setValue("");
       elements.push(elementSelection);
       continue;
     }
@@ -1669,7 +1695,6 @@ export function createPolicySelection(
     const elementSelection = new PolicyElementSelection();
     elementSelection.setIdName(elementId);
 
-
     if (typeof value === "object" && !Array.isArray(value)) {
       const childs: PolicyElementItemSelection[] = [];
 
@@ -1687,9 +1712,10 @@ export function createPolicySelection(
 
       if (childs.length > 0) {
         elementSelection.setChildsList(childs);
+        elementSelection.setValue("1");
+      } else {
+        elementSelection.setValue("");
       }
-
-      elementSelection.setValue("");
     } else {
       let stringValue: string;
       if (typeof value === "boolean") {
@@ -1699,7 +1725,7 @@ export function createPolicySelection(
 
         if (isEnum) {
           const enumChild = new PolicyElementItemSelection();
-          enumChild.setIdName("");
+          enumChild.setIdName(elementId);
           enumChild.setValue(stringValue);
           elementSelection.setChildsList([enumChild]);
           elementSelection.setValue("1");
@@ -1720,14 +1746,6 @@ export function createPolicySelection(
   }
   if (listKeys.length > 0) {
     selection.setListKeysList(listKeys);
-  }
-
-  if (
-    elements.length === 0 &&
-    listKeys.length === 0 &&
-    settingsKeys.length > 0
-  ) {
-    selection.setValue("1");
   }
 
   return selection;
@@ -1754,17 +1772,8 @@ export const policyAssignmentClient = {
       } else {
         policySelection = createPolicySelection(selection, elementsMetadata);
       }
-      console.log("асайн полиси дебаг:", {
-        policyHash,
-        targetType,
-        targetParams,
-        selectionInput: selection,
-        selectionProto: policySelection.toObject?.() || "no toObject",
-      });
     } else {
       policySelection = new PolicySelection();
-      policySelection.setValue("1");
-      console.log("асайн полиси дебаг: selection пустой — отправляем value 1");
     }
     request.setSelection(policySelection);
 
@@ -1831,7 +1840,6 @@ export const policyAssignmentClient = {
       }
     } else {
       policySelection = new PolicySelection();
-      policySelection.setValue("1");
     }
     request.setSelection(policySelection);
 

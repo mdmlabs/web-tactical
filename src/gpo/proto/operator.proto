@@ -4,6 +4,7 @@ import "common/user.proto";
 import "common/policy.proto";
 import "common/node.proto";
 import "common/target.proto";
+import "common/export.proto";
 
 import "google/protobuf/wrappers.proto";
 
@@ -312,6 +313,9 @@ service PolicyCatalogService {
   rpc ListPoliciesGroupedByScope (ListPoliciesGroupedByScopeRequest)
       returns (ListPoliciesGroupedByScopeResponse);
 
+  rpc ExportAllPolicies(ExportAllPoliciesRequest)
+      returns (laborato.common.export.ExportResponse);
+
   rpc GetCategoryTree(GetCategoryTreeRequest)
       returns (GetCategoryTreeResponse);
 
@@ -323,6 +327,10 @@ service PolicyCatalogService {
 
   rpc GetPolicyDetails (GetPolicyDetailsRequest)
       returns (PolicyDetails);
+}
+
+message ExportAllPoliciesRequest {
+    laborato.common.export.ExportFormat export_format = 1;
 }
 
 message GetPoliciesByAdmxRequest {

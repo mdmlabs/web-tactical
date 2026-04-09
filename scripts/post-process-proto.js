@@ -86,6 +86,8 @@ function getImportsForFile(filePath) {
   } else if (fileName === "policy_pb.js") {
     imports.timestamp = true;
     imports.empty = true;
+  } else if (fileName === "export_pb.js") {
+    // export.proto не использует well-known types напрямую
   } else if (fileName === "user_pb.js") {
     imports.wrappers = true;
     imports.timestamp = true;
@@ -343,6 +345,28 @@ function generateES6Imports(imports, packageName, filePath) {
     if (imports.empty) {
       lines.push("goog.object.extend(proto, google_protobuf_empty_pb);");
     }
+  } else if (packageName.startsWith("laborato.common.export")) {
+    lines.push("proto.laborato = proto.laborato || {};");
+    lines.push("proto.laborato.common = proto.laborato.common || {};");
+    lines.push(
+      "proto.laborato.common.export = proto.laborato.common.export || {};",
+    );
+
+    if (imports.timestamp || imports.empty) {
+      lines.push("");
+      lines.push("proto.google = proto.google || {};");
+      lines.push("proto.google.protobuf = proto.google.protobuf || {};");
+    }
+
+    if (imports.timestamp) {
+      lines.push("goog.object.extend(proto, google_protobuf_timestamp_pb);");
+      lines.push(
+        "if (google_protobuf_timestamp_pb.Timestamp) { proto.google.protobuf.Timestamp = google_protobuf_timestamp_pb.Timestamp; }",
+      );
+    }
+    if (imports.empty) {
+      lines.push("goog.object.extend(proto, google_protobuf_empty_pb);");
+    }
   } else if (packageName.startsWith("laborato.mesh.service")) {
     lines.push("proto.laborato = proto.laborato || {};");
     lines.push("proto.laborato.mesh = proto.laborato.mesh || {};");
@@ -548,6 +572,10 @@ function main() {
     {
       path: path.join(GENERATED_DIR, "common/policy_pb.js"),
       package: "laborato.common.policy",
+    },
+    {
+      path: path.join(GENERATED_DIR, "common/export_pb.js"),
+      package: "laborato.common.export",
     },
     {
       path: path.join(GENERATED_DIR, "operator_pb.js"),
