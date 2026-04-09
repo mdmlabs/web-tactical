@@ -1085,7 +1085,7 @@ npm
                 class="gpo-policies-sub-panels"
               >
                 <q-tab-panel name="all" class="q-pa-none">
-                  <div class="row q-mb-md">
+                  <div class="row q-mb-md items-center">
                     <q-input
                       v-model="policyFilter"
                       placeholder="Policy search..."
@@ -1097,6 +1097,32 @@ npm
                         <q-icon name="search" />
                       </template>
                     </q-input>
+                    <q-space />
+                    <q-btn
+                      flat
+                      dense
+                      color="secondary"
+                      icon="download"
+                      label=""
+                      :disable="!filteredPoliciesByCategory('all').length"
+                    >
+                      <q-menu>
+                        <q-list dense style="min-width: 120px">
+                          <q-item clickable v-close-popup @click="exportPolicies('all', 'csv')">
+                            <q-item-section avatar>
+                              <q-icon name="table_chart" color="primary" />
+                            </q-item-section>
+                            <q-item-section>CSV</q-item-section>
+                          </q-item>
+                          <q-item clickable v-close-popup @click="exportPolicies('all', 'xlsx')">
+                            <q-item-section avatar>
+                              <q-icon name="description" color="green" />
+                            </q-item-section>
+                            <q-item-section>XLSX</q-item-section>
+                          </q-item>
+                        </q-list>
+                      </q-menu>
+                    </q-btn>
                   </div>
 
                   <div
@@ -1180,7 +1206,7 @@ npm
                 </q-tab-panel>
 
                 <q-tab-panel name="templates" class="q-pa-none">
-                  <div class="row q-mb-md">
+                  <div class="row q-mb-md items-center">
                     <q-input
                       v-model="policyFilter"
                       placeholder="Search for templates..."
@@ -1192,6 +1218,32 @@ npm
                         <q-icon name="search" />
                       </template>
                     </q-input>
+                    <q-space />
+                    <q-btn
+                      flat
+                      dense
+                      color="secondary"
+                      icon="download"
+                      label=""
+                      :disable="!filteredPoliciesByCategory('templates').length"
+                    >
+                      <q-menu>
+                        <q-list dense style="min-width: 120px">
+                          <q-item clickable v-close-popup @click="exportPolicies('templates', 'csv')">
+                            <q-item-section avatar>
+                              <q-icon name="table_chart" color="primary" />
+                            </q-item-section>
+                            <q-item-section>CSV</q-item-section>
+                          </q-item>
+                          <q-item clickable v-close-popup @click="exportPolicies('templates', 'xlsx')">
+                            <q-item-section avatar>
+                              <q-icon name="description" color="green" />
+                            </q-item-section>
+                            <q-item-section>XLSX</q-item-section>
+                          </q-item>
+                        </q-list>
+                      </q-menu>
+                    </q-btn>
                   </div>
 
                   <div
@@ -1275,7 +1327,7 @@ npm
                 </q-tab-panel>
 
                 <q-tab-panel name="archive" class="q-pa-none">
-                  <div class="row q-mb-md">
+                  <div class="row q-mb-md items-center">
                     <q-input
                       v-model="policyFilter"
                       placeholder="Search in the archive..."
@@ -1287,6 +1339,32 @@ npm
                         <q-icon name="search" />
                       </template>
                     </q-input>
+                    <q-space />
+                    <q-btn
+                      flat
+                      dense
+                      color="secondary"
+                      icon="download"
+                      label=""
+                      :disable="!filteredPoliciesByCategory('archive').length"
+                    >
+                      <q-menu>
+                        <q-list dense style="min-width: 120px">
+                          <q-item clickable v-close-popup @click="exportPolicies('archive', 'csv')">
+                            <q-item-section avatar>
+                              <q-icon name="table_chart" color="primary" />
+                            </q-item-section>
+                            <q-item-section>CSV</q-item-section>
+                          </q-item>
+                          <q-item clickable v-close-popup @click="exportPolicies('archive', 'xlsx')">
+                            <q-item-section avatar>
+                              <q-icon name="description" color="green" />
+                            </q-item-section>
+                            <q-item-section>XLSX</q-item-section>
+                          </q-item>
+                        </q-list>
+                      </q-menu>
+                    </q-btn>
                   </div>
 
                   <div
@@ -2070,6 +2148,7 @@ npm
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import { formatDate } from "@/utils/format";
+import { exportTableToCSV, exportTableToXLSX } from "@/utils/csv";
 import { useGPOPolicies, useGPOPolicyTree } from "../api/gpo";
 import {
   // agentServiceClient,
@@ -3754,6 +3833,34 @@ onMounted(async () => {
     }
   }
 });
+
+function exportPolicies(
+  category: "all" | "templates" | "archive",
+  format: "csv" | "xlsx",
+) {
+  const policies = filteredPoliciesByCategory(category);
+  const timestamp = new Date().toISOString().replaceAll(/[:.]/g, "-").slice(0, -5);
+  const filename = `policies-${category}-${timestamp}.${format}`;
+
+  const columns = [
+    { name: "name", label: "Name", field: "name" },
+    { name: "displayName", label: "Display Name", field: "displayName" },
+    { name: "description", label: "Description", field: "description" },
+    { name: "path", label: "Path", field: "path" },
+    { name: "scope", label: "Scope", field: "scope" },
+    {
+      name: "enabled",
+      label: "Enabled",
+      field: (row: GPOPolicy) => (row.enabled ? "Yes" : "No"),
+    },
+  ];
+
+  if (format === "xlsx") {
+    exportTableToXLSX(policies, columns, filename);
+  } else {
+    exportTableToCSV(policies, columns, filename);
+  }
+}
 </script>
 
 <style scoped lang="sass">
