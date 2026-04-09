@@ -1891,14 +1891,6 @@ async function applySelectedPolicy() {
       processedSettings = policyDetail.settings;
     }
 
-    console.log("ApplyPolicyDialog - отправка для пользователя:", {
-      policyHash,
-      agentId: props.agent.id,
-      users: selectedUsers.value,
-      policySettingsValues: policySettingsValues.value,
-      processedSettings,
-    });
-
     const applyPromises: Promise<unknown>[] = [];
 
     const usersToApply: User[] =
@@ -1916,6 +1908,7 @@ async function applySelectedPolicy() {
             userSid: String(user.sid),
           },
           processedSettings,
+          policyDetailsElements.value,
         ),
       );
     }

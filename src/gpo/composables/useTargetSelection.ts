@@ -11,7 +11,6 @@ export interface AgentPanelItem {
   label: string;
 }
 
-export const GLOBAL_TARGET_NODE_ID = "target-global";
 export const UNGROUPED_AGENTS_NODE_ID = "target-ungrouped-agents";
 
 export interface TargetTreeNode {
@@ -19,8 +18,6 @@ export interface TargetTreeNode {
   label: string;
   children?: TargetTreeNode[];
   targetType?: "global" | "agent" | "agentCategory" | "ungroupedAgents";
-  clientId?: string;
-  siteId?: string;
   agentId?: string;
   categoryId?: number;
 }
@@ -39,9 +36,10 @@ function getStringValue(val: unknown): string {
 
 function getTargetNodeIcon(node: TargetTreeNode): string {
   if (node.targetType === "global") return "public";
-  if (node.targetType === "agentCategory") return "category";
+  if (node.targetType === "agentCategory") return "devices";
   if (node.targetType === "ungroupedAgents") return "person_off";
   if (node.targetType === "agent") return "computer";
+  if (node.id === "agent-categories-root") return "devices";
   return "folder";
 }
 
@@ -57,15 +55,6 @@ function findTargetNodeById(
     }
   }
   return null;
-}
-
-function collectAgentNodes(nodes: TargetTreeNode[]): TargetTreeNode[] {
-  const result: TargetTreeNode[] = [];
-  for (const n of nodes) {
-    if (n.targetType === "agent") result.push(n);
-    if (n.children?.length) result.push(...collectAgentNodes(n.children));
-  }
-  return result;
 }
 
 type AgentCategoryTreeNode = {
@@ -96,7 +85,6 @@ export function useTargetSelection() {
   const targetTreeNodes = ref<TargetTreeNode[]>([]);
   const targetTreeLoading = ref(false);
   const targetSelectedId = ref<string | null>(null);
-  const targetTickedIds = ref<string[]>([]);
   const currentTargetRef = ref<TargetRef | null>(null);
 
 
@@ -131,10 +119,6 @@ export function useTargetSelection() {
     if (id === UNGROUPED_AGENTS_NODE_ID) return false;
     return true;
   });
-
-  const agentNodesOnly = computed(() =>
-    collectAgentNodes(targetTreeNodes.value),
-  );
 
   async function loadAgentsForCategory(categoryId: number) {
     agentsPanelLoading.value = true;
@@ -259,18 +243,12 @@ export function useTargetSelection() {
           };
         }
       }
-      const globalNode: TargetTreeNode = {
-        id: GLOBAL_TARGET_NODE_ID,
-        label: "Global",
-        targetType: "global",
-      };
       const ungroupedNode: TargetTreeNode = {
         id: UNGROUPED_AGENTS_NODE_ID,
         label: "All agents",
         targetType: "ungroupedAgents",
       };
       targetTreeNodes.value = [
-        globalNode,
         ...(categoryRootNode ? [categoryRootNode] : []),
         ungroupedNode,
       ];
@@ -322,68 +300,6 @@ export function useTargetSelection() {
     return result;
   }
 
-  function collectCombinedParts(ids: string[]): {
-    clientIds: string[];
-    siteIds: string[];
-    agentIds: string[];
-    labels: string[];
-    hasAgentCategory: boolean;
-  } {
-    const clientIds: string[] = [];
-    const siteIds: string[] = [];
-    const agentIds: string[] = [];
-    const labels: string[] = [];
-    let hasAgentCategory = false;
-    for (const id of ids) {
-      if (id === GLOBAL_TARGET_NODE_ID) continue;
-      const node = findTargetNodeById(targetTreeNodes.value, id);
-      if (!node?.targetType) continue;
-      if (node.targetType === "agent" && node.agentId) {
-        agentIds.push(node.agentId);
-        labels.push(node.label);
-      } else if (node.targetType === "agentCategory") {
-        hasAgentCategory = true;
-      }
-    }
-    return { clientIds, siteIds, agentIds, labels, hasAgentCategory };
-  }
-
-  function buildCombinedTargetFromTicked(): TargetRef | null {
-    const ids = targetTickedIds.value;
-    console.log("[TargetSelection] buildCombinedTargetFromTicked - tickedIds:", ids);
-    if (ids.length === 0) return null;
-    if (ids.length === 1 && ids[0] === GLOBAL_TARGET_NODE_ID) {
-      return {
-        target: createUserGroupTargetFromParams("global"),
-        label: "Global",
-      };
-    }
-    const { clientIds, siteIds, agentIds, labels, hasAgentCategory } =
-      collectCombinedParts(ids);
-    if (hasAgentCategory) {
-      console.warn(
-        "[TargetSelection] agentCategory nodes в комбинированной цели сейчас не поддерживаются и будут проигнорированы",
-      );
-    }
-    if (clientIds.length === 0 && siteIds.length === 0 && agentIds.length === 0)
-      return null;
-    const target = createUserGroupTargetFromParams("combined", {
-      clientIds,
-      siteIds,
-      agentIds,
-    });
-    console.log("[TargetSelection] Combined target built:", {
-      clientIds,
-      siteIds,
-      agentIds,
-      targetObject: target.toObject(),
-    });
-    return {
-      target,
-      label: labels.length ? `Combined: ${labels.join(", ")}` : "Combined",
-    };
-  }
-
   function buildTargetForApply(): TargetRef | null {
     const agentId = selectedAgentInPanel.value;
     if (agentId) {
@@ -407,7 +323,6 @@ export function useTargetSelection() {
 
   function resetSelection() {
     targetSelectedId.value = null;
-    targetTickedIds.value = [];
     selectedAgentInPanel.value = null;
     agentsPanelList.value = [];
     agentsInCategoryIds.value = new Set();
@@ -422,18 +337,15 @@ export function useTargetSelection() {
     targetTreeNodes,
     targetTreeLoading,
     targetSelectedId,
-    targetTickedIds,
     currentTargetRef,
     currentTarget,
     targetLabel,
     canApplyTarget,
-    agentNodesOnly,
     getTargetNodeIcon,
     findTargetNodeById,
     loadTargetTree,
     buildTargetFromSingleNode,
     buildTargetForApply,
-    buildCombinedTargetFromTicked,
     applyTargetSelection,
     resetSelection,
     onDialogShow,

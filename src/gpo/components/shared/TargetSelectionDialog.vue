@@ -13,7 +13,7 @@
       </q-card-section>
       <q-card-section class="q-pt-none">
         <div v-if="!agentsOnly" class="text-caption text-grey-7 q-mb-sm">
-          Choose Global or a category; optionally pick an agent on the right.
+          Choose a category; optionally pick an agent on the right.
         </div>
         <div v-else class="text-caption text-grey-7 q-mb-sm">
           Choose an agent.
@@ -67,7 +67,7 @@
                             @click="selectAgentInPanel(selectedAgentInPanel === item.agentId ? null : item.agentId)"
                           >
                             <q-item-section avatar>
-                              <q-icon name="computer" color="primary" size="sm" />
+                              <q-icon name="laptop" color="primary" size="sm" />
                             </q-item-section>
                             <q-item-section>
                               <q-item-label>{{ item.label }}</q-item-label>
@@ -89,7 +89,7 @@
                             @click="selectAgentInPanel(selectedAgentInPanel === item.agentId ? null : item.agentId)"
                           >
                             <q-item-section avatar>
-                              <q-icon name="computer" color="primary" size="sm" />
+                              <q-icon name="laptop" color="primary" size="sm" />
                             </q-item-section>
                             <q-item-section>
                               <q-item-label>{{ item.label }}</q-item-label>
@@ -110,7 +110,7 @@
                         @click="selectAgentInPanel(selectedAgentInPanel === item.agentId ? null : item.agentId)"
                       >
                         <q-item-section avatar>
-                          <q-icon name="computer" color="primary" size="sm" />
+                          <q-icon name="laptop" color="primary" size="sm" />
                         </q-item-section>
                         <q-item-section>
                           <q-item-label>{{ item.label }}</q-item-label>
@@ -174,7 +174,7 @@
                 @click="selectAgentInPanel(selectedAgentInPanel === item.agentId ? null : item.agentId)"
               >
                 <q-item-section avatar>
-                  <q-icon name="computer" color="primary" size="sm" />
+                  <q-icon name="laptop" color="primary" size="sm" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>{{ item.label }}</q-item-label>

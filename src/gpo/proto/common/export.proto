@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package laborato.common.export;
+
+enum ExportFormat {
+  CSV = 0;
+  XLSX = 1;
+}
+
+message ExportResponse {
+  bytes content = 1;
+  ExportFormat export_format = 2;
+  string file_name = 3;
+}

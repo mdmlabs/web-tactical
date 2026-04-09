@@ -1894,6 +1894,7 @@ async function applyPolicy() {
       "agent",
       { agentId: String(props.agent.id) },
       processedSettings,
+      policyDetailsElements.value,
     );
 
     policyEnabled.value[selectedPolicy.value.id] = true;

@@ -2,6 +2,7 @@ syntax = "proto3";
 
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
+import "common/export.proto";
 
 package laborato.operator.service;
 
@@ -23,6 +24,7 @@ service OperatorAgentCategoryService {
 
     rpc GetCategory(AgentCategoryIdRequest) returns (AgentCategoryResponse);
     rpc GetAllCategories(google.protobuf.Empty) returns (AgentCategoriesResponse);
+    rpc ExportAllCategories(ExportCategoriesRequest) returns (laborato.common.export.ExportResponse);
     rpc GetCategoryTree(google.protobuf.Empty) returns (AgentCategoryTreeResponse);
 
     rpc GetCategoryChildren(AgentCategoryIdRequest) returns (AgentCategoriesResponse);
@@ -33,6 +35,9 @@ service OperatorAgentCategoryService {
 //////////////////////////////////////////////////////////////
 // REQUESTS
 //////////////////////////////////////////////////////////////
+message ExportCategoriesRequest{
+    laborato.common.export.ExportFormat export_format = 1;
+}
 
 message AgentCategoryIdRequest {
     int64 category_id = 1;

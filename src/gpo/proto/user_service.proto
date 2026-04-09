@@ -2,12 +2,14 @@ syntax = "proto3";
 
 import "common/user.proto";
 import "common/target.proto";
-import "operator.proto";
+import "common/export.proto";
+
 
 import "google/protobuf/wrappers.proto";
 import "google/protobuf/empty.proto";
 
 package laborato.operator.service;
+
 
 service OperatorUserControlService {
     rpc CreateUser(CreateUserRequest) returns (UserControlResponse);
@@ -33,17 +35,26 @@ service OperatorUserControlService {
     // USER READ
     rpc GetUser(UserIdRequest) returns (UserResponse);
     rpc GetAllUsers(google.protobuf.Empty) returns (UsersResponse);
+    rpc ExportAllUsers(ExportAllUsersRequest) returns (laborato.common.export.ExportResponse);
     rpc GetUserGroups(UserIdRequest) returns (GroupListResponse);
     rpc GetUserAgents(UserIdRequest) returns (UserAgentsResponse);
 
     // GROUP READ
     rpc GetGroup(GroupIdRequest) returns (GroupResponse);
     rpc GetAllGroups(google.protobuf.Empty) returns (GroupsResponse);
+    rpc ExportAllGroup(ExportAllGroupRequest) returns(laborato.common.export.ExportResponse);
     rpc GetGroupTree(google.protobuf.Empty) returns (GroupTreeResponse);
+
     rpc GetGroupUsers(GroupIdRequest) returns (UserListResponse);
     rpc GetGroupAgents(GroupIdRequest) returns (AgentListResponse);
     rpc GetGroupChildGroups(GroupIdRequest) returns (GroupListResponse);
     rpc GetGroupParentGroups(GroupIdRequest) returns (GroupListResponse);
+}
+message ExportAllGroupRequest {
+    laborato.common.export.ExportFormat export_format = 1;
+}
+message ExportAllUsersRequest {
+   laborato.common.export.ExportFormat export_format = 1;
 }
 
 message CreateUserRequest {

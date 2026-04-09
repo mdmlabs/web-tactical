@@ -281,6 +281,32 @@
               <q-btn
                 flat
                 dense
+                color="secondary"
+                icon="download"
+                label=""
+                :disable="!appliedCollections.length"
+                class="q-mr-sm"
+              >
+                <q-menu>
+                  <q-list dense style="min-width: 120px">
+                    <q-item clickable v-close-popup @click="exportCollections('csv')">
+                      <q-item-section avatar>
+                        <q-icon name="table_chart" color="primary" />
+                      </q-item-section>
+                      <q-item-section>CSV</q-item-section>
+                    </q-item>
+                    <q-item clickable v-close-popup @click="exportCollections('xlsx')">
+                      <q-item-section avatar>
+                        <q-icon name="description" color="green" />
+                      </q-item-section>
+                      <q-item-section>XLSX</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
+              </q-btn>
+              <q-btn
+                flat
+                dense
                 color="primary"
                 icon="add_circle_outline"
                 label=""
@@ -341,6 +367,16 @@
                           :label="props.row.policies.length"
                         />
                         <span v-else class="text-grey-5">0</span>
+                      </q-td>
+                      <q-td key="compliance" :props="props">
+                        <ComplianceBar
+                          v-if="props.row.compliance"
+                          :assigned-and-applied="props.row.compliance.assignedAndApplied"
+                          :assigned-not-applied="props.row.compliance.assignedNotApplied"
+                          :not-assigned="props.row.compliance.notAssigned"
+                          :loading="props.row.compliance.loading"
+                        />
+                        <span v-else class="text-grey-5">—</span>
                       </q-td>
                       <q-td key="actions" :props="props">
                         <q-btn
@@ -427,6 +463,43 @@
                   <q-item-section>
                     <q-item-label>{{ p.name }}</q-item-label>
                   </q-item-section>
+                  <q-item-section side class="policy-compliance-section">
+                    <div v-if="p.compliance?.loading" class="compliance-loading-mini">
+                      <q-spinner size="xs" color="grey-6" />
+                    </div>
+                    <div v-else-if="p.compliance && p.compliance.totalAgents > 0" class="policy-compliance-wrapper">
+                      <q-badge
+                        :color="getPolicyStatusColor(p.compliance)"
+                        :label="getPolicyStatusLabel(p.compliance)"
+                        class="q-mb-xs"
+                      >
+                        <q-tooltip
+                          anchor="top middle"
+                          self="bottom middle"
+                          :offset="[0, 8]"
+                        >
+                          <div class="policy-compliance-tooltip">
+                            <div class="tooltip-row">
+                              <span class="tooltip-icon success">✓</span>
+                              <span>Applied: {{ p.compliance.appliedAgents }} agents</span>
+                            </div>
+                            <div v-if="p.compliance.pendingAgents > 0" class="tooltip-row">
+                              <span class="tooltip-icon pending">⏳</span>
+                              <span>Pending: {{ p.compliance.pendingAgents }} agents</span>
+                            </div>
+                            <div v-if="p.compliance.notAssignedAgents > 0" class="tooltip-row">
+                              <span class="tooltip-icon error">✗</span>
+                              <span>Not Assigned: {{ p.compliance.notAssignedAgents }} agents</span>
+                            </div>
+                          </div>
+                        </q-tooltip>
+                      </q-badge>
+                      <div class="text-caption text-grey-7 q-mt-xs">
+                        {{ p.compliance.appliedAgents }}/{{ p.compliance.totalAgents }} agents
+                      </div>
+                    </div>
+                    <div v-else class="text-caption text-grey-5">—</div>
+                  </q-item-section>
                 </q-item>
               </q-list>
             </template>
@@ -455,11 +528,17 @@
 import { ref, computed } from "vue";
 import type { UserWithIdInfo } from "@/generated/user_service_pb";
 import type { GroupRow, AgentRow } from "@/gpo/composables/useUserActions";
+import { exportPolicyCollections } from "@/utils/csv";
+import {
+  policyStateClient,
+  createAgentTarget,
+} from "@/gpo/api/grpc-client";
+import ComplianceBar from "@/gpo/components/shared/ComplianceBar.vue";
 import UserInfoTab from "./UserInfoTab.vue";
 import UserGroupsTab from "./UserGroupsTab.vue";
 import UserAgentsTab from "./UserAgentsTab.vue";
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     selectedId: string | null;
     user: UserWithIdInfo.AsObject | null;
@@ -530,6 +609,13 @@ const collectionsColumns = [
     sortable: true,
   },
   {
+    name: "compliance",
+    label: "Compliance",
+    field: "compliance",
+    align: "left" as const,
+    sortable: false,
+  },
+  {
     name: "actions",
     label: "Actions",
     field: "actions",
@@ -543,26 +629,218 @@ type CollectionType = {
   name: string;
   explainText?: string;
   policies?: { id: number; name: string }[];
+  compliance?: {
+    assignedAndApplied: number;
+    assignedNotApplied: number;
+    notAssigned: number;
+    loading: boolean;
+  };
 };
+
+interface PolicyWithCompliance {
+  id: number;
+  name: string;
+  compliance?: {
+    appliedAgents: number;
+    pendingAgents: number;
+    notAssignedAgents: number;
+    totalAgents: number;
+    loading: boolean;
+  };
+}
 
 const showCollectionDetailsDialog = ref(false);
 const selectedCollection = ref<CollectionType | null>(null);
 const policySearchQuery = ref("");
+const policiesWithCompliance = ref<PolicyWithCompliance[]>([]);
+const policyComplianceCache = new Map<string, { appliedAgents: number; pendingAgents: number; notAssignedAgents: number; totalAgents: number; timestamp: number }>();
+const POLICY_COMPLIANCE_CACHE_TTL = 5 * 60 * 1000;
 
 const filteredPolicies = computed(() => {
-  if (!selectedCollection.value?.policies) return [];
-  if (!policySearchQuery.value) return selectedCollection.value.policies;
+  if (!policiesWithCompliance.value.length) return [];
+  if (!policySearchQuery.value) return policiesWithCompliance.value;
 
   const query = policySearchQuery.value.toLowerCase();
-  return selectedCollection.value.policies.filter((p) =>
-    p.name.toLowerCase().includes(query)
+  return policiesWithCompliance.value.filter((p) =>
+    p.name.toLowerCase().includes(query),
   );
 });
 
-function openCollectionDetailsDialog(collection: CollectionType) {
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    const batchResults = await Promise.all(batch.map(fn));
+    results.push(...batchResults);
+  }
+  return results;
+}
+
+async function calculatePolicyCompliance(
+  userId: string,
+  policyId: number,
+  agentsForUser: AgentRow[],
+): Promise<{ appliedAgents: number; pendingAgents: number; notAssignedAgents: number; totalAgents: number }> {
+  const totalAgents = agentsForUser.length;
+
+  if (totalAgents === 0) {
+    return { appliedAgents: 0, pendingAgents: 0, notAssignedAgents: 0, totalAgents: 0 };
+  }
+
+  const cacheKey = `${userId}_${policyId}_${totalAgents}`;
+  const cached = policyComplianceCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < POLICY_COMPLIANCE_CACHE_TTL) {
+    return {
+      appliedAgents: cached.appliedAgents,
+      pendingAgents: cached.pendingAgents,
+      notAssignedAgents: cached.notAssignedAgents,
+      totalAgents: cached.totalAgents,
+    };
+  }
+
+  try {
+    const results = await mapWithConcurrency(
+      agentsForUser,
+      3,
+      async (agent: AgentRow) => {
+        try {
+          const target = createAgentTarget(agent.id);
+          if (!target) {
+            return { isAssigned: false, isApplied: false };
+          }
+
+          const [assignmentsResponse, effectivePoliciesResponse] = await Promise.all([
+            policyStateClient.getAssignments(target, "en-US").catch(() => ({ assignmentsList: [] })),
+            policyStateClient.getEffectivePolicies(target, "en-US").catch(() => ({ policiesList: [] })),
+          ]);
+
+          const policyIdStr = String(policyId);
+          const policyHashVariant = `policy_${policyIdStr}`;
+
+          const isAssigned = (assignmentsResponse.assignmentsList || []).some(
+            (a) =>
+              a.summary?.id === policyId ||
+              String(a.summary?.id) === policyIdStr ||
+              a.policyHash === policyHashVariant,
+          );
+
+          const isApplied = (effectivePoliciesResponse.policiesList || []).some(
+            (p) =>
+              p.summary?.id === policyId ||
+              String(p.summary?.id) === policyIdStr ||
+              p.policyHash === policyHashVariant,
+          );
+
+          return { isAssigned, isApplied };
+        } catch {
+          return { isAssigned: false, isApplied: false };
+        }
+      },
+    );
+
+    let appliedAgents = 0;
+    let pendingAgents = 0;
+    let notAssignedAgents = 0;
+
+    for (const result of results) {
+      if (result.isAssigned && result.isApplied) {
+        appliedAgents++;
+      } else if (result.isAssigned && !result.isApplied) {
+        pendingAgents++;
+      } else {
+        notAssignedAgents++;
+      }
+    }
+
+    const complianceResult = { appliedAgents, pendingAgents, notAssignedAgents, totalAgents };
+    policyComplianceCache.set(cacheKey, { ...complianceResult, timestamp: Date.now() });
+    return complianceResult;
+  } catch (err) {
+    console.error("Error calculating policy compliance:", err);
+    return { appliedAgents: 0, pendingAgents: 0, notAssignedAgents: 0, totalAgents };
+  }
+}
+
+function getPolicyStatusColor(compliance: PolicyWithCompliance["compliance"]): string {
+  if (!compliance) return "grey";
+  const { appliedAgents, pendingAgents, totalAgents } = compliance;
+
+  if (appliedAgents === totalAgents) return "positive";
+  if (appliedAgents > 0 || pendingAgents > 0) return "warning";
+  return "negative";
+}
+
+function getPolicyStatusLabel(compliance: PolicyWithCompliance["compliance"]): string {
+  if (!compliance) return "Unknown";
+  const { appliedAgents, pendingAgents, totalAgents } = compliance;
+
+  if (appliedAgents === totalAgents) return "Applied";
+  if (appliedAgents > 0 || pendingAgents > 0) return "Pending";
+  return "Not Applied";
+}
+
+async function openCollectionDetailsDialog(collection: CollectionType) {
   selectedCollection.value = collection;
   policySearchQuery.value = "";
   showCollectionDetailsDialog.value = true;
+
+  if (!collection.policies || !props.selectedId || !props.agents.length) {
+    policiesWithCompliance.value = collection.policies?.map(p => ({
+      ...p,
+      compliance: {
+        appliedAgents: 0,
+        pendingAgents: 0,
+        notAssignedAgents: 0,
+        totalAgents: 0,
+        loading: false,
+      }
+    })) || [];
+    return;
+  }
+
+  policiesWithCompliance.value = collection.policies.map(p => ({
+    ...p,
+    compliance: {
+      appliedAgents: 0,
+      pendingAgents: 0,
+      notAssignedAgents: 0,
+      totalAgents: props.agents.length,
+      loading: true,
+    }
+  }));
+
+  await mapWithConcurrency(
+    policiesWithCompliance.value,
+    3,
+    async (policy) => {
+      try {
+        const result = await calculatePolicyCompliance(
+          props.selectedId!,
+          policy.id,
+          props.agents,
+        );
+        policy.compliance = {
+          appliedAgents: result.appliedAgents,
+          pendingAgents: result.pendingAgents,
+          notAssignedAgents: result.notAssignedAgents,
+          totalAgents: result.totalAgents,
+          loading: false,
+        };
+      } catch {
+        if (policy.compliance) {
+          policy.compliance.loading = false;
+        }
+      }
+    },
+  );
+}
+
+function exportCollections(format: "csv" | "xlsx") {
+  exportPolicyCollections(props.appliedCollections, format);
 }
 </script>
 
@@ -605,6 +883,43 @@ function openCollectionDetailsDialog(collection: CollectionType) {
 
   &:hover
     background-color: rgba(0, 0, 0, 0.02)
+
+.policy-compliance-section
+  min-width: 150px
+  max-width: 150px
+
+.policy-compliance-wrapper
+  display: flex
+  flex-direction: column
+  align-items: flex-end
+  gap: 4px
+
+.compliance-loading-mini
+  display: flex
+  align-items: center
+  justify-content: flex-end
+
+.policy-compliance-tooltip
+  padding: 8px
+  font-size: 12px
+
+.tooltip-row
+  display: flex
+  align-items: center
+  gap: 8px
+  padding: 4px 0
+
+.tooltip-icon
+  font-size: 14px
+
+  &.success
+    color: #4caf50
+
+  &.pending
+    color: #ff9800
+
+  &.error
+    color: #f44336
 
 .text-mono
   font-family: monospace
