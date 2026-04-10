@@ -162,4 +162,10 @@ defineEmits<{
 
 .groups-tree-item
   padding: 1px 0
+
+.body--dark .groups-left-panel
+  border-right-color: rgba(255, 255, 255, 0.12)
+
+.body--dark .groups-tree :deep(.q-tree__node--selected > .q-tree__node-header)
+  background: rgba(25, 118, 210, 0.25)
 </style>

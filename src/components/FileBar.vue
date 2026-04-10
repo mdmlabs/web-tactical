@@ -26,7 +26,8 @@
         />
       </div>
 
-      <q-scroll-area class="filebar-menu-scroll">
+      <div class="filebar-menu-scroll-wrap">
+        <q-scroll-area class="filebar-menu-scroll">
         <q-list class="filebar-menu-list">
           <!-- файл часть-->
           <template v-if="isMiniMode && !isMobile">
@@ -1356,7 +1357,8 @@
             </q-list>
           </q-expansion-item> -->
         </q-list>
-      </q-scroll-area>
+        </q-scroll-area>
+      </div>
     </div>
 
     <q-dialog v-model="showEditCoreSettingsModal">
@@ -1802,6 +1804,21 @@ export default {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
+}
+
+.filebar-menu-scroll-wrap {
+  flex: 1 1 0%;
+  min-height: 0;
+  max-height: calc(100vh - 56px);
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 1023px) {
+  .filebar-menu-scroll-wrap {
+    max-height: calc(100vh - 80px);
+  }
 }
 
 .filebar-drawer-header {
@@ -1846,14 +1863,9 @@ export default {
 }
 
 .filebar-menu-scroll {
-  flex: 1;
-  height: 100vh;
-}
-
-@media (max-width: 1023px) {
-  .filebar-menu-scroll {
-    height: calc(100vh - 80px);
-  }
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
 }
 
 .filebar-menu-list {

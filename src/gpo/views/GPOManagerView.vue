@@ -1,4 +1,3 @@
-npm
 <template>
   <q-page class="gpo-manager-page">
     <div class="row gpo-main-row">
@@ -3925,6 +3924,12 @@ function exportPolicies(
 .gpo-agent-item.q-item--active
   background: linear-gradient(135deg, rgba(16, 137, 211, 0.2) 0%, rgba(18, 177, 209, 0.25) 100%)
   border-left: 3px solid rgb(16, 137, 211)
+
+.body--dark .gpo-agent-item:hover
+  background: linear-gradient(135deg, rgba(16, 137, 211, 0.18) 0%, rgba(18, 177, 209, 0.22) 100%)
+
+.body--dark .gpo-agent-item.q-item--active
+  background: linear-gradient(135deg, rgba(16, 137, 211, 0.28) 0%, rgba(18, 177, 209, 0.32) 100%)
 
 .gpo-content
   display: flex

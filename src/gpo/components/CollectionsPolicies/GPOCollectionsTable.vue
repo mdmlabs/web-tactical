@@ -303,7 +303,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { QTableColumn, useQuasar } from "quasar";
 import {
   collectionsClient,
@@ -821,8 +821,28 @@ function policyKey(p: PolicyItem, idx: number): string {
 //   }
 // }
 
+function closeAllDialogs() {
+  detailsDialog.value = false;
+  createFormVisible.value = false;
+  editFormVisible.value = false;
+  policyPickerVisible.value = false;
+  applyTargetDialogVisible.value = false;
+}
+
+function onVisibilityChange() {
+  if (document.visibilityState === "visible") {
+    closeAllDialogs();
+  }
+}
+
 onMounted(() => {
   loadCollections();
+  document.addEventListener("visibilitychange", onVisibilityChange);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("visibilitychange", onVisibilityChange);
+  closeAllDialogs();
 });
 </script>
 
@@ -877,4 +897,20 @@ onMounted(() => {
 .scope-cell--both
   background: #e1bee7
   color: #4a148c
+
+.body--dark .gpo-content-header
+  background: rgba(30, 30, 30, 0.98)
+  border-bottom: 1px solid rgba(18, 177, 209, 0.3)
+
+.body--dark .scope-cell--user
+  background: rgba(33, 150, 243, 0.22)
+  color: #90caf9
+
+.body--dark .scope-cell--machine
+  background: rgba(76, 175, 80, 0.22)
+  color: #a5d6a7
+
+.body--dark .scope-cell--both
+  background: rgba(156, 39, 176, 0.22)
+  color: #ce93d8
 </style>
