@@ -925,10 +925,13 @@ function isUserScope(raw: unknown): boolean {
   }
   if (typeof raw === "number") {
     const n = Math.floor(raw);
-    return n === operator_pb.PolicyScope.POLICY_SCOPE_USER;
+    return (
+      n === operator_pb.PolicyScope.POLICY_SCOPE_USER ||
+      n === operator_pb.PolicyScope.POLICY_SCOPE_BOTH
+    );
   }
   const s = String(raw).toUpperCase();
-  return s === "USER" || s === "1";
+  return s === "USER" || s === "1" || s === "BOTH" || s === "3";
 }
 
 async function loadCollectionsForApply() {
@@ -1261,6 +1264,13 @@ async function removeUserFromGroup(user: GroupRow) {
   display: flex
   height: 100%
   overflow: hidden
+
+.body--dark .groups-manager-layout
+  background: rgba(30, 30, 30, 0.98)
+
+.body--dark .groups-manager-header
+  color: rgba(255, 255, 255, 0.87)
+  border-bottom-color: rgba(255, 255, 255, 0.12)
 
 .target-badge
   padding: 6px 10px

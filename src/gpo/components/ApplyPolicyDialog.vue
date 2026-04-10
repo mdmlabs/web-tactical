@@ -797,6 +797,7 @@ function normalizeScope(raw: unknown): number | null {
   if (!s) return null;
   if (s === "POLICY_SCOPE_USER" || s === "USER" || s === "1") return 1;
   if (s === "POLICY_SCOPE_MACHINE" || s === "MACHINE" || s === "COMPUTER" || s === "2") return 2;
+  if (s === "POLICY_SCOPE_BOTH" || s === "BOTH" || s === "3") return 3;
   const n = Number.parseInt(s, 10);
   return Number.isFinite(n) ? n : null;
 }
@@ -805,7 +806,9 @@ const filteredSelectedCategoryPolicies = computed(() => {
   const list = selectedCategoryPolicies.value.filter((p) => {
     const scope = normalizeScope(p.scope);
     return (
-      scope === null || scope === operator_pb.PolicyScope.POLICY_SCOPE_USER
+      scope === null ||
+      scope === operator_pb.PolicyScope.POLICY_SCOPE_USER ||
+      scope === operator_pb.PolicyScope.POLICY_SCOPE_BOTH
     );
   });
   return list;
@@ -2060,4 +2063,15 @@ async function removePolicy() {
 .policy-element:hover
   background: rgba(0, 0, 0, 0.04)
   border-color: rgba(0, 0, 0, 0.2)
+
+.body--dark .policy-item:hover
+  background-color: rgba(255, 255, 255, 0.06)
+
+.body--dark .policy-element
+  border-color: rgba(255, 255, 255, 0.12)
+  background: rgba(255, 255, 255, 0.04)
+
+.body--dark .policy-element:hover
+  background: rgba(255, 255, 255, 0.08)
+  border-color: rgba(255, 255, 255, 0.2)
 </style>

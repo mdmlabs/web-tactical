@@ -166,7 +166,11 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { policyCatalogClient, collectionsClient } from "../../api/grpc-client";
+import {
+  policyCatalogClient,
+  collectionsClient,
+  type PolicyElementMetadata,
+} from "../../api/grpc-client";
 import { notifyError, notifySuccess } from "@/utils/notify";
 import CategoryTree from "./CategoryTree.vue";
 import PolicyList from "./PolicyList.vue";
@@ -180,7 +184,7 @@ import type { CategoryNode, PolicyItem } from "../../types/policy-catalog";
 const POLICY_SCOPE_NONE = 0;
 const POLICY_SCOPE_USER = 1;
 const POLICY_SCOPE_MACHINE = 2;
-// const POLICY_SCOPE_BOTH = 3;
+const POLICY_SCOPE_BOTH = 3;
 
 interface PolicyDetailsElement {
   id: number;
@@ -208,7 +212,6 @@ const scopeFilterOptions = [
   { label: "All", value: "all" },
   { label: "User", value: "user" },
   { label: "Computer", value: "computer" },
-  // { label: "Both", value: "both"}
 ];
 
 const props = defineProps<{
@@ -243,6 +246,8 @@ const policyHashes = ref<Record<string, string>>({});
 const policyState = ref<Record<string, boolean>>({});
 const scopeFilter = ref<string>("all");
 const applying = ref(false);
+const perPolicySettings = ref<Record<string, Record<string, unknown>>>({});
+const perPolicyElements = ref<Record<string, PolicyDetailsElement[]>>({});
 
 const selectedPoliciesList = computed(() => {
   const list: PolicyItem[] = [];
@@ -299,6 +304,16 @@ function retryLoadPolicies() {
 
 function updateSettingsField(key: string, value: unknown) {
   policySettingsValues.value[key] = value;
+  const policyId = selectedPolicy.value?.id;
+  if (policyId) {
+    if (!perPolicySettings.value[policyId]) {
+      perPolicySettings.value[policyId] = {};
+    }
+    perPolicySettings.value[policyId] = {
+      ...perPolicySettings.value[policyId],
+      [key]: value,
+    };
+  }
 }
 
 function scopeLabel(scope: number): string {
@@ -307,8 +322,8 @@ function scopeLabel(scope: number): string {
       return "User";
     case POLICY_SCOPE_MACHINE:
       return "Computer";
-    // case POLICY_SCOPE_BOTH:
-    //   return "User & Machine";
+    case POLICY_SCOPE_BOTH:
+      return "User & Computer";
     case POLICY_SCOPE_NONE:
     default:
       return "None";
@@ -321,8 +336,10 @@ const filteredGroupedPolicies = computed(() => {
 
   if (filter !== "all") {
     list = list.filter((p) => {
-      if (filter === "user") return p.scope === POLICY_SCOPE_USER;
-      if (filter === "computer") return p.scope === POLICY_SCOPE_MACHINE;
+      if (filter === "user")
+        return p.scope === POLICY_SCOPE_USER || p.scope === POLICY_SCOPE_BOTH;
+      if (filter === "computer")
+        return p.scope === POLICY_SCOPE_MACHINE || p.scope === POLICY_SCOPE_BOTH;
       return true;
     });
   }
@@ -335,6 +352,7 @@ const filteredGroupedPolicies = computed(() => {
   const byScope: Record<number, PolicyItem[]> = {
     [POLICY_SCOPE_USER]: [],
     [POLICY_SCOPE_MACHINE]: [],
+    [POLICY_SCOPE_BOTH]: [],
     [POLICY_SCOPE_NONE]: [],
   };
   for (const p of list) {
@@ -342,7 +360,7 @@ const filteredGroupedPolicies = computed(() => {
     if (!byScope[scope]) byScope[scope] = [];
     byScope[scope].push(p);
   }
-  const order = [POLICY_SCOPE_USER, POLICY_SCOPE_MACHINE, POLICY_SCOPE_NONE];
+  const order = [POLICY_SCOPE_USER, POLICY_SCOPE_MACHINE, POLICY_SCOPE_BOTH, POLICY_SCOPE_NONE];
   for (const scope of order) {
     const policies = byScope[scope] || [];
     if (policies.length === 0) continue;
@@ -370,6 +388,8 @@ watch(
       settingsTab.value = "settings";
       policyDetailsElements.value = [];
       policySettingsValues.value = {};
+      perPolicySettings.value = {};
+      perPolicyElements.value = {};
       loadingPolicyDetails.value = false;
       loadCategories();
     }
@@ -582,14 +602,21 @@ async function loadPolicyDetails(policy: PolicyItem) {
     const presentationMap = buildPresentationMap(presentationList);
     const elements = buildPolicyElements(policyElements, presentationMap);
     policyDetailsElements.value = elements;
+    perPolicyElements.value[policy.id] = elements;
 
-    const values: Record<string, unknown> = {};
-    for (const element of elements) {
-      const presentationEl = presentationMap.get(element.element_id);
-      values[element.element_id] =
-        presentationEl?.default_value ?? getDefaultValue(element);
+    const saved = perPolicySettings.value[policy.id];
+    if (saved) {
+      policySettingsValues.value = { ...saved };
+    } else {
+      const values: Record<string, unknown> = {};
+      for (const element of elements) {
+        const presentationEl = presentationMap.get(element.element_id);
+        values[element.element_id] =
+          presentationEl?.default_value ?? getDefaultValue(element);
+      }
+      policySettingsValues.value = values;
+      perPolicySettings.value[policy.id] = { ...values };
     }
-    policySettingsValues.value = values;
   } catch {
     policyDetailsElements.value = [];
     policySettingsValues.value = {};
@@ -640,7 +667,12 @@ async function submitAddPolicies() {
 
   applying.value = true;
   try {
-    const policiesWithState: Array<{ hash: string; state: boolean }> = [];
+    const policiesWithState: Array<{
+      hash: string;
+      state: boolean;
+      selection?: Record<string, unknown>;
+      elementsMetadata?: PolicyElementMetadata[];
+    }> = [];
     for (const policy of list) {
       const id = policy.id;
       const hash =
@@ -648,9 +680,22 @@ async function submitAddPolicies() {
           ? policy.hash.trim()
           : null) ?? (await getHashForPolicy(id));
       if (hash) {
+        const savedSettings = perPolicySettings.value[id];
+        const savedElements = perPolicyElements.value[id];
+        const elementsMetadata: PolicyElementMetadata[] | undefined =
+          savedElements?.map((el) => ({
+            element_id: el.element_id,
+            type: el.type,
+            items: el.items,
+          }));
         policiesWithState.push({
           hash,
           state: policyState.value[id] !== false,
+          selection:
+            savedSettings && Object.keys(savedSettings).length > 0
+              ? savedSettings
+              : undefined,
+          elementsMetadata,
         });
       }
     }

@@ -182,6 +182,13 @@ const notAssignedPercent = computed(() => {
   font-size: 11px
   color: rgba(0, 0, 0, 0.6)
 
+.body--dark .compliance-bar
+  background: rgba(255, 255, 255, 0.08)
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25)
+
+.body--dark .compliance-legend
+  color: rgba(255, 255, 255, 0.65)
+
 .legend-item
   display: flex
   align-items: center

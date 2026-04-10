@@ -150,4 +150,10 @@ defineEmits<{
 
 .users-list-item-active
   background: rgba(25, 118, 210, .1)
+
+.body--dark .users-left-panel
+  border-right-color: rgba(255, 255, 255, 0.12)
+
+.body--dark .users-list-item-active
+  background: rgba(25, 118, 210, 0.25)
 </style>
