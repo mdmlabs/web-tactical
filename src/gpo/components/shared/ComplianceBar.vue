@@ -33,33 +33,40 @@
         </div>
       </q-tooltip>
       <div class="compliance-bar">
-        <div
-          v-if="appliedPercent > 0"
-          class="compliance-segment applied"
-          :style="{ width: `${appliedPercent}%` }"
-        >
-          <span v-if="appliedPercent >= 12" class="segment-label">
-            {{ appliedPercent }}%
-          </span>
-        </div>
-        <div
-          v-if="pendingPercent > 0"
-          class="compliance-segment pending"
-          :style="{ width: `${pendingPercent}%` }"
-        >
-          <span v-if="pendingPercent >= 12" class="segment-label">
-            {{ pendingPercent }}%
-          </span>
-        </div>
-        <div
-          v-if="notAssignedPercent > 0"
-          class="compliance-segment not-assigned"
-          :style="{ width: `${notAssignedPercent}%` }"
-        >
-          <span v-if="notAssignedPercent >= 12" class="segment-label">
-            {{ notAssignedPercent }}%
-          </span>
-        </div>
+        <template v-if="isAllNotAssigned">
+          <div class="compliance-segment not-assigned" style="width: 100%">
+            <span class="segment-label">0%</span>
+          </div>
+        </template>
+        <template v-else>
+          <div
+            v-if="appliedPercent > 0"
+            class="compliance-segment applied"
+            :style="{ width: `${appliedPercent}%` }"
+          >
+            <span v-if="appliedPercent >= 12" class="segment-label">
+              {{ appliedPercent }}%
+            </span>
+          </div>
+          <div
+            v-if="pendingPercent > 0"
+            class="compliance-segment pending"
+            :style="{ width: `${pendingPercent}%` }"
+          >
+            <span v-if="pendingPercent >= 12" class="segment-label">
+              {{ pendingPercent }}%
+            </span>
+          </div>
+          <div
+            v-if="notAssignedPercent > 0"
+            class="compliance-segment not-assigned"
+            :style="{ width: `${notAssignedPercent}%` }"
+          >
+            <span v-if="notAssignedPercent >= 12" class="segment-label">
+              {{ notAssignedPercent }}%
+            </span>
+          </div>
+        </template>
       </div>
       <div class="compliance-legend">
         <span class="legend-item">
@@ -99,6 +106,10 @@ const props = withDefaults(
 );
 
 const total = computed(() => props.assignedAndApplied + props.assignedNotApplied + props.notAssigned);
+
+const isAllNotAssigned = computed(() => {
+  return total.value > 0 && props.assignedAndApplied === 0 && props.assignedNotApplied === 0 && props.notAssigned === total.value;
+});
 
 const appliedPercent = computed(() => {
   if (total.value === 0) return 0;

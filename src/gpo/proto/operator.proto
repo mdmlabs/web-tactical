@@ -1,8 +1,10 @@
 syntax = "proto3";
 
 import "common/user.proto";
+import "common/policy.proto";
 import "common/node.proto";
 import "common/target.proto";
+import "common/export.proto";
 
 import "google/protobuf/wrappers.proto";
 
@@ -132,6 +134,7 @@ message CreateCollectionsPoliciesRequest {
 message PolicyConfigureModel {
   string hash = 1;
   bool state = 2;
+  laborato.common.policy.PolicySelection selection = 3;
 }
 
 message CreateCollectionsPoliciesResponse {
@@ -310,6 +313,9 @@ service PolicyCatalogService {
   rpc ListPoliciesGroupedByScope (ListPoliciesGroupedByScopeRequest)
       returns (ListPoliciesGroupedByScopeResponse);
 
+  rpc ExportAllPolicies(ExportAllPoliciesRequest)
+      returns (laborato.common.export.ExportResponse);
+
   rpc GetCategoryTree(GetCategoryTreeRequest)
       returns (GetCategoryTreeResponse);
 
@@ -321,6 +327,10 @@ service PolicyCatalogService {
 
   rpc GetPolicyDetails (GetPolicyDetailsRequest)
       returns (PolicyDetails);
+}
+
+message ExportAllPoliciesRequest {
+    laborato.common.export.ExportFormat export_format = 1;
 }
 
 message GetPoliciesByAdmxRequest {
@@ -448,6 +458,7 @@ message PolicyDetailsElementItem {
   optional google.protobuf.BoolValue required = 7;
   optional google.protobuf.Int32Value parent_id = 8;
   optional google.protobuf.StringValue display_name = 9;
+  string value = 10;
 }
 
 message ListPoliciesGroupedByScopeResponse {
@@ -520,7 +531,7 @@ service PolicyAssignmentService {
 message AssignPolicyCollectionRequest {
   int64 collection_id = 1;
   laborato.common.target.Target target = 2;
-  PolicySelection selection = 3;
+  laborato.common.policy.PolicySelection selection = 3;
 }
 message AssignPolicyCollectionResponse {}
 
@@ -533,27 +544,9 @@ message RemovePolicyCollectionResponse {}
 message AssignPolicyRequest {
   string policy_hash = 1;
   laborato.common.target.Target target = 2;
-  PolicySelection selection = 3;
+  laborato.common.policy.PolicySelection selection = 3;
 }
 
-// Выбор значений элементов
-message PolicySelection {
-    string value = 1; // legacy single value
-    repeated PolicyElementSelection elements = 2;
-    repeated string list_keys = 3;
-}
-
-message PolicyElementSelection {
-    string id_name = 1;
-    string value = 2;
-    repeated PolicyElementItemSelection childs = 3;
-}
-
-message PolicyElementItemSelection {
-    string id_name = 1;
-    string value = 2;
-    repeated PolicyElementItemSelection childs = 3;
-}
 
 message AssignPolicyResponse {}
 

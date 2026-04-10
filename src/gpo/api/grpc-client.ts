@@ -32,6 +32,15 @@ import {
 import target_pb from "@/generated/common/target_pb";
 import type { Target } from "@/generated/common/target_pb";
 
+import {
+  PolicySelection,
+  PolicyElementSelection,
+  PolicyElementItemSelection,
+} from "@/generated/common/policy_pb";
+
+import export_pb from "@/generated/common/export_pb";
+import type * as export_pb_types from "@/generated/common/export_pb";
+
 import type * as operator_pb_types from "@/generated/operator_pb";
 import type * as user_service_pb_types from "@/generated/user_service_pb";
 import * as wrappers_pb from "google-protobuf/google/protobuf/wrappers_pb";
@@ -223,6 +232,20 @@ export const policyCatalogClient = {
     request.setLangCode(langCode);
 
     const response = await policyCatalogServiceClient.getPoliciesByAdmx(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async exportAllPolicies(
+    exportFormat: export_pb_types.ExportFormat = export_pb.ExportFormat.CSV,
+  ): Promise<export_pb_types.ExportResponse.AsObject> {
+    const request = new operator_pb.ExportAllPoliciesRequest();
+    request.setExportFormat(exportFormat);
+
+    const response = await policyCatalogServiceClient.exportAllPolicies(
       request,
       createGrpcMetadata(),
     );
@@ -904,11 +927,10 @@ export const userControlClient = {
     req.setPasswordNotRequired(false);
     req.setUserCannotChangePassword(false);
     req.setSmartcardLogonRequired(false);
-    const response =
-      await operatorUserControlServiceClient.removeUserAgent(
-        req,
-        createGrpcMetadata(),
-      );
+    const response = await operatorUserControlServiceClient.removeUserAgent(
+      req,
+      createGrpcMetadata(),
+    );
     return response.toObject();
   },
 
@@ -919,11 +941,10 @@ export const userControlClient = {
     const req = new SetGroupAgentRequest();
     req.setTarget(target);
     req.setGroupId(groupId);
-    const response =
-      await operatorUserControlServiceClient.removeGroupAgent(
-        req,
-        createGrpcMetadata(),
-      );
+    const response = await operatorUserControlServiceClient.removeGroupAgent(
+      req,
+      createGrpcMetadata(),
+    );
     return response.toObject();
   },
 
@@ -1329,7 +1350,9 @@ export function getAgentIdsFromTarget(target: Target | null): string[] {
   if (!target) return [];
   const t = target as {
     getAgent?: () => { getAgentId?: () => string };
-    getAgents?: () => { getAgentsList?: () => Array<{ getAgentId?: () => string }> };
+    getAgents?: () => {
+      getAgentsList?: () => Array<{ getAgentId?: () => string }>;
+    };
     toObject?: () => {
       agent?: { agentId?: string };
       agents?: { agentsList?: Array<{ agentId?: string }> };
@@ -1339,10 +1362,12 @@ export function getAgentIdsFromTarget(target: Target | null): string[] {
   if (single?.getAgentId) return [single.getAgentId()].filter(Boolean);
   const agents = t.getAgents?.();
   const list = agents?.getAgentsList?.();
-  if (list?.length) return list.map((a) => a.getAgentId?.() ?? "").filter(Boolean);
+  if (list?.length)
+    return list.map((a) => a.getAgentId?.() ?? "").filter(Boolean);
   const o = t.toObject?.();
   if (o?.agent?.agentId) return [o.agent.agentId];
-  const ids = o?.agents?.agentsList?.map((a) => a.agentId ?? "").filter(Boolean) ?? [];
+  const ids =
+    o?.agents?.agentsList?.map((a) => a.agentId ?? "").filter(Boolean) ?? [];
   return ids;
 }
 
@@ -1481,7 +1506,10 @@ export function createPolicyTargetFromParams(
           "agentId и userSid обязательны для типа 'user_on_agent'",
         );
       }
-      return createUserOnAgentTarget(targetParams.agentId, targetParams.userSid);
+      return createUserOnAgentTarget(
+        targetParams.agentId,
+        targetParams.userSid,
+      );
     case "client":
       if (!targetParams.clientId) {
         throw new Error("clientId обязателен для типа 'client'");
@@ -1521,16 +1549,16 @@ export function createPolicyTargetFromParams(
 function createPolicyElementItemSelection(
   itemId: string,
   itemValue: unknown,
-): operator_pb.PolicyElementItemSelection | null {
+): PolicyElementItemSelection | null {
   if (itemValue === null || itemValue === undefined) {
     return null;
   }
 
-  const itemSelection = new operator_pb.PolicyElementItemSelection();
+  const itemSelection = new PolicyElementItemSelection();
   itemSelection.setIdName(itemId);
 
   if (typeof itemValue === "object" && !Array.isArray(itemValue)) {
-    const childs: operator_pb.PolicyElementItemSelection[] = [];
+    const childs: PolicyElementItemSelection[] = [];
 
     for (const [childId, childValue] of Object.entries(
       itemValue as Record<string, unknown>,
@@ -1569,37 +1597,106 @@ function createPolicyElementItemSelection(
   return itemSelection;
 }
 
+export interface PolicyElementMetadata {
+  element_id: string;
+  type: string;
+  items?: Array<{ id: number; name: string; display_name?: string }>;
+}
+
 export function createPolicySelection(
   settings: Record<string, unknown>,
-): operator_pb.PolicySelection {
-  const selection = new operator_pb.PolicySelection();
-  const elements: operator_pb.PolicyElementSelection[] = [];
+  elementsMetadata?: PolicyElementMetadata[],
+): PolicySelection {
+  const selection = new PolicySelection();
+  const elements: PolicyElementSelection[] = [];
   const listKeys: string[] = [];
   const settingsKeys = Object.keys(settings);
   if (settingsKeys.length === 0) {
-    selection.setValue("1");
     return selection;
+  }
+
+  const metadataMap = new Map<string, PolicyElementMetadata>();
+  if (elementsMetadata) {
+    for (const meta of elementsMetadata) {
+      metadataMap.set(meta.element_id, meta);
+    }
   }
 
   for (const [elementId, value] of Object.entries(settings)) {
     if (value === null || value === undefined) continue;
 
-    if (Array.isArray(value)) {
-      const arrayKeys = value
-        .map((item) => {
-          if (item === null || item === undefined) return null;
-          return String(item);
-        })
-        .filter((key): key is string => key !== null);
-      listKeys.push(...arrayKeys);
+    const metadata = metadataMap.get(elementId);
+    const elementType = metadata?.type?.toLowerCase() || "";
+    const isEnum =
+      elementType === "enum" ||
+      elementType === "dropdownlist" ||
+      (metadata?.items && metadata.items.length > 0);
+
+    const isMultitext =
+      elementType === "multitextbox" ||
+      elementType === "multi_textbox" ||
+      elementType === "multitext" ||
+      (elementType === "list" &&
+        (!metadata?.items || metadata.items.length === 0));
+
+    // if (Array.isArray(value)) {
+    //   console.log(`[createPolicySelection] Array element: ${elementId}`, {
+    //     elementType,
+    //     isMultitext,
+    //     metadata: metadata
+    //       ? { type: metadata.type, items: metadata.items?.length }
+    //       : null,
+    //     valueLength: value.length,
+    //   });
+    // }
+
+    if (Array.isArray(value) && isMultitext) {
+      const elementSelection = new PolicyElementSelection();
+      elementSelection.setIdName(elementId);
+
+      const childs: PolicyElementItemSelection[] = [];
+      for (const item of value) {
+        if (item === null || item === undefined || String(item).trim() === "")
+          continue;
+
+        const childSelection = new PolicyElementItemSelection();
+        childSelection.setIdName(elementId);
+        childSelection.setValue(String(item));
+        childs.push(childSelection);
+      }
+
+      if (childs.length > 0) {
+        elementSelection.setChildsList(childs);
+        elementSelection.setValue("1");
+      } else {
+        elementSelection.setValue("");
+      }
+      elements.push(elementSelection);
       continue;
     }
 
-    const elementSelection = new operator_pb.PolicyElementSelection();
+    if (Array.isArray(value)) {
+      const elementSelection = new PolicyElementSelection();
+      elementSelection.setIdName(elementId);
+
+      const stringValue = value
+        .map((item) => {
+          if (item === null || item === undefined) return "";
+          return String(item);
+        })
+        .filter((item) => item !== "")
+        .join("\n");
+
+      elementSelection.setValue(stringValue);
+      elements.push(elementSelection);
+      continue;
+    }
+
+    const elementSelection = new PolicyElementSelection();
     elementSelection.setIdName(elementId);
 
     if (typeof value === "object" && !Array.isArray(value)) {
-      const childs: operator_pb.PolicyElementItemSelection[] = [];
+      const childs: PolicyElementItemSelection[] = [];
 
       for (const [itemId, itemValue] of Object.entries(
         value as Record<string, unknown>,
@@ -1615,15 +1712,26 @@ export function createPolicySelection(
 
       if (childs.length > 0) {
         elementSelection.setChildsList(childs);
+        elementSelection.setValue("1");
+      } else {
+        elementSelection.setValue("");
       }
-
-      elementSelection.setValue("");
     } else {
       let stringValue: string;
       if (typeof value === "boolean") {
         stringValue = value ? "1" : "0";
-      } else if (typeof value === "number") {
+      } else if (typeof value === "number" || typeof value === "string") {
         stringValue = String(value);
+
+        if (isEnum) {
+          const enumChild = new PolicyElementItemSelection();
+          enumChild.setIdName(elementId);
+          enumChild.setValue(stringValue);
+          elementSelection.setChildsList([enumChild]);
+          elementSelection.setValue("1");
+          elements.push(elementSelection);
+          continue;
+        }
       } else {
         stringValue = String(value);
       }
@@ -1640,14 +1748,6 @@ export function createPolicySelection(
     selection.setListKeysList(listKeys);
   }
 
-  if (
-    elements.length === 0 &&
-    listKeys.length === 0 &&
-    settingsKeys.length > 0
-  ) {
-    selection.setValue("1");
-  }
-
   return selection;
 }
 
@@ -1656,7 +1756,8 @@ export const policyAssignmentClient = {
     policyHash: string,
     targetType: PolicyTargetType,
     targetParams: PolicyTargetParams = {},
-    selection?: Record<string, unknown> | operator_pb_types.PolicySelection,
+    selection?: Record<string, unknown> | PolicySelection,
+    elementsMetadata?: PolicyElementMetadata[],
   ): Promise<operator_pb_types.AssignPolicyResponse.AsObject> {
     const request = new operator_pb.AssignPolicyRequest();
     request.setPolicyHash(policyHash);
@@ -1664,24 +1765,15 @@ export const policyAssignmentClient = {
     const target = createPolicyTargetFromParams(targetType, targetParams);
     request.setTarget(target);
 
-    let policySelection: operator_pb.PolicySelection;
+    let policySelection: PolicySelection;
     if (selection) {
-      if (selection instanceof operator_pb.PolicySelection) {
+      if (selection instanceof PolicySelection) {
         policySelection = selection;
       } else {
-        policySelection = createPolicySelection(selection);
+        policySelection = createPolicySelection(selection, elementsMetadata);
       }
-      console.log("асайн полиси дебаг:", {
-        policyHash,
-        targetType,
-        targetParams,
-        selectionInput: selection,
-        selectionProto: policySelection.toObject?.() || "no toObject",
-      });
     } else {
-      policySelection = new operator_pb.PolicySelection();
-      policySelection.setValue("1");
-      console.log("асайн полиси дебаг: selection пустой — отправляем value 1");
+      policySelection = new PolicySelection();
     }
     request.setSelection(policySelection);
 
@@ -1719,7 +1811,8 @@ export const policyAssignmentClient = {
     collectionId: number,
     targetType: PolicyTargetType,
     targetParams: PolicyTargetParams = {},
-    selection?: Record<string, unknown> | operator_pb_types.PolicySelection,
+    selection?: Record<string, unknown> | PolicySelection,
+    elementsMetadata?: PolicyElementMetadata[],
   ): Promise<operator_pb_types.AssignPolicyCollectionResponse.AsObject> {
     const request = new operator_pb.AssignPolicyCollectionRequest();
 
@@ -1738,16 +1831,15 @@ export const policyAssignmentClient = {
     const target = createPolicyTargetFromParams(targetType, targetParams);
     request.setTarget(target);
 
-    let policySelection: operator_pb.PolicySelection;
+    let policySelection: PolicySelection;
     if (selection) {
-      if (selection instanceof operator_pb.PolicySelection) {
+      if (selection instanceof PolicySelection) {
         policySelection = selection;
       } else {
-        policySelection = createPolicySelection(selection);
+        policySelection = createPolicySelection(selection, elementsMetadata);
       }
     } else {
-      policySelection = new operator_pb.PolicySelection();
-      policySelection.setValue("1");
+      policySelection = new PolicySelection();
     }
     request.setSelection(policySelection);
 

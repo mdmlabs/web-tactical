@@ -301,6 +301,7 @@ import {
   getAgentIdsFromTarget,
   policyAssignmentClient,
   collectionsClient,
+  policyStateClient,
   type Target,
 } from "@/gpo/api/grpc-client";
 import operator_pb from "@/generated/operator_pb";
@@ -359,8 +360,21 @@ const applyCollectionApplying = ref(false);
 const applyCollectionSelectedId = ref<number | null>(null);
 const applyCollectionOptions = ref<{ id: number; label: string }[]>([]);
 
-const userAppliedCollections = ref<{ id: number; name: string }[]>([]);
+const userAppliedCollections = ref<{
+  id: number;
+  name: string;
+  explainText?: string;
+  policies?: { id: number; name: string }[];
+  compliance?: {
+    assignedAndApplied: number;
+    assignedNotApplied: number;
+    notAssigned: number;
+    loading: boolean;
+  };
+}[]>([]);
 const userAppliedCollectionsLoading = ref(false);
+const complianceCache = new Map<string, { assignedAndApplied: number; assignedNotApplied: number; notAssigned: number; timestamp: number }>();
+const COMPLIANCE_CACHE_TTL = 5 * 60 * 1000;
 
 const canApplyCollection = computed(
   () =>
@@ -371,8 +385,7 @@ const canApplyCollection = computed(
 
 const canRemoveCollection = computed(
   () =>
-    canApplyCollection.value &&
-    (userAppliedCollections.value?.length ?? 0) > 0,
+    canApplyCollection.value && (userAppliedCollections.value?.length ?? 0) > 0,
 );
 
 const showRemoveCollectionDialog = ref(false);
@@ -561,9 +574,10 @@ async function handleRemoveUserAgent(agentId: string) {
   if (!userId) return;
 
   const agent = (userAgents.value ?? []).find((a) => a.id === agentId);
-  const agentLabel = agent?.name && agent.name !== agentId
-    ? `${agent.name} (${agentId})`
-    : agentId;
+  const agentLabel =
+    agent?.name && agent.name !== agentId
+      ? `${agent.name} (${agentId})`
+      : agentId;
 
   $q.dialog({
     title: "Remove agent",
@@ -589,7 +603,9 @@ async function handleRemoveUserAgent(agentId: string) {
       $q.notify({
         type: "negative",
         message:
-          err instanceof Error ? err.message : "Failed to unlink agent from user",
+          err instanceof Error
+            ? err.message
+            : "Failed to unlink agent from user",
       });
     } finally {
       removingAgentId.value = null;
@@ -688,10 +704,14 @@ async function doApplyCollectionToUser() {
   applyCollectionApplying.value = true;
   try {
     for (const agentId of agentIds) {
-      await policyAssignmentClient.assignPolicyCollection(collectionId, "user", {
-        agentId,
-        userId,
-      });
+      await policyAssignmentClient.assignPolicyCollection(
+        collectionId,
+        "user",
+        {
+          agentId,
+          userId,
+        },
+      );
     }
     notifySuccess(
       `Collection applied to user "${userLabel}" on ${agentIds.length} agent(s)`,
@@ -761,9 +781,11 @@ async function doRemoveCollectionFromUser() {
 }
 
 function handleRemoveCollectionById(collectionId: number) {
-  const collection = userAppliedCollections.value.find((c) => c.id === collectionId);
+  const collection = userAppliedCollections.value.find(
+    (c) => c.id === collectionId,
+  );
   const collectionLabel = collection?.name ?? String(collectionId);
-  
+
   $q.dialog({
     title: "Remove collection",
     message: `Do you really want to remove the collection «${collectionLabel}» from this user?`,
@@ -774,9 +796,9 @@ function handleRemoveCollectionById(collectionId: number) {
     const agentIds = getAgentIdsFromTarget(currentTarget.value);
     const userId = selectedUserId.value ?? userDetail.value?.userid;
     const userLabel = userDetail.value?.info?.samaccountname ?? userId;
-    
+
     if (agentIds.length === 0 || !userId) return;
-    
+
     actionLoading.value = true;
     try {
       for (const agentId of agentIds) {
@@ -798,6 +820,133 @@ function handleRemoveCollectionById(collectionId: number) {
       actionLoading.value = false;
     }
   });
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    const batchResults = await Promise.all(batch.map(fn));
+    results.push(...batchResults);
+  }
+  return results;
+}
+
+async function calculateCollectionCompliance(
+  userId: string,
+  collectionPolicies: { id: number; name: string }[],
+  agentsForUser: { id: string; name: string }[],
+): Promise<{ assignedAndApplied: number; assignedNotApplied: number; notAssigned: number }> {
+  if (!collectionPolicies || collectionPolicies.length === 0) {
+    return { assignedAndApplied: 0, assignedNotApplied: 0, notAssigned: 0 };
+  }
+
+  if (!agentsForUser || agentsForUser.length === 0) {
+    return { assignedAndApplied: 0, assignedNotApplied: 0, notAssigned: collectionPolicies.length };
+  }
+
+  const cacheKey = `${userId}_${collectionPolicies.map((p) => p.id).join(",")}_${agentsForUser.length}`;
+  const cached = complianceCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < COMPLIANCE_CACHE_TTL) {
+    return {
+      assignedAndApplied: cached.assignedAndApplied,
+      assignedNotApplied: cached.assignedNotApplied,
+      notAssigned: cached.notAssigned
+    };
+  }
+
+  try {
+    const results = await mapWithConcurrency(
+      agentsForUser,
+      3,
+      async (agent) => {
+        try {
+          const target = createAgentTarget(agent.id);
+          if (!target) {
+            return {
+              assignments: [],
+              effectivePolicies: [],
+            };
+          }
+
+          const [assignmentsResponse, effectivePoliciesResponse] = await Promise.all([
+            policyStateClient.getAssignments(target, "en-US").catch(() => ({ assignmentsList: [] })),
+            policyStateClient.getEffectivePolicies(target, "en-US").catch(() => ({ policiesList: [] })),
+          ]);
+
+          return {
+            assignments: assignmentsResponse.assignmentsList || [],
+            effectivePolicies: effectivePoliciesResponse.policiesList || [],
+          };
+        } catch {
+          return {
+            assignments: [],
+            effectivePolicies: [],
+          };
+        }
+      },
+    );
+
+    const assignedPolicyHashes = new Set<string>();
+    const effectivePolicyHashes = new Set<string>();
+
+    for (const result of results) {
+      for (const assignment of result.assignments) {
+        if (assignment.summary?.id) {
+          const policyId = String(assignment.summary.id);
+          assignedPolicyHashes.add(policyId);
+          assignedPolicyHashes.add(`policy_${policyId}`);
+        }
+        if (assignment.policyHash) {
+          assignedPolicyHashes.add(assignment.policyHash);
+        }
+      }
+
+      for (const policy of result.effectivePolicies) {
+        if (policy.summary?.id) {
+          const policyId = String(policy.summary.id);
+          effectivePolicyHashes.add(policyId);
+          effectivePolicyHashes.add(`policy_${policyId}`);
+        }
+        if (policy.policyHash) {
+          effectivePolicyHashes.add(policy.policyHash);
+        }
+      }
+    }
+
+    let assignedAndApplied = 0;
+    let assignedNotApplied = 0;
+    let notAssigned = 0;
+
+    for (const policy of collectionPolicies) {
+      const policyIdStr = String(policy.id);
+      const policyHash = `policy_${policyIdStr}`;
+
+      const isAssigned = assignedPolicyHashes.has(policyIdStr) ||
+                        assignedPolicyHashes.has(policyHash);
+      const isApplied = effectivePolicyHashes.has(policyIdStr) ||
+                       effectivePolicyHashes.has(policyHash);
+
+      if (isAssigned && isApplied) {
+        assignedAndApplied++;
+      } else if (isAssigned && !isApplied) {
+        assignedNotApplied++;
+      } else {
+        notAssigned++;
+      }
+    }
+
+    const complianceResult = { assignedAndApplied, assignedNotApplied, notAssigned };
+    complianceCache.set(cacheKey, { ...complianceResult, timestamp: Date.now() });
+    return complianceResult;
+  } catch (err) {
+    console.error("Error calculating collection compliance:", err);
+    return { assignedAndApplied: 0, assignedNotApplied: 0, notAssigned: collectionPolicies.length };
+  }
 }
 
 async function loadUserAppliedCollections() {
@@ -835,19 +984,60 @@ async function loadUserAppliedCollections() {
       (response as { collectionsList?: CollectionItem[] }).collectionsList ??
       (response as { collections?: CollectionItem[] }).collections ??
       [];
-    userAppliedCollections.value = list.map((c) => {
+    const mappedCollections = list.map((c) => {
       const rawPolicies = c.policiesList ?? c.policies ?? [];
       return {
         id: c.id ?? 0,
         name: c.name ?? String(c.id ?? ""),
-        explainText: (c.explainText ?? c.explain_text ?? "").trim() || undefined,
+        explainText:
+          (c.explainText ?? c.explain_text ?? "").trim() || undefined,
         policies: rawPolicies.map((p) => ({
           id: p.id ?? 0,
-          name:
-            p.displayName ?? p.display_name ?? p.name ?? String(p.id ?? ""),
+          name: p.displayName ?? p.display_name ?? p.name ?? String(p.id ?? ""),
         })),
+        compliance: {
+          assignedAndApplied: 0,
+          assignedNotApplied: 0,
+          notAssigned: 0,
+          loading: true,
+        },
       };
     });
+
+    userAppliedCollections.value = mappedCollections;
+
+    if (userAgents.value && userAgents.value.length > 0) {
+      await mapWithConcurrency(
+        mappedCollections,
+        3,
+        async (collection) => {
+          try {
+            const result = await calculateCollectionCompliance(
+              userId,
+              collection.policies || [],
+              userAgents.value,
+            );
+            collection.compliance = {
+              assignedAndApplied: result.assignedAndApplied,
+              assignedNotApplied: result.assignedNotApplied,
+              notAssigned: result.notAssigned,
+              loading: false,
+            };
+          } catch {
+            if (collection.compliance) {
+              collection.compliance.loading = false;
+            }
+          }
+        },
+      );
+    } else {
+      for (const collection of mappedCollections) {
+        if (collection.compliance) {
+          collection.compliance.loading = false;
+          collection.compliance.notAssigned = collection.policies?.length || 0;
+        }
+      }
+    }
   } catch {
     userAppliedCollections.value = [];
   } finally {
@@ -873,6 +1063,10 @@ watch(
       const agentNames = agents.map((a) => a.name);
       currentTarget.value = createUserGroupTargetForAgents(agentIds);
       targetLabel.value = agentNames.join(", ");
+      
+      if (userAppliedCollections.value.length > 0) {
+        loadUserAppliedCollections();
+      }
     } else {
       currentTarget.value = createGlobalTarget();
       targetLabel.value = "Global";
