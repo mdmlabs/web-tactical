@@ -60,15 +60,21 @@ class WazuhApiClient {
     this.client.interceptors.response.use(
       (response) => response,
       async (error) => {
-        if (error.response?.status === 401 && this.onAuthFailFn) {
+        const config = error.config;
+        if (
+          error.response?.status === 401 &&
+          this.onAuthFailFn &&
+          !config._authRetry
+        ) {
+          config._authRetry = true;
           await this.onAuthFailFn();
 
           // Retry original request with new token
           const token = this.tokenGetter?.();
           if (token) {
-            error.config.headers.Authorization = `Bearer ${token}`;
+            config.headers.Authorization = `Bearer ${token}`;
           }
-          return this.client.request(error.config);
+          return this.client.request(config);
         }
         return Promise.reject(error);
       },
