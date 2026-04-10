@@ -763,3 +763,10 @@ export default {
   overflow: hidden;
 }
 </style>
+
+<style>
+/* Uppercase table column headers */
+.agents-tbl-sticky th {
+  text-transform: uppercase;
+}
+</style>

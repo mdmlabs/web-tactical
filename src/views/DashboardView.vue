@@ -248,16 +248,16 @@
         <div class="column full-height" style="overflow: auto">
           <!-- Stats + Map Section -->
           <div class="q-px-md q-pt-sm q-pb-xs">
-            <div class="row q-col-gutter-md">
+            <div class="row q-col-gutter-md items-stretch">
               <!-- Stat cards -->
               <div class="col-12 col-md-6">
-                <div class="row q-col-gutter-md">
+                <div class="row q-col-gutter-md items-stretch" style="height: 100%">
                   <div class="col-6">
                     <q-card flat bordered class="stat-card">
                       <q-card-section class="row items-center no-wrap q-pa-md">
                         <div class="col">
-                          <div class="text-caption text-grey-7">
-                            Total Agents
+                          <div class="text-caption text-grey-7 text-uppercase">
+                            TOTAL AGENTS
                           </div>
                           <div class="text-h4 text-weight-bold">
                             {{ agents.length }}
@@ -275,8 +275,8 @@
                     <q-card flat bordered class="stat-card">
                       <q-card-section class="row items-center no-wrap q-pa-md">
                         <div class="col">
-                          <div class="text-caption text-grey-7">
-                            Online Agents
+                          <div class="text-caption text-grey-7 text-uppercase">
+                            ONLINE AGENTS
                           </div>
                           <div class="text-h4 text-weight-bold">
                             {{ onlineAgentCount }}
@@ -295,10 +295,13 @@
             </div>
           </div>
 
-          <!-- Agents header -->
-          <div class="q-px-md q-pt-sm q-pb-xs text-subtitle1 text-weight-bold">
-            Agents
-          </div>
+          <!-- Agents section card -->
+          <div class="q-px-md q-pt-sm q-pb-xs">
+          <div class="agents-card">
+            <div class="agents-card__header">
+              <span class="text-subtitle1 text-weight-bold">Agents</span>
+              <span class="text-caption text-grey-7">{{ paginationLabel }}</span>
+            </div>
 
           <div class="row q-pb-xs no-wrap q-px-md">
             <q-tabs
@@ -488,6 +491,8 @@
               :showAlertColumns="showAlertColumns"
             />
           </div>
+          </div><!-- /.agents-card -->
+          </div><!-- /.q-px-md wrapper -->
         </div>
       </template>
     </q-splitter>
@@ -970,6 +975,11 @@ export default {
       if (this.tab === "mixed") return this.agents;
       else return this.agents.filter((k) => k.monitoring_type === this.tab);
     },
+    paginationLabel() {
+      const total = this.filteredAgents.length;
+      if (total === 0) return "0 of 0";
+      return `1-${total} of ${total}`;
+    },
     isFilteringTable() {
       return (
         this.filterPatchesPending ||
@@ -1051,5 +1061,22 @@ export default {
 .stat-card {
   border-radius: 8px;
   height: 100%;
+}
+
+/* Agents section card */
+.agents-card {
+  background: var(--mdm-bg-card, #fff);
+  border-radius: var(--mdm-radius-lg, 8px);
+  box-shadow: var(--mdm-shadow, 0 1px 3px 0 rgb(0 0 0 / 0.1));
+  border: 1px solid var(--mdm-border-light, #f0f0f0);
+  overflow: hidden;
+}
+
+.agents-card__header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--mdm-border-light, #f0f0f0);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 </style>

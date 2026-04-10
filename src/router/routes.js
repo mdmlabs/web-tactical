@@ -125,55 +125,7 @@ const routes = [
         children: [
           {
             path: "",
-            redirect: "/security/dashboard",
-          },
-          {
-            path: "dashboard",
-            name: "SecurityDashboard",
-            component: () =>
-              import("@/views/security/SecurityDashboard.vue"),
-          },
-          {
-            path: "agents",
-            name: "SecurityAgents",
-            component: () =>
-              import("@/views/security/SecurityAgents.vue"),
-          },
-          {
-            path: "agents/:hostname",
-            name: "AgentSecurityDetail",
-            component: () =>
-              import("@/views/security/AgentSecurityDetail.vue"),
-            props: true,
-          },
-          {
-            path: "alerts",
-            name: "SecurityAlerts",
-            component: () =>
-              import("@/views/security/SecurityAlerts.vue"),
-          },
-          {
-            path: "wazuh",
-            name: "WazuhDashboard",
-            component: () =>
-              import("@/views/security/WazuhDashboardEmbed.vue"),
-          },
-        ],
-      },
-      {
-        path: "/security",
-        component: () => import("@/views/security/SecurityLayout.vue"),
-        meta: { requireAuth: true },
-        children: [
-          {
-            path: "",
-            redirect: "/security/dashboard",
-          },
-          {
-            path: "dashboard",
-            name: "SecurityDashboard",
-            component: () =>
-              import("@/views/security/SecurityDashboard.vue"),
+            redirect: "/security/agents",
           },
           {
             path: "agents",
@@ -214,10 +166,10 @@ const routes = [
               import("@/views/security/SecurityGroups.vue"),
           },
           {
-            path: "wazuh",
-            name: "WazuhDashboard",
+            path: "it-hygiene",
+            name: "ITHygiene",
             component: () =>
-              import("@/views/security/WazuhDashboardEmbed.vue"),
+              import("@/views/security/ITHygieneView.vue"),
           },
         ],
       },

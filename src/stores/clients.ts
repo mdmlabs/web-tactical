@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import axios from "axios";
 import { fetchAgents } from "@/api/agents";
+import { useClientListStore } from "@/stores/clientList";
 
 interface TreeNode {
   label: string;
@@ -50,6 +51,19 @@ export const useClientsStore = defineStore("clients", () => {
   const clientTreeSplitter = ref(20);
 
   const clientsTree = computed(() => tree.value);
+
+  const filteredTree = computed(() => {
+    const clStore = useClientListStore();
+    if (clStore.showHiddenMode) {
+      return (tree.value as TreeNode[]).filter((node) =>
+        clStore.isHidden(node.raw || ""),
+      );
+    }
+    return (tree.value as TreeNode[]).filter(
+      (node) => !clStore.isHidden(node.raw || ""),
+    );
+  });
+
   const allClientsSelected = computed(() => !selectedTree.value);
 
   async function loadTree() {
@@ -177,6 +191,7 @@ export const useClientsStore = defineStore("clients", () => {
     clientTreeSort,
     clientTreeSplitter,
     clientsTree,
+    filteredTree,
     allClientsSelected,
     loadTree,
     setSelectedTree,
