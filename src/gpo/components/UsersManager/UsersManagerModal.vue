@@ -617,10 +617,13 @@ function isUserScope(raw: unknown): boolean {
   if (raw === undefined || raw === null) return false;
   if (typeof raw === "number") {
     const n = Math.floor(raw);
-    return n === operator_pb.PolicyScope.POLICY_SCOPE_USER;
+    return (
+      n === operator_pb.PolicyScope.POLICY_SCOPE_USER ||
+      n === operator_pb.PolicyScope.POLICY_SCOPE_BOTH
+    );
   }
   const s = String(raw).toUpperCase();
-  return s === "USER" || s === "1";
+  return s === "USER" || s === "1" || s === "BOTH" || s === "3";
 }
 
 async function loadCollectionsForApply() {

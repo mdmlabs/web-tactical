@@ -676,6 +676,7 @@ function normalizeScope(raw: unknown): number | null {
   if (!s) return null;
   if (s === "POLICY_SCOPE_USER" || s === "USER" || s === "1") return 1;
   if (s === "POLICY_SCOPE_MACHINE" || s === "MACHINE" || s === "COMPUTER" || s === "2") return 2;
+  if (s === "POLICY_SCOPE_BOTH" || s === "BOTH" || s === "3") return 3;
   const n = Number.parseInt(s, 10);
   return Number.isFinite(n) ? n : null;
 }
@@ -684,7 +685,9 @@ const filteredSelectedCategoryPolicies = computed(() => {
   const list = selectedCategoryPolicies.value.filter((p) => {
     const scope = normalizeScope(p.scope);
     return (
-      scope === null || scope === operator_pb.PolicyScope.POLICY_SCOPE_MACHINE
+      scope === null ||
+      scope === operator_pb.PolicyScope.POLICY_SCOPE_MACHINE ||
+      scope === operator_pb.PolicyScope.POLICY_SCOPE_BOTH
     );
   });
   return list;
