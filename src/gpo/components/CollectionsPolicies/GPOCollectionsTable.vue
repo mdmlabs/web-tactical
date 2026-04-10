@@ -403,6 +403,7 @@ const editSubmitting = ref(false);
 const scopeOptions = [
   { value: operator_pb.PolicyScope.POLICY_SCOPE_USER, label: "User" },
   { value: operator_pb.PolicyScope.POLICY_SCOPE_MACHINE, label: "Computer" },
+  // { value: operator_pb.PolicyScope.POLICY_SCOPE_BOTH, label: "Both" },
 ];
 
 const SCOPE_FILTER_ALL = null as number | null;
@@ -411,6 +412,7 @@ const scopeFilterOptions = [
   { value: SCOPE_FILTER_ALL, label: "All" },
   { value: operator_pb.PolicyScope.POLICY_SCOPE_USER, label: "User" },
   { value: operator_pb.PolicyScope.POLICY_SCOPE_MACHINE, label: "Computer" },
+  // { value: operator_pb.PolicyScope.POLICY_SCOPE_BOTH, label: "Both" },
 ];
 
 const filteredCollectionsList = computed(() => {

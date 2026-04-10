@@ -180,7 +180,7 @@ import type { CategoryNode, PolicyItem } from "../../types/policy-catalog";
 const POLICY_SCOPE_NONE = 0;
 const POLICY_SCOPE_USER = 1;
 const POLICY_SCOPE_MACHINE = 2;
-// const POLICY_SCOPE_BOTH = 3;
+const POLICY_SCOPE_BOTH = 3;
 
 interface PolicyDetailsElement {
   id: number;
@@ -208,7 +208,6 @@ const scopeFilterOptions = [
   { label: "All", value: "all" },
   { label: "User", value: "user" },
   { label: "Computer", value: "computer" },
-  // { label: "Both", value: "both"}
 ];
 
 const props = defineProps<{
@@ -307,8 +306,8 @@ function scopeLabel(scope: number): string {
       return "User";
     case POLICY_SCOPE_MACHINE:
       return "Computer";
-    // case POLICY_SCOPE_BOTH:
-    //   return "User & Machine";
+    case POLICY_SCOPE_BOTH:
+      return "User & Computer";
     case POLICY_SCOPE_NONE:
     default:
       return "None";
@@ -321,8 +320,10 @@ const filteredGroupedPolicies = computed(() => {
 
   if (filter !== "all") {
     list = list.filter((p) => {
-      if (filter === "user") return p.scope === POLICY_SCOPE_USER;
-      if (filter === "computer") return p.scope === POLICY_SCOPE_MACHINE;
+      if (filter === "user")
+        return p.scope === POLICY_SCOPE_USER || p.scope === POLICY_SCOPE_BOTH;
+      if (filter === "computer")
+        return p.scope === POLICY_SCOPE_MACHINE || p.scope === POLICY_SCOPE_BOTH;
       return true;
     });
   }
@@ -335,6 +336,7 @@ const filteredGroupedPolicies = computed(() => {
   const byScope: Record<number, PolicyItem[]> = {
     [POLICY_SCOPE_USER]: [],
     [POLICY_SCOPE_MACHINE]: [],
+    [POLICY_SCOPE_BOTH]: [],
     [POLICY_SCOPE_NONE]: [],
   };
   for (const p of list) {
@@ -342,7 +344,7 @@ const filteredGroupedPolicies = computed(() => {
     if (!byScope[scope]) byScope[scope] = [];
     byScope[scope].push(p);
   }
-  const order = [POLICY_SCOPE_USER, POLICY_SCOPE_MACHINE, POLICY_SCOPE_NONE];
+  const order = [POLICY_SCOPE_USER, POLICY_SCOPE_MACHINE, POLICY_SCOPE_BOTH, POLICY_SCOPE_NONE];
   for (const scope of order) {
     const policies = byScope[scope] || [];
     if (policies.length === 0) continue;
