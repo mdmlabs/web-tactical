@@ -246,51 +246,43 @@
 
       <template v-slot:after>
         <div class="column full-height" style="overflow: auto">
-          <!-- Stats + Map Section -->
+          <!-- Stats Section -->
           <div class="q-px-md q-pt-sm q-pb-xs">
             <div class="row q-col-gutter-md items-stretch">
               <!-- Stat cards -->
               <div class="col-12 col-md-6">
-                <div class="row q-col-gutter-md items-stretch" style="height: 100%">
-                  <div class="col-6">
-                    <q-card flat bordered class="stat-card">
-                      <q-card-section class="row items-center no-wrap q-pa-md">
-                        <div class="col">
-                          <div class="text-caption text-grey-7 text-uppercase">
-                            TOTAL AGENTS
-                          </div>
-                          <div class="text-h4 text-weight-bold">
-                            {{ agents.length }}
-                          </div>
-                        </div>
-                        <q-icon
-                          name="mdi-monitor-multiple"
-                          size="2.5em"
-                          color="primary"
-                        />
-                      </q-card-section>
-                    </q-card>
-                  </div>
-                  <div class="col-6">
-                    <q-card flat bordered class="stat-card">
-                      <q-card-section class="row items-center no-wrap q-pa-md">
-                        <div class="col">
-                          <div class="text-caption text-grey-7 text-uppercase">
-                            ONLINE AGENTS
-                          </div>
-                          <div class="text-h4 text-weight-bold">
-                            {{ onlineAgentCount }}
-                          </div>
-                        </div>
-                        <q-icon name="wifi" size="2.5em" color="positive" />
-                      </q-card-section>
-                    </q-card>
-                  </div>
-                </div>
+                <q-card flat bordered class="stat-card">
+                  <q-card-section class="row items-center no-wrap q-pa-md">
+                    <div class="col">
+                      <div class="text-caption text-grey-7 text-uppercase">
+                        TOTAL AGENTS
+                      </div>
+                      <div class="text-h4 text-weight-bold">
+                        {{ agents.length }}
+                      </div>
+                    </div>
+                    <q-icon
+                      name="mdi-monitor-multiple"
+                      size="2.5em"
+                      color="primary"
+                    />
+                  </q-card-section>
+                </q-card>
               </div>
-              <!-- Mini Map -->
               <div class="col-12 col-md-6">
-                <DashboardMiniMap />
+                <q-card flat bordered class="stat-card">
+                  <q-card-section class="row items-center no-wrap q-pa-md">
+                    <div class="col">
+                      <div class="text-caption text-grey-7 text-uppercase">
+                        ONLINE AGENTS
+                      </div>
+                      <div class="text-h4 text-weight-bold">
+                        {{ onlineAgentCount }}
+                      </div>
+                    </div>
+                    <q-icon name="wifi" size="2.5em" color="positive" />
+                  </q-card-section>
+                </q-card>
               </div>
             </div>
           </div>
@@ -509,7 +501,6 @@ import mixins from "@/mixins/mixins";
 import { openURL } from "quasar";
 import { mapState } from "vuex";
 import AgentTable from "@/components/AgentTable.vue";
-import DashboardMiniMap from "@/components/agents/DashboardMiniMap.vue";
 import PolicyAdd from "@/components/automation/modals/PolicyAdd.vue";
 import SitesForm from "@/components/clients/SitesForm.vue";
 import DeleteClient from "@/components/clients/DeleteClient.vue";
@@ -523,7 +514,6 @@ export default {
   name: "DashboardView",
   components: {
     AgentTable,
-    DashboardMiniMap,
     InstallAgent,
     IntegrationsContextMenu,
   },
@@ -712,6 +702,7 @@ export default {
         "windows_policy_status",
         "windows_policy_last_seen",
         "boot_time",
+        "geolocation",
       ],
     };
   },
