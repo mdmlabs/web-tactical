@@ -417,4 +417,10 @@ watch(
   
   &.error
     color: #f44336
+
+.body--dark .policies-list-container
+  border-color: rgba(255, 255, 255, 0.12)
+
+.body--dark .policy-item:hover
+  background-color: rgba(255, 255, 255, 0.06)
 </style>

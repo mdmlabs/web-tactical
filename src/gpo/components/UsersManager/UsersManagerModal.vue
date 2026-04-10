@@ -1113,6 +1113,13 @@ onMounted(() => {
   height: 100%
   overflow: hidden
 
+.body--dark .users-manager-layout
+  background: rgba(30, 30, 30, 0.98)
+
+.body--dark .users-manager-header
+  color: rgba(255, 255, 255, 0.87)
+  border-bottom-color: rgba(255, 255, 255, 0.12)
+
 .target-badge
   padding: 6px 10px
 </style>

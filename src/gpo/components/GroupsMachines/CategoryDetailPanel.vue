@@ -70,7 +70,7 @@
         :model-value="detailTab"
         dense
         inline-label
-        class="text-grey bg-grey-1"
+        class="text-grey gpo-detail-tabs"
         active-color="primary"
         indicator-color="primary"
         align="left"

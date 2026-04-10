@@ -1541,4 +1541,16 @@ async function doSetCategoryAgents() {
 
   &:hover
     background-color: rgba(0, 0, 0, 0.02)
+
+.body--dark .groups-left-panel
+  border-right-color: rgba(255, 255, 255, 0.12)
+
+.body--dark .policies-list-container
+  border-color: rgba(255, 255, 255, 0.12)
+
+.body--dark .policy-item:hover
+  background-color: rgba(255, 255, 255, 0.06)
+
+.body--dark .groups-tree .q-tree__node--selected > .q-tree__node-header
+  background: rgba(25, 118, 210, 0.25)
 </style>

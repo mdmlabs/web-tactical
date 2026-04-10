@@ -166,7 +166,11 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { policyCatalogClient, collectionsClient } from "../../api/grpc-client";
+import {
+  policyCatalogClient,
+  collectionsClient,
+  type PolicyElementMetadata,
+} from "../../api/grpc-client";
 import { notifyError, notifySuccess } from "@/utils/notify";
 import CategoryTree from "./CategoryTree.vue";
 import PolicyList from "./PolicyList.vue";
@@ -242,6 +246,8 @@ const policyHashes = ref<Record<string, string>>({});
 const policyState = ref<Record<string, boolean>>({});
 const scopeFilter = ref<string>("all");
 const applying = ref(false);
+const perPolicySettings = ref<Record<string, Record<string, unknown>>>({});
+const perPolicyElements = ref<Record<string, PolicyDetailsElement[]>>({});
 
 const selectedPoliciesList = computed(() => {
   const list: PolicyItem[] = [];
@@ -298,6 +304,16 @@ function retryLoadPolicies() {
 
 function updateSettingsField(key: string, value: unknown) {
   policySettingsValues.value[key] = value;
+  const policyId = selectedPolicy.value?.id;
+  if (policyId) {
+    if (!perPolicySettings.value[policyId]) {
+      perPolicySettings.value[policyId] = {};
+    }
+    perPolicySettings.value[policyId] = {
+      ...perPolicySettings.value[policyId],
+      [key]: value,
+    };
+  }
 }
 
 function scopeLabel(scope: number): string {
@@ -372,6 +388,8 @@ watch(
       settingsTab.value = "settings";
       policyDetailsElements.value = [];
       policySettingsValues.value = {};
+      perPolicySettings.value = {};
+      perPolicyElements.value = {};
       loadingPolicyDetails.value = false;
       loadCategories();
     }
@@ -584,14 +602,21 @@ async function loadPolicyDetails(policy: PolicyItem) {
     const presentationMap = buildPresentationMap(presentationList);
     const elements = buildPolicyElements(policyElements, presentationMap);
     policyDetailsElements.value = elements;
+    perPolicyElements.value[policy.id] = elements;
 
-    const values: Record<string, unknown> = {};
-    for (const element of elements) {
-      const presentationEl = presentationMap.get(element.element_id);
-      values[element.element_id] =
-        presentationEl?.default_value ?? getDefaultValue(element);
+    const saved = perPolicySettings.value[policy.id];
+    if (saved) {
+      policySettingsValues.value = { ...saved };
+    } else {
+      const values: Record<string, unknown> = {};
+      for (const element of elements) {
+        const presentationEl = presentationMap.get(element.element_id);
+        values[element.element_id] =
+          presentationEl?.default_value ?? getDefaultValue(element);
+      }
+      policySettingsValues.value = values;
+      perPolicySettings.value[policy.id] = { ...values };
     }
-    policySettingsValues.value = values;
   } catch {
     policyDetailsElements.value = [];
     policySettingsValues.value = {};
@@ -642,7 +667,12 @@ async function submitAddPolicies() {
 
   applying.value = true;
   try {
-    const policiesWithState: Array<{ hash: string; state: boolean }> = [];
+    const policiesWithState: Array<{
+      hash: string;
+      state: boolean;
+      selection?: Record<string, unknown>;
+      elementsMetadata?: PolicyElementMetadata[];
+    }> = [];
     for (const policy of list) {
       const id = policy.id;
       const hash =
@@ -650,9 +680,22 @@ async function submitAddPolicies() {
           ? policy.hash.trim()
           : null) ?? (await getHashForPolicy(id));
       if (hash) {
+        const savedSettings = perPolicySettings.value[id];
+        const savedElements = perPolicyElements.value[id];
+        const elementsMetadata: PolicyElementMetadata[] | undefined =
+          savedElements?.map((el) => ({
+            element_id: el.element_id,
+            type: el.type,
+            items: el.items,
+          }));
         policiesWithState.push({
           hash,
           state: policyState.value[id] !== false,
+          selection:
+            savedSettings && Object.keys(savedSettings).length > 0
+              ? savedSettings
+              : undefined,
+          elementsMetadata,
         });
       }
     }

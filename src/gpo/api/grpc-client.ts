@@ -1843,12 +1843,6 @@ export const policyAssignmentClient = {
     }
     request.setSelection(policySelection);
 
-    const requestObj = request.toObject();
-    console.log(
-      "[assignPolicyCollection]request:",
-      JSON.stringify(requestObj, null, 2),
-    );
-
     const response = await policyAssignmentServiceClient.assignPolicyCollection(
       request,
       createGrpcMetadata(),
@@ -2150,7 +2144,12 @@ export const collectionsClient = {
 
   async createCollectionsPolicies(
     collectionId: number,
-    policies: Array<{ hash: string; state: boolean }>,
+    policies: Array<{
+      hash: string;
+      state: boolean;
+      selection?: Record<string, unknown> | PolicySelection;
+      elementsMetadata?: PolicyElementMetadata[];
+    }>,
   ): Promise<operator_pb_types.CreateCollectionsPoliciesResponse.AsObject> {
     if (!collectionId || collectionId <= 0) {
       throw new Error(
@@ -2168,6 +2167,8 @@ export const collectionsClient = {
       .map((p) => ({
         hash: typeof p.hash === "string" ? p.hash.trim() : String(p.hash),
         state: Boolean(p.state),
+        selection: p.selection,
+        elementsMetadata: p.elementsMetadata,
       }))
       .filter((p) => p.hash.length > 0);
 
@@ -2194,6 +2195,15 @@ export const collectionsClient = {
       const model = new operator_pb.PolicyConfigureModel();
       model.setHash(p.hash);
       model.setState(p.state);
+
+      if (p.selection) {
+        const sel =
+          p.selection instanceof PolicySelection
+            ? p.selection
+            : createPolicySelection(p.selection, p.elementsMetadata);
+        model.setSelection(sel);
+      }
+
       request.addPolicies(model);
     }
 

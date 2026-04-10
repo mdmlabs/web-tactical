@@ -149,7 +149,11 @@ function submit() {
 
 <style scoped>
 .bordered {
-  border: 1px solid #e0e0e0;
+  border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 4px;
+}
+
+.body--dark .bordered {
+  border-color: rgba(255, 255, 255, 0.12);
 }
 </style>

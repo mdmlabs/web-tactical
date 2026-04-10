@@ -2015,4 +2015,15 @@ async function removePolicy() {
 .policy-element:hover
   background: rgba(0, 0, 0, 0.04)
   border-color: rgba(0, 0, 0, 0.2)
+
+.body--dark .policy-item:hover
+  background-color: rgba(255, 255, 255, 0.06)
+
+.body--dark .policy-element
+  border-color: rgba(255, 255, 255, 0.12)
+  background: rgba(255, 255, 255, 0.04)
+
+.body--dark .policy-element:hover
+  background: rgba(255, 255, 255, 0.08)
+  border-color: rgba(255, 255, 255, 0.2)
 </style>

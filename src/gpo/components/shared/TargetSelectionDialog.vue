@@ -301,4 +301,7 @@ function handleApply() {
 .target-tree
   :deep(.q-tree__node-header)
     border-radius: 4px
+
+.body--dark .target-dialog-agents
+  border-left-color: rgba(255, 255, 255, 0.12)
 </style>
