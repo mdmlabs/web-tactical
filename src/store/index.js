@@ -428,7 +428,7 @@ export default function () {
                     id: site.id,
                     raw: `Site|${site.id}`,
                     header: childNodes.length > 0 ? "root" : "generic",
-                    icon: childNodes.length > 0 ? "devices" : "computer",
+                    icon: childNodes.length > 0 ? "corporate_fare" : "business_center",
                     selectable: true,
                     site: site,
                   };

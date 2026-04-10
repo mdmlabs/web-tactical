@@ -23,6 +23,14 @@ const routes = [
         },
       },
       {
+        path: "agents/map",
+        name: "AgentMap",
+        component: () => import("@/views/AgentMapView.vue"),
+        meta: {
+          requireAuth: true,
+        },
+      },
+      {
         path: "/gpo",
         name: "GPOManager",
         component: () => import("@/gpo/views/GPOManagerView.vue"),
@@ -109,6 +117,61 @@ const routes = [
         meta: {
           requireAuth: true,
         },
+      },
+      {
+        path: "/security",
+        component: () => import("@/views/security/SecurityLayout.vue"),
+        meta: { requireAuth: true },
+        children: [
+          {
+            path: "",
+            redirect: "/security/agents",
+          },
+          {
+            path: "agents",
+            name: "SecurityAgents",
+            component: () =>
+              import("@/views/security/SecurityAgents.vue"),
+          },
+          {
+            path: "agents/:hostname",
+            name: "AgentSecurityDetail",
+            component: () =>
+              import("@/views/security/AgentSecurityDetail.vue"),
+            props: true,
+          },
+          {
+            path: "agents/:agentId/detail",
+            name: "AgentEndpointDetail",
+            component: () =>
+              import("@/views/security/AgentEndpointDetail.vue"),
+            props: true,
+          },
+          {
+            path: "discover",
+            name: "SecurityDiscover",
+            component: () =>
+              import("@/views/security/DiscoverView.vue"),
+          },
+          {
+            path: "alerts",
+            name: "SecurityAlerts",
+            component: () =>
+              import("@/views/security/SecurityAlerts.vue"),
+          },
+          {
+            path: "groups",
+            name: "SecurityGroups",
+            component: () =>
+              import("@/views/security/SecurityGroups.vue"),
+          },
+          {
+            path: "it-hygiene",
+            name: "ITHygiene",
+            component: () =>
+              import("@/views/security/ITHygieneView.vue"),
+          },
+        ],
       },
     ],
   },

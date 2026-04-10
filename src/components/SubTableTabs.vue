@@ -85,6 +85,13 @@
           icon="travel_explore"
           label="Audit"
         />
+        <q-tab
+          v-if="activeTabs.includes('geolocation')"
+          content-class="min-width"
+          name="geolocation"
+          icon="mdi-map-marker"
+          label="Geolocation"
+        />
       </q-tabs>
       <q-separator />
     </q-header>
@@ -160,6 +167,13 @@
         >
           <AuditTab />
         </q-tab-panel>
+        <q-tab-panel
+          v-if="activeTabs.includes('geolocation')"
+          name="geolocation"
+          class="q-pa-none"
+        >
+          <GeolocationTab />
+        </q-tab-panel>
       </q-tab-panels>
     </q-page-container>
   </q-layout>
@@ -181,6 +195,7 @@ import AuditTab from "@/components/agents/AuditTab.vue";
 import DebugTab from "@/components/agents/DebugTab.vue";
 import AssetsTab from "@/components/agents/AssetsTab.vue";
 import NotesTab from "@/components/agents/NotesTab.vue";
+import GeolocationTab from "@/components/agents/GeolocationTab.vue";
 
 export default {
   name: "SubTableTabs",
@@ -195,6 +210,7 @@ export default {
     DebugTab,
     AssetsTab,
     NotesTab,
+    GeolocationTab,
   },
   props: {
     activeTabs: {

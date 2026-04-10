@@ -321,3 +321,25 @@ export async function deleteMdmAgents(payload) {
     throw e;
   }
 }
+
+// geolocation
+export async function fetchAgentsGeolocation() {
+  try {
+    const { data } = await axios.get(`${baseUrl}/geolocation/`);
+    return data;
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+export async function fetchAgentGeolocationHistory(agentId, params = {}) {
+  try {
+    const { data } = await axios.get(
+      `${baseUrl}/${agentId}/geolocation/history/`,
+      { params },
+    );
+    return data;
+  } catch (e) {
+    console.error(e);
+  }
+}

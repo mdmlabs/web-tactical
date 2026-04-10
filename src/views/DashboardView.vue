@@ -27,7 +27,7 @@
               <q-item-section avatar>
                 <q-icon name="dashboard" />
               </q-item-section>
-              <q-item-section>All Groups</q-item-section>
+              <q-item-section>All Clients</q-item-section>
             </q-item>
             <q-tree
               ref="tree"
@@ -36,44 +36,72 @@
               no-nodes-label="No Clients"
               selected-color="primary"
               v-model:selected="selectedTree"
+              :expanded="expandedNodes"
+              @update:expanded="onExpandedUpdate"
               @update:selected="$store.dispatch('refreshDashboard')"
             >
               <template v-slot:default-header="props">
                 <div class="row items-center">
-                  <q-icon
-                    :name="props.node.icon"
-                    :color="props.node.color"
-                    class="q-mr-sm"
-                  />
-                  <div>
-                    {{ props.node.label }}
+                  <!-- Agent node: show status dot -->
+                  <template v-if="props.node.raw && String(props.node.raw).startsWith('Agent|')">
+                    <span
+                      class="status-dot"
+                      :class="props.node.color === 'positive' ? 'status-dot--online' : 'status-dot--offline'"
+                    ></span>
+                    <span class="q-ml-xs">{{ props.node.label }}</span>
                     <q-tooltip :delay="600">
-                      ID: {{ props.node.id }}<br />
-                      Agent Count:
-                      {{ props.node.site?.agent_count ?? 0 }}
+                      Agent ID: {{ String(props.node.raw).split('|')[1] }}<br />
+                      Status: {{ props.node.color === 'positive' ? 'online' : 'offline' }}
                     </q-tooltip>
-                  </div>
+                  </template>
+                  <!-- Site/Client node: show icon -->
+                  <template v-else>
+                    <q-icon
+                      :name="props.node.icon"
+                      :color="props.node.color"
+                      class="q-mr-sm"
+                    />
+                    <div>
+                      {{ props.node.label }}
+                      <q-badge
+                        v-if="props.node.site?.agent_count > 0"
+                        color="grey-4"
+                        text-color="grey-8"
+                        :label="props.node.site.agent_count"
+                        class="q-ml-xs agent-count-badge"
+                        rounded
+                        clickable
+                        @click.stop="toggleExpand(props.node.raw)"
+                      >
+                        <q-tooltip>Click to show/hide agents</q-tooltip>
+                      </q-badge>
+                      <q-tooltip :delay="600">
+                        ID: {{ props.node.id }}<br />
+                        Agent Count:
+                        {{ props.node.site?.agent_count ?? 0 }}
+                      </q-tooltip>
+                    </div>
 
-                  <q-menu context-menu>
-                    <q-list dense style="min-width: 200px">
-                      <q-item
-                        clickable
-                        v-close-popup
-                        @click="showEditModal(props.node)"
-                      >
-                        <q-item-section side>
-                          <q-icon name="edit_note" />
-                        </q-item-section>
-                        <q-item-section>Edit</q-item-section>
-                      </q-item>
-                      <q-item
-                        clickable
-                        v-close-popup
-                        @click="showDeleteModal(props.node)"
-                      >
-                        <q-item-section side>
-                          <q-icon name="delete_outline" />
-                        </q-item-section>
+                    <q-menu context-menu>
+                      <q-list dense style="min-width: 200px">
+                        <q-item
+                          clickable
+                          v-close-popup
+                          @click="showEditModal(props.node)"
+                        >
+                          <q-item-section side>
+                            <q-icon name="edit_note" />
+                          </q-item-section>
+                          <q-item-section>Edit</q-item-section>
+                        </q-item>
+                        <q-item
+                          clickable
+                          v-close-popup
+                          @click="showDeleteModal(props.node)"
+                        >
+                          <q-item-section side>
+                            <q-icon name="delete_outline" />
+                          </q-item-section>
                         <q-item-section>Delete</q-item-section>
                       </q-item>
 
@@ -157,7 +185,11 @@
                               clickable
                               v-close-popup
                               @click="
-                                runURLAction(props.node.id, action.id, 'site')
+                                runURLAction(
+                                  props.node.id,
+                                  action.id,
+                                  'site',
+                                )
                               "
                             >
                               {{ action.name }}
@@ -180,7 +212,9 @@
 
                       <q-item
                         clickable
-                        v-if="$integrations?.siteMenuIntegrations?.length > 0"
+                        v-if="
+                          $integrations?.siteMenuIntegrations?.length > 0
+                        "
                       >
                         <q-item-section side>
                           <q-icon name="assessment" />
@@ -202,6 +236,7 @@
                       </q-item>
                     </q-list>
                   </q-menu>
+                  </template>
                 </div>
               </template>
             </q-tree>
@@ -210,8 +245,65 @@
       </template>
 
       <template v-slot:after>
-        <div class="column full-height" style="overflow: hidden">
-          <div class="row q-pb-xs no-wrap">
+        <div class="column full-height" style="overflow: auto">
+          <!-- Stats + Map Section -->
+          <div class="q-px-md q-pt-sm q-pb-xs">
+            <div class="row q-col-gutter-md items-stretch">
+              <!-- Stat cards -->
+              <div class="col-12 col-md-6">
+                <div class="row q-col-gutter-md items-stretch" style="height: 100%">
+                  <div class="col-6">
+                    <q-card flat bordered class="stat-card">
+                      <q-card-section class="row items-center no-wrap q-pa-md">
+                        <div class="col">
+                          <div class="text-caption text-grey-7 text-uppercase">
+                            TOTAL AGENTS
+                          </div>
+                          <div class="text-h4 text-weight-bold">
+                            {{ agents.length }}
+                          </div>
+                        </div>
+                        <q-icon
+                          name="mdi-monitor-multiple"
+                          size="2.5em"
+                          color="primary"
+                        />
+                      </q-card-section>
+                    </q-card>
+                  </div>
+                  <div class="col-6">
+                    <q-card flat bordered class="stat-card">
+                      <q-card-section class="row items-center no-wrap q-pa-md">
+                        <div class="col">
+                          <div class="text-caption text-grey-7 text-uppercase">
+                            ONLINE AGENTS
+                          </div>
+                          <div class="text-h4 text-weight-bold">
+                            {{ onlineAgentCount }}
+                          </div>
+                        </div>
+                        <q-icon name="wifi" size="2.5em" color="positive" />
+                      </q-card-section>
+                    </q-card>
+                  </div>
+                </div>
+              </div>
+              <!-- Mini Map -->
+              <div class="col-12 col-md-6">
+                <DashboardMiniMap />
+              </div>
+            </div>
+          </div>
+
+          <!-- Agents section card -->
+          <div class="q-px-md q-pt-sm q-pb-xs">
+          <div class="agents-card">
+            <div class="agents-card__header">
+              <span class="text-subtitle1 text-weight-bold">Agents</span>
+              <span class="text-caption text-grey-7">{{ paginationLabel }}</span>
+            </div>
+
+          <div class="row q-pb-xs no-wrap q-px-md">
             <q-tabs
               v-model="tab"
               dense
@@ -223,9 +315,9 @@
               align="left"
               narrow-indicator
             >
-              <!-- <q-tab name="server" icon="dns" label="Servers" /> -->
-              <!-- <q-tab name="workstation"  label="Workstations" /> -->
-              <!-- <q-tab name="mixed" icon="view_module" label="Mixed" /> -->
+              <q-tab name="server" icon="dns" label="Servers" />
+              <q-tab name="workstation" icon="laptop" label="Workstations" />
+              <q-tab name="mixed" icon="view_module" label="Mixed" />
             </q-tabs>
             <q-space />
             <q-btn
@@ -399,6 +491,8 @@
               :showAlertColumns="showAlertColumns"
             />
           </div>
+          </div><!-- /.agents-card -->
+          </div><!-- /.q-px-md wrapper -->
         </div>
       </template>
     </q-splitter>
@@ -415,6 +509,7 @@ import mixins from "@/mixins/mixins";
 import { openURL } from "quasar";
 import { mapState } from "vuex";
 import AgentTable from "@/components/AgentTable.vue";
+import DashboardMiniMap from "@/components/agents/DashboardMiniMap.vue";
 import PolicyAdd from "@/components/automation/modals/PolicyAdd.vue";
 import SitesForm from "@/components/clients/SitesForm.vue";
 import DeleteClient from "@/components/clients/DeleteClient.vue";
@@ -428,6 +523,7 @@ export default {
   name: "DashboardView",
   components: {
     AgentTable,
+    DashboardMiniMap,
     InstallAgent,
     IntegrationsContextMenu,
   },
@@ -453,6 +549,7 @@ export default {
       filterRebootNeeded: false,
       urlActions: [],
       showAlertColumns: false,
+      expandedNodes: [],
       columns: [
         {
           name: "smsalert",
@@ -466,20 +563,20 @@ export default {
           name: "dashboardalert",
           align: "left",
         },
-        // {
-        //   name: "plat",
-        //   label: "",
-        //   field: "plat",
-        //   sortable: true,
-        //   align: "left",
-        // },
-        // {
-        //   name: "mon-type",
-        //   label: "",
-        //   field: "monitoring_type",
-        //   sortable: true,
-        //   align: "left",
-        // },
+        {
+          name: "plat",
+          label: "",
+          field: "plat",
+          sortable: true,
+          align: "left",
+        },
+        {
+          name: "mon-type",
+          label: "",
+          field: "monitoring_type",
+          sortable: true,
+          align: "left",
+        },
         {
           name: "checks-status",
           align: "left",
@@ -583,11 +680,22 @@ export default {
           sortable: true,
           align: "left",
         },
+        {
+          name: "geolocation",
+          field: "last_geolocation",
+          align: "left",
+          sortable: true,
+          sort: (a, b) => {
+            if (a && !b) return -1;
+            if (!a && b) return 1;
+            return 0;
+          },
+        },
       ],
       visibleColumns: [
         "smsalert",
-        // "plat",
-        // "mon-type",
+        "plat",
+        "mon-type",
         "emailalert",
         "dashboardalert",
         "checks-status",
@@ -620,6 +728,20 @@ export default {
     },
   },
   methods: {
+    onExpandedUpdate(expanded) {
+      this.expandedNodes = [...expanded];
+    },
+    toggleExpand(nodeRaw) {
+      console.log("Toggle expand for:", nodeRaw);
+      const index = this.expandedNodes.indexOf(nodeRaw);
+      if (index === -1) {
+        this.expandedNodes.push(nodeRaw);
+      } else {
+        this.expandedNodes.splice(index, 1);
+      }
+      this.expandedNodes = [...this.expandedNodes];
+      console.log("Expanded nodes:", this.expandedNodes);
+    },
     getTree() {
       this.$store.dispatch("loadTree");
     },
@@ -846,9 +968,17 @@ export default {
     allClientsActive() {
       return this.selectedTree === "";
     },
+    onlineAgentCount() {
+      return this.agents.filter((a) => a.status === "online").length;
+    },
     filteredAgents() {
       if (this.tab === "mixed") return this.agents;
       else return this.agents.filter((k) => k.monitoring_type === this.tab);
+    },
+    paginationLabel() {
+      const total = this.filteredAgents.length;
+      if (total === 0) return "0 of 0";
+      return `1-${total} of ${total}`;
     },
     isFilteringTable() {
       return (
@@ -898,5 +1028,55 @@ export default {
 .dashboard-page .row,
 .dashboard-page .column {
   flex-wrap: nowrap !important;
+}
+
+/* Agent status dot */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot--online {
+  background: #059669;
+  box-shadow: 0 0 6px rgba(5, 150, 105, 0.4);
+}
+
+.status-dot--offline {
+  background: #9ca3af;
+}
+
+/* Clickable agent count badge */
+.agent-count-badge {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.agent-count-badge:hover {
+  opacity: 0.8;
+}
+
+.stat-card {
+  border-radius: 8px;
+  height: 100%;
+}
+
+/* Agents section card */
+.agents-card {
+  background: var(--mdm-bg-card, #fff);
+  border-radius: var(--mdm-radius-lg, 8px);
+  box-shadow: var(--mdm-shadow, 0 1px 3px 0 rgb(0 0 0 / 0.1));
+  border: 1px solid var(--mdm-border-light, #f0f0f0);
+  overflow: hidden;
+}
+
+.agents-card__header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--mdm-border-light, #f0f0f0);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 </style>

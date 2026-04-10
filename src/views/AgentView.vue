@@ -27,6 +27,7 @@
         'history',
         'notes',
         'assets',
+        'geolocation',
         'debug',
         'audit',
       ]"

@@ -5,6 +5,7 @@
     </div>
     <div v-else class="uk-tree-panel__content uk-scrollbar">
       <q-list dense class="rounded-borders">
+        <!-- Header row: All Categories + show/hide toggle -->
         <q-item
           clickable
           v-ripple
@@ -15,24 +16,49 @@
             <q-icon name="dashboard" />
           </q-item-section>
           <q-item-section>All Categories</q-item-section>
+          <q-item-section side>
+            <div class="row items-center no-wrap q-gutter-xs">
+              <q-badge v-if="clStore.hiddenCount > 0" color="warning" class="q-mr-xs">
+                {{ clStore.hiddenCount }}
+              </q-badge>
+              <q-btn
+                v-if="clStore.hiddenCount > 0"
+                flat dense round
+                :icon="clStore.showHiddenMode ? 'visibility' : 'visibility_off'"
+                size="xs"
+                :color="clStore.showHiddenMode ? 'positive' : 'grey'"
+                @click.stop="clStore.toggleShowHidden()"
+              >
+                <q-tooltip>{{ clStore.showHiddenMode ? 'Show active' : 'Show hidden' }}</q-tooltip>
+              </q-btn>
+            </div>
+          </q-item-section>
         </q-item>
+
+        <!-- Restore all bar (shown in hidden mode) -->
+        <q-item v-if="clStore.showHiddenMode && clStore.hiddenCount > 0" dense class="bg-grey-2">
+          <q-item-section class="text-center">
+            <q-btn flat dense no-caps color="positive" icon="restart_alt" label="Restore all" size="sm" @click="clStore.showAll(); clStore.toggleShowHidden()" />
+          </q-item-section>
+        </q-item>
+
         <q-tree
-          ref="tree"
-          :nodes="clientsStore.clientsTree"
-          node-key="raw"
-          no-nodes-label="No Categories"
-          selected-color="primary"
-          v-model:selected="selectedTree"
-          @update:selected="agentsStore.refreshDashboard()"
-        >
+            ref="tree"
+            :nodes="clientsStore.filteredTree"
+            node-key="raw"
+            no-nodes-label="No Categories"
+            selected-color="primary"
+            v-model:selected="selectedTree"
+            @update:selected="agentsStore.refreshDashboard()"
+          >
           <template v-slot:default-header="props">
-            <div class="row items-center">
+            <div class="row items-center no-wrap full-width tree-node-row">
               <q-icon
                 :name="props.node.icon"
                 :color="props.node.color"
                 class="q-mr-sm"
               />
-              <div>
+              <div class="ellipsis">
                 {{ props.node.label }}
                 <q-tooltip :delay="600">
                   ID: {{ props.node.id }}<br />
@@ -40,6 +66,32 @@
                   {{ props.node.site.agent_count }}
                 </q-tooltip>
               </div>
+
+              <q-space />
+
+              <!-- Hide / Restore button — always visible -->
+              <q-btn
+                v-if="!clStore.isHidden(props.node.raw)"
+                flat dense round
+                icon="visibility_off"
+                size="xs"
+                color="grey-5"
+                class="tree-hide-btn"
+                @click.stop="clStore.hideClient(props.node.raw)"
+              >
+                <q-tooltip>Hide this category</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-else
+                flat dense round
+                icon="visibility"
+                size="xs"
+                color="positive"
+                class="tree-hide-btn"
+                @click.stop="clStore.showClient(props.node.raw)"
+              >
+                <q-tooltip>Restore this category</q-tooltip>
+              </q-btn>
 
               <q-menu context-menu>
                 <q-list dense style="min-width: 200px">
@@ -120,6 +172,27 @@
 
                   <q-separator />
 
+                  <q-item
+                    v-if="!clStore.isHidden(props.node.raw)"
+                    clickable
+                    v-close-popup
+                    @click="clStore.hideClient(props.node.raw)"
+                  >
+                    <q-item-section side><q-icon name="visibility_off" color="warning" /></q-item-section>
+                    <q-item-section>Hide</q-item-section>
+                  </q-item>
+                  <q-item
+                    v-else
+                    clickable
+                    v-close-popup
+                    @click="clStore.showClient(props.node.raw)"
+                  >
+                    <q-item-section side><q-icon name="visibility" color="positive" /></q-item-section>
+                    <q-item-section>Restore</q-item-section>
+                  </q-item>
+
+                  <q-separator />
+
                   <q-item clickable v-close-popup>
                     <q-item-section>Close</q-item-section>
                   </q-item>
@@ -139,6 +212,7 @@ import { useQuasar } from "quasar";
 import axios from "axios";
 import { useClientsStore } from "@/stores/clients";
 import { useAgentsStore } from "@/stores/agents";
+import { useClientListStore } from "@/stores/clientList";
 import { useNotification } from "@/composables/useNotification";
 
 import SitesForm from "@/components/clients/SitesForm.vue";
@@ -163,6 +237,7 @@ defineEmits<{
 const $q = useQuasar();
 const clientsStore = useClientsStore();
 const agentsStore = useAgentsStore();
+const clStore = useClientListStore();
 const { notifySuccess } = useNotification();
 
 const selectedTree = computed({
@@ -277,5 +352,15 @@ function runChecks(node: TreeNode) {
   height: 100%;
   overflow-y: auto;
   padding: var(--uk-space-2);
+}
+
+/* Hide button appears on hover, always visible in hidden mode */
+.tree-hide-btn {
+  opacity: 0.3;
+  transition: opacity 0.15s ease;
+}
+
+.tree-node-row:hover .tree-hide-btn {
+  opacity: 1;
 }
 </style>

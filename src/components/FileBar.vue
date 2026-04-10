@@ -62,6 +62,18 @@
                     <q-item
                       clickable
                       v-ripple
+                      @click="handleMenuAction('addClient')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="business" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Client</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
                       @click="handleMenuAction('addSite')"
                       class="filebar-popup-item"
                       v-close-popup
@@ -69,7 +81,7 @@
                       <q-item-section avatar>
                         <q-icon name="business_center" size="sm" />
                       </q-item-section>
-                      <q-item-section>Category</q-item-section>
+                      <q-item-section>Site</q-item-section>
                     </q-item>
                   </q-expansion-item>
 
@@ -119,13 +131,24 @@
                   <q-item
                     clickable
                     v-ripple
+                    @click="handleMenuAction('addClient')"
+                    class="filebar-menu-item"
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="business" />
+                    </q-item-section>
+                    <q-item-section>Client</q-item-section>
+                  </q-item>
+                  <q-item
+                    clickable
+                    v-ripple
                     @click="handleMenuAction('addSite')"
                     class="filebar-menu-item"
                   >
                     <q-item-section avatar>
                       <q-icon name="business_center" />
                     </q-item-section>
-                    <q-item-section>Category</q-item-section>
+                    <q-item-section>Site</q-item-section>
                   </q-item>
                 </q-list>
               </q-expansion-item>
@@ -438,6 +461,19 @@
                     </q-item-section>
                     <q-item-section>Pending Actions</q-item-section>
                   </q-item>
+
+                  <q-item
+                    clickable
+                    v-ripple
+                    @click="handleMenuAction('agentMap')"
+                    class="filebar-popup-item"
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="mdi-map-marker" size="sm" />
+                    </q-item-section>
+                    <q-item-section>Agent Map</q-item-section>
+                  </q-item>
                 </q-list>
               </q-menu>
             </q-item>
@@ -460,6 +496,20 @@
                   <q-icon name="pending_actions" />
                 </q-item-section>
                 <q-item-section>Pending Actions</q-item-section>
+              </q-item>
+              <q-item
+                clickable
+                v-ripple
+                @click="handleMenuAction('agentMap')"
+                :class="[
+                  'filebar-menu-item',
+                  { 'active-menu-item': currentPath === '/agents/map' },
+                ]"
+              >
+                <q-item-section avatar>
+                  <q-icon name="mdi-map-marker" />
+                </q-item-section>
+                <q-item-section>Agent Map</q-item-section>
               </q-item>
             </q-list>
           </q-expansion-item>
@@ -569,6 +619,78 @@
             </q-item-section>
             <q-item-section>Policies</q-item-section>
           </q-item>
+
+          <!-- Security (SIEM / Wazuh) -->
+          <template v-if="isMiniMode && !isMobile">
+            <q-item clickable class="filebar-menu-section-mini">
+              <q-item-section avatar>
+                <q-icon name="shield" size="24px">
+                  <q-tooltip
+                    anchor="center right"
+                    self="center left"
+                    :offset="[10, 0]"
+                  >
+                    Security
+                  </q-tooltip>
+                </q-icon>
+              </q-item-section>
+              <q-menu
+                anchor="top end"
+                self="top start"
+                :offset="[8, 0]"
+                class="sidebar-popup-menu"
+              >
+                <q-list class="filebar-popup-list">
+                  <q-item-label header class="text-weight-bold">Security</q-item-label>
+                  <q-item clickable v-ripple @click="navigateToSecurity('agents')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="dns" size="sm" /></q-item-section>
+                    <q-item-section>Agents</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('alerts')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="notification_important" size="sm" /></q-item-section>
+                    <q-item-section>Alerts / Rules</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('groups')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="folder" size="sm" /></q-item-section>
+                    <q-item-section>Groups</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('it-hygiene')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="health_and_safety" size="sm" /></q-item-section>
+                    <q-item-section>IT Hygiene</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('discover')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="explore" size="sm" /></q-item-section>
+                    <q-item-section>Discover</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-item>
+          </template>
+
+          <q-expansion-item v-else icon="shield" label="Security" class="filebar-menu-section">
+            <q-list>
+              <q-item clickable v-ripple @click="navigateToSecurity('agents')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('agents') }]">
+                <q-item-section avatar><q-icon name="dns" /></q-item-section>
+                <q-item-section>Agents</q-item-section>
+              </q-item>
+              <q-item clickable v-ripple @click="navigateToSecurity('alerts')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('alerts') }]">
+                <q-item-section avatar><q-icon name="notification_important" /></q-item-section>
+                <q-item-section>Alerts / Rules</q-item-section>
+              </q-item>
+              <q-item clickable v-ripple @click="navigateToSecurity('groups')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('groups') }]">
+                <q-item-section avatar><q-icon name="folder" /></q-item-section>
+                <q-item-section>Groups</q-item-section>
+              </q-item>
+              <q-item clickable v-ripple @click="navigateToSecurity('it-hygiene')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('it-hygiene') }]">
+                <q-item-section avatar><q-icon name="health_and_safety" /></q-item-section>
+                <q-item-section>IT Hygiene</q-item-section>
+              </q-item>
+              <q-item clickable v-ripple @click="navigateToSecurity('discover')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('discover') }]">
+                <q-item-section avatar><q-icon name="explore" /></q-item-section>
+                <q-item-section>Discover</q-item-section>
+              </q-item>
+            </q-list>
+          </q-expansion-item>
 
           <!-- агент часть -->
           <template v-if="isMiniMode && !isMobile">
@@ -716,7 +838,7 @@
                     <q-item-section avatar>
                       <q-icon name="people" size="sm" />
                     </q-item-section>
-                    <q-item-section>Categories Manager</q-item-section>
+                    <q-item-section>Clients Manager</q-item-section>
                   </q-item>
 
                   <q-item
@@ -1261,6 +1383,7 @@ import DialogWrapper from "@/components/ui/DialogWrapper.vue";
 import DebugLog from "@/components/logs/DebugLog.vue";
 import PendingActions from "@/components/logs/PendingActions.vue";
 import ClientsManager from "@/components/clients/ClientsManager.vue";
+import ClientsForm from "@/components/clients/ClientsForm.vue";
 import SitesForm from "@/components/clients/SitesForm.vue";
 import ScriptManager from "@/components/scripts/ScriptManager.vue";
 import EditCoreSettings from "@/components/modals/coresettings/EditCoreSettings.vue";
@@ -1360,6 +1483,9 @@ export default {
       }
 
       switch (action) {
+        case "addClient":
+          this.showAddClientModal();
+          break;
         case "addSite":
           this.showAddSiteModal();
           break;
@@ -1459,6 +1585,9 @@ export default {
         case "fileManagement":
           this.$router.push({ name: "FileManagement" });
           break;
+        case "agentMap":
+          this.$router.push({ name: "AgentMap" });
+          break;
       }
     },
     navigateToGPO(tab = "dashboard") {
@@ -1482,6 +1611,28 @@ export default {
         this.closeDrawer();
       }
       this.$router.push({ name: "Policies" });
+    },
+    navigateToSecurity(tab = "dashboard") {
+      if (this.isMobile) {
+        this.closeDrawer();
+      }
+      const routeMap = {
+        agents: "SecurityAgents",
+        alerts: "SecurityAlerts",
+        groups: "SecurityGroups",
+        "it-hygiene": "ITHygiene",
+        discover: "SecurityDiscover",
+      };
+      this.$router.push({ name: routeMap[tab] || "SecurityAgents" });
+    },
+    isActiveSecurityTab(tab) {
+      const path = this.currentPath;
+      if (tab === "agents") return path.startsWith("/security/agents") || path === "/security";
+      if (tab === "alerts") return path === "/security/alerts";
+      if (tab === "groups") return path === "/security/groups";
+      if (tab === "it-hygiene") return path === "/security/it-hygiene";
+      if (tab === "discover") return path === "/security/discover";
+      return false;
     },
     clearCache() {
       this.$axios
@@ -1541,6 +1692,13 @@ export default {
           component: ClientsManager,
         })
         .onDismiss(() => this.$store.dispatch("refreshDashboard", true));
+    },
+    showAddClientModal() {
+      this.$q
+        .dialog({
+          component: ClientsForm,
+        })
+        .onOk(() => this.$store.dispatch("loadTree"));
     },
     showAddSiteModal() {
       this.$q
