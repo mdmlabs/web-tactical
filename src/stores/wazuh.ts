@@ -25,6 +25,7 @@ interface WazuhState {
   token: string | null;
   tokenExpiresAt: number | null;
   isAuthenticating: boolean;
+  _authPromise: Promise<void> | null;
 
   // Agents
   wazuhAgents: WazuhAgent[];
@@ -86,6 +87,7 @@ export const useWazuhStore = defineStore("wazuh", {
     token: null,
     tokenExpiresAt: null,
     isAuthenticating: false,
+    _authPromise: null as Promise<void> | null,
 
     wazuhAgents: [],
     mergedAgents: [],
@@ -180,30 +182,38 @@ export const useWazuhStore = defineStore("wazuh", {
         getToken: () => this.token,
         ensureAuth: () => this.ensureAuth(),
         onAuthFail: async () => {
-          this.token = null;
-          this.tokenExpiresAt = null;
           await this.authenticate();
         },
       });
     },
 
     async authenticate(): Promise<void> {
-      if (this.isAuthenticating) return;
+      if (this.isAuthenticating) {
+        if (this._authPromise) {
+          await this._authPromise;
+        }
+        return;
+      }
       this.isAuthenticating = true;
       this.error = null;
 
-      try {
-        const token = await wazuhApi.authenticate();
-        this.token = token;
-        this.tokenExpiresAt = Date.now() + 900 * 1000; // 15 min
-        this.isAvailable = true;
-      } catch (e) {
-        this.error = "Failed to authenticate with Wazuh API";
-        this.isAvailable = false;
-        console.error("[Wazuh] Auth error:", e);
-      } finally {
-        this.isAuthenticating = false;
-      }
+      this._authPromise = (async () => {
+        try {
+          const token = await wazuhApi.authenticate();
+          this.token = token;
+          this.tokenExpiresAt = Date.now() + 900 * 1000; // 15 min
+          this.isAvailable = true;
+        } catch (e) {
+          this.error = "Failed to authenticate with Wazuh API";
+          this.isAvailable = false;
+          console.error("[Wazuh] Auth error:", e);
+        } finally {
+          this.isAuthenticating = false;
+          this._authPromise = null;
+        }
+      })();
+
+      await this._authPromise;
     },
 
     async ensureAuth(): Promise<void> {
