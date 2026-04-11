@@ -1612,6 +1612,7 @@ export function createPolicySelection(
   const listKeys: string[] = [];
   const settingsKeys = Object.keys(settings);
   if (settingsKeys.length === 0) {
+    selection.setValue("1");
     return selection;
   }
 
@@ -1774,6 +1775,7 @@ export const policyAssignmentClient = {
       }
     } else {
       policySelection = new PolicySelection();
+      policySelection.setValue("1");
     }
     request.setSelection(policySelection);
 
@@ -1840,6 +1842,7 @@ export const policyAssignmentClient = {
       }
     } else {
       policySelection = new PolicySelection();
+      policySelection.setValue("1");
     }
     request.setSelection(policySelection);
 
