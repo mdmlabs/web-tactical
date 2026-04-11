@@ -1598,9 +1598,10 @@ function createPolicyElementItemSelection(
 }
 
 export interface PolicyElementMetadata {
+  id?: number;
   element_id: string;
   type: string;
-  items?: Array<{ id: number; name: string; display_name?: string }>;
+  items?: Array<{ id: number; name: string; display_name?: string; value?: string }>;
 }
 
 export function createPolicySelection(
@@ -1627,7 +1628,12 @@ export function createPolicySelection(
     if (value === null || value === undefined) continue;
 
     const metadata = metadataMap.get(elementId);
+    const idName =
+      metadata?.id != null && metadata.id > 0
+        ? String(metadata.id)
+        : elementId;
     const elementType = metadata?.type?.toLowerCase() || "";
+
     const isEnum =
       elementType === "enum" ||
       elementType === "dropdownlist" ||
@@ -1653,7 +1659,7 @@ export function createPolicySelection(
 
     if (Array.isArray(value) && isMultitext) {
       const elementSelection = new PolicyElementSelection();
-      elementSelection.setIdName(elementId);
+      elementSelection.setIdName(idName);
 
       const childs: PolicyElementItemSelection[] = [];
       for (const item of value) {
@@ -1661,40 +1667,28 @@ export function createPolicySelection(
           continue;
 
         const childSelection = new PolicyElementItemSelection();
-        childSelection.setIdName(elementId);
         childSelection.setValue(String(item));
         childs.push(childSelection);
       }
 
       if (childs.length > 0) {
         elementSelection.setChildsList(childs);
-        elementSelection.setValue("1");
-      } else {
-        elementSelection.setValue("");
       }
+      elementSelection.setValue("1");
       elements.push(elementSelection);
       continue;
     }
 
     if (Array.isArray(value)) {
       const elementSelection = new PolicyElementSelection();
-      elementSelection.setIdName(elementId);
-
-      const stringValue = value
-        .map((item) => {
-          if (item === null || item === undefined) return "";
-          return String(item);
-        })
-        .filter((item) => item !== "")
-        .join("\n");
-
-      elementSelection.setValue(stringValue);
+      elementSelection.setIdName(idName);
+      elementSelection.setValue("1");
       elements.push(elementSelection);
       continue;
     }
 
     const elementSelection = new PolicyElementSelection();
-    elementSelection.setIdName(elementId);
+    elementSelection.setIdName(idName);
 
     if (typeof value === "object" && !Array.isArray(value)) {
       const childs: PolicyElementItemSelection[] = [];
@@ -1718,25 +1712,22 @@ export function createPolicySelection(
         elementSelection.setValue("");
       }
     } else {
-      let stringValue: string;
       if (typeof value === "boolean") {
-        stringValue = value ? "1" : "0";
-      } else if (typeof value === "number" || typeof value === "string") {
-        stringValue = String(value);
+        elementSelection.setValue(value ? "1" : "0");
+      } else if ((typeof value === "number" || typeof value === "string") && isEnum) {
+        const selectedItemId = Number(value);
+        const selectedItem = metadata?.items?.find(item => item.id === selectedItemId);
 
-        if (isEnum) {
-          const enumChild = new PolicyElementItemSelection();
-          enumChild.setIdName(elementId);
-          enumChild.setValue(stringValue);
-          elementSelection.setChildsList([enumChild]);
-          elementSelection.setValue("1");
-          elements.push(elementSelection);
-          continue;
+        if (selectedItem && selectedItem.value) {
+          elementSelection.setValue(selectedItem.value);
+        } else {
+          elementSelection.setValue(String(value));
         }
+      } else if (typeof value === "number" || typeof value === "string") {
+        elementSelection.setValue(String(value));
       } else {
-        stringValue = String(value);
+        elementSelection.setValue("1");
       }
-      elementSelection.setValue(stringValue);
     }
 
     elements.push(elementSelection);

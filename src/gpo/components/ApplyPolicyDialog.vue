@@ -726,6 +726,7 @@ interface PolicyDetailsElement {
     name: string;
     display_name?: string;
     value_type?: string;
+    value?: string;
   }>;
   display_name?: string;
   description?: string;
@@ -1684,6 +1685,8 @@ async function loadPolicyDetails(policy: PolicyRow) {
                         elementValueType ||
                         "";
 
+                      const itemValue = (item.value as string) || "";
+
                       const finalDisplayName =
                         itemDisplayName ||
                         itemName ||
@@ -1696,6 +1699,7 @@ async function loadPolicyDetails(policy: PolicyRow) {
                         name: itemName,
                         display_name: finalDisplayName,
                         value_type: itemValueType,
+                        value: itemValue,
                       };
                     })
                     .filter((item, index, self) => {
