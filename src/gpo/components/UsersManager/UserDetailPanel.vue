@@ -64,12 +64,16 @@
               >
                 <q-item-section avatar>
                   <q-icon
-                    :name="user?.info?.isenabled !== false ? 'block' : 'check_circle'"
-                    :color="user?.info?.isenabled !== false ? 'orange' : 'positive'"
+                    :name="
+                      user?.info?.isenabled !== false ? 'block' : 'check_circle'
+                    "
+                    :color="
+                      user?.info?.isenabled !== false ? 'orange' : 'positive'
+                    "
                   />
                 </q-item-section>
                 <q-item-section>
-                  {{ user?.info?.isenabled !== false ? 'Disable' : 'Enable' }}
+                  {{ user?.info?.isenabled !== false ? "Disable" : "Enable" }}
                 </q-item-section>
               </q-item>
 
@@ -275,50 +279,96 @@
             />
           </q-tab-panel>
           <q-tab-panel name="collections" class="q-pa-md">
-            <div class="row items-center q-mb-md">
-              <div class="text-subtitle2">Policy collections for this user</div>
-              <q-space />
-              <q-btn
-                flat
-                dense
-                color="secondary"
-                icon="download"
-                label=""
-                :disable="!appliedCollections.length"
-                class="q-mr-sm"
-              >
-                <q-menu>
-                  <q-list dense style="min-width: 120px">
-                    <q-item clickable v-close-popup @click="exportCollections('csv')">
-                      <q-item-section avatar>
-                        <q-icon name="table_chart" color="primary" />
-                      </q-item-section>
-                      <q-item-section>CSV</q-item-section>
-                    </q-item>
-                    <q-item clickable v-close-popup @click="exportCollections('xlsx')">
-                      <q-item-section avatar>
-                        <q-icon name="description" color="green" />
-                      </q-item-section>
-                      <q-item-section>XLSX</q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-menu>
-              </q-btn>
-              <q-btn
-                flat
-                dense
-                color="primary"
-                icon="add_circle_outline"
-                label=""
-                :disable="!canApplyCollection"
-                :title="
-                  canApplyCollection
-                    ? ''
-                    : 'Select a single agent as target in the header'
-                "
-                @click="$emit('add-collection')"
-              />
+            <div class="q-mb-md">
+              <div class="row items-center no-wrap q-gutter-x-sm">
+                <div
+                  class="policy-collections-toolbar-group row items-center no-wrap"
+                >
+                  <q-btn-toggle
+                    v-model="viewMode"
+                    dense
+                    flat
+                    no-caps
+                    :options="[
+                      {
+                        value: 'collections',
+                        icon: 'list_alt',
+                        tooltip: 'Collections view',
+                      },
+                      {
+                        value: 'policies',
+                        icon: 'policy',
+                        tooltip: 'Policy view',
+                      },
+                    ]"
+                    toggle-color="primary"
+                    color="grey-6"
+                  />
+                </div>
+                <q-input
+                  v-if="viewMode === 'policies' && !appliedCollectionsLoading"
+                  v-model="tabPolicySearchQuery"
+                  dense
+                  outlined
+                  placeholder="Search by policy..."
+                  clearable
+                  class="col policy-collections-toolbar-search"
+                >
+                  <template v-slot:prepend>
+                    <q-icon name="search" />
+                  </template>
+                </q-input>
+                <q-space />
+                <q-btn
+                  flat
+                  dense
+                  color="secondary"
+                  icon="download"
+                  label=""
+                  :disable="!appliedCollections.length"
+                >
+                  <q-menu>
+                    <q-list dense style="min-width: 120px">
+                      <q-item
+                        clickable
+                        v-close-popup
+                        @click="exportCollections('csv')"
+                      >
+                        <q-item-section avatar>
+                          <q-icon name="table_chart" color="primary" />
+                        </q-item-section>
+                        <q-item-section>CSV</q-item-section>
+                      </q-item>
+                      <q-item
+                        clickable
+                        v-close-popup
+                        @click="exportCollections('xlsx')"
+                      >
+                        <q-item-section avatar>
+                          <q-icon name="description" color="green" />
+                        </q-item-section>
+                        <q-item-section>XLSX</q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-menu>
+                </q-btn>
+                <q-btn
+                  flat
+                  dense
+                  color="primary"
+                  icon="add_circle_outline"
+                  label=""
+                  :disable="!canApplyCollection"
+                  :title="
+                    canApplyCollection
+                      ? ''
+                      : 'Select a single agent as target in the header'
+                  "
+                  @click="$emit('add-collection')"
+                />
+              </div>
             </div>
+
             <div class="collections-tab-scroll">
               <div
                 v-if="appliedCollectionsLoading"
@@ -330,69 +380,146 @@
                 </div>
               </div>
               <template v-else-if="appliedCollections.length">
-                <q-table
-                  :rows="appliedCollections"
-                  :columns="collectionsColumns"
-                  row-key="id"
-                  flat
-                  bordered
-                  :rows-per-page-options="[0]"
-                  hide-pagination
-                  class="collections-table"
-                >
-                  <template v-slot:body="props">
-                    <q-tr :props="props">
-                      <q-td key="name" :props="props">
-                        <div
-                          class="cursor-pointer text-primary row items-center no-wrap"
-                          @click="openCollectionDetailsDialog(props.row)"
-                        >
-                          <q-icon
-                            name="visibility"
-                            size="xs"
-                            class="q-mr-xs"
+                <template v-if="viewMode === 'collections'">
+                  <q-table
+                    :rows="appliedCollections"
+                    :columns="collectionsColumns"
+                    row-key="id"
+                    flat
+                    bordered
+                    :rows-per-page-options="[0]"
+                    hide-pagination
+                    class="collections-table"
+                  >
+                    <template v-slot:body="props">
+                      <q-tr :props="props">
+                        <q-td key="name" :props="props">
+                          <div
+                            class="cursor-pointer text-primary row items-center no-wrap"
+                            @click="openCollectionDetailsDialog(props.row)"
+                          >
+                            <q-icon
+                              name="visibility"
+                              size="xs"
+                              class="q-mr-xs"
+                            />
+                            <span class="text-weight-medium">{{
+                              props.row.name || props.row.id
+                            }}</span>
+                          </div>
+                        </q-td>
+                        <q-td key="explainText" :props="props">
+                          <div class="text-caption text-grey-7">
+                            {{ props.row.explainText || "—" }}
+                          </div>
+                        </q-td>
+                        <q-td key="policiesCount" :props="props">
+                          <q-badge
+                            v-if="props.row.policies?.length"
+                            color="primary"
+                            :label="props.row.policies.length"
                           />
-                          <span class="text-weight-medium">{{ props.row.name || props.row.id }}</span>
-                        </div>
-                      </q-td>
-                      <q-td key="explainText" :props="props">
-                        <div class="text-caption text-grey-7">
-                          {{ props.row.explainText || '—' }}
-                        </div>
-                      </q-td>
-                      <q-td key="policiesCount" :props="props">
-                        <q-badge
-                          v-if="props.row.policies?.length"
-                          color="primary"
-                          :label="props.row.policies.length"
-                        />
-                        <span v-else class="text-grey-5">0</span>
-                      </q-td>
-                      <q-td key="compliance" :props="props">
-                        <ComplianceBar
-                          v-if="props.row.compliance"
-                          :assigned-and-applied="props.row.compliance.assignedAndApplied"
-                          :assigned-not-applied="props.row.compliance.assignedNotApplied"
-                          :not-assigned="props.row.compliance.notAssigned"
-                          :loading="props.row.compliance.loading"
-                        />
-                        <span v-else class="text-grey-5">—</span>
-                      </q-td>
-                      <q-td key="actions" :props="props">
-                        <q-btn
-                          flat
-                          round
+                          <span v-else class="text-grey-5">0</span>
+                        </q-td>
+                        <q-td key="compliance" :props="props">
+                          <ComplianceBar
+                            v-if="props.row.compliance"
+                            :assigned-and-applied="
+                              props.row.compliance.assignedAndApplied
+                            "
+                            :assigned-not-applied="
+                              props.row.compliance.assignedNotApplied
+                            "
+                            :not-assigned="props.row.compliance.notAssigned"
+                            :loading="props.row.compliance.loading"
+                          />
+                          <span v-else class="text-grey-5">—</span>
+                        </q-td>
+                        <q-td key="actions" :props="props">
+                          <q-btn
+                            flat
+                            round
+                            dense
+                            icon="delete"
+                            color="negative"
+                            size="sm"
+                            :title="`Remove collection ${props.row.name || props.row.id}`"
+                            @click="
+                              $emit('remove-collection-by-id', props.row.id)
+                            "
+                          />
+                        </q-td>
+                      </q-tr>
+                    </template>
+                  </q-table>
+                </template>
+
+                <template v-else>
+                  <div
+                    v-if="policiesGrouped.length === 0"
+                    class="text-center text-grey-6 q-pa-md"
+                  >
+                    <q-icon name="search_off" size="md" class="q-mb-sm" />
+                    <div>
+                      No policies found matching "{{
+                        tabPolicySearchQuery ?? ""
+                      }}"
+                    </div>
+                  </div>
+                  <q-list v-else bordered separator class="rounded-borders">
+                    <q-expansion-item
+                      v-for="group in policiesGrouped"
+                      :key="group.policyName"
+                      expand-separator
+                    >
+                      <template v-slot:header>
+                        <q-item-section avatar>
+                          <q-icon name="policy" color="primary" />
+                        </q-item-section>
+                        <q-item-section>{{ group.policyName }}</q-item-section>
+                        <q-item-section side>
+                          <q-badge
+                            color="primary"
+                            :label="group.collections.length"
+                            :title="`In ${group.collections.length} collection(s)`"
+                          />
+                        </q-item-section>
+                      </template>
+
+                      <q-list separator class="q-ml-lg">
+                        <q-item
+                          v-for="col in group.collections"
+                          :key="col.id"
                           dense
-                          icon="delete"
-                          color="negative"
-                          size="sm"
-                          :title="`Remove collection ${props.row.name || props.row.id}`"
-                          @click="$emit('remove-collection-by-id', props.row.id)"
-                        />
-                      </q-td>
-                    </q-tr>
-                  </template>
-                </q-table>
+                          class="cursor-pointer"
+                          @click="openCollectionDetailsDialog(col)"
+                        >
+                          <q-item-section avatar>
+                            <q-icon
+                              name="collections_bookmark"
+                              size="xs"
+                              color="secondary"
+                            />
+                          </q-item-section>
+                          <q-item-section>
+                            <q-item-label
+                              class="text-primary text-weight-medium"
+                            >
+                              {{ col.name || col.id }}
+                            </q-item-label>
+                            <q-item-label
+                              v-if="col.explainText"
+                              caption
+                              class="text-grey-6"
+                            >
+                              {{ col.explainText }}
+                            </q-item-label>
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+                    </q-expansion-item>
+                  </q-list>
+                </template>
               </template>
               <div
                 v-else-if="!canApplyCollection"
@@ -415,16 +542,28 @@
     <q-dialog v-model="showCollectionDetailsDialog" position="standard">
       <q-card style="min-width: 600px; max-width: 800px">
         <q-card-section class="row items-center q-pb-sm">
-          <q-icon name="collections_bookmark" color="primary" size="sm" class="q-mr-sm" />
-          <div class="text-h6">{{ selectedCollection?.name || selectedCollection?.id }}</div>
+          <q-icon
+            name="collections_bookmark"
+            color="primary"
+            size="sm"
+            class="q-mr-sm"
+          />
+          <div class="text-h6">
+            {{ selectedCollection?.name || selectedCollection?.id }}
+          </div>
           <q-space />
           <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
 
         <q-separator />
 
-        <q-card-section v-if="selectedCollection?.explainText" class="q-pt-sm q-pb-sm">
-          <div class="text-caption text-grey-7">{{ selectedCollection.explainText }}</div>
+        <q-card-section
+          v-if="selectedCollection?.explainText"
+          class="q-pt-sm q-pb-sm"
+        >
+          <div class="text-caption text-grey-7">
+            {{ selectedCollection.explainText }}
+          </div>
         </q-card-section>
 
         <q-separator v-if="selectedCollection?.explainText" />
@@ -464,10 +603,16 @@
                     <q-item-label>{{ p.name }}</q-item-label>
                   </q-item-section>
                   <q-item-section side class="policy-compliance-section">
-                    <div v-if="p.compliance?.loading" class="compliance-loading-mini">
+                    <div
+                      v-if="p.compliance?.loading"
+                      class="compliance-loading-mini"
+                    >
                       <q-spinner size="xs" color="grey-6" />
                     </div>
-                    <div v-else-if="p.compliance && p.compliance.totalAgents > 0" class="policy-compliance-wrapper">
+                    <div
+                      v-else-if="p.compliance && p.compliance.totalAgents > 0"
+                      class="policy-compliance-wrapper"
+                    >
                       <q-badge
                         :color="getPolicyStatusColor(p.compliance)"
                         :label="getPolicyStatusLabel(p.compliance)"
@@ -481,21 +626,42 @@
                           <div class="policy-compliance-tooltip">
                             <div class="tooltip-row">
                               <span class="tooltip-icon success">✓</span>
-                              <span>Applied: {{ p.compliance.appliedAgents }} agents</span>
+                              <span
+                                >Applied:
+                                {{ p.compliance.appliedAgents }} agents</span
+                              >
                             </div>
-                            <div v-if="p.compliance.pendingAgents > 0" class="tooltip-row">
+                            <div
+                              v-if="p.compliance.pendingAgents > 0"
+                              class="tooltip-row"
+                            >
                               <span class="tooltip-icon pending">⏳</span>
-                              <span>Pending: {{ p.compliance.pendingAgents }} agents</span>
+                              <span
+                                >Pending:
+                                {{ p.compliance.pendingAgents }} agents</span
+                              >
                             </div>
-                            <div v-if="p.compliance.notAssignedAgents > 0" class="tooltip-row">
+                            <div
+                              v-if="p.compliance.notAssignedAgents > 0"
+                              class="tooltip-row"
+                            >
                               <span class="tooltip-icon error">✗</span>
-                              <span>Not Assigned: {{ p.compliance.notAssignedAgents }} agents</span>
+                              <span
+                                >Not Assigned:
+                                {{
+                                  p.compliance.notAssignedAgents
+                                }}
+                                agents</span
+                              >
                             </div>
                           </div>
                         </q-tooltip>
                       </q-badge>
                       <div class="text-caption text-grey-7 q-mt-xs">
-                        {{ p.compliance.appliedAgents }}/{{ p.compliance.totalAgents }} agents
+                        {{ p.compliance.appliedAgents }}/{{
+                          p.compliance.totalAgents
+                        }}
+                        agents
                       </div>
                     </div>
                     <div v-else class="text-caption text-grey-5">—</div>
@@ -503,9 +669,14 @@
                 </q-item>
               </q-list>
             </template>
-            <div v-else-if="policySearchQuery" class="text-center text-grey-6 q-pa-md">
+            <div
+              v-else-if="(policySearchQuery ?? '').trim()"
+              class="text-center text-grey-6 q-pa-md"
+            >
               <q-icon name="search_off" size="md" class="q-mb-sm" />
-              <div>No policies found matching "{{ policySearchQuery }}"</div>
+              <div>
+                No policies found matching "{{ policySearchQuery ?? "" }}"
+              </div>
             </div>
             <div v-else class="text-center text-grey-6 q-pa-md">
               <q-icon name="info" size="md" class="q-mb-sm" />
@@ -529,10 +700,7 @@ import { ref, computed } from "vue";
 import type { UserWithIdInfo } from "@/generated/user_service_pb";
 import type { GroupRow, AgentRow } from "@/gpo/composables/useUserActions";
 import { exportPolicyCollections } from "@/utils/csv";
-import {
-  policyStateClient,
-  createAgentTarget,
-} from "@/gpo/api/grpc-client";
+import { policyStateClient, createAgentTarget } from "@/gpo/api/grpc-client";
 import ComplianceBar from "@/gpo/components/shared/ComplianceBar.vue";
 import UserInfoTab from "./UserInfoTab.vue";
 import UserGroupsTab from "./UserGroupsTab.vue";
@@ -637,6 +805,33 @@ type CollectionType = {
   };
 };
 
+type ViewMode = "collections" | "policies";
+const viewMode = ref<ViewMode>("collections");
+const tabPolicySearchQuery = ref("");
+
+const policiesGrouped = computed(() => {
+  const map = new Map<
+    string,
+    { policyName: string; collections: CollectionType[] }
+  >();
+  for (const col of props.appliedCollections) {
+    for (const policy of col.policies ?? []) {
+      if (!map.has(policy.name)) {
+        map.set(policy.name, { policyName: policy.name, collections: [] });
+      }
+      map.get(policy.name)!.collections.push(col as CollectionType);
+    }
+  }
+
+  const query = (tabPolicySearchQuery.value ?? "").toLowerCase().trim();
+  let result = [...map.values()];
+  if (query) {
+    result = result.filter((p) => p.policyName.toLowerCase().includes(query));
+  }
+  result.sort((a, b) => b.collections.length - a.collections.length);
+  return result;
+});
+
 interface PolicyWithCompliance {
   id: number;
   name: string;
@@ -653,14 +848,23 @@ const showCollectionDetailsDialog = ref(false);
 const selectedCollection = ref<CollectionType | null>(null);
 const policySearchQuery = ref("");
 const policiesWithCompliance = ref<PolicyWithCompliance[]>([]);
-const policyComplianceCache = new Map<string, { appliedAgents: number; pendingAgents: number; notAssignedAgents: number; totalAgents: number; timestamp: number }>();
+const policyComplianceCache = new Map<
+  string,
+  {
+    appliedAgents: number;
+    pendingAgents: number;
+    notAssignedAgents: number;
+    totalAgents: number;
+    timestamp: number;
+  }
+>();
 const POLICY_COMPLIANCE_CACHE_TTL = 5 * 60 * 1000;
 
 const filteredPolicies = computed(() => {
   if (!policiesWithCompliance.value.length) return [];
-  if (!policySearchQuery.value) return policiesWithCompliance.value;
+  const query = (policySearchQuery.value ?? "").toLowerCase().trim();
+  if (!query) return policiesWithCompliance.value;
 
-  const query = policySearchQuery.value.toLowerCase();
   return policiesWithCompliance.value.filter((p) =>
     p.name.toLowerCase().includes(query),
   );
@@ -684,11 +888,21 @@ async function calculatePolicyCompliance(
   userId: string,
   policyId: number,
   agentsForUser: AgentRow[],
-): Promise<{ appliedAgents: number; pendingAgents: number; notAssignedAgents: number; totalAgents: number }> {
+): Promise<{
+  appliedAgents: number;
+  pendingAgents: number;
+  notAssignedAgents: number;
+  totalAgents: number;
+}> {
   const totalAgents = agentsForUser.length;
 
   if (totalAgents === 0) {
-    return { appliedAgents: 0, pendingAgents: 0, notAssignedAgents: 0, totalAgents: 0 };
+    return {
+      appliedAgents: 0,
+      pendingAgents: 0,
+      notAssignedAgents: 0,
+      totalAgents: 0,
+    };
   }
 
   const cacheKey = `${userId}_${policyId}_${totalAgents}`;
@@ -713,10 +927,15 @@ async function calculatePolicyCompliance(
             return { isAssigned: false, isApplied: false };
           }
 
-          const [assignmentsResponse, effectivePoliciesResponse] = await Promise.all([
-            policyStateClient.getAssignments(target, "en-US").catch(() => ({ assignmentsList: [] })),
-            policyStateClient.getEffectivePolicies(target, "en-US").catch(() => ({ policiesList: [] })),
-          ]);
+          const [assignmentsResponse, effectivePoliciesResponse] =
+            await Promise.all([
+              policyStateClient
+                .getAssignments(target, "en-US")
+                .catch(() => ({ assignmentsList: [] })),
+              policyStateClient
+                .getEffectivePolicies(target, "en-US")
+                .catch(() => ({ policiesList: [] })),
+            ]);
 
           const policyIdStr = String(policyId);
           const policyHashVariant = `policy_${policyIdStr}`;
@@ -756,16 +975,31 @@ async function calculatePolicyCompliance(
       }
     }
 
-    const complianceResult = { appliedAgents, pendingAgents, notAssignedAgents, totalAgents };
-    policyComplianceCache.set(cacheKey, { ...complianceResult, timestamp: Date.now() });
+    const complianceResult = {
+      appliedAgents,
+      pendingAgents,
+      notAssignedAgents,
+      totalAgents,
+    };
+    policyComplianceCache.set(cacheKey, {
+      ...complianceResult,
+      timestamp: Date.now(),
+    });
     return complianceResult;
   } catch (err) {
     console.error("Error calculating policy compliance:", err);
-    return { appliedAgents: 0, pendingAgents: 0, notAssignedAgents: 0, totalAgents };
+    return {
+      appliedAgents: 0,
+      pendingAgents: 0,
+      notAssignedAgents: 0,
+      totalAgents,
+    };
   }
 }
 
-function getPolicyStatusColor(compliance: PolicyWithCompliance["compliance"]): string {
+function getPolicyStatusColor(
+  compliance: PolicyWithCompliance["compliance"],
+): string {
   if (!compliance) return "grey";
   const { appliedAgents, pendingAgents, totalAgents } = compliance;
 
@@ -774,7 +1008,9 @@ function getPolicyStatusColor(compliance: PolicyWithCompliance["compliance"]): s
   return "negative";
 }
 
-function getPolicyStatusLabel(compliance: PolicyWithCompliance["compliance"]): string {
+function getPolicyStatusLabel(
+  compliance: PolicyWithCompliance["compliance"],
+): string {
   if (!compliance) return "Unknown";
   const { appliedAgents, pendingAgents, totalAgents } = compliance;
 
@@ -789,20 +1025,21 @@ async function openCollectionDetailsDialog(collection: CollectionType) {
   showCollectionDetailsDialog.value = true;
 
   if (!collection.policies || !props.selectedId || !props.agents.length) {
-    policiesWithCompliance.value = collection.policies?.map(p => ({
-      ...p,
-      compliance: {
-        appliedAgents: 0,
-        pendingAgents: 0,
-        notAssignedAgents: 0,
-        totalAgents: 0,
-        loading: false,
-      }
-    })) || [];
+    policiesWithCompliance.value =
+      collection.policies?.map((p) => ({
+        ...p,
+        compliance: {
+          appliedAgents: 0,
+          pendingAgents: 0,
+          notAssignedAgents: 0,
+          totalAgents: 0,
+          loading: false,
+        },
+      })) || [];
     return;
   }
 
-  policiesWithCompliance.value = collection.policies.map(p => ({
+  policiesWithCompliance.value = collection.policies.map((p) => ({
     ...p,
     compliance: {
       appliedAgents: 0,
@@ -810,33 +1047,29 @@ async function openCollectionDetailsDialog(collection: CollectionType) {
       notAssignedAgents: 0,
       totalAgents: props.agents.length,
       loading: true,
-    }
+    },
   }));
 
-  await mapWithConcurrency(
-    policiesWithCompliance.value,
-    3,
-    async (policy) => {
-      try {
-        const result = await calculatePolicyCompliance(
-          props.selectedId!,
-          policy.id,
-          props.agents,
-        );
-        policy.compliance = {
-          appliedAgents: result.appliedAgents,
-          pendingAgents: result.pendingAgents,
-          notAssignedAgents: result.notAssignedAgents,
-          totalAgents: result.totalAgents,
-          loading: false,
-        };
-      } catch {
-        if (policy.compliance) {
-          policy.compliance.loading = false;
-        }
+  await mapWithConcurrency(policiesWithCompliance.value, 3, async (policy) => {
+    try {
+      const result = await calculatePolicyCompliance(
+        props.selectedId!,
+        policy.id,
+        props.agents,
+      );
+      policy.compliance = {
+        appliedAgents: result.appliedAgents,
+        pendingAgents: result.pendingAgents,
+        notAssignedAgents: result.notAssignedAgents,
+        totalAgents: result.totalAgents,
+        loading: false,
+      };
+    } catch {
+      if (policy.compliance) {
+        policy.compliance.loading = false;
       }
-    },
-  );
+    }
+  });
 }
 
 function exportCollections(format: "csv" | "xlsx") {
@@ -857,6 +1090,20 @@ function exportCollections(format: "csv" | "xlsx") {
 .users-tab-panels
   flex: 1
   overflow: auto
+
+.policy-collections-toolbar-search
+  min-width: 0
+  max-width: 420px
+
+.policy-collections-toolbar-group
+  padding: 3px 6px
+  border-radius: 8px
+  background: rgba(0, 0, 0, 0.04)
+  border: 1px solid rgba(0, 0, 0, 0.08)
+
+.body--dark .policy-collections-toolbar-group
+  background: rgba(255, 255, 255, 0.06)
+  border-color: rgba(255, 255, 255, 0.1)
 
 .collections-tab-scroll
   max-height: 50vh

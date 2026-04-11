@@ -1,7 +1,7 @@
 <template>
   <q-card flat bordered class="column" style="height: calc(100vh - 220px)">
     <q-card-section>
-      <div class="text-subtitle2 q-mb-md">Categories</div>
+      <div class="text-subtitle2 q-mb-xs">Categories</div>
       <template v-if="!loading && !error && categories.length > 0">
         <q-input
           :model-value="searchQuery ?? ''"
@@ -17,18 +17,6 @@
             <q-icon name="search" size="xs" />
           </template>
         </q-input>
-        <q-select
-          :model-value="scopeFilter"
-          :options="scopeFilterOptions"
-          option-value="value"
-          option-label="label"
-          emit-value
-          map-options
-          dense
-          outlined
-          class="q-mb-md category-tree-scope-select"
-          @update:model-value="$emit('update:scopeFilter', $event)"
-        />
       </template>
       <div v-if="loading" class="text-center q-pa-lg">
         <q-spinner color="primary" size="2em" />
@@ -84,8 +72,6 @@ const props = withDefaults(
     loading: boolean;
     error?: string | null;
     selectedCategoryId: string | null;
-    scopeFilter: string;
-    scopeFilterOptions: { label: string; value: string }[];
     searchQuery?: string | null;
   }>(),
   { searchQuery: "" },
@@ -93,7 +79,6 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: "update:selectedCategoryId", value: string | null): void;
-  (e: "update:scopeFilter", value: string): void;
   (e: "update:searchQuery", value: string | null): void;
   (e: "retry"): void;
 }>();
@@ -109,15 +94,12 @@ const { filteredCategories } = useCategoryFilter(
 
 const scrollAreaHeight = computed(() =>
   (props.searchQuery ?? "").trim()
-    ? "calc(100vh - 380px)"
-    : "calc(100vh - 390px)",
+    ? "calc(100vh - 325px)"
+    : "calc(100vh - 335px)",
 );
 </script>
 
 <style scoped lang="sass">
-.category-tree-scope-select
-  width: 100%
-
 .category-tree
   .q-tree__node-header
     padding: 4px 0

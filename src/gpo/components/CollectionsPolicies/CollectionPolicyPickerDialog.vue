@@ -26,11 +26,8 @@
               :error="errorCategories"
               :selected-category-id="selectedCategoryId"
               :search-query="categorySearchQuery"
-              :scope-filter="scopeFilter"
-              :scope-filter-options="scopeFilterOptions"
               @update:selected-category-id="onSelectedCategoryIdUpdate"
               @update:search-query="categorySearchQuery = $event ?? ''"
-              @update:scope-filter="scopeFilter = $event"
               @retry="loadCategories()"
             />
           </div>
@@ -186,6 +183,12 @@ const POLICY_SCOPE_USER = 1;
 const POLICY_SCOPE_MACHINE = 2;
 const POLICY_SCOPE_BOTH = 3;
 
+function collectionScopeToFilter(scope: number): string {
+  if (scope === POLICY_SCOPE_USER) return "user";
+  if (scope === POLICY_SCOPE_MACHINE) return "computer";
+  return "all";
+}
+
 interface PolicyDetailsElement {
   id: number;
   element_id: string;
@@ -208,16 +211,11 @@ interface PolicyDetailsElement {
   }>;
 }
 
-const scopeFilterOptions = [
-  { label: "All", value: "all" },
-  { label: "User", value: "user" },
-  { label: "Computer", value: "computer" },
-];
-
 const props = defineProps<{
   modelValue: boolean;
   collectionId: number | null;
   collectionName?: string;
+  collectionScope?: number;
 }>();
 
 const emit = defineEmits<{
@@ -244,7 +242,9 @@ const allPolicies = ref<PolicyItem[]>([]);
 const selectedPolicy = ref<PolicyItem | null>(null);
 const policyHashes = ref<Record<string, string>>({});
 const policyState = ref<Record<string, boolean>>({});
-const scopeFilter = ref<string>("all");
+const scopeFilter = computed(() =>
+  collectionScopeToFilter(props.collectionScope ?? POLICY_SCOPE_NONE),
+);
 const applying = ref(false);
 const perPolicySettings = ref<Record<string, Record<string, unknown>>>({});
 const perPolicyElements = ref<Record<string, PolicyDetailsElement[]>>({});

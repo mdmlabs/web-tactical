@@ -52,8 +52,28 @@
             </div>
 
             <div v-else>
+              <q-input
+                :model-value="assignmentsSearch"
+                dense
+                outlined
+                clearable
+                placeholder="Search by policy name…"
+                class="q-mb-md"
+                @update:model-value="onAssignmentsSearchInput"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="search" />
+                </template>
+              </q-input>
+              <div
+                v-if="filteredAssignments.length === 0"
+                class="text-center q-pa-md text-grey-7"
+              >
+                No policies match your search
+              </div>
               <q-table
-                :rows="assignments"
+                v-else
+                :rows="filteredAssignments"
                 :columns="assignmentColumns"
                 row-key="id"
                 flat
@@ -130,9 +150,28 @@
             </div>
 
             <div v-else class="q-pa-sm">
-              <q-list bordered separator>
+              <q-input
+                :model-value="effectiveSearch"
+                dense
+                outlined
+                clearable
+                placeholder="Search by policy name…"
+                class="q-mb-md"
+                @update:model-value="onEffectiveSearchInput"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="search" />
+                </template>
+              </q-input>
+              <div
+                v-if="filteredEffectivePolicies.length === 0"
+                class="text-center q-pa-md text-grey-7"
+              >
+                No policies match your search
+              </div>
+              <q-list v-else bordered separator>
                 <q-item
-                  v-for="p in effectivePolicies"
+                  v-for="p in filteredEffectivePolicies"
                   :key="String(p.policyHash || p.policy_hash || p.id)"
                 >
                   <q-item-section>
@@ -182,7 +221,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { QTableColumn } from "quasar";
 
 interface Agent {
@@ -212,9 +251,64 @@ const dialogVisible = computed({
 });
 
 const dialogTab = ref("assignments");
+const assignmentsSearch = ref("");
+const effectiveSearch = ref("");
+
+function onAssignmentsSearchInput(value: string | number | null | undefined) {
+  assignmentsSearch.value = value == null ? "" : String(value);
+}
+
+function onEffectiveSearchInput(value: string | number | null | undefined) {
+  effectiveSearch.value = value == null ? "" : String(value);
+}
+
+watch(dialogVisible, (open) => {
+  if (!open) {
+    assignmentsSearch.value = "";
+    effectiveSearch.value = "";
+  }
+});
+
 const loading = computed(() => !!props.loading);
 const assignments = computed(() => props.assignments || []);
 const effectivePolicies = computed(() => props.effectivePolicies || []);
+
+
+function assignmentPolicyName(row: Record<string, unknown>): string {
+  return String(
+    row["displayName"] ??
+      row["display_name"] ??
+      row["name"] ??
+      row["policyHash"] ??
+      row["policy_hash"] ??
+      row["id"] ??
+      "",
+  ).toLowerCase();
+}
+
+function effectivePolicyName(p: Record<string, unknown>): string {
+  return String(
+    p["displayName"] ??
+      p["name"] ??
+      p["policyHash"] ??
+      p["policy_hash"] ??
+      "",
+  ).toLowerCase();
+}
+
+const filteredAssignments = computed(() => {
+  const list = assignments.value;
+  const q = assignmentsSearch.value.trim().toLowerCase();
+  if (!q) return list;
+  return list.filter((row) => assignmentPolicyName(row).includes(q));
+});
+
+const filteredEffectivePolicies = computed(() => {
+  const list = effectivePolicies.value;
+  const q = effectiveSearch.value.trim().toLowerCase();
+  if (!q) return list;
+  return list.filter((p) => effectivePolicyName(p).includes(q));
+});
 
 const assignmentColumns: QTableColumn[] = [
   {

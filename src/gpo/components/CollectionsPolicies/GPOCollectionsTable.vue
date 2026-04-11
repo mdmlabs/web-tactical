@@ -288,6 +288,7 @@
       v-model="policyPickerVisible"
       :collection-id="createdCollectionId"
       :collection-name="createdCollectionName"
+      :collection-scope="createdCollectionScope"
       @done="onPolicyPickerDone"
     />
 
@@ -449,6 +450,7 @@ function normalizeScope(raw: number | string | undefined | null): number {
 const collectionScopeCache = ref<Record<number, number>>({});
 const createdCollectionId = ref<number | null>(null);
 const createdCollectionName = ref("");
+const createdCollectionScope = ref<number>(operator_pb.PolicyScope.POLICY_SCOPE_USER);
 const policyPickerVisible = ref(false);
 const applyTargetDialogVisible = ref(false);
 const applyTargetCollectionId = ref<number>(0);
@@ -612,6 +614,7 @@ async function submitCreateCollection() {
       }
       createdCollectionId.value = id;
       createdCollectionName.value = displayName;
+      createdCollectionScope.value = createScope.value;
       createFormVisible.value = false;
       policyPickerVisible.value = true;
       notifySuccess("Collection created. Add policies.");
