@@ -222,47 +222,93 @@
         </q-tab-panel>
 
         <q-tab-panel name="collections" class="q-pa-md">
-          <div class="row items-center q-mb-md">
-            <div class="text-subtitle2">
-              Policy collections for this category
+          <div class="q-mb-md">
+            <div class="row items-center no-wrap q-gutter-x-sm">
+              <div
+                class="policy-collections-toolbar-group row items-center no-wrap"
+              >
+                <q-btn-toggle
+                  v-model="viewMode"
+                  dense
+                  flat
+                  no-caps
+                  :options="[
+                    {
+                      value: 'collections',
+                      icon: 'list_alt',
+                      tooltip: 'Collections view',
+                    },
+                    {
+                      value: 'policies',
+                      icon: 'policy',
+                      tooltip: 'Policy view',
+                    },
+                  ]"
+                  toggle-color="primary"
+                  color="grey-6"
+                />
+              </div>
+              <q-input
+                v-if="
+                  viewMode === 'policies' && !categoryAppliedCollectionsLoading
+                "
+                v-model="policySearchQuery"
+                dense
+                outlined
+                placeholder="Search by policy..."
+                clearable
+                class="col policy-collections-toolbar-search"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="search" />
+                </template>
+              </q-input>
+              <q-space />
+              <q-btn
+                flat
+                dense
+                color="secondary"
+                icon="download"
+                label=""
+                :disable="!categoryAppliedCollections.length"
+              >
+                <q-menu>
+                  <q-list dense style="min-width: 120px">
+                    <q-item
+                      clickable
+                      v-close-popup
+                      @click="exportCollections('csv')"
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="table_chart" color="primary" />
+                      </q-item-section>
+                      <q-item-section>CSV</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-close-popup
+                      @click="exportCollections('xlsx')"
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="description" color="green" />
+                      </q-item-section>
+                      <q-item-section>XLSX</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
+              </q-btn>
+              <q-btn
+                flat
+                dense
+                color="primary"
+                icon="add_circle_outline"
+                label=""
+                :disable="selectedCategoryId == null"
+                @click="$emit('apply-collection')"
+              />
             </div>
-            <q-space />
-            <q-btn
-              flat
-              dense
-              color="secondary"
-              icon="download"
-              label=""
-              :disable="!categoryAppliedCollections.length"
-              class="q-mr-sm"
-            >
-              <q-menu>
-                <q-list dense style="min-width: 120px">
-                  <q-item clickable v-close-popup @click="exportCollections('csv')">
-                    <q-item-section avatar>
-                      <q-icon name="table_chart" color="primary" />
-                    </q-item-section>
-                    <q-item-section>CSV</q-item-section>
-                  </q-item>
-                  <q-item clickable v-close-popup @click="exportCollections('xlsx')">
-                    <q-item-section avatar>
-                      <q-icon name="description" color="green" />
-                    </q-item-section>
-                    <q-item-section>XLSX</q-item-section>
-                  </q-item>
-                </q-list>
-              </q-menu>
-            </q-btn>
-            <q-btn
-              flat
-              dense
-              color="primary"
-              icon="add_circle_outline"
-              label=""
-              :disable="selectedCategoryId == null"
-              @click="$emit('apply-collection')"
-            />
           </div>
+
           <div class="collections-tab-scroll">
             <div
               v-if="selectedCategoryId == null"
@@ -283,69 +329,160 @@
               <template
                 v-else-if="(categoryAppliedCollections?.length ?? 0) > 0"
               >
-                <q-table
-                  :rows="categoryAppliedCollections"
-                  :columns="collectionsColumns"
-                  row-key="id"
-                  flat
-                  bordered
-                  :rows-per-page-options="[0]"
-                  hide-pagination
-                  class="collections-table"
-                >
-                  <template v-slot:body="props">
-                    <q-tr :props="props">
-                      <q-td key="name" :props="props">
-                        <div
-                          class="cursor-pointer text-primary row items-center no-wrap"
-                          @click="$emit('open-collection-details', props.row)"
-                        >
-                          <q-icon name="visibility" size="xs" class="q-mr-xs" />
-                          <span class="text-weight-medium">{{
-                            props.row.name || props.row.id
-                          }}</span>
-                        </div>
-                      </q-td>
-                      <q-td key="explainText" :props="props">
-                        <div class="text-caption text-grey-7">
-                          {{ props.row.explainText || "—" }}
-                        </div>
-                      </q-td>
-                      <q-td key="policiesCount" :props="props">
-                        <q-badge
-                          v-if="props.row.policies?.length"
-                          color="primary"
-                          :label="props.row.policies.length"
-                        />
-                        <span v-else class="text-grey-5">0</span>
-                      </q-td>
-                      <q-td key="compliance" :props="props">
-                        <ComplianceBar
-                          v-if="props.row.compliance"
-                          :assigned-and-applied="props.row.compliance.assignedAndApplied"
-                          :assigned-not-applied="props.row.compliance.assignedNotApplied"
-                          :not-assigned="props.row.compliance.notAssigned"
-                          :loading="props.row.compliance.loading"
-                        />
-                        <span v-else class="text-grey-5">—</span>
-                      </q-td>
-                      <q-td key="actions" :props="props">
-                        <q-btn
-                          flat
-                          round
+                <template v-if="viewMode === 'collections'">
+                  <q-table
+                    :rows="categoryAppliedCollections"
+                    :columns="collectionsColumns"
+                    row-key="id"
+                    flat
+                    bordered
+                    :rows-per-page-options="[0]"
+                    hide-pagination
+                    class="collections-table"
+                  >
+                    <template v-slot:body="props">
+                      <q-tr :props="props">
+                        <q-td key="name" :props="props">
+                          <div
+                            class="cursor-pointer text-primary row items-center no-wrap"
+                            @click="$emit('open-collection-details', props.row)"
+                          >
+                            <q-icon
+                              name="visibility"
+                              size="xs"
+                              class="q-mr-xs"
+                            />
+                            <span class="text-weight-medium">{{
+                              props.row.name || props.row.id
+                            }}</span>
+                          </div>
+                        </q-td>
+                        <q-td key="explainText" :props="props">
+                          <div class="text-caption text-grey-7">
+                            {{ props.row.explainText || "—" }}
+                          </div>
+                        </q-td>
+                        <q-td key="policiesCount" :props="props">
+                          <q-badge
+                            v-if="props.row.policies?.length"
+                            color="primary"
+                            :label="props.row.policies.length"
+                          />
+                          <span v-else class="text-grey-5">0</span>
+                        </q-td>
+                        <q-td key="compliance" :props="props">
+                          <ComplianceBar
+                            v-if="props.row.compliance"
+                            :assigned-and-applied="
+                              props.row.compliance.assignedAndApplied
+                            "
+                            :assigned-not-applied="
+                              props.row.compliance.assignedNotApplied
+                            "
+                            :not-assigned="props.row.compliance.notAssigned"
+                            :loading="props.row.compliance.loading"
+                          />
+                          <span v-else class="text-grey-5">—</span>
+                        </q-td>
+                        <q-td key="actions" :props="props">
+                          <q-btn
+                            flat
+                            round
+                            dense
+                            icon="delete"
+                            color="negative"
+                            size="sm"
+                            :title="`Remove collection ${props.row.name || props.row.id}`"
+                            @click="
+                              $emit('remove-collection-by-id', props.row.id)
+                            "
+                          />
+                        </q-td>
+                      </q-tr>
+                    </template>
+                  </q-table>
+                </template>
+
+                <template v-else>
+                  <div
+                    v-if="policiesGrouped.length === 0"
+                    class="text-center text-grey-6 q-pa-md"
+                  >
+                    <q-icon name="search_off" size="md" class="q-mb-sm" />
+                    <div>
+                      No policies found matching "{{ policySearchQuery ?? "" }}"
+                    </div>
+                  </div>
+                  <q-list v-else bordered separator class="rounded-borders">
+                    <q-expansion-item
+                      v-for="group in policiesGrouped"
+                      :key="group.policyName"
+                      expand-separator
+                      icon="policy"
+                      :label="group.policyName"
+                      header-class="text-weight-medium"
+                    >
+                      <template v-slot:header>
+                        <q-item-section avatar>
+                          <q-icon name="policy" color="primary" />
+                        </q-item-section>
+                        <q-item-section>{{ group.policyName }}</q-item-section>
+                        <q-item-section side>
+                          <q-badge
+                            color="primary"
+                            :label="group.collections.length"
+                            :title="`In ${group.collections.length} collection(s)`"
+                          />
+                        </q-item-section>
+                      </template>
+
+                      <q-list separator class="q-ml-lg">
+                        <q-item
+                          v-for="col in group.collections"
+                          :key="col.id"
                           dense
-                          icon="delete"
-                          color="negative"
-                          size="sm"
-                          :title="`Remove collection ${props.row.name || props.row.id}`"
-                          @click="
-                            $emit('remove-collection-by-id', props.row.id)
-                          "
-                        />
-                      </q-td>
-                    </q-tr>
-                  </template>
-                </q-table>
+                          class="cursor-pointer"
+                          @click="$emit('open-collection-details', col)"
+                        >
+                          <q-item-section avatar>
+                            <q-icon
+                              name="collections_bookmark"
+                              size="xs"
+                              color="secondary"
+                            />
+                          </q-item-section>
+                          <q-item-section>
+                            <q-item-label
+                              class="text-primary text-weight-medium"
+                            >
+                              {{ col.name || col.id }}
+                            </q-item-label>
+                            <q-item-label
+                              v-if="col.explainText"
+                              caption
+                              class="text-grey-6"
+                            >
+                              {{ col.explainText }}
+                            </q-item-label>
+                          </q-item-section>
+                          <q-item-section side>
+                            <ComplianceBar
+                              v-if="col.compliance"
+                              :assigned-and-applied="
+                                col.compliance.assignedAndApplied
+                              "
+                              :assigned-not-applied="
+                                col.compliance.assignedNotApplied
+                              "
+                              :not-assigned="col.compliance.notAssigned"
+                              :loading="col.compliance.loading"
+                            />
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+                    </q-expansion-item>
+                  </q-list>
+                </template>
               </template>
               <div v-else class="text-body2 text-grey-7">
                 Apply a policy collection to this category so that its policies
@@ -361,6 +498,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed } from "vue";
 import type { QTableColumn } from "quasar";
 import ComplianceBar from "@/gpo/components/shared/ComplianceBar.vue";
 import { exportPolicyCollections } from "@/utils/csv";
@@ -407,7 +545,50 @@ defineEmits<{
   "open-collection-details": [row: unknown];
 }>();
 
+type ViewMode = "collections" | "policies";
+const viewMode = ref<ViewMode>("collections");
+const policySearchQuery = ref("");
+
+const policiesGrouped = computed(() => {
+  const map = new Map<
+    string,
+    { policyName: string; collections: PolicyCollection[] }
+  >();
+  for (const col of props.categoryAppliedCollections) {
+    for (const policy of col.policies ?? []) {
+      if (!map.has(policy.name)) {
+        map.set(policy.name, { policyName: policy.name, collections: [] });
+      }
+      map.get(policy.name)!.collections.push(col);
+    }
+  }
+
+  const query = (policySearchQuery.value ?? "").toLowerCase().trim();
+  let result = [...map.values()];
+  if (query) {
+    result = result.filter((p) => p.policyName.toLowerCase().includes(query));
+  }
+  result.sort((a, b) => b.collections.length - a.collections.length);
+  return result;
+});
+
 function exportCollections(format: "csv" | "xlsx") {
   exportPolicyCollections(props.categoryAppliedCollections, format);
 }
 </script>
+
+<style scoped lang="sass">
+.policy-collections-toolbar-search
+  min-width: 0
+  max-width: 420px
+
+.policy-collections-toolbar-group
+  padding: 3px 6px
+  border-radius: 8px
+  background: rgba(0, 0, 0, 0.04)
+  border: 1px solid rgba(0, 0, 0, 0.08)
+
+.body--dark .policy-collections-toolbar-group
+  background: rgba(255, 255, 255, 0.06)
+  border-color: rgba(255, 255, 255, 0.1)
+</style>
