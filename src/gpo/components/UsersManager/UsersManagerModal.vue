@@ -14,6 +14,25 @@
         <q-icon name="person" size="sm" class="q-mr-sm" color="primary" />
         <q-toolbar-title>Users Manager</q-toolbar-title>
 
+        <q-btn-dropdown
+          flat
+          dense
+          icon="file_download"
+          color="primary"
+          title="Export users"
+          :loading="exportLoading"
+          no-caps
+        >
+          <q-list dense>
+            <q-item clickable v-close-popup @click="handleExportUsers('csv')">
+              <q-item-section>Export CSV</q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="handleExportUsers('xlsx')">
+              <q-item-section>Export XLSX</q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
+
         <q-btn
           v-if="!standalonePage"
           flat
@@ -304,6 +323,7 @@ import {
   policyStateClient,
   type Target,
 } from "@/gpo/api/grpc-client";
+import export_pb from "@/generated/common/export_pb";
 import operator_pb from "@/generated/operator_pb";
 import { notifyError, notifySuccess } from "@/utils/notify";
 
@@ -353,6 +373,8 @@ const showSetUserAgentOptions = ref(false);
 const removingAgentId = ref<string | null>(null);
 const pendingAddAgentRef = ref<TargetRef | null>(null);
 const showApplyCollectionDialog = ref(false);
+
+const exportLoading = ref(false);
 
 const addToGroupOptions = ref<{ sam: string; label: string }[]>([]);
 const applyCollectionLoading = ref(false);
@@ -423,6 +445,41 @@ const {
   loadUserGroups,
   loadUserAgents,
 } = useUserActions();
+
+function downloadBlob(content: Uint8Array | string, fileName: string, mimeType: string) {
+  const bytes = typeof content === "string"
+    ? new Uint8Array(Array.from(atob(content), (c) => c.codePointAt(0) ?? 0))
+    : new Uint8Array(content);
+  const blob = new Blob([bytes.buffer], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function handleExportUsers(format: "csv" | "xlsx") {
+  exportLoading.value = true;
+  try {
+    const exportFormat = format === "xlsx"
+      ? export_pb.ExportFormat.XLSX
+      : export_pb.ExportFormat.CSV;
+    const res = await userControlClient.exportAllUsers(exportFormat);
+    const mimeType = format === "xlsx"
+      ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      : "text/csv";
+    const fallbackName = `users_export.${format}`;
+    downloadBlob(res.content, res.fileName || fallbackName, mimeType);
+    notifySuccess(`Users exported as ${format.toUpperCase()}`);
+  } catch (err) {
+    notifyError(err instanceof Error ? err.message : "Failed to export users");
+  } finally {
+    exportLoading.value = false;
+  }
+}
 
 async function handleCreateUser(params: CreateUserParams) {
   if (!currentTarget.value) return;
