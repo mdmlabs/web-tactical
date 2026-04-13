@@ -14,6 +14,25 @@
         <q-icon name="group" size="sm" class="q-mr-sm" color="primary" />
         <q-toolbar-title>Users Groups Manager</q-toolbar-title>
 
+        <q-btn-dropdown
+          flat
+          dense
+          icon="file_download"
+          color="primary"
+          title="Export groups"
+          :loading="exportLoading"
+          no-caps
+        >
+          <q-list dense>
+            <q-item clickable v-close-popup @click="handleExportGroups('csv')">
+              <q-item-section>Export CSV</q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="handleExportGroups('xlsx')">
+              <q-item-section>Export XLSX</q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
+
         <q-btn
           v-if="!standalonePage"
           flat
@@ -144,6 +163,7 @@ import {
   agentServiceClientWrapper,
   policyStateClient,
 } from "@/gpo/api/grpc-client";
+import export_pb from "@/generated/common/export_pb";
 import type { Target } from "@/gpo/api/grpc-client";
 import type { TargetRef } from "@/gpo/composables/useTargetSelection";
 import TargetSelectionDialog from "@/gpo/components/shared/TargetSelectionDialog.vue";
@@ -208,6 +228,7 @@ function goToAgentDashboard(agentId: string) {
 }
 
 const showAddAgentPanel = ref(false);
+const exportLoading = ref(false);
 const currentTarget = ref<Target>(createGlobalTarget());
 
 const allGroups = ref<GroupRowWithId[]>([]);
@@ -566,6 +587,41 @@ async function handleRemoveGroupAgent(agentId: string) {
       removingAgentId.value = null;
     }
   });
+}
+
+function downloadBlob(content: Uint8Array | string, fileName: string, mimeType: string) {
+  const bytes = typeof content === "string"
+    ? new Uint8Array(Array.from(atob(content), (c) => c.codePointAt(0) ?? 0))
+    : new Uint8Array(content);
+  const blob = new Blob([bytes.buffer], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function handleExportGroups(format: "csv" | "xlsx") {
+  exportLoading.value = true;
+  try {
+    const exportFormat = format === "xlsx"
+      ? export_pb.ExportFormat.XLSX
+      : export_pb.ExportFormat.CSV;
+    const res = await userControlClient.exportAllGroup(exportFormat);
+    const mimeType = format === "xlsx"
+      ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      : "text/csv";
+    const fallbackName = `groups_export.${format}`;
+    downloadBlob(res.content, res.fileName || fallbackName, mimeType);
+    notifySuccess(`Groups exported as ${format.toUpperCase()}`);
+  } catch (err) {
+    notifyError(err instanceof Error ? err.message : "Failed to export groups");
+  } finally {
+    exportLoading.value = false;
+  }
 }
 
 async function loadGroups() {

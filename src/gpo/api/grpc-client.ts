@@ -27,6 +27,8 @@ import {
   UserIdRequest,
   SetUserAgentRequest,
   SetGroupAgentRequest,
+  ExportAllUsersRequest,
+  ExportAllGroupRequest,
 } from "@/generated/user_service_pb";
 
 import target_pb from "@/generated/common/target_pb";
@@ -1088,6 +1090,30 @@ export const userControlClient = {
         req,
         createGrpcMetadata(),
       );
+    return response.toObject();
+  },
+
+  async exportAllUsers(
+    exportFormat: export_pb_types.ExportFormat = export_pb.ExportFormat.CSV,
+  ): Promise<export_pb_types.ExportResponse.AsObject> {
+    const req = new ExportAllUsersRequest();
+    req.setExportFormat(exportFormat);
+    const response = await operatorUserControlServiceClient.exportAllUsers(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async exportAllGroup(
+    exportFormat: export_pb_types.ExportFormat = export_pb.ExportFormat.CSV,
+  ): Promise<export_pb_types.ExportResponse.AsObject> {
+    const req = new ExportAllGroupRequest();
+    req.setExportFormat(exportFormat);
+    const response = await operatorUserControlServiceClient.exportAllGroup(
+      req,
+      createGrpcMetadata(),
+    );
     return response.toObject();
   },
 };
