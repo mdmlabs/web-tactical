@@ -17,7 +17,7 @@
             <div
               v-if="mainTab === 'dashboard' && selectedAgent"
               :key="`dashboard-agent-${contentTab}`"
-              class="gpo-content-panels"
+              class="gpo-content-panels-wrap"
             >
               <div class="gpo-content-header">
                 <div class="row items-center full-width">
@@ -57,7 +57,7 @@
                 <q-separator />
               </div>
 
-              <q-tab-panels v-model="contentTab" class="gpo-content-panels">
+              <q-tab-panels v-model="contentTab" class="gpo-content-tab-panels">
                 <q-tab-panel name="overview" class="q-pa-md">
                   <div v-if="selectedAgent">
                     <q-card>
@@ -813,7 +813,7 @@
             <div
               v-else-if="mainTab === 'dashboard'"
               :key="`dashboard-${subTab}`"
-              class="gpo-content-panels"
+              class="gpo-content-panels-wrap"
             >
               <div class="gpo-content-header">
                 <q-tabs
@@ -832,7 +832,7 @@
                 <q-separator />
               </div>
 
-              <q-tab-panels v-model="subTab" class="gpo-content-panels">
+              <q-tab-panels v-model="subTab" class="gpo-content-tab-panels">
                 <q-tab-panel name="status" class="q-pa-md">
                   <div class="text-h6 q-mb-md">General status</div>
                   <div class="row q-gutter-md">
@@ -897,7 +897,7 @@
             <div
               v-else-if="mainTab === 'collections'"
               key="collections"
-              class="gpo-content-panels"
+              class="gpo-content-panels gpo-content-panels--collections"
             >
               <GPOCollectionsTable />
             </div>
@@ -3740,6 +3740,11 @@ async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
     const explainText = summary
       ? String(summary["explainText"] || summary["explain_text"] || "").trim()
       : String(p["explainText"] || p["explain_text"] || "").trim();
+    const scopeRaw = summary?.["scope"];
+    const scope =
+      scopeRaw !== undefined && scopeRaw !== null
+        ? String(scopeRaw)
+        : undefined;
     return {
       ...p,
       policyHash,
@@ -3748,6 +3753,7 @@ async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
       summary,
       explainText: explainText || undefined,
       description: explainText || undefined,
+      scope: scope || undefined,
     };
   });
 }
@@ -3962,6 +3968,36 @@ function exportPolicies(
   display: flex
   flex-direction: column
 
+
+.gpo-content-panels--collections
+  flex: 1 1 0%
+  min-height: 0
+  overflow: hidden
+
+  > *
+    flex: 1 1 0%
+    min-height: 0
+    overflow: hidden
+
+.gpo-content-panels-wrap
+  flex: 1
+  min-height: 0
+  display: flex
+  flex-direction: column
+  overflow: hidden
+
+.gpo-content-tab-panels
+  flex: 1
+  min-height: 0
+  display: flex
+  flex-direction: column
+  overflow-y: auto
+  overflow-x: hidden
+  :deep(.q-panel),
+  :deep(.q-panel > div)
+    height: auto
+    min-height: 0
+
 .gpo-standalone-page-wrap
   display: flex
   flex-direction: column
@@ -4013,14 +4049,26 @@ function exportPolicies(
 .gpo-library-panels
   flex: 1
   min-height: 400px
-  overflow-y: auto
+  //overflow-y: auto
   position: relative
+  :deep(.q-panel),
+  :deep(.q-panel > div)
+    height: auto
+    min-height: 0
 
 .gpo-policies-sub-panels
   min-height: 300px
+  :deep(.q-panel),
+  :deep(.q-panel > div)
+    height: auto
+    min-height: 0
 
 .gpo-windows-sub-panels
   min-height: 300px
+  :deep(.q-panel),
+  :deep(.q-panel > div)
+    height: auto
+    min-height: 0
 
 .admx-tab-panel
   height: 100%
@@ -4044,7 +4092,7 @@ function exportPolicies(
   overflow: hidden
 
 .table-container
-  max-height: 750px
+  max-height: 600px
   overflow-y: auto
   overflow-x: hidden
 
