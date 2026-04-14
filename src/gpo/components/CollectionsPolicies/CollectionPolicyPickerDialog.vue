@@ -33,20 +33,180 @@
           </div>
 
           <div class="col-4">
-            <PolicyList
-              :filtered-grouped-policies="filteredGroupedPolicies"
-              :loading="loadingPolicies"
-              :error="errorPolicies"
-              :selected-policy="selectedPolicy"
-              :selected-policies="selectedPolicies"
-              :selected-count="selectedCount"
-              :has-category="!!selectedCategory"
-              :policy-state="policyState"
-              @select-policy="selectPolicy"
-              @toggle-policy-selection="togglePolicySelection"
-              @update-policy-state="setPolicyState"
-              @retry="retryLoadPolicies"
-            />
+            <q-card flat bordered class="column" style="height: calc(100vh - 220px)">
+              <q-card-section class="policy-list-section">
+                <div class="text-subtitle2 q-mb-sm">Policies</div>
+
+                <q-btn-toggle
+                  v-model="policyViewMode"
+                  no-caps
+                  dense
+                  spread
+                  toggle-color="primary"
+                  class="q-mb-sm"
+                  :options="[
+                    { label: 'By Category', value: 'byCategory' },
+                    { label: 'All Policies', value: 'allPolicies' },
+                  ]"
+                />
+
+                <template v-if="policyViewMode === 'byCategory'">
+                  <div v-if="loadingPolicies" class="text-center q-pa-lg">
+                    <q-spinner color="primary" size="2em" />
+                    <div class="q-mt-sm">Loading...</div>
+                  </div>
+                  <div v-else-if="errorPolicies" class="text-center q-pa-lg text-negative">
+                    <q-icon name="error" size="2em" />
+                    <div class="q-mt-sm">{{ errorPolicies }}</div>
+                    <q-btn flat dense no-caps label="Retry" color="primary" class="q-mt-sm" @click="retryLoadPolicies" />
+                  </div>
+                  <q-scroll-area
+                    v-else-if="filteredGroupedPolicies.length > 0"
+                    class="policy-list-scroll"
+                    :style="{ height: 'calc(100vh - 390px)' }"
+                  >
+                    <div
+                      v-for="group in filteredGroupedPolicies"
+                      :key="group.scopeKey"
+                      class="q-mb-md"
+                    >
+                      <div class="text-caption text-weight-medium text-grey-7 q-mb-xs q-px-sm">
+                        {{ group.scopeLabel }}
+                      </div>
+                      <q-list separator>
+                        <q-item
+                          v-for="policy in group.policies"
+                          :key="policy.id"
+                          clickable
+                          v-ripple
+                          :active="selectedPolicy?.id === policy.id"
+                          class="policy-item"
+                          @click="selectPolicy(policy)"
+                        >
+                          <q-item-section avatar>
+                            <q-checkbox
+                              :model-value="selectedPolicies[policy.id] || false"
+                              @update:model-value="togglePolicySelection(policy.id)"
+                              @click.stop
+                            />
+                          </q-item-section>
+                          <q-item-section>
+                            <q-item-label>{{ policy.displayName || policy.name }}</q-item-label>
+                          </q-item-section>
+                          <q-item-section v-if="selectedPolicies[policy.id]" side class="q-pl-sm">
+                            <q-toggle
+                              :model-value="policyState[policy.id] !== false"
+                              color="primary"
+                              dense
+                              :label="policyState[policy.id] !== false ? 'On' : 'Off'"
+                              @update:model-value="setPolicyState(policy.id, $event)"
+                              @click.stop
+                            />
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+                    </div>
+                    <div v-if="selectedCount > 0" class="q-pa-sm q-mt-sm bg-primary text-white rounded-borders">
+                      <div class="text-caption">Selected: {{ selectedCount }} policy(ies)</div>
+                    </div>
+                  </q-scroll-area>
+                  <div v-else-if="selectedCategory" class="text-center q-pa-lg text-grey-6">
+                    <q-icon name="info" size="2em" />
+                    <div class="q-mt-sm">No policies in category</div>
+                  </div>
+                  <div v-else class="text-center q-pa-lg text-grey-6">
+                    <q-icon name="info" size="2em" />
+                    <div class="q-mt-sm">Select a category</div>
+                  </div>
+                </template>
+
+                <template v-else>
+                  <q-input
+                    v-model="allPoliciesSearch"
+                    dense
+                    outlined
+                    clearable
+                    placeholder="Search policies..."
+                    :input-style="{ paddingLeft: '6px' }"
+                    class="q-mb-sm"
+                    @clear="allPoliciesSearch = ''"
+                  >
+                    <template v-slot:prepend>
+                      <q-icon name="search" size="xs" />
+                    </template>
+                  </q-input>
+
+                  <div v-if="loadingAllPolicies" class="text-center q-pa-lg">
+                    <q-spinner color="primary" size="2em" />
+                    <div class="q-mt-sm">Loading all policies...</div>
+                  </div>
+                  <q-scroll-area
+                    v-else-if="filteredAllPoliciesGrouped.length > 0"
+                    class="policy-list-scroll"
+                    :style="{ height: 'calc(100vh - 430px)' }"
+                  >
+                    <div
+                      v-for="group in filteredAllPoliciesGrouped"
+                      :key="group.scopeKey"
+                      class="q-mb-md"
+                    >
+                      <div class="text-caption text-weight-medium text-grey-7 q-mb-xs q-px-sm">
+                        {{ group.scopeLabel }}
+                        <q-badge
+                          :label="group.policies.length"
+                          color="grey-5"
+                          text-color="white"
+                          rounded
+                          class="q-ml-xs"
+                        />
+                      </div>
+                      <q-list separator>
+                        <q-item
+                          v-for="policy in group.policies"
+                          :key="policy.id"
+                          clickable
+                          v-ripple
+                          :active="selectedPolicy?.id === policy.id"
+                          class="policy-item"
+                          @click="selectPolicy(policy)"
+                        >
+                          <q-item-section avatar>
+                            <q-checkbox
+                              :model-value="selectedPolicies[policy.id] || false"
+                              @update:model-value="togglePolicySelection(policy.id)"
+                              @click.stop
+                            />
+                          </q-item-section>
+                          <q-item-section>
+                            <q-item-label>{{ policy.displayName || policy.name }}</q-item-label>
+                          </q-item-section>
+                          <q-item-section v-if="selectedPolicies[policy.id]" side class="q-pl-sm">
+                            <q-toggle
+                              :model-value="policyState[policy.id] !== false"
+                              color="primary"
+                              dense
+                              :label="policyState[policy.id] !== false ? 'On' : 'Off'"
+                              @update:model-value="setPolicyState(policy.id, $event)"
+                              @click.stop
+                            />
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+                    </div>
+                    <div v-if="selectedCount > 0" class="q-pa-sm q-mt-sm bg-primary text-white rounded-borders">
+                      <div class="text-caption">Selected: {{ selectedCount }} policy(ies)</div>
+                    </div>
+                  </q-scroll-area>
+                  <div
+                    v-else-if="allPoliciesLoaded"
+                    class="text-center q-pa-lg text-grey-6"
+                  >
+                    <q-icon name="search_off" size="2em" />
+                    <div class="q-mt-sm">No policies found</div>
+                  </div>
+                </template>
+              </q-card-section>
+            </q-card>
           </div>
 
           <div class="col-5">
@@ -170,7 +330,6 @@ import {
 } from "../../api/grpc-client";
 import { notifyError, notifySuccess } from "@/utils/notify";
 import CategoryTree from "./CategoryTree.vue";
-import PolicyList from "./PolicyList.vue";
 import PolicyDetailsForm from "./PolicyDetailsForm.vue";
 import { usePolicyCategories } from "../../composables/usePolicyCategories";
 import { usePolicySelection } from "../../composables/usePolicySelection";
@@ -249,11 +408,29 @@ const applying = ref(false);
 const perPolicySettings = ref<Record<string, Record<string, unknown>>>({});
 const perPolicyElements = ref<Record<string, PolicyDetailsElement[]>>({});
 
+const policyViewMode = ref<"byCategory" | "allPolicies">("byCategory");
+const allPoliciesRaw = ref<PolicyItem[]>([]);
+const allPoliciesSearch = ref("");
+const loadingAllPolicies = ref(false);
+const allPoliciesLoaded = ref(false);
+
 const selectedPoliciesList = computed(() => {
   const list: PolicyItem[] = [];
+  const seen = new Set<string>();
   for (const group of filteredGroupedPolicies.value) {
     for (const p of group.policies) {
-      if (selectedPolicies.value[p.id]) list.push(p);
+      if (selectedPolicies.value[p.id] && !seen.has(p.id)) {
+        list.push(p);
+        seen.add(p.id);
+      }
+    }
+  }
+  for (const group of filteredAllPoliciesGrouped.value) {
+    for (const p of group.policies) {
+      if (selectedPolicies.value[p.id] && !seen.has(p.id)) {
+        list.push(p);
+        seen.add(p.id);
+      }
     }
   }
   return list;
@@ -373,6 +550,63 @@ const filteredGroupedPolicies = computed(() => {
   return groups;
 });
 
+async function loadAllPolicies() {
+  if (allPoliciesLoaded.value) return;
+  loadingAllPolicies.value = true;
+  try {
+    const response = await policyCatalogClient.listPoliciesGroupedByScope("en-US");
+    const responseObj = response as { groupsList?: unknown[]; groups?: unknown[] };
+    const groupsList = responseObj.groupsList || responseObj.groups || [];
+    const items: PolicyItem[] = [];
+    for (const group of groupsList) {
+      if (!group || typeof group !== "object") continue;
+      const g = group as { policiesList?: unknown[]; policies?: unknown[] };
+      const policiesList = g.policiesList || g.policies || [];
+      items.push(...normalizePoliciesList({ policiesList }));
+    }
+    allPoliciesRaw.value = items;
+    allPoliciesLoaded.value = true;
+  } catch {
+    notifyError("Error loading all policies");
+  } finally {
+    loadingAllPolicies.value = false;
+  }
+}
+
+const filteredAllPoliciesGrouped = computed(() => {
+  const query = allPoliciesSearch.value.trim().toLowerCase();
+  let list = allPoliciesRaw.value;
+  if (query) {
+    list = list.filter(
+      (p) =>
+        (p.displayName || "").toLowerCase().includes(query) ||
+        (p.name || "").toLowerCase().includes(query),
+    );
+  }
+  const byScope: Record<number, PolicyItem[]> = {};
+  for (const p of list) {
+    const key = p.scope ?? POLICY_SCOPE_NONE;
+    if (!byScope[key]) byScope[key] = [];
+    byScope[key].push(p);
+  }
+  const order = [POLICY_SCOPE_USER, POLICY_SCOPE_MACHINE, POLICY_SCOPE_BOTH, POLICY_SCOPE_NONE];
+  const groups: { scopeKey: string; scopeLabel: string; policies: PolicyItem[] }[] = [];
+  for (const scope of order) {
+    const policies = byScope[scope];
+    if (policies && policies.length > 0) {
+      groups.push({ scopeKey: String(scope), scopeLabel: scopeLabel(scope), policies });
+    }
+  }
+  return groups;
+});
+
+watch(policyViewMode, (mode) => {
+  if (mode === "allPolicies") {
+    loadAllPolicies();
+  }
+  selectedPolicy.value = null;
+});
+
 watch(
   () => props.modelValue,
   (visible) => {
@@ -384,13 +618,16 @@ watch(
       categorySearchQuery.value = "";
       selectedCategory.value = null;
       errorPolicies.value = null;
-      // scopeFilter.value = "all";
       settingsTab.value = "settings";
       policyDetailsElements.value = [];
       policySettingsValues.value = {};
       perPolicySettings.value = {};
       perPolicyElements.value = {};
       loadingPolicyDetails.value = false;
+      policyViewMode.value = "byCategory";
+      allPoliciesRaw.value = [];
+      allPoliciesSearch.value = "";
+      allPoliciesLoaded.value = false;
       loadCategories();
     }
   },

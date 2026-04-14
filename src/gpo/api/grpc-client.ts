@@ -1627,7 +1627,12 @@ export interface PolicyElementMetadata {
   id?: number;
   element_id: string;
   type: string;
-  items?: Array<{ id: number; name: string; display_name?: string; value?: string }>;
+  items?: Array<{
+    id: number;
+    name: string;
+    display_name?: string;
+    value?: string;
+  }>;
 }
 
 export function createPolicySelection(
@@ -1655,9 +1660,7 @@ export function createPolicySelection(
 
     const metadata = metadataMap.get(elementId);
     const idName =
-      metadata?.id != null && metadata.id > 0
-        ? String(metadata.id)
-        : elementId;
+      metadata?.id != null && metadata.id > 0 ? String(metadata.id) : elementId;
     const elementType = metadata?.type?.toLowerCase() || "";
 
     const isEnum =
@@ -1740,9 +1743,14 @@ export function createPolicySelection(
     } else {
       if (typeof value === "boolean") {
         elementSelection.setValue(value ? "1" : "0");
-      } else if ((typeof value === "number" || typeof value === "string") && isEnum) {
+      } else if (
+        (typeof value === "number" || typeof value === "string") &&
+        isEnum
+      ) {
         const selectedItemId = Number(value);
-        const selectedItem = metadata?.items?.find(item => item.id === selectedItemId);
+        const selectedItem = metadata?.items?.find(
+          (item) => item.id === selectedItemId,
+        );
 
         if (selectedItem && selectedItem.value) {
           elementSelection.setValue(selectedItem.value);
