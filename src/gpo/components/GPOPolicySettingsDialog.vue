@@ -116,6 +116,25 @@
                             policy.displayName || policy.name
                           }}</q-item-label>
                         </q-item-section>
+                        <q-item-section
+                          v-if="policyIsSimple[policy.id] !== undefined && policyIsSimple[policy.id] !== false"
+                          side
+                          @click.stop
+                        >
+                          <q-spinner
+                            v-if="policyIsSimple[policy.id] === null"
+                            color="primary"
+                            size="1.2em"
+                          />
+                          <q-toggle
+                            v-else
+                            :model-value="policyToggleStates[policy.id] ?? false"
+                            color="primary"
+                            size="sm"
+                            dense
+                            @update:model-value="(val) => (policyToggleStates[policy.id] = val)"
+                          />
+                        </q-item-section>
                       </q-item>
                     </q-list>
                   </q-scroll-area>
@@ -164,7 +183,10 @@
                         v-for="group in filteredAllPoliciesGrouped"
                         :key="group.scopeKey"
                       >
-                        <q-item-label header class="text-weight-bold text-caption">
+                        <q-item-label
+                          header
+                          class="text-weight-bold text-caption"
+                        >
                           {{ group.scopeLabel }}
                           <q-badge
                             :label="group.policies.length"
@@ -667,6 +689,7 @@ import {
   operator_pb,
   policyAssignmentClient,
 } from "../api/grpc-client";
+import { PolicySelection } from "@/generated/common/policy_pb";
 import { notifySuccess, notifyError } from "@/utils/notify";
 import type { GPOPolicy } from "../types/gpo";
 import { normalizePoliciesList } from "../api/policy-catalog-adapters";
@@ -762,13 +785,23 @@ const allPoliciesSearch = ref("");
 const loadingAllPolicies = ref(false);
 const allPoliciesLoaded = ref(false);
 
+const policyToggleStates = ref<Record<string, boolean>>({});
+const policyIsSimple = ref<Record<string, boolean | null>>({});
+
 function normalizeScope(raw: unknown): number | null {
   if (raw === undefined || raw === null) return null;
-  if (typeof raw === "number") return Number.isFinite(raw) ? Math.floor(raw) : null;
+  if (typeof raw === "number")
+    return Number.isFinite(raw) ? Math.floor(raw) : null;
   const s = String(raw).trim().toUpperCase();
   if (!s) return null;
   if (s === "POLICY_SCOPE_USER" || s === "USER" || s === "1") return 1;
-  if (s === "POLICY_SCOPE_MACHINE" || s === "MACHINE" || s === "COMPUTER" || s === "2") return 2;
+  if (
+    s === "POLICY_SCOPE_MACHINE" ||
+    s === "MACHINE" ||
+    s === "COMPUTER" ||
+    s === "2"
+  )
+    return 2;
   if (s === "POLICY_SCOPE_BOTH" || s === "BOTH" || s === "3") return 3;
   const n = Number.parseInt(s, 10);
   return Number.isFinite(n) ? n : null;
@@ -786,7 +819,10 @@ const filteredSelectedCategoryPolicies = computed(() => {
   return list;
 });
 
-function filterCategoryTree(nodes: CategoryNode[], query: string): CategoryNode[] {
+function filterCategoryTree(
+  nodes: CategoryNode[],
+  query: string,
+): CategoryNode[] {
   const q = query.trim().toLowerCase();
   if (!q) return nodes;
 
@@ -821,8 +857,12 @@ async function loadAllPolicies() {
   if (allPoliciesLoaded.value) return;
   loadingAllPolicies.value = true;
   try {
-    const response = await policyCatalogClient.listPoliciesGroupedByScope("en-US");
-    const responseObj = response as { groupsList?: unknown[]; groups?: unknown[] };
+    const response =
+      await policyCatalogClient.listPoliciesGroupedByScope("en-US");
+    const responseObj = response as {
+      groupsList?: unknown[];
+      groups?: unknown[];
+    };
     const groupsList = responseObj.groupsList || responseObj.groups || [];
     const items: PolicyItem[] = [];
     for (const group of groupsList) {
@@ -869,11 +909,19 @@ const filteredAllPoliciesGrouped = computed(() => {
     byScope[key].push(p);
   }
   const order = [SCOPE_USER, SCOPE_BOTH, SCOPE_MACHINE, SCOPE_NONE];
-  const groups: { scopeKey: number; scopeLabel: string; policies: PolicyItem[] }[] = [];
+  const groups: {
+    scopeKey: number;
+    scopeLabel: string;
+    policies: PolicyItem[];
+  }[] = [];
   for (const scope of order) {
     const policies = byScope[scope];
     if (policies && policies.length > 0) {
-      groups.push({ scopeKey: scope, scopeLabel: scopeLabelText(scope), policies });
+      groups.push({
+        scopeKey: scope,
+        scopeLabel: scopeLabelText(scope),
+        policies,
+      });
     }
   }
   return groups;
@@ -915,6 +963,8 @@ watch(dialogVisible, (newVal) => {
     allPoliciesList.value = [];
     allPoliciesSearch.value = "";
     allPoliciesLoaded.value = false;
+    policyToggleStates.value = {};
+    policyIsSimple.value = {};
   }
 });
 
@@ -1102,6 +1152,9 @@ async function loadPoliciesByCategory(categoryName: string) {
 
 function selectPolicy(policy: PolicyRow) {
   selectedPolicy.value = policy;
+  if (!(policy.id in policyIsSimple.value)) {
+    policyIsSimple.value[policy.id] = null;
+  }
 }
 
 async function loadPolicyDetails(policy: PolicyRow) {
@@ -1695,6 +1748,9 @@ async function loadPolicyDetails(policy: PolicyRow) {
 
     if (!presentationData) {
       policyDetailsElements.value = [];
+      if (selectedPolicy.value) {
+        policyIsSimple.value[selectedPolicy.value.id] = true;
+      }
       return;
     }
 
@@ -1949,6 +2005,10 @@ async function loadPolicyDetails(policy: PolicyRow) {
 
     policyDetailsElements.value = elements;
 
+    if (selectedPolicy.value) {
+      policyIsSimple.value[selectedPolicy.value.id] = elements.length === 0;
+    }
+
     for (const element of elements) {
       if (!(element.element_id in policySettingsValues.value)) {
         policySettingsValues.value[element.element_id] =
@@ -1987,6 +2047,7 @@ async function loadPolicyDetails(policy: PolicyRow) {
     policyDetailsElements.value = [];
     policySettingsValues.value = {};
     presentationElements.value = [];
+    delete policyIsSimple.value[policy.id];
   } finally {
     loadingPolicyDetails.value = false;
   }
@@ -2055,32 +2116,35 @@ async function applyPolicy() {
       }
     }
 
-    let processedSettings: Record<string, unknown> = {};
-    if (
-      policySettingsValues.value &&
-      Object.keys(policySettingsValues.value).length > 0
-    ) {
-      processedSettings = policySettingsValues.value;
+    if (policyIsSimple.value[selectedPolicy.value.id] === true) {
+      const toggleEnabled =
+        policyToggleStates.value[selectedPolicy.value.id] ?? false;
+      const simpleSelection = new PolicySelection();
+      simpleSelection.setValue(toggleEnabled ? "1" : "0");
+
+      await policyAssignmentClient.assignPolicy(
+        policyHash,
+        "agent",
+        { agentId: String(props.agent.id) },
+        simpleSelection,
+      );
+    } else {
+      let processedSettings: Record<string, unknown> = {};
+      if (
+        policySettingsValues.value &&
+        Object.keys(policySettingsValues.value).length > 0
+      ) {
+        processedSettings = policySettingsValues.value;
+      }
+
+      await policyAssignmentClient.assignPolicy(
+        policyHash,
+        "agent",
+        { agentId: String(props.agent.id) },
+        processedSettings,
+        policyDetailsElements.value,
+      );
     }
-
-    console.log("GPOPolicySettingsDialog - отправка для машины:", {
-      policyHash,
-      agent: props.agent,
-      agentId: props.agent.id,
-      targetType: "agent",
-      targetParams: { agentId: String(props.agent.id) },
-      policySettingsValues: policySettingsValues.value,
-      processedSettings,
-      hasSettings: Object.keys(processedSettings).length > 0,
-    });
-
-    await policyAssignmentClient.assignPolicy(
-      policyHash,
-      "agent",
-      { agentId: String(props.agent.id) },
-      processedSettings,
-      policyDetailsElements.value,
-    );
 
     policyEnabled.value[selectedPolicy.value.id] = true;
     emit("applied", selectedPolicy.value.id, policySettingsValues.value);
