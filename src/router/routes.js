@@ -171,6 +171,12 @@ const routes = [
             component: () =>
               import("@/views/security/ITHygieneView.vue"),
           },
+          {
+            path: "fim",
+            name: "SecurityFIM",
+            component: () =>
+              import("@/views/security/FIMView.vue"),
+          },
         ],
       },
     ],

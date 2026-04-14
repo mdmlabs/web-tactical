@@ -99,3 +99,20 @@ export async function removeAPIKey(id) {
   const { data } = await axios.delete(`${baseUrl}/apikeys/${id}/`);
   return data;
 }
+
+// user group api functions
+export async function fetchUserGroups(params = {}) {
+  try {
+    const { data } = await axios.get(`${baseUrl}/user-groups/`, {
+      params: params,
+    });
+    return data;
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+export async function saveUserGroup(payload) {
+  const { data } = await axios.post(`${baseUrl}/user-groups/`, payload);
+  return data;
+}

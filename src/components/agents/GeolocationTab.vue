@@ -322,7 +322,7 @@ export default {
     async function handleStop() {
       stopLogging.value = true;
       try {
-        await axios.post("/logs/audit/", {
+        await axios.patch("/logs/audit/", {
           action: "geolocation_check_stopped",
           message: `Administrator stopped geolocation check for device: ${agentHostname.value || selectedAgent.value}. Geolocation unavailable.`,
         });

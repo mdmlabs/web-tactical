@@ -11,3 +11,9 @@ export interface AuthToken {
   expiry: string;
   user: string;
 }
+
+export interface UserGroup {
+  id: number;
+  name: string;
+  sites?: number[];
+}

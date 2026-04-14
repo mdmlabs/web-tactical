@@ -31,3 +31,16 @@ export interface Agent {
   monitoring_type: AgentTab;
   last_geolocation: AgentGeolocation | null;
 }
+
+export interface AgentWithoutGeolocation {
+  agent_id: string;
+  hostname: string;
+}
+
+export interface GeolocationResponse {
+  agents_with_geolocation: AgentWithGeolocation[];
+  agents_without_geolocation: AgentWithoutGeolocation[];
+  total_agents: number;
+  with_geolocation_count: number;
+  without_geolocation_count: number;
+}

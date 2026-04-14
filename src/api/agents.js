@@ -332,6 +332,23 @@ export async function fetchAgentsGeolocation() {
   }
 }
 
+export async function fetchGeolocationBySite(siteId) {
+  const { data } = await axios.get(`${baseUrl}/geolocation/site/${siteId}/`);
+  return data;
+}
+
+export async function fetchGeolocationByUserGroup(groupId) {
+  const { data } = await axios.get(
+    `${baseUrl}/geolocation/user-group/${groupId}/`,
+  );
+  return data;
+}
+
+export async function fetchGeolocationByUser(userId) {
+  const { data } = await axios.get(`${baseUrl}/geolocation/user/${userId}/`);
+  return data;
+}
+
 export async function fetchAgentGeolocationHistory(agentId, params = {}) {
   try {
     const { data } = await axios.get(
