@@ -88,6 +88,10 @@ export default function ({ app, router }) {
         )
           return Promise.reject({ ...error });
         text = error.response.data.detail;
+        // hide sponsorship messages
+        if (text && text.includes("tacticalrmm.com/sponsor")) {
+          return Promise.reject({ ...error });
+        }
       }
       // catch all for other 400 error messages
       else if (
