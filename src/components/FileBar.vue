@@ -663,6 +663,10 @@
                     <q-item-section avatar><q-icon name="explore" size="sm" /></q-item-section>
                     <q-item-section>Discover</q-item-section>
                   </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('fim')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="fingerprint" size="sm" /></q-item-section>
+                    <q-item-section>FIM</q-item-section>
+                  </q-item>
                 </q-list>
               </q-menu>
             </q-item>
@@ -689,6 +693,10 @@
               <q-item clickable v-ripple @click="navigateToSecurity('discover')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('discover') }]">
                 <q-item-section avatar><q-icon name="explore" /></q-item-section>
                 <q-item-section>Discover</q-item-section>
+              </q-item>
+              <q-item clickable v-ripple @click="navigateToSecurity('fim')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('fim') }]">
+                <q-item-section avatar><q-icon name="fingerprint" /></q-item-section>
+                <q-item-section>FIM</q-item-section>
               </q-item>
             </q-list>
           </q-expansion-item>
@@ -1624,6 +1632,7 @@ export default {
         groups: "SecurityGroups",
         "it-hygiene": "ITHygiene",
         discover: "SecurityDiscover",
+        fim: "SecurityFIM",
       };
       this.$router.push({ name: routeMap[tab] || "SecurityAgents" });
     },
@@ -1634,6 +1643,7 @@ export default {
       if (tab === "groups") return path === "/security/groups";
       if (tab === "it-hygiene") return path === "/security/it-hygiene";
       if (tab === "discover") return path === "/security/discover";
+      if (tab === "fim") return path.startsWith("/security/fim");
       return false;
     },
     clearCache() {

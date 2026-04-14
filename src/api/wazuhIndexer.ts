@@ -1,0 +1,62 @@
+import axios, { type AxiosInstance } from "axios";
+import { getBaseUrl } from "@/boot/axios";
+import type { OpenSearchQueryBody, OpenSearchResponse } from "@/types/fim";
+
+/**
+ * Client for Wazuh Indexer (OpenSearch).
+ * Sends native OpenSearch requests through nginx proxy:
+ *   /api/wazuh-indexer/{index}/_search  ->  nginx strips prefix  ->  OpenSearch /{index}/_search
+ */
+class WazuhIndexerClient {
+  private client: AxiosInstance;
+
+  constructor() {
+    const baseURL =
+      process.env.NODE_ENV === "production"
+        ? `${window._env_?.PROD_URL ?? ""}/api/wazuh-indexer`
+        : `${getBaseUrl()}/api/wazuh-indexer`;
+
+    this.client = axios.create({
+      baseURL,
+      timeout: 30000,
+      withCredentials: true,
+    });
+  }
+
+  /**
+   * Execute a search query against the Wazuh Indexer (OpenSearch).
+   * Sends: POST /api/wazuh-indexer/{indexPattern}/_search
+   */
+  async search<T = unknown>(
+    indexPattern: string,
+    body: OpenSearchQueryBody,
+  ): Promise<OpenSearchResponse<T>> {
+    const { data } = await this.client.post<OpenSearchResponse<T>>(
+      `/${encodeURIComponent(indexPattern)}/_search`,
+      body,
+    );
+    return data;
+  }
+
+  /**
+   * Execute multiple search queries in a single request.
+   * Sends: POST /api/wazuh-indexer/_msearch
+   */
+  async msearch<T = unknown>(
+    requests: { index: string; body: OpenSearchQueryBody }[],
+  ): Promise<{ responses: OpenSearchResponse<T>[] }> {
+    // OpenSearch _msearch expects NDJSON format
+    const ndjson = requests
+      .map((r) => `${JSON.stringify({ index: r.index })}\n${JSON.stringify(r.body)}`)
+      .join("\n") + "\n";
+
+    const { data } = await this.client.post<{
+      responses: OpenSearchResponse<T>[];
+    }>("/_msearch", ndjson, {
+      headers: { "Content-Type": "application/x-ndjson" },
+    });
+    return data;
+  }
+}
+
+export const wazuhIndexerApi = new WazuhIndexerClient();

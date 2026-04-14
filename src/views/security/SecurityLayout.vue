@@ -35,6 +35,7 @@ const labelMap: Record<string, string> = {
   SecurityAlerts: "Alerts / Rules",
   SecurityGroups: "Groups",
   SecurityDiscover: "Discover",
+  SecurityFIM: "File Integrity Monitoring",
 };
 
 const currentPageLabel = computed(() => {
