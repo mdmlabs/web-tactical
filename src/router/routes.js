@@ -184,6 +184,12 @@ const routes = [
             component: () =>
               import("@/views/security/FIMView.vue"),
           },
+          {
+            path: "sca",
+            name: "SecuritySCA",
+            component: () =>
+              import("@/views/security/SCAView.vue"),
+          },
         ],
       },
     ],

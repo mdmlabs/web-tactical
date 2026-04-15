@@ -9,6 +9,7 @@ import type {
   WazuhVulnerability,
   WazuhSyscheckEntry,
   WazuhSCAPolicy,
+  WazuhSCACheck,
   WazuhGroup,
   WazuhGroupFile,
   WazuhSyscollectorHardware,
@@ -161,6 +162,14 @@ class WazuhApiClient {
   async getSCA(agentId: string) {
     const { data } = await this.client.get<WazuhListResponse<WazuhSCAPolicy>>(
       `/sca/${agentId}`,
+    );
+    return data;
+  }
+
+  async getSCAChecks(agentId: string, policyId: string, params?: Record<string, unknown>) {
+    const { data } = await this.client.get<WazuhListResponse<WazuhSCACheck>>(
+      `/sca/${agentId}/checks/${policyId}`,
+      { params: { limit: 500, ...params } },
     );
     return data;
   }

@@ -234,6 +234,25 @@ export interface WazuhSCAPolicy {
   end_scan: string;
 }
 
+export interface WazuhSCACheck {
+  id: number;
+  policy_id: string;
+  title: string;
+  description?: string;
+  rationale?: string;
+  remediation?: string;
+  compliance?: { key: string; value: string }[];
+  rules?: { type: string; rule: string }[];
+  condition?: string;
+  command?: string;
+  file?: string;
+  directory?: string;
+  process?: string;
+  registry?: string;
+  result: "passed" | "failed" | "not applicable" | string;
+  reason?: string;
+}
+
 // === Syscollector ===
 export interface WazuhSyscollectorHardware {
   cpu: { cores: number; mhz: number; name: string };
