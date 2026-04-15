@@ -326,6 +326,7 @@ export const agentCategoryClient = {
     name: string;
     description?: string;
     parentId?: number;
+    maxAgents?: number;
   }): Promise<agent_category_service_pb_types.AgentCategoryControlResponse.AsObject> {
     const request = new agent_category_service_pb.CreateAgentCategoryRequest();
     request.setName(params.name);
@@ -339,6 +340,8 @@ export const agentCategoryClient = {
     if (params.parentId != null) {
       request.setParentId(params.parentId);
     }
+
+    request.setMaxAgents(Math.max(0, Math.floor(params.maxAgents ?? 0)));
 
     const response = await agentCategoryServiceClient.createCategory(
       request,
