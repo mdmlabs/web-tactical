@@ -1,0 +1,200 @@
+syntax = "proto3";
+
+import "common/target.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/timestamp.proto";
+
+package laborato.operator.service;
+
+service OperatorWslControlService {
+    // WRITE
+    rpc ImportDistribution(ImportDistributionRequest) returns (WslControlResponse);
+    rpc UnregisterDistribution(DistributionIdentifier) returns (WslControlResponse);
+    rpc TerminateDistribution(DistributionIdentifier) returns (WslControlResponse);
+    rpc ShutdownWsl(TargetRequest) returns (WslControlResponse);
+    rpc UpdateWslEngine(TargetRequest) returns (WslControlResponse);
+    rpc UpdateDistributionPackages(DistributionIdentifier) returns (WslControlResponse);
+
+    rpc ApplyGlobalConfig(ApplyGlobalConfigRequest) returns (WslControlResponse);
+    rpc ApplyDistributionConfig(ApplyDistributionConfigRequest) returns (WslControlResponse);
+
+    // READ
+    rpc GetWslStatus(TargetRequest) returns (WslStatusResponse);
+    rpc GetDistributions(TargetRequest) returns (DistributionsResponse);
+    rpc GetGlobalConfig(TargetRequest) returns (GlobalConfigResponse);
+    rpc GetDistributionConfig(DistributionIdentifier) returns (DistributionConfigResponse);
+    rpc GetActivityLog(GetWslActivityRequest) returns (WslActivityResponse);
+    rpc GetComplianceReport(GetWslComplianceRequest) returns (WslComplianceResponse);
+}
+
+message TargetRequest {
+    laborato.common.target.Target target = 1;
+}
+
+message DistributionIdentifier {
+    laborato.common.target.Target target = 1;
+    string distribution_name = 2;
+}
+
+message ImportDistributionRequest {
+    laborato.common.target.Target target = 1;
+    string distribution_name = 2;
+    string install_location = 3;
+    string package_path = 4; // path to tar / .wsl image on target device
+    WslDistributionVersion version = 5;
+}
+
+message ApplyGlobalConfigRequest {
+    laborato.common.target.Target target = 1;
+    WslGlobalConfig config = 2;
+}
+
+message ApplyDistributionConfigRequest {
+    laborato.common.target.Target target = 1;
+    string distribution_name = 2;
+    WslDistributionConfig config = 3;
+}
+
+message GetWslActivityRequest {
+    laborato.common.target.Target target = 1;
+    uint32 max_events = 2;
+    google.protobuf.StringValue log_name_filter = 3;
+}
+
+message GetWslComplianceRequest {
+    laborato.common.target.Target target = 1;
+    google.protobuf.StringValue distribution_name = 2;
+    WslGlobalConfig expected_global_config = 3;
+    WslDistributionConfig expected_distribution_config = 4;
+}
+
+message WslControlResponse {
+    OperatorWslControlResponseStatus status = 1;
+    optional string error_message = 2;
+}
+
+message WslStatusResponse {
+    OperatorWslControlResponseStatus status = 1;
+    WslStatusInfo info = 2;
+    optional string error_message = 3;
+}
+
+message DistributionsResponse {
+    OperatorWslControlResponseStatus status = 1;
+    repeated WslDistributionInfo distributions = 2;
+    optional string error_message = 3;
+}
+
+message GlobalConfigResponse {
+    OperatorWslControlResponseStatus status = 1;
+    WslGlobalConfig config = 2;
+    optional string raw_text = 3;
+    optional string error_message = 4;
+}
+
+message DistributionConfigResponse {
+    OperatorWslControlResponseStatus status = 1;
+    WslDistributionConfig config = 2;
+    optional string raw_text = 3;
+    optional string error_message = 4;
+}
+
+message WslActivityResponse {
+    OperatorWslControlResponseStatus status = 1;
+    repeated WslActivityEvent events = 2;
+    repeated string discovered_logs = 3;
+    optional string error_message = 4;
+}
+
+message WslComplianceResponse {
+    OperatorWslControlResponseStatus status = 1;
+    WslComplianceReport report = 2;
+    optional string error_message = 3;
+}
+
+message WslStatusInfo {
+    string raw_text = 1;
+}
+
+message WslDistributionInfo {
+    string distribution_name = 1;
+    string state = 2;
+    uint32 version = 3;
+    bool is_default = 4;
+}
+
+message WslGlobalConfig {
+    google.protobuf.StringValue memory = 1;              // e.g. "4GB"
+    google.protobuf.UInt32Value processors = 2;          // e.g. 2
+    google.protobuf.StringValue swap = 3;                // e.g. "2GB"
+    google.protobuf.StringValue swap_file = 4;           // e.g. C:\\WSL\\swap.vhdx
+    google.protobuf.StringValue default_vhd_size = 5;    // e.g. "256GB"
+    WslNetworkingMode networking_mode = 6;
+    google.protobuf.BoolValue firewall = 7;
+    google.protobuf.BoolValue dns_tunneling = 8;
+    google.protobuf.BoolValue auto_proxy = 9;
+}
+
+message WslDistributionConfig {
+    google.protobuf.BoolValue disable_windows_interop = 1;
+    google.protobuf.BoolValue disable_append_windows_path = 2;
+    google.protobuf.BoolValue disable_auto_mount_windows_drives = 3;
+    google.protobuf.BoolValue mount_fstab = 4;
+    google.protobuf.BoolValue generate_hosts = 5;
+    google.protobuf.BoolValue generate_resolv_conf = 6;
+}
+
+message WslActivityEvent {
+    string log_name = 1;
+    google.protobuf.StringValue provider_name = 2;
+    uint32 event_id = 3;
+    google.protobuf.StringValue level = 4;
+    google.protobuf.Timestamp time_created = 5;
+    google.protobuf.StringValue machine_name = 6;
+    google.protobuf.StringValue message = 7;
+}
+
+message WslComplianceReport {
+    bool wsl_command_available = 1;
+    string status_text = 2;
+    repeated WslDistributionInfo distributions = 3;
+
+    WslGlobalConfig actual_global_config = 4;
+    WslDistributionConfig actual_distribution_config = 5;
+
+    google.protobuf.StringValue actual_global_config_raw = 6;
+    google.protobuf.StringValue actual_distribution_config_raw = 7;
+
+    bool global_config_matches_expected = 8;
+    bool distribution_config_matches_expected = 9;
+
+    MdeHealthcheckInfo mde_healthcheck = 10;
+    repeated string issues = 11;
+}
+
+message MdeHealthcheckInfo {
+    bool available = 1;
+    int32 exit_code = 2;
+    string std_out = 3;
+    string std_err = 4;
+}
+
+enum OperatorWslControlResponseStatus {
+    OPERATOR_WSL_CONTROL_RESPONSE_STATUS_OK = 0;
+    OPERATOR_WSL_CONTROL_RESPONSE_STATUS_ERROR = 1;
+}
+
+enum WslDistributionVersion {
+    WSL_DISTRIBUTION_VERSION_UNSPECIFIED = 0;
+    WSL_DISTRIBUTION_VERSION_1 = 1;
+    WSL_DISTRIBUTION_VERSION_2 = 2;
+}
+
+enum WslNetworkingMode {
+    WSL_NETWORKING_MODE_UNSPECIFIED = 0;
+    WSL_NETWORKING_MODE_NONE = 1;
+    WSL_NETWORKING_MODE_NAT = 2;
+    WSL_NETWORKING_MODE_MIRRORED = 3;
+    WSL_NETWORKING_MODE_VIRTIO_PROXY = 4;
+}

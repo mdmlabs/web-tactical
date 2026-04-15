@@ -210,6 +210,30 @@
                               policy.displayName || policy.name
                             }}</q-item-label>
                           </q-item-section>
+                          <q-item-section
+                            v-if="
+                              policyIsSimple[policy.id] !== undefined &&
+                              policyIsSimple[policy.id] !== false
+                            "
+                            side
+                            @click.stop
+                          >
+                            <q-spinner
+                              v-if="policyIsSimple[policy.id] === null"
+                              color="primary"
+                              size="1.2em"
+                            />
+                            <q-toggle
+                              v-else
+                              :model-value="policyToggleStates[policy.id] ?? false"
+                              color="primary"
+                              size="sm"
+                              dense
+                              @update:model-value="
+                                (val) => (policyToggleStates[policy.id] = val)
+                              "
+                            />
+                          </q-item-section>
                         </q-item>
                       </template>
                     </q-list>
@@ -784,6 +808,8 @@ const allPoliciesList = ref<PolicyItem[]>([]);
 const allPoliciesSearch = ref("");
 const loadingAllPolicies = ref(false);
 const allPoliciesLoaded = ref(false);
+let allPoliciesSearchDebounce: ReturnType<typeof setTimeout> | null = null;
+let allPoliciesSearchRequestId = 0;
 
 const policyToggleStates = ref<Record<string, boolean>>({});
 const policyIsSimple = ref<Record<string, boolean | null>>({});
@@ -854,29 +880,26 @@ const filteredCategories = computed(() =>
 );
 
 async function loadAllPolicies() {
-  if (allPoliciesLoaded.value) return;
+  const requestId = ++allPoliciesSearchRequestId;
   loadingAllPolicies.value = true;
   try {
-    const response =
-      await policyCatalogClient.listPoliciesGroupedByScope("en-US");
-    const responseObj = response as {
-      groupsList?: unknown[];
-      groups?: unknown[];
-    };
-    const groupsList = responseObj.groupsList || responseObj.groups || [];
-    const items: PolicyItem[] = [];
-    for (const group of groupsList) {
-      if (!group || typeof group !== "object") continue;
-      const g = group as { policiesList?: unknown[]; policies?: unknown[] };
-      const policiesList = g.policiesList || g.policies || [];
-      items.push(...normalizePoliciesList({ policiesList }));
-    }
-    allPoliciesList.value = items;
+    const response = await policyCatalogClient.searchPolicyShort(
+      allPoliciesSearch.value.trim(),
+      "en-US",
+    );
+    if (requestId !== allPoliciesSearchRequestId) return;
+
+    const responseObj = response as { policiesList?: unknown[]; policies?: unknown[] };
+    const policiesList = responseObj.policiesList || responseObj.policies || [];
+    allPoliciesList.value = normalizePoliciesList({ policiesList });
     allPoliciesLoaded.value = true;
   } catch {
+    if (requestId !== allPoliciesSearchRequestId) return;
     notifyError("Error loading all policies");
   } finally {
-    loadingAllPolicies.value = false;
+    if (requestId === allPoliciesSearchRequestId) {
+      loadingAllPolicies.value = false;
+    }
   }
 }
 
@@ -893,22 +916,20 @@ function scopeLabelText(scope: number): string {
 }
 
 const filteredAllPoliciesGrouped = computed(() => {
-  const query = allPoliciesSearch.value.trim().toLowerCase();
-  let list = allPoliciesList.value;
-  if (query) {
-    list = list.filter(
-      (p) =>
-        (p.displayName || "").toLowerCase().includes(query) ||
-        (p.name || "").toLowerCase().includes(query),
+  const list = allPoliciesList.value.filter((p) => {
+    const scope = normalizeScope(p.scope);
+    return (
+      scope === operator_pb.PolicyScope.POLICY_SCOPE_MACHINE ||
+      scope === operator_pb.PolicyScope.POLICY_SCOPE_BOTH
     );
-  }
+  });
   const byScope: Record<number, PolicyItem[]> = {};
   for (const p of list) {
     const key = p.scope ?? SCOPE_NONE;
     if (!byScope[key]) byScope[key] = [];
     byScope[key].push(p);
   }
-  const order = [SCOPE_USER, SCOPE_BOTH, SCOPE_MACHINE, SCOPE_NONE];
+  const order = [SCOPE_MACHINE, SCOPE_BOTH];
   const groups: {
     scopeKey: number;
     scopeLabel: string;
@@ -945,6 +966,14 @@ watch(policyViewMode, (mode) => {
     loadAllPolicies();
   }
   selectedPolicy.value = null;
+});
+
+watch(allPoliciesSearch, () => {
+  if (policyViewMode.value !== "allPolicies") return;
+  if (allPoliciesSearchDebounce) clearTimeout(allPoliciesSearchDebounce);
+  allPoliciesSearchDebounce = setTimeout(() => {
+    loadAllPolicies();
+  }, 300);
 });
 
 watch(dialogVisible, (newVal) => {

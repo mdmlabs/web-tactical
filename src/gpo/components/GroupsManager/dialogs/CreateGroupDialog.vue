@@ -49,6 +49,30 @@
           type="textarea"
           rows="2"
         />
+        <q-separator class="q-my-sm" />
+        <div class="text-subtitle2 text-grey-7 q-mb-sm">Limits</div>
+        <div class="row q-col-gutter-sm">
+          <div class="col-6">
+            <q-input
+              v-model.number="form.maxUsers"
+              label="Max users"
+              type="number"
+              outlined
+              dense
+              :min="0"
+            />
+          </div>
+          <div class="col-6">
+            <q-input
+              v-model.number="form.maxAgents"
+              label="Max agents"
+              type="number"
+              outlined
+              dense
+              :min="0"
+            />
+          </div>
+        </div>
       </q-card-section>
       <q-card-actions align="right">
         <q-btn flat label="Cancel" v-close-popup />
@@ -79,13 +103,15 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   "update:modelValue": [value: boolean];
-  create: [payload: { samGroupName: string; description: string; parentId: string | null }];
+  create: [payload: { samGroupName: string; description: string; parentId: string | null; maxUsers?: number; maxAgents?: number }];
 }>();
 
 const form = ref({
   samGroupName: "",
   description: "",
   parentId: null as string | null,
+  maxUsers: undefined as number | undefined,
+  maxAgents: undefined as number | undefined,
 });
 
 watch(
@@ -96,6 +122,8 @@ watch(
         samGroupName: "",
         description: "",
         parentId: props.initialParentId ?? null,
+        maxUsers: undefined,
+        maxAgents: undefined,
       };
     }
   },
@@ -107,6 +135,8 @@ function submit() {
     samGroupName: form.value.samGroupName.trim(),
     description: form.value.description.trim() || "",
     parentId: form.value.parentId,
+    maxUsers: form.value.maxUsers,
+    maxAgents: form.value.maxAgents,
   });
 }
 </script>
