@@ -114,9 +114,11 @@
       :name="createCategoryForm.name"
       :description="createCategoryForm.description"
       :parent-id="createCategoryForm.parentId"
+      :max-agents="createCategoryForm.maxAgents"
       @update:name="createCategoryForm.name = $event"
       @update:description="createCategoryForm.description = $event"
       @update:parent-id="createCategoryForm.parentId = $event"
+      @update:max-agents="createCategoryForm.maxAgents = $event"
     />
 
     <ApplyCollectionDialog
@@ -490,10 +492,12 @@ const createCategoryForm = ref<{
   name: string;
   description: string;
   parentId: number | null;
+  maxAgents: number | null;
 }>({
   name: "",
   description: "",
   parentId: null,
+  maxAgents: 0,
 });
 
 function collectCategoriesFromTree(
@@ -1191,6 +1195,7 @@ function openCreateCategoryDialog() {
     name: "",
     description: "",
     parentId: selectedCategoryId.value ?? null,
+    maxAgents: 0,
   };
   showCreateCategory.value = true;
 }
@@ -1292,6 +1297,7 @@ async function doCreateCategory() {
       name: createCategoryForm.value.name.trim(),
       description: createCategoryForm.value.description.trim() || undefined,
       parentId: createCategoryForm.value.parentId ?? undefined,
+      maxAgents: createCategoryForm.value.maxAgents ?? 0,
     });
     if (res.status === 0) {
       notifySuccess(`Category "${createCategoryForm.value.name}" created`);

@@ -47,6 +47,20 @@
           type="textarea"
           rows="2"
         />
+        <q-separator class="q-my-sm" />
+        <div class="text-subtitle2 text-grey-7 q-mb-sm">Limits</div>
+        <div class="row q-col-gutter-sm">
+          <div class="col-12">
+            <q-input
+              v-model.number="maxAgentsModel"
+              label="Max agents"
+              type="number"
+              outlined
+              dense
+              :min="0"
+            />
+          </div>
+        </div>
       </q-card-section>
       <q-card-actions align="right">
         <q-btn flat label="Cancel" v-close-popup />
@@ -72,6 +86,7 @@ const props = defineProps<{
   name: string;
   description: string;
   parentId: number | null;
+  maxAgents: number | null;
 }>();
 
 const emit = defineEmits<{
@@ -80,6 +95,7 @@ const emit = defineEmits<{
   "update:name": [value: string];
   "update:description": [value: string];
   "update:parentId": [value: number | null];
+  "update:maxAgents": [value: number | null];
 }>();
 
 const nameModel = computed({
@@ -95,5 +111,10 @@ const descriptionModel = computed({
 const parentIdModel = computed({
   get: () => props.parentId,
   set: (v) => emit("update:parentId", v),
+});
+
+const maxAgentsModel = computed({
+  get: () => props.maxAgents,
+  set: (v) => emit("update:maxAgents", v),
 });
 </script>
