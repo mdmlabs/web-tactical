@@ -11,6 +11,7 @@ import type {
   WazuhSyscheckEntry,
   WazuhSCAPolicy,
   WazuhGroup,
+  WazuhGroupFile,
   WazuhSyscollectorHardware,
   WazuhSyscollectorOS,
   WazuhSyscollectorPackage,
@@ -57,6 +58,10 @@ interface WazuhState {
   groupAgentsLoading: boolean;
   groupConfig: unknown;
   groupConfigLoading: boolean;
+  groupFiles: WazuhGroupFile[];
+  groupFilesLoading: boolean;
+  groupFileContent: string | null;
+  groupFileContentLoading: boolean;
 
   // Syscollector (agent detail)
   syscollectorHardware: WazuhSyscollectorHardware | null;
@@ -114,6 +119,10 @@ export const useWazuhStore = defineStore("wazuh", {
     groupAgentsLoading: false,
     groupConfig: null,
     groupConfigLoading: false,
+    groupFiles: [],
+    groupFilesLoading: false,
+    groupFileContent: null,
+    groupFileContentLoading: false,
 
     syscollectorHardware: null,
     syscollectorOS: null,
@@ -521,6 +530,37 @@ export const useWazuhStore = defineStore("wazuh", {
         this._notifyError(`Failed to save configuration for group "${groupId}"`);
         console.error("[Wazuh] Save group config error:", e);
         return false;
+      }
+    },
+
+    async fetchGroupFiles(groupId: string): Promise<void> {
+      this.groupFilesLoading = true;
+      try {
+        this._registerApi();
+        const response = await wazuhApi.getGroupFiles(groupId);
+        this.groupFiles = response.data.affected_items;
+      } catch (e) {
+        this._notifyError(`Failed to fetch files for group "${groupId}"`);
+        console.error("[Wazuh] Group files error:", e);
+      } finally {
+        this.groupFilesLoading = false;
+      }
+    },
+
+    async fetchGroupFileContent(groupId: string, filename: string): Promise<void> {
+      this.groupFileContentLoading = true;
+      this.groupFileContent = null;
+      try {
+        this._registerApi();
+        const content = await wazuhApi.getGroupFileContent(groupId, filename);
+        this.groupFileContent = content || null;
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        console.error("[Wazuh] Group file content error:", e);
+        // Re-throw so the component can catch and display contextual error
+        throw new Error(`Failed to fetch file content for "${filename}": ${msg}`);
+      } finally {
+        this.groupFileContentLoading = false;
       }
     },
 
