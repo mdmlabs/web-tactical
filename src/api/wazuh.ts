@@ -208,10 +208,13 @@ class WazuhApiClient {
     return data;
   }
 
-  async putGroupConfiguration(groupId: string, body: unknown) {
+  async putGroupConfiguration(groupId: string, xmlContent: string) {
     const { data } = await this.client.put(
       `/groups/${groupId}/configuration`,
-      body,
+      xmlContent,
+      {
+        headers: { "Content-Type": "application/xml" },
+      },
     );
     return data;
   }

@@ -318,22 +318,31 @@ let originalConfigText = "";
 
 async function openConfigEditor(groupName: string) {
   editingGroup.value = groupName;
-  await wazuhStore.fetchGroupConfig(groupName);
+
+  // Fetch raw XML content of agent.conf via the file endpoint
+  let xmlText = "<agent_config>\n  \n</agent_config>";
+  try {
+    await wazuhStore.fetchGroupFileContent(groupName, "agent.conf");
+    const raw = wazuhStore.groupFileContent;
+    if (raw && typeof raw === "string" && raw.trim().length > 0) {
+      xmlText = raw;
+    }
+  } catch {
+    // If file endpoint fails, try the configuration endpoint as fallback
+    try {
+      await wazuhStore.fetchGroupConfig(groupName);
+      const configData = wazuhStore.groupConfig;
+      if (typeof configData === "string") {
+        xmlText = configData;
+      }
+    } catch {
+      // Use default empty template
+    }
+  }
 
   await nextTick();
 
   if (!monacoContainer.value) return;
-
-  const configData = wazuhStore.groupConfig;
-  let xmlText: string;
-
-  if (typeof configData === "string") {
-    xmlText = configData;
-  } else if (configData && typeof configData === "object") {
-    xmlText = configToXml(configData);
-  } else {
-    xmlText = "<agent_config>\n  \n</agent_config>";
-  }
 
   originalConfigText = xmlText;
   configChanged.value = false;
@@ -499,14 +508,6 @@ function downloadFile(content: string, filename: string, mimeType: string) {
 }
 
 // === Helpers ===
-function configToXml(config: unknown): string {
-  try {
-    return JSON.stringify(config, null, 2);
-  } catch {
-    return String(config);
-  }
-}
-
 async function loadGroups() {
   await wazuhStore.fetchGroups();
   if (wazuhStore.wazuhAgents.length === 0) {
