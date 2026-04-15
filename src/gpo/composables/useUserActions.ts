@@ -23,6 +23,8 @@ export interface CreateUserParams {
   scriptPath?: string;
   telephoneNumber?: string;
   employeeId?: string;
+  maxAgents?: number;
+  maxPolicies?: number;
 }
 
 export interface GroupRow {
@@ -211,6 +213,8 @@ export function useUserActions() {
         scriptPath: params.scriptPath?.trim() || "",
         telephoneNumber: params.telephoneNumber?.trim() || "",
         employeeId: params.employeeId?.trim() || "",
+        maxAgents: params.maxAgents,
+        maxPolicies: params.maxPolicies,
       });
       if (res.status === 0) {
         $q.notify({
@@ -258,6 +262,8 @@ export function useUserActions() {
       scriptPath: params.scriptPath?.trim() || "",
       telephoneNumber: params.telephoneNumber?.trim() || "",
       employeeId: params.employeeId?.trim() || "",
+      maxAgents: params.maxAgents,
+      maxPolicies: params.maxPolicies,
     };
     const samId =
       userDetail.value?.info?.samaccountname ?? userId;

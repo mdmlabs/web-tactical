@@ -10,7 +10,7 @@ service OperatorAgentCategoryService {
 
     // WRITE
 
-    rpc CreateCategory(CreateAgentCategoryRequest) returns (AgentCategoryControlResponse);
+    rpc CreateCategory(CreateAgentCategoryRequest) returns (CreateAgentCategoryResponse);
     rpc UpdateCategory(UpdateAgentCategoryRequest) returns (AgentCategoryControlResponse);
     rpc DeleteCategory(AgentCategoryIdRequest) returns (AgentCategoryControlResponse);
 
@@ -47,12 +47,14 @@ message CreateAgentCategoryRequest {
     string name = 1;
     google.protobuf.StringValue description = 2;
     optional int64 parent_id = 3;
+    int32 max_agents = 4;
 }
 
 message UpdateAgentCategoryRequest {
     int64 category_id = 1;
     string name = 2;
     google.protobuf.StringValue description = 3;
+    int32 max_agents = 4;
 }
 
 message SetCategoryParentRequest {
@@ -82,6 +84,12 @@ message RemoveAgentFromCategoryRequest {
 message AgentCategoryControlResponse {
     ACResponseStatus status = 1;
     optional string error_message = 2;
+}
+
+message CreateAgentCategoryResponse {
+    ACResponseStatus status = 1;
+    optional string error_message = 2;
+    optional int64 category_id = 3;
 }
 
 message AgentCategoryResponse {
@@ -134,3 +142,4 @@ enum ACResponseStatus {
     AC_RESPONSE_STATUS_OK = 0;
     AC_RESPONSE_STATUS_ERROR = 1;
 }
+

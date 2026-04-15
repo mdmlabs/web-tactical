@@ -124,6 +124,30 @@
           outlined
           dense
         />
+        <q-separator class="q-my-sm" />
+        <div class="text-subtitle2 text-grey-7 q-mb-sm">Limits</div>
+        <div class="row q-col-gutter-sm">
+          <div class="col-6">
+            <q-input
+              v-model.number="form.maxAgents"
+              label="Max agents"
+              type="number"
+              outlined
+              dense
+              :min="0"
+            />
+          </div>
+          <div class="col-6">
+            <q-input
+              v-model.number="form.maxPolicies"
+              label="Max policies"
+              type="number"
+              outlined
+              dense
+              :min="0"
+            />
+          </div>
+        </div>
       </q-card-section>
       <q-card-actions align="right">
         <q-btn flat label="Cancel" v-close-popup />
@@ -174,6 +198,8 @@ const form = ref<Partial<CreateUserParams>>({
   scriptPath: "",
   telephoneNumber: "",
   employeeId: "",
+  maxAgents: undefined,
+  maxPolicies: undefined,
 });
 
 watch(
@@ -199,6 +225,12 @@ watch(
         scriptPath: info?.scriptpath ?? "",
         telephoneNumber: info?.telephonenumber ?? "",
         employeeId: info?.employeeid ?? "",
+        maxAgents: (info as unknown as { maxAgents?: number; max_agents?: number })
+          ?.maxAgents ??
+          (info as unknown as { max_agents?: number })?.max_agents,
+        maxPolicies: (info as unknown as { maxPolicies?: number; max_policies?: number })
+          ?.maxPolicies ??
+          (info as unknown as { max_policies?: number })?.max_policies,
       };
     }
   },

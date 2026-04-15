@@ -147,6 +147,22 @@ export const policyCatalogClient = {
     return response.toObject();
   },
 
+  async searchPolicyShort(
+    search: string,
+    langCode: string = "en-US",
+  ): Promise<operator_pb_types.SearchPolicyShortResponse.AsObject> {
+    const request = new operator_pb.SearchPolicyShortRequest();
+    request.setSearch(search);
+    request.setLangCode(langCode);
+
+    const response = await policyCatalogServiceClient.searchPolicyShort(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
   async getCategoryTree(
     langCode: string = "en-US",
   ): Promise<operator_pb_types.GetCategoryTreeResponse.AsObject> {
@@ -572,7 +588,18 @@ export type CreateUserParams = {
   scriptPath?: string;
   telephoneNumber?: string;
   employeeId?: string;
+  maxAgents?: number;
+  maxPolicies?: number;
 };
+
+function toNonNegativeInt(value: unknown): number | undefined {
+  if (value === null || value === undefined) return undefined;
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return undefined;
+  const i = Math.floor(n);
+  if (i < 0) return 0;
+  return i;
+}
 
 function setStringWrapper(
   userReq: InstanceType<typeof CommonUserRequest>,
@@ -635,6 +662,11 @@ function fillUserRequest(
   setStringWrapper(userReq, userReq.setScriptPath, data.scriptPath);
   setStringWrapper(userReq, userReq.setTelephoneNumber, data.telephoneNumber);
   setStringWrapper(userReq, userReq.setEmployeeId, data.employeeId);
+
+  const maxAgents = toNonNegativeInt((data as CreateUserParams).maxAgents);
+  if (maxAgents !== undefined) userReq.setMaxAgents(maxAgents);
+  const maxPolicies = toNonNegativeInt((data as CreateUserParams).maxPolicies);
+  if (maxPolicies !== undefined) userReq.setMaxPolicies(maxPolicies);
 }
 
 function setUserIdentifier(
@@ -791,6 +823,8 @@ export const userControlClient = {
     samGroupName: string,
     description?: string,
     parentId?: string,
+    maxUsers?: number,
+    maxAgents?: number,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
     const req = new CreateUserGroupRequest();
     req.setTarget(target);
@@ -803,10 +837,16 @@ export const userControlClient = {
     if (parentId != null && parentId !== "") {
       req.setParentId(parentId);
     }
+    const maxUsersInt = toNonNegativeInt(maxUsers);
+    if (maxUsersInt !== undefined) req.setMaxUsers(maxUsersInt);
+    const maxAgentsInt = toNonNegativeInt(maxAgents);
+    if (maxAgentsInt !== undefined) req.setMaxAgent(maxAgentsInt);
     console.log("[createGroup] Request:", {
       samGroupName,
       description,
       parentId,
+      maxUsers,
+      maxAgents,
       target: target.toObject(),
       request: req.toObject(),
     });

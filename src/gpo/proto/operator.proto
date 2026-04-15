@@ -42,6 +42,17 @@ service AgentService {
 
   rpc GetAgent (GetAgentRequest)
       returns (AgentDetails);
+
+  rpc UpdateAgent(UpdateAgentRequest)
+      returns(UpdateAgentResponse);
+}
+
+message UpdateAgentResponse {}
+
+message UpdateAgentRequest{
+    string id = 1;
+    string description = 2;
+    int32 max_policies = 3;
 }
 
 message ListAgentsRequest {}
@@ -327,6 +338,19 @@ service PolicyCatalogService {
 
   rpc GetPolicyDetails (GetPolicyDetailsRequest)
       returns (PolicyDetails);
+
+  rpc SearchPolicyShort (SearchPolicyShortRequest)
+      returns (SearchPolicyShortResponse);
+}
+
+message SearchPolicyShortRequest {
+    string search = 1;
+    string lang_code = 2;
+}
+
+message SearchPolicyShortResponse {
+    string lang_code = 1;
+    repeated PolicySummary policies = 2;
 }
 
 message ExportAllPoliciesRequest {

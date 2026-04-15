@@ -68,9 +68,16 @@ function getImportsForFile(filePath) {
     imports.user = true;
     imports.node = true;
     imports.policy = true;
+  } else if (fileName === "wsl_lifecycel_service_pb.js") {
+    imports.wrappers = true;
+    imports.timestamp = true;
+    imports.empty = true;
   } else if (inMeshDir && fileName === "user_service_pb.js") {
     imports.wrappers = true;
     imports.user = true;
+  } else if (inMeshDir && fileName === "wsl_lifecycle_service_pb.js") {
+    imports.wrappers = true;
+    imports.timestamp = true;
   } else if (fileName === "user_service_pb.js") {
     imports.wrappers = true;
     imports.user = true;
@@ -590,11 +597,19 @@ function main() {
       package: "laborato.operator.service",
     },
     {
+      path: path.join(GENERATED_DIR, "wsl_lifecycel_service_pb.js"),
+      package: "laborato.operator.service",
+    },
+    {
       path: path.join(GENERATED_DIR, "mesh_pb.js"),
       package: "laborato.mesh",
     },
     {
       path: path.join(GENERATED_DIR, "mesh/user_service_pb.js"),
+      package: "laborato.mesh.service",
+    },
+    {
+      path: path.join(GENERATED_DIR, "mesh/wsl_lifecycle_service_pb.js"),
       package: "laborato.mesh.service",
     },
   ];

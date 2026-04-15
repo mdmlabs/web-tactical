@@ -838,6 +838,8 @@ async function handleCreateGroup(payload: {
   samGroupName: string;
   description: string;
   parentId: string | null;
+  maxUsers?: number;
+  maxAgents?: number;
 }) {
   const target = currentUserGroupTarget.value;
   if (!target) return;
@@ -848,6 +850,8 @@ async function handleCreateGroup(payload: {
       payload.samGroupName.trim(),
       payload.description.trim() || undefined,
       payload.parentId || undefined,
+      payload.maxUsers,
+      payload.maxAgents,
     );
     if (res.status === 0) {
       $q.notify({

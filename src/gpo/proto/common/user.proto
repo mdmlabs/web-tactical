@@ -48,8 +48,11 @@ message UserInfo {
     // Организационные
     optional string employeeId = 20;
 
+    int32 max_agents = 21;
+    int32 max_policies = 22;
+
     // Группы
-    repeated GroupInfo groups = 21;
+    repeated GroupInfo groups = 23;
 }
 
 message GroupInfo {
@@ -61,6 +64,8 @@ message GroupInfo {
     optional string description = 6;
     optional string structuralObjectClass = 7;
     optional string sid = 8;
+    optional int32 max_agents = 9;
+    optional int32 max_users = 10;
 }
 
 message UserRequest {
@@ -83,6 +88,9 @@ message UserRequest {
     google.protobuf.StringValue script_path = 15;
     google.protobuf.StringValue telephone_number = 16;
     google.protobuf.StringValue employee_id = 17;
+    int32 max_agents = 18;
+    int32 max_policies = 19;
+
 }
 
 message UserResponse {
