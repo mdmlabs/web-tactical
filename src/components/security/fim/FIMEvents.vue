@@ -11,14 +11,6 @@
       </template>
     </q-banner>
 
-    <!-- Sample data banner -->
-    <q-banner class="sample-banner q-mx-md q-mt-md" rounded>
-      <template #avatar><q-icon name="warning_amber" /></template>
-      <span class="text-weight-bold">This dashboard contains sample data</span>
-      <br />
-      The data displayed may contain sample data.
-    </q-banner>
-
     <!-- Events timeline chart -->
     <div class="timeline-section q-mx-md q-mt-md">
       <q-card flat bordered class="timeline-card">
