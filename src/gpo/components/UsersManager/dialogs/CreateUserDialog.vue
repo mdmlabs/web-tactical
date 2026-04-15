@@ -120,7 +120,32 @@
           label="Employee ID"
           outlined
           dense
+          class="q-mb-sm"
         />
+        <q-separator class="q-my-sm" />
+        <div class="text-subtitle2 text-grey-7 q-mb-sm">Limits</div>
+        <div class="row q-col-gutter-sm">
+          <div class="col-6">
+            <q-input
+              v-model.number="form.maxAgents"
+              label="Max agents"
+              type="number"
+              outlined
+              dense
+              :min="0"
+            />
+          </div>
+          <div class="col-6">
+            <q-input
+              v-model.number="form.maxPolicies"
+              label="Max policies"
+              type="number"
+              outlined
+              dense
+              :min="0"
+            />
+          </div>
+        </div>
       </q-card-section>
       <q-card-actions align="right">
         <q-btn flat label="Cancel" v-close-popup />
@@ -169,6 +194,8 @@ const form = ref<CreateUserParams & { name?: string; middleName?: string }>({
   scriptPath: "",
   telephoneNumber: "",
   employeeId: "",
+  maxAgents: undefined,
+  maxPolicies: undefined,
 });
 
 const canSubmit = computed(
@@ -196,6 +223,8 @@ function resetForm() {
     scriptPath: "",
     telephoneNumber: "",
     employeeId: "",
+    maxAgents: undefined,
+    maxPolicies: undefined,
   };
 }
 

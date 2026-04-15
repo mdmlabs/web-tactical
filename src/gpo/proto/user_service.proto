@@ -12,7 +12,7 @@ package laborato.operator.service;
 
 
 service OperatorUserControlService {
-    rpc CreateUser(CreateUserRequest) returns (UserControlResponse);
+    rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
     rpc UpdateUser(UpdateUserRequest) returns (UserControlResponse);
     rpc DeleteUser(UserIdentifier) returns (UserControlResponse);
     rpc EnableUser(EnableUserRequest) returns (UserControlResponse);
@@ -20,7 +20,7 @@ service OperatorUserControlService {
     rpc UnlockUser(UserIdentifier) returns (UserControlResponse);
     rpc ExpireUserPassword(UserIdentifier) returns (UserControlResponse);
     rpc SetUserAccountExpiration(SetUserAccountExpirationRequest) returns (UserControlResponse);
-    rpc CreateGroup(CreateUserGroupRequest) returns (UserControlResponse);
+    rpc CreateGroup(CreateUserGroupRequest) returns (CreateGroupResponse);
     rpc DeleteGroup(GroupRequest) returns (UserControlResponse);
     rpc AddUserToGroup(UserGroupRequest) returns (UserControlResponse);
     rpc RemoveUserFromGroup(UserGroupRequest) returns (UserControlResponse);
@@ -120,6 +120,18 @@ message UserControlResponse {
     optional string error_message = 2;
 }
 
+message CreateUserResponse {
+    ResponseStatus status = 1;
+    optional string error_message = 2;
+    optional string user_id = 3;
+}
+
+message CreateGroupResponse {
+    ResponseStatus status = 1;
+    optional string error_message = 2;
+    optional string group_id = 3;
+}
+
 message UserAgentsResponse {
     ResponseStatus status = 1;
     repeated string agent_ids = 2;
@@ -202,6 +214,8 @@ message CreateUserGroupRequest {
     string sam_group_name = 2;
     google.protobuf.StringValue description = 3;
     optional string parent_id = 4;
+    int32 max_users = 5;
+    int32 max_agent = 6;
 }
 
 message GroupRequest {
