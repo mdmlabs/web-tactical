@@ -26,19 +26,20 @@
       />
       <q-separator />
     </div>
-    <div class="q-pa-md">
-      <q-table
-        :rows="filteredCollectionsList"
-        :columns="collectionsTableColumns"
-        row-key="id"
-        :loading="loading"
-        :pagination="{ rowsPerPage: 20 }"
-        flat
-        bordered
-        dense
-        class="cursor-pointer"
-        @row-click="onRowClick"
-      >
+    <q-scroll-area class="gpo-collections-table__scroll">
+      <div class="q-pa-md">
+        <q-table
+          :rows="filteredCollectionsList"
+          :columns="collectionsTableColumns"
+          row-key="id"
+          :loading="loading"
+          :pagination="{ rowsPerPage: 20 }"
+          flat
+          bordered
+          dense
+          class="cursor-pointer"
+          @row-click="onRowClick"
+        >
         <template v-slot:body-cell-scope="props">
           <q-td :props="props">
             <div class="scope-cell" :class="scopeCellClass(props.row.scope)">
@@ -105,8 +106,9 @@
             </div>
           </q-td>
         </template>
-      </q-table>
-    </div>
+        </q-table>
+      </div>
+    </q-scroll-area>
 
     <q-dialog v-model="detailsDialog" position="right" full-height>
       <q-card class="collection-details-card">
@@ -853,7 +855,14 @@ onBeforeUnmount(() => {
 .gpo-collections-table
   display: flex
   flex-direction: column
-  flex: 1
+  flex: 1 1 0
+  min-height: 0
+  width: 100%
+  height: 100%
+  overflow: hidden
+
+.gpo-collections-table__scroll
+  flex: 1 1 0
   min-height: 0
   overflow: hidden
 

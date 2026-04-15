@@ -75,48 +75,153 @@
             <q-card flat bordered class="full-height">
               <q-card-section class="policy-list-section">
                 <div class="row items-center q-mb-sm">
-                  <div class="text-subtitle2">Policies</div>
+                  <div class="text-subtitle2 col">Policies</div>
                 </div>
-                <div v-if="loadingPolicies" class="text-center q-pa-lg">
-                  <q-spinner color="primary" size="2em" />
-                  <div class="q-mt-sm">Uploading policies...</div>
-                </div>
-                <q-scroll-area
-                  v-else-if="filteredSelectedCategoryPolicies.length > 0"
-                  class="policy-list-scroll"
-                  :style="{ height: 'calc(100vh - 320px)' }"
-                >
-                  <q-list separator>
-                    <q-item
-                      v-for="policy in filteredSelectedCategoryPolicies"
-                      :key="policy.id"
-                      clickable
-                      v-ripple
-                      :active="selectedPolicy?.id === policy.id"
-                      @click="selectPolicy(policy)"
-                      class="policy-item"
-                    >
-                      <q-item-section>
-                        <q-item-label>{{
-                          policy.displayName || policy.name
-                        }}</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-scroll-area>
-                <div
-                  v-else-if="selectedCategory"
-                  class="text-center q-pa-lg text-grey-6"
-                >
-                  <q-icon name="info" size="2em" />
-                  <div class="q-mt-sm">
-                    There are no policies in the category
+
+                <q-btn-toggle
+                  v-model="policyViewMode"
+                  no-caps
+                  dense
+                  spread
+                  toggle-color="primary"
+                  class="q-mb-sm"
+                  :options="[
+                    { label: 'By Category', value: 'byCategory' },
+                    { label: 'All Policies', value: 'allPolicies' },
+                  ]"
+                />
+
+                <template v-if="policyViewMode === 'byCategory'">
+                  <div v-if="loadingPolicies" class="text-center q-pa-lg">
+                    <q-spinner color="primary" size="2em" />
+                    <div class="q-mt-sm">Uploading policies...</div>
                   </div>
-                </div>
-                <div v-else class="text-center q-pa-lg text-grey-6">
-                  <q-icon name="info" size="2em" />
-                  <div class="q-mt-sm">Select a category</div>
-                </div>
+                  <q-scroll-area
+                    v-else-if="filteredSelectedCategoryPolicies.length > 0"
+                    class="policy-list-scroll"
+                    :style="{ height: 'calc(100vh - 370px)' }"
+                  >
+                    <q-list separator>
+                      <q-item
+                        v-for="policy in filteredSelectedCategoryPolicies"
+                        :key="policy.id"
+                        clickable
+                        v-ripple
+                        :active="selectedPolicy?.id === policy.id"
+                        @click="selectPolicy(policy)"
+                        class="policy-item"
+                      >
+                        <q-item-section>
+                          <q-item-label>{{
+                            policy.displayName || policy.name
+                          }}</q-item-label>
+                        </q-item-section>
+                        <q-item-section
+                          v-if="policyIsSimple[policy.id] !== undefined && policyIsSimple[policy.id] !== false"
+                          side
+                          @click.stop
+                        >
+                          <q-spinner
+                            v-if="policyIsSimple[policy.id] === null"
+                            color="primary"
+                            size="1.2em"
+                          />
+                          <q-toggle
+                            v-else
+                            :model-value="policyToggleStates[policy.id] ?? false"
+                            color="primary"
+                            size="sm"
+                            dense
+                            @update:model-value="(val) => (policyToggleStates[policy.id] = val)"
+                          />
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-scroll-area>
+                  <div
+                    v-else-if="selectedCategory"
+                    class="text-center q-pa-lg text-grey-6"
+                  >
+                    <q-icon name="info" size="2em" />
+                    <div class="q-mt-sm">
+                      There are no policies in the category
+                    </div>
+                  </div>
+                  <div v-else class="text-center q-pa-lg text-grey-6">
+                    <q-icon name="info" size="2em" />
+                    <div class="q-mt-sm">Select a category</div>
+                  </div>
+                </template>
+
+                <template v-else>
+                  <q-input
+                    v-model="allPoliciesSearch"
+                    dense
+                    outlined
+                    clearable
+                    placeholder="Search policies..."
+                    :input-style="{ paddingLeft: '6px' }"
+                    class="q-mb-sm"
+                    @clear="allPoliciesSearch = ''"
+                  >
+                    <template v-slot:prepend>
+                      <q-icon name="search" size="xs" />
+                    </template>
+                  </q-input>
+
+                  <div v-if="loadingAllPolicies" class="text-center q-pa-lg">
+                    <q-spinner color="primary" size="2em" />
+                    <div class="q-mt-sm">Loading all policies...</div>
+                  </div>
+                  <q-scroll-area
+                    v-else-if="filteredAllPoliciesGrouped.length > 0"
+                    class="policy-list-scroll"
+                    :style="{ height: 'calc(100vh - 410px)' }"
+                  >
+                    <q-list separator>
+                      <template
+                        v-for="group in filteredAllPoliciesGrouped"
+                        :key="group.scopeKey"
+                      >
+                        <q-item-label
+                          header
+                          class="text-weight-bold text-caption"
+                        >
+                          {{ group.scopeLabel }}
+                          <q-badge
+                            :label="group.policies.length"
+                            color="grey-5"
+                            text-color="white"
+                            rounded
+                            class="q-ml-xs"
+                          />
+                        </q-item-label>
+                        <q-item
+                          v-for="policy in group.policies"
+                          :key="policy.id"
+                          clickable
+                          v-ripple
+                          :active="selectedPolicy?.id === policy.id"
+                          @click="selectAllPolicy(policy)"
+                          class="policy-item"
+                        >
+                          <q-item-section>
+                            <q-item-label>{{
+                              policy.displayName || policy.name
+                            }}</q-item-label>
+                          </q-item-section>
+                        </q-item>
+                      </template>
+                    </q-list>
+                  </q-scroll-area>
+                  <div
+                    v-else-if="allPoliciesLoaded"
+                    class="text-center q-pa-lg text-grey-6"
+                  >
+                    <q-icon name="search_off" size="2em" />
+                    <div class="q-mt-sm">No policies found</div>
+                  </div>
+                </template>
               </q-card-section>
             </q-card>
           </div>
@@ -579,12 +684,16 @@ import { ref, computed, watch } from "vue";
 
 import {
   policyCatalogServiceClient,
+  policyCatalogClient,
   createGrpcMetadata,
   operator_pb,
   policyAssignmentClient,
 } from "../api/grpc-client";
+import { PolicySelection } from "@/generated/common/policy_pb";
 import { notifySuccess, notifyError } from "@/utils/notify";
 import type { GPOPolicy } from "../types/gpo";
+import { normalizePoliciesList } from "../api/policy-catalog-adapters";
+import type { PolicyItem } from "../types/policy-catalog";
 import MultiTextBox from "@/components/ui/MultiTextBox.vue";
 
 interface CategoryNode {
@@ -670,13 +779,29 @@ const policyHashes = ref<Record<string, string>>({});
 const applying = ref(false);
 const categorySearch = ref("");
 
+const policyViewMode = ref<"byCategory" | "allPolicies">("byCategory");
+const allPoliciesList = ref<PolicyItem[]>([]);
+const allPoliciesSearch = ref("");
+const loadingAllPolicies = ref(false);
+const allPoliciesLoaded = ref(false);
+
+const policyToggleStates = ref<Record<string, boolean>>({});
+const policyIsSimple = ref<Record<string, boolean | null>>({});
+
 function normalizeScope(raw: unknown): number | null {
   if (raw === undefined || raw === null) return null;
-  if (typeof raw === "number") return Number.isFinite(raw) ? Math.floor(raw) : null;
+  if (typeof raw === "number")
+    return Number.isFinite(raw) ? Math.floor(raw) : null;
   const s = String(raw).trim().toUpperCase();
   if (!s) return null;
   if (s === "POLICY_SCOPE_USER" || s === "USER" || s === "1") return 1;
-  if (s === "POLICY_SCOPE_MACHINE" || s === "MACHINE" || s === "COMPUTER" || s === "2") return 2;
+  if (
+    s === "POLICY_SCOPE_MACHINE" ||
+    s === "MACHINE" ||
+    s === "COMPUTER" ||
+    s === "2"
+  )
+    return 2;
   if (s === "POLICY_SCOPE_BOTH" || s === "BOTH" || s === "3") return 3;
   const n = Number.parseInt(s, 10);
   return Number.isFinite(n) ? n : null;
@@ -694,7 +819,10 @@ const filteredSelectedCategoryPolicies = computed(() => {
   return list;
 });
 
-function filterCategoryTree(nodes: CategoryNode[], query: string): CategoryNode[] {
+function filterCategoryTree(
+  nodes: CategoryNode[],
+  query: string,
+): CategoryNode[] {
   const q = query.trim().toLowerCase();
   if (!q) return nodes;
 
@@ -725,6 +853,100 @@ const filteredCategories = computed(() =>
   filterCategoryTree(categories.value, categorySearch.value),
 );
 
+async function loadAllPolicies() {
+  if (allPoliciesLoaded.value) return;
+  loadingAllPolicies.value = true;
+  try {
+    const response =
+      await policyCatalogClient.listPoliciesGroupedByScope("en-US");
+    const responseObj = response as {
+      groupsList?: unknown[];
+      groups?: unknown[];
+    };
+    const groupsList = responseObj.groupsList || responseObj.groups || [];
+    const items: PolicyItem[] = [];
+    for (const group of groupsList) {
+      if (!group || typeof group !== "object") continue;
+      const g = group as { policiesList?: unknown[]; policies?: unknown[] };
+      const policiesList = g.policiesList || g.policies || [];
+      items.push(...normalizePoliciesList({ policiesList }));
+    }
+    allPoliciesList.value = items;
+    allPoliciesLoaded.value = true;
+  } catch {
+    notifyError("Error loading all policies");
+  } finally {
+    loadingAllPolicies.value = false;
+  }
+}
+
+const SCOPE_USER = 1;
+const SCOPE_MACHINE = 2;
+const SCOPE_BOTH = 3;
+const SCOPE_NONE = 0;
+
+function scopeLabelText(scope: number): string {
+  if (scope === SCOPE_USER) return "User";
+  if (scope === SCOPE_MACHINE) return "Computer";
+  if (scope === SCOPE_BOTH) return "User & Computer";
+  return "Other";
+}
+
+const filteredAllPoliciesGrouped = computed(() => {
+  const query = allPoliciesSearch.value.trim().toLowerCase();
+  let list = allPoliciesList.value;
+  if (query) {
+    list = list.filter(
+      (p) =>
+        (p.displayName || "").toLowerCase().includes(query) ||
+        (p.name || "").toLowerCase().includes(query),
+    );
+  }
+  const byScope: Record<number, PolicyItem[]> = {};
+  for (const p of list) {
+    const key = p.scope ?? SCOPE_NONE;
+    if (!byScope[key]) byScope[key] = [];
+    byScope[key].push(p);
+  }
+  const order = [SCOPE_USER, SCOPE_BOTH, SCOPE_MACHINE, SCOPE_NONE];
+  const groups: {
+    scopeKey: number;
+    scopeLabel: string;
+    policies: PolicyItem[];
+  }[] = [];
+  for (const scope of order) {
+    const policies = byScope[scope];
+    if (policies && policies.length > 0) {
+      groups.push({
+        scopeKey: scope,
+        scopeLabel: scopeLabelText(scope),
+        policies,
+      });
+    }
+  }
+  return groups;
+});
+
+function selectAllPolicy(policy: PolicyItem) {
+  const row: PolicyRow = {
+    id: policy.id,
+    name: policy.name,
+    displayName: policy.displayName,
+    description: policy.description,
+    path: "",
+    enabled: true,
+    scope: policy.scope,
+  };
+  selectPolicy(row);
+}
+
+watch(policyViewMode, (mode) => {
+  if (mode === "allPolicies") {
+    loadAllPolicies();
+  }
+  selectedPolicy.value = null;
+});
+
 watch(dialogVisible, (newVal) => {
   if (newVal) {
     loadCategories();
@@ -737,6 +959,12 @@ watch(dialogVisible, (newVal) => {
     policySettingsValues.value = {};
     presentationElements.value = [];
     settingsTab.value = "settings";
+    policyViewMode.value = "byCategory";
+    allPoliciesList.value = [];
+    allPoliciesSearch.value = "";
+    allPoliciesLoaded.value = false;
+    policyToggleStates.value = {};
+    policyIsSimple.value = {};
   }
 });
 
@@ -924,6 +1152,9 @@ async function loadPoliciesByCategory(categoryName: string) {
 
 function selectPolicy(policy: PolicyRow) {
   selectedPolicy.value = policy;
+  if (!(policy.id in policyIsSimple.value)) {
+    policyIsSimple.value[policy.id] = null;
+  }
 }
 
 async function loadPolicyDetails(policy: PolicyRow) {
@@ -1517,6 +1748,9 @@ async function loadPolicyDetails(policy: PolicyRow) {
 
     if (!presentationData) {
       policyDetailsElements.value = [];
+      if (selectedPolicy.value) {
+        policyIsSimple.value[selectedPolicy.value.id] = true;
+      }
       return;
     }
 
@@ -1771,6 +2005,10 @@ async function loadPolicyDetails(policy: PolicyRow) {
 
     policyDetailsElements.value = elements;
 
+    if (selectedPolicy.value) {
+      policyIsSimple.value[selectedPolicy.value.id] = elements.length === 0;
+    }
+
     for (const element of elements) {
       if (!(element.element_id in policySettingsValues.value)) {
         policySettingsValues.value[element.element_id] =
@@ -1809,6 +2047,7 @@ async function loadPolicyDetails(policy: PolicyRow) {
     policyDetailsElements.value = [];
     policySettingsValues.value = {};
     presentationElements.value = [];
+    delete policyIsSimple.value[policy.id];
   } finally {
     loadingPolicyDetails.value = false;
   }
@@ -1877,32 +2116,35 @@ async function applyPolicy() {
       }
     }
 
-    let processedSettings: Record<string, unknown> = {};
-    if (
-      policySettingsValues.value &&
-      Object.keys(policySettingsValues.value).length > 0
-    ) {
-      processedSettings = policySettingsValues.value;
+    if (policyIsSimple.value[selectedPolicy.value.id] === true) {
+      const toggleEnabled =
+        policyToggleStates.value[selectedPolicy.value.id] ?? false;
+      const simpleSelection = new PolicySelection();
+      simpleSelection.setValue(toggleEnabled ? "1" : "0");
+
+      await policyAssignmentClient.assignPolicy(
+        policyHash,
+        "agent",
+        { agentId: String(props.agent.id) },
+        simpleSelection,
+      );
+    } else {
+      let processedSettings: Record<string, unknown> = {};
+      if (
+        policySettingsValues.value &&
+        Object.keys(policySettingsValues.value).length > 0
+      ) {
+        processedSettings = policySettingsValues.value;
+      }
+
+      await policyAssignmentClient.assignPolicy(
+        policyHash,
+        "agent",
+        { agentId: String(props.agent.id) },
+        processedSettings,
+        policyDetailsElements.value,
+      );
     }
-
-    console.log("GPOPolicySettingsDialog - отправка для машины:", {
-      policyHash,
-      agent: props.agent,
-      agentId: props.agent.id,
-      targetType: "agent",
-      targetParams: { agentId: String(props.agent.id) },
-      policySettingsValues: policySettingsValues.value,
-      processedSettings,
-      hasSettings: Object.keys(processedSettings).length > 0,
-    });
-
-    await policyAssignmentClient.assignPolicy(
-      policyHash,
-      "agent",
-      { agentId: String(props.agent.id) },
-      processedSettings,
-      policyDetailsElements.value,
-    );
 
     policyEnabled.value[selectedPolicy.value.id] = true;
     emit("applied", selectedPolicy.value.id, policySettingsValues.value);
