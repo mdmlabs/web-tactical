@@ -10,6 +10,7 @@ import type {
   WazuhSyscheckEntry,
   WazuhSCAPolicy,
   WazuhGroup,
+  WazuhGroupFile,
   WazuhSyscollectorHardware,
   WazuhSyscollectorOS,
   WazuhSyscollectorPackage,
@@ -227,6 +228,46 @@ class WazuhApiClient {
       `/agents/${agentId}/group/${groupId}`,
     );
     return data;
+  }
+
+  async getGroupFiles(groupId: string) {
+    const { data } = await this.client.get<WazuhListResponse<WazuhGroupFile>>(
+      `/groups/${groupId}/files`,
+      { params: { limit: 500 } },
+    );
+    return data;
+  }
+
+  async getGroupFileContent(groupId: string, filename: string): Promise<string> {
+    // Wazuh 4.9+ merged the /files/{filename}/xml and /json endpoints into
+    // GET /groups/{group_id}/files/{filename}?raw=true
+    // which returns the raw file content as plain text.
+    const { data } = await this.client.get(
+      `/groups/${groupId}/files/${filename}`,
+      {
+        params: { raw: true },
+        responseType: "text",
+        transformResponse: [(d: string) => d],
+      },
+    );
+    // Response is plain text content of the file
+    if (typeof data === "string") {
+      // Some Wazuh versions may still wrap in JSON even with raw=true
+      if (data.trimStart().startsWith("{")) {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed?.data?.affected_items?.[0] !== undefined) {
+            const item = parsed.data.affected_items[0];
+            return typeof item === "string" ? item : JSON.stringify(item, null, 2);
+          }
+          if (typeof parsed?.data === "string") return parsed.data;
+        } catch {
+          // Not JSON, return as-is (raw text)
+        }
+      }
+      return data;
+    }
+    return JSON.stringify(data, null, 2);
   }
 
   // === Syscollector ===

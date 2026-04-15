@@ -187,6 +187,11 @@ export interface WazuhGroup {
   configSum?: string;
 }
 
+export interface WazuhGroupFile {
+  filename: string;
+  hash: string;
+}
+
 export interface WazuhGroupConfig {
   // Group shared configuration (agent.conf XML content)
   filters?: Record<string, unknown>;

@@ -166,6 +166,13 @@ const routes = [
               import("@/views/security/SecurityGroups.vue"),
           },
           {
+            path: "groups/:groupName",
+            name: "SecurityGroupDetail",
+            component: () =>
+              import("@/views/security/SecurityGroupDetail.vue"),
+            props: true,
+          },
+          {
             path: "it-hygiene",
             name: "ITHygiene",
             component: () =>

@@ -34,6 +34,7 @@ const labelMap: Record<string, string> = {
   ITHygiene: "IT Hygiene",
   SecurityAlerts: "Alerts / Rules",
   SecurityGroups: "Groups",
+  SecurityGroupDetail: "Groups",
   SecurityDiscover: "Discover",
   SecurityFIM: "File Integrity Monitoring",
 };

@@ -85,7 +85,7 @@
           <!-- Name (clickable) -->
           <template #body-cell-name="props">
             <q-td :props="props">
-              <span class="sg-name-link" @click="openAgentsPanel(props.row.name)">
+              <span class="sg-name-link" @click="navigateToGroup(props.row.name)">
                 {{ props.row.name }}
               </span>
             </q-td>
@@ -108,8 +108,8 @@
           <!-- Actions -->
           <template #body-cell-actions="props">
             <q-td :props="props">
-              <q-btn flat round dense size="sm" icon="visibility" color="primary" @click="openAgentsPanel(props.row.name)">
-                <q-tooltip>View agents</q-tooltip>
+              <q-btn flat round dense size="sm" icon="visibility" color="primary" @click="navigateToGroup(props.row.name)">
+                <q-tooltip>View group details</q-tooltip>
               </q-btn>
               <q-btn flat round dense size="sm" icon="edit" color="grey-7" @click="openConfigEditor(props.row.name)">
                 <q-tooltip>Edit configuration</q-tooltip>
@@ -262,11 +262,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
 import { useQuasar } from "quasar";
+import { useRouter } from "vue-router";
 import * as monaco from "monaco-editor";
 import { useWazuhStore } from "@/stores/wazuh";
 import type { WazuhAgent } from "@/types/wazuh";
 
 const $q = useQuasar();
+const router = useRouter();
 const wazuhStore = useWazuhStore();
 
 // === Table state ===
@@ -297,15 +299,14 @@ const filteredGroups = computed(() => {
   return wazuhStore.groups.filter((g) => g.name.toLowerCase().includes(q));
 });
 
+// === Navigate to group detail ===
+function navigateToGroup(groupName: string) {
+  router.push({ name: "SecurityGroupDetail", params: { groupName } });
+}
+
 // === Agents side panel ===
 const showAgentsPanel = ref(false);
 const panelGroupName = ref("");
-
-function openAgentsPanel(groupName: string) {
-  panelGroupName.value = groupName;
-  showAgentsPanel.value = true;
-  wazuhStore.fetchGroupAgents(groupName);
-}
 
 // === Config editor (Monaco) ===
 const editingGroup = ref<string | null>(null);
