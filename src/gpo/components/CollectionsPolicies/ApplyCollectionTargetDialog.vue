@@ -259,12 +259,19 @@ async function loadTree() {
     ]);
     const allUsersList =
       allUsersRes?.usersList ??
-      (allUsersRes as { users?: Array<{ userid?: string; info?: { sid?: string } }> })
-        ?.users ??
+      (
+        allUsersRes as {
+          users?: Array<{ userid?: string; info?: { sid?: string } }>;
+        }
+      )?.users ??
       [];
     const map = new Map<string, string>();
     for (const u of allUsersList) {
-      const rec = u as { userid?: string; userId?: string; info?: { sid?: string } };
+      const rec = u as {
+        userid?: string;
+        userId?: string;
+        info?: { sid?: string };
+      };
       const uid = rec.userid ?? rec.userId ?? "";
       const sid = rec.info?.sid ?? "";
       if (sid && uid) map.set(sid, uid);
