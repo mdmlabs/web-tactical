@@ -1,136 +1,36 @@
 <template>
   <div v-if="agentId" class="column full-height">
-    <div class="row q-mb-sm items-center">
-      <div class="text-h6">Alerts</div>
-      <q-space />
-      <q-btn
-        flat
-        dense
-        color="primary"
-        icon="filter_alt"
-        label="Filters"
-        class="q-mr-sm"
-        @click="showFilters = true"
-      />
+    <div class="row q-col-gutter-md q-mb-md items-end">
+      <div class="col-12 col-md-4">
+        <q-select
+          v-model="statusFilter"
+          :options="statusOptions"
+          dense
+          outlined
+          emit-value
+          map-options
+          clearable
+          label="Status"
+          @update:model-value="reload()"
+        />
+      </div>
 
-      <q-btn
-        flat
-        dense
-        color="primary"
-        icon="refresh"
-        label="Refresh"
-        :loading="loading"
-        @click="reload()"
-      />
-    </div>
-
-    <div class="row items-center q-gutter-xs q-mb-md">
-      <q-chip
-        v-if="openOnly"
-        dense
-        square
-        color="grey-3"
-        text-color="grey-9"
-        removable
-        @remove="
-          () => {
-            openOnly = false;
-            reload();
-          }
-        "
-      >
-        Open only
-      </q-chip>
-
-      <q-chip
-        v-if="typeFilter"
-        dense
-        square
-        color="grey-3"
-        text-color="grey-9"
-        removable
-        @remove="
-          () => {
-            typeFilter = null;
-            reload();
-          }
-        "
-      >
-        Type: {{ typeFilter }}
-      </q-chip>
-
-      <q-chip
-        v-if="statusFilter !== null"
-        dense
-        square
-        color="grey-3"
-        text-color="grey-9"
-        removable
-        @remove="
-          () => {
-            statusFilter = null;
-            reload();
-          }
-        "
-      >
-        Status: {{ statusLabel(statusFilter) }}
-      </q-chip>
-
-      <q-chip
-        v-if="userSidFilter && userDisplay"
-        dense
-        square
-        color="grey-3"
-        text-color="grey-9"
-        removable
-        @remove="() => (userSidFilter = null)"
-      >
-        User: {{ userDisplay }}
-      </q-chip>
-
-      <q-chip
-        v-if="groupSidFilter && groupDisplay"
-        dense
-        square
-        color="grey-3"
-        text-color="grey-9"
-        removable
-        @remove="() => (groupSidFilter = null)"
-      >
-        Group: {{ groupDisplay }}
-      </q-chip>
-
-      <q-chip
-        v-if="agentCategoryIdFilter && machineGroupDisplay"
-        dense
-        square
-        color="grey-3"
-        text-color="grey-9"
-        removable
-        @remove="
-          () => {
-            agentCategoryIdFilter = null;
-            reload();
-          }
-        "
-      >
-        Machine group: {{ machineGroupDisplay }}
-      </q-chip>
-
-      <q-space />
-      <q-btn
-        v-if="hasAnyFilter"
-        flat
-        dense
-        icon="backspace"
-        label="Reset"
-        @click="resetFilters"
-      />
+      <div class="col-auto">
+        <q-btn
+          flat
+          dense
+          color="primary"
+          icon="refresh"
+          label="Refresh"
+          :loading="loading"
+          @click="reload()"
+        />
+      </div>
     </div>
 
     <q-scroll-area class="agent-tab-table-scroll">
       <q-table
-        :rows="rows"
+        :rows="filteredRows"
         :columns="columns"
         row-key="id"
         :pagination="{ rowsPerPage: 20 }"
@@ -138,6 +38,20 @@
         flat
         bordered
       >
+        <template v-slot:no-data>
+          <div class="full-width row flex-center q-pa-lg text-grey-6">
+            Alerts not found for the selected agent
+          </div>
+        </template>
+
+        <template v-slot:body-cell-severity="props">
+          <q-td :props="props">
+            <q-badge :color="severityColor(props.row.severity)" outline>
+              {{ severityLabel(props.row.severity) }}
+            </q-badge>
+          </q-td>
+        </template>
+
         <template v-slot:body-cell-status="props">
           <q-td :props="props">
             <q-badge
@@ -147,12 +61,73 @@
           </q-td>
         </template>
 
+        <template v-slot:body-cell-target="props">
+          <q-td :props="props">
+            <div class="text-weight-medium">{{ props.row.targetLabel }}</div>
+            <div v-if="props.row.targetValue" class="text-caption text-grey-7">
+              {{ props.row.targetValue }}
+            </div>
+          </q-td>
+        </template>
+
         <template v-slot:body-cell-title="props">
           <q-td :props="props">
-            <q-tooltip v-if="props.row.message">
+            <div class="row items-center q-gutter-xs q-mb-xs">
+              <div class="text-weight-medium">{{ alertTitle(props.row) }}</div>
+              <q-badge color="primary" outline>
+                {{ alertTypeLabel(props.row.type) }}
+              </q-badge>
+            </div>
+            <div v-if="props.row.message" class="text-caption text-grey-7 alert-message">
               {{ props.row.message }}
-            </q-tooltip>
-            <span>{{ props.row.title || "—" }}</span>
+            </div>
+            <q-expansion-item
+              v-if="hasAlertDetails(props.row)"
+              dense
+              dense-toggle
+              switch-toggle-side
+              header-class="alert-details-toggle q-px-none"
+              class="q-mt-xs"
+            >
+              <template v-slot:header>
+                <q-item-section class="text-caption text-grey-7">
+                  Details
+                </q-item-section>
+              </template>
+
+              <div class="q-pl-sm q-pb-xs column q-gutter-y-xs">
+                <div
+                  v-for="detail in alertDetails(props.row)"
+                  :key="detail.label"
+                  class="row items-start no-wrap q-gutter-sm"
+                >
+                  <div class="text-caption text-grey-6 alert-detail-label">
+                    {{ detail.label }}
+                  </div>
+                  <div class="text-caption text-grey-8 alert-detail-value">
+                    {{ detail.value }}
+                  </div>
+                </div>
+              </div>
+            </q-expansion-item>
+          </q-td>
+        </template>
+
+        <template v-slot:body-cell-activity="props">
+          <q-td :props="props">
+            <div class="column q-gutter-y-xs">
+              <div class="row items-center q-gutter-xs">
+                <q-badge color="blue-grey-7" outline>
+                  {{ occurrenceLabel(props.row.occurrenceCount) }}
+                </q-badge>
+              </div>
+              <div class="text-caption text-grey-7">
+                First: {{ props.row.firstOccurredAt || "—" }}
+              </div>
+              <div class="text-caption text-grey-7">
+                Last: {{ props.row.lastOccurredAt || "—" }}
+              </div>
+            </div>
           </q-td>
         </template>
 
@@ -177,8 +152,7 @@
                 color="positive"
                 icon="check_circle"
                 :disable="
-                  props.row.status ===
-                    alertsClient.AlertStatus.ALERT_STATUS_RESOLVED ||
+                  props.row.status === alertsClient.AlertStatus.ALERT_STATUS_RESOLVED ||
                   props.row.status === alertsClient.AlertStatus.ALERT_STATUS_CLOSED
                 "
                 @click="resolveAndReload(props.row.id)"
@@ -201,229 +175,33 @@
         </template>
       </q-table>
     </q-scroll-area>
-
-    <FilterPickerDialog
-      v-model="showUserPicker"
-      title="Select user"
-      :rows="users"
-      :columns="userPickerColumns"
-      row-key="sid"
-      placeholder="Search by name / sam / sid..."
-      @select="
-        (row) => {
-          const r = row as { sid?: string };
-          userSidFilter = r.sid ?? null;
-        }
-      "
-    />
-
-    <FilterPickerDialog
-      v-model="showGroupPicker"
-      title="Select group"
-      :rows="groups"
-      :columns="groupPickerColumns"
-      row-key="sid"
-      placeholder="Search by name / sam / sid..."
-      @select="
-        (row) => {
-          const r = row as { sid?: string };
-          groupSidFilter = r.sid ?? null;
-        }
-      "
-    />
-
-    <FilterPickerDialog
-      v-model="showMachineGroupPicker"
-      title="Select machine group"
-      :rows="machineGroupRows"
-      :columns="machineGroupColumns"
-      row-key="id"
-      placeholder="Search by name / id..."
-      @select="
-        (row) => {
-          const r = row as { id?: number };
-          agentCategoryIdFilter = r.id ?? null;
-          reload();
-        }
-      "
-    />
-
-    <q-dialog v-model="showFilters">
-      <q-card class="alerts-filters-card">
-        <q-card-section class="row items-center q-pb-sm">
-          <div class="text-h6">Filters</div>
-          <q-space />
-          <q-btn flat dense icon="close" @click="showFilters = false" />
-        </q-card-section>
-
-        <q-separator />
-
-        <q-card-section class="q-pt-md">
-          <div class="row q-col-gutter-md">
-            <div class="col-12 col-md-6">
-              <q-select
-                v-model="typeFilter"
-                :options="typeOptions"
-                dense
-                clearable
-                use-input
-                fill-input
-                hide-selected
-                input-debounce="350"
-                new-value-mode="add-unique"
-                label="Type"
-                @update:model-value="reload()"
-              />
-            </div>
-            <div class="col-12 col-md-6">
-              <q-select
-                v-model="statusFilter"
-                :options="statusOptions"
-                dense
-                emit-value
-                map-options
-                clearable
-                label="Status"
-                @update:model-value="reload()"
-              />
-            </div>
-          </div>
-
-          <div class="row q-col-gutter-md q-mt-sm">
-            <div class="col-12 col-md-6">
-              <q-input dense label="User" :model-value="userDisplay" readonly>
-                <template v-slot:append>
-                  <q-btn
-                    flat
-                    dense
-                    round
-                    icon="person_search"
-                    :disable="usersLoading"
-                    @click="showUserPicker = true"
-                  />
-                  <q-btn
-                    v-if="userSidFilter"
-                    flat
-                    dense
-                    round
-                    icon="close"
-                    @click="userSidFilter = null"
-                  />
-                </template>
-              </q-input>
-            </div>
-
-            <div class="col-12 col-md-6">
-              <q-input dense label="Group" :model-value="groupDisplay" readonly>
-                <template v-slot:append>
-                  <q-btn
-                    flat
-                    dense
-                    round
-                    icon="groups"
-                    :disable="groupsLoading"
-                    @click="showGroupPicker = true"
-                  />
-                  <q-btn
-                    v-if="groupSidFilter"
-                    flat
-                    dense
-                    round
-                    icon="close"
-                    @click="groupSidFilter = null"
-                  />
-                </template>
-              </q-input>
-            </div>
-          </div>
-
-          <div class="row q-col-gutter-md q-mt-sm">
-            <div class="col-12 col-md-6">
-              <q-input
-                dense
-                label="Machine group"
-                :model-value="machineGroupDisplay"
-                readonly
-              >
-                <template v-slot:append>
-                  <q-btn
-                    flat
-                    dense
-                    round
-                    icon="devices"
-                    @click="showMachineGroupPicker = true"
-                  />
-                  <q-btn
-                    v-if="agentCategoryIdFilter"
-                    flat
-                    dense
-                    round
-                    icon="close"
-                    @click="agentCategoryIdFilter = null"
-                  />
-                </template>
-              </q-input>
-            </div>
-            <div class="col-12 col-md-6">
-              <q-toggle
-                v-model="openOnly"
-                label="Open only"
-                dense
-                @update:model-value="reload()"
-              />
-            </div>
-          </div>
-        </q-card-section>
-
-        <q-separator />
-
-        <q-card-actions align="right">
-          <q-btn flat label="Reset" :disable="!hasAnyFilter" @click="resetFilters" />
-          <q-btn flat label="Close" @click="showFilters = false" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import type { QTableColumn } from "quasar";
 import { formatDate } from "@/utils/format";
 import { notifyError, notifySuccess } from "@/utils/notify";
-import FilterPickerDialog from "./FilterPickerDialog.vue";
-import { agentCategoryClient, alertsClient } from "../api/grpc-client";
-
-type UserRow = {
-  name: string;
-  sid: string;
-  samAccountName: string;
-};
-
-type GroupRow = {
-  name?: string;
-  displayName?: string;
-  samAccountName?: string;
-  sid?: string;
-};
-
+import { alertsClient } from "../api/grpc-client";
 
 const props = defineProps<{
   agentId: string | null;
-  users: UserRow[];
-  groups: GroupRow[];
-  usersLoading: boolean;
-  groupsLoading: boolean;
   active: boolean;
 }>();
 
-type AlertTimestamp = { seconds?: number | string; nanos?: number };
 type AlertRow = {
-  id: number;
+  // id: number;
   type: string;
   severity: number;
   status: number;
-  policyId: number;
+  policyId: string;
+  agentId: string;
+  userId: string;
+  groupId: string;
+  agentCategoryId: string;
+  targetLabel: string;
+  targetValue: string;
   deduplicationKey: string;
   title: string;
   message: string;
@@ -433,9 +211,6 @@ type AlertRow = {
 };
 
 const loading = ref(false);
-const openOnly = ref(true);
-const typeFilter = ref<string | null>(null);
-const typeOptions = ref<string[]>([]);
 const statusFilter = ref<number | null>(null);
 const statusOptions: Array<{ label: string; value: number | null }> = [
   { label: "All", value: null },
@@ -445,108 +220,109 @@ const statusOptions: Array<{ label: string; value: number | null }> = [
   { label: "Closed", value: alertsClient.AlertStatus.ALERT_STATUS_CLOSED },
 ];
 
-const userSidFilter = ref<string | null>(null);
-const groupSidFilter = ref<string | null>(null);
-const userIdBytes = ref<Uint8Array | null>(null);
-const groupIdBytes = ref<Uint8Array | null>(null);
-const agentCategoryIdFilter = ref<number | null>(null);
-
-type AgentCategoryOption = { label: string; value: number };
-const agentCategoryOptions = ref<AgentCategoryOption[]>([]);
-
 const rows = ref<AlertRow[]>([]);
 const loadedForAgentId = ref<string | null>(null);
-
-const userDisplay = computed(() => {
-  if (!userSidFilter.value) return "";
-  const u = props.users.find((x) => x.sid === userSidFilter.value);
-  if (!u) return "";
-  return u.samAccountName ? `${u.name} (${u.samAccountName})` : u.name;
+const filteredRows = computed(() => {
+  if (statusFilter.value === null) return rows.value;
+  return rows.value.filter((row) => row.status === statusFilter.value);
 });
-
-const groupDisplay = computed(() => {
-  if (!groupSidFilter.value) return "";
-  const g = props.groups.find((x) => x.sid === groupSidFilter.value);
-  if (!g) return "";
-  return String(g.name || g.displayName || g.samAccountName || "");
-});
-
-const machineGroupDisplay = computed(() => {
-  if (!agentCategoryIdFilter.value) return "";
-  const found = agentCategoryOptions.value.find((o) => o.value === agentCategoryIdFilter.value);
-  return found?.label || "";
-});
-
-const showUserPicker = ref(false);
-const showGroupPicker = ref(false);
-const showMachineGroupPicker = ref(false);
-const showFilters = ref(false);
-
-const hasAnyFilter = computed(() => {
-  return (
-    !!typeFilter.value ||
-    statusFilter.value !== null ||
-    !!userSidFilter.value ||
-    !!groupSidFilter.value ||
-    !!agentCategoryIdFilter.value ||
-    openOnly.value === false
-  );
-});
-
-const userPickerColumns: QTableColumn[] = [
-  { name: "name", label: "Name", align: "left", field: "name", sortable: true },
-  { name: "samAccountName", label: "SAM", align: "left", field: "samAccountName", sortable: true },
-  { name: "sid", label: "SID", align: "left", field: "sid", sortable: true },
-];
-
-const groupPickerColumns: QTableColumn[] = [
-  { name: "name", label: "Name", align: "left", field: "name", sortable: true },
-  { name: "displayName", label: "Display name", align: "left", field: "displayName", sortable: true },
-  { name: "samAccountName", label: "SAM", align: "left", field: "samAccountName", sortable: true },
-  { name: "sid", label: "SID", align: "left", field: "sid", sortable: true },
-];
-
-const machineGroupRows = computed(() =>
-  agentCategoryOptions.value.map((o) => ({ id: o.value, name: o.label })),
-);
-const machineGroupColumns: QTableColumn[] = [
-  { name: "id", label: "ID", align: "left", field: "id", sortable: true },
-  { name: "name", label: "Name", align: "left", field: "name", sortable: true },
-];
 
 const columns: QTableColumn[] = [
-  { name: "id", label: "ID", align: "left", field: "id", sortable: true },
+  // { name: "id", label: "ID", align: "left", field: "id", sortable: true },
   { name: "severity", label: "Severity", align: "left", field: "severity", sortable: true },
   { name: "status", label: "Status", align: "left", field: "status" },
-  { name: "type", label: "Type", align: "left", field: "type", sortable: true },
-  { name: "policyId", label: "Policy", align: "left", field: "policyId", sortable: true },
-  { name: "title", label: "Title", align: "left", field: "title" },
-  { name: "occurrenceCount", label: "Count", align: "right", field: "occurrenceCount", sortable: true },
-  { name: "firstOccurredAt", label: "First seen", align: "left", field: "firstOccurredAt", sortable: true },
-  { name: "lastOccurredAt", label: "Last seen", align: "left", field: "lastOccurredAt", sortable: true },
-  { name: "deduplicationKey", label: "Dedup key", align: "left", field: "deduplicationKey" },
+  { name: "target", label: "Target", align: "left", field: "targetLabel", sortable: true },
+  { name: "title", label: "Alert", align: "left", field: "title" },
+  {
+    name: "activity",
+    label: "Activity",
+    align: "left",
+    field: "occurrenceCount",
+    sortable: true,
+  },
   { name: "actions", label: "Actions", align: "center", field: "actions" },
 ];
 
-function utf8Bytes(value: string): Uint8Array {
-  return new TextEncoder().encode(value);
+function normalizeString(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  return String(value).trim();
 }
 
-watch(userSidFilter, (sid) => {
-  userIdBytes.value = sid ? utf8Bytes(sid) : null;
-  if (props.agentId) void reload();
-});
+function normalizeNumber(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
-watch(groupSidFilter, (sid) => {
-  groupIdBytes.value = sid ? utf8Bytes(sid) : null;
-  if (props.agentId) void reload();
-});
+function parseAlertDate(value: unknown): string | undefined {
+  if (!value) return undefined;
 
-function tsToIso(ts?: AlertTimestamp): string | undefined {
-  if (!ts?.seconds && ts?.seconds !== 0) return undefined;
-  const sec = typeof ts.seconds === "string" ? Number.parseInt(ts.seconds, 10) : ts.seconds;
-  if (!Number.isFinite(sec) || sec <= 0) return undefined;
-  return new Date(sec * 1000).toISOString();
+  if (typeof value === "string") {
+    const timestamp = Date.parse(value);
+    if (!Number.isNaN(timestamp)) {
+      return new Date(timestamp).toISOString();
+    }
+    return undefined;
+  }
+
+  if (typeof value === "object") {
+    const raw = value as { seconds?: number | string };
+    if (raw.seconds === undefined || raw.seconds === null) return undefined;
+    const seconds =
+      typeof raw.seconds === "string"
+        ? Number.parseInt(raw.seconds, 10)
+        : raw.seconds;
+    if (!Number.isFinite(seconds) || seconds <= 0) return undefined;
+    return new Date(seconds * 1000).toISOString();
+  }
+
+  return undefined;
+}
+
+function normalizeStatus(value: unknown): number {
+  if (typeof value === "number") return value;
+  const normalized = normalizeString(value).toUpperCase();
+  switch (normalized) {
+    case "ALERT_STATUS_OPEN":
+    case "OPEN":
+      return alertsClient.AlertStatus.ALERT_STATUS_OPEN;
+    case "ALERT_STATUS_ACKNOWLEDGED":
+    case "ACKNOWLEDGED":
+      return alertsClient.AlertStatus.ALERT_STATUS_ACKNOWLEDGED;
+    case "ALERT_STATUS_RESOLVED":
+    case "RESOLVED":
+      return alertsClient.AlertStatus.ALERT_STATUS_RESOLVED;
+    case "ALERT_STATUS_CLOSED":
+    case "CLOSED":
+      return alertsClient.AlertStatus.ALERT_STATUS_CLOSED;
+    default:
+      return normalizeNumber(value);
+  }
+}
+
+function resolveTargetLabel(item: Record<string, unknown>): {
+  targetLabel: string;
+  targetValue: string;
+} {
+  const agentId = normalizeString(item.agentId ?? item.agent_id);
+  const userId = normalizeString(item.userId ?? item.user_id);
+  const groupId = normalizeString(item.groupId ?? item.group_id);
+  const agentCategoryId = normalizeString(
+    item.agentCategoryId ?? item.agent_category_id,
+  );
+
+  if (userId) {
+    return { targetLabel: "User", targetValue: userId };
+  }
+  if (groupId) {
+    return { targetLabel: "Group", targetValue: groupId };
+  }
+  if (agentCategoryId && agentCategoryId !== "0") {
+    return { targetLabel: "Machine group", targetValue: agentCategoryId };
+  }
+  if (agentId) {
+    return { targetLabel: "Agent", targetValue: agentId };
+  }
+  return { targetLabel: "Target", targetValue: "—" };
 }
 
 function statusLabel(status: number): string {
@@ -579,40 +355,103 @@ function statusColor(status: number): string {
   }
 }
 
+function severityLabel(severity: number): string {
+  if (severity <= 1) return `Low (${severity})`;
+  if (severity === 2) return `Medium (${severity})`;
+  return `High (${severity})`;
+}
+
+function severityColor(severity: number): string {
+  if (severity <= 1) return "grey-7";
+  if (severity === 2) return "orange-8";
+  return "negative";
+}
+
+function humanizeToken(value: string): string {
+  return value
+    .replaceAll(/[_-]+/g, " ")
+    .replaceAll(/\s+/g, " ")
+    .trim()
+    .replaceAll(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function alertTypeLabel(type: string): string {
+  const normalized = normalizeString(type);
+  return normalized ? humanizeToken(normalized) : "Alert";
+}
+
+function alertTitle(row: AlertRow): string {
+  return row.title || alertTypeLabel(row.type) || "Alert";
+}
+
+function occurrenceLabel(count: number): string {
+  if (count <= 1) return "1 occurrence";
+  return `${count} occurrences`;
+}
+
+function hasAlertDetails(row: AlertRow): boolean {
+  return Boolean(row.policyId || row.deduplicationKey || row.type);
+}
+
+function alertDetails(row: AlertRow): Array<{ label: string; value: string }> {
+  const details: Array<{ label: string; value: string }> = [];
+
+  if (row.policyId) {
+    details.push({ label: "Policy", value: row.policyId });
+  }
+
+  if (row.type) {
+    details.push({ label: "Type", value: row.type });
+  }
+
+  if (row.deduplicationKey) {
+    details.push({ label: "Dedup key", value: row.deduplicationKey });
+  }
+
+  return details;
+}
+
 async function reload() {
   if (!props.agentId) return;
   loading.value = true;
   try {
     const resp = await alertsClient.listAlerts({
       agentId: props.agentId,
-      openOnly: openOnly.value,
-      type: typeFilter.value?.trim() || undefined,
       status: statusFilter.value ?? undefined,
-      userId: userIdBytes.value ?? undefined,
-      groupId: groupIdBytes.value ?? undefined,
-      agentCategoryId: agentCategoryIdFilter.value ?? undefined,
     });
 
-    const items = resp.itemsList || [];
-    for (const it of items) {
-      const t = (it.type ?? "").trim();
-      if (!t) continue;
-      if (!typeOptions.value.includes(t)) typeOptions.value = [...typeOptions.value, t].sort();
-    }
-
+    const responseObj = resp as unknown as {
+      itemsList?: Array<Record<string, unknown>>;
+      items?: Array<Record<string, unknown>>;
+    };
+    const items = responseObj.itemsList ?? responseObj.items ?? [];
     rows.value = items.map((it) => {
-      const firstIso = tsToIso(it.firstOccurredAt as AlertTimestamp | undefined);
-      const lastIso = tsToIso(it.lastOccurredAt as AlertTimestamp | undefined);
+      const firstIso = parseAlertDate(it.firstOccurredAt ?? it.first_occurred_at);
+      const lastIso = parseAlertDate(it.lastOccurredAt ?? it.last_occurred_at);
+      const { targetLabel, targetValue } = resolveTargetLabel(it);
+
       return {
-        id: it.id ?? 0,
-        type: it.type ?? "",
-        severity: it.severity ?? 0,
-        status: (it.status ?? 0) as number,
-        policyId: it.policyId ?? 0,
-        deduplicationKey: it.deduplicationKey ?? "",
-        title: it.title ?? "",
-        message: it.message ?? "",
-        occurrenceCount: it.occurrenceCount ?? 0,
+        id: normalizeNumber(it.id),
+        type: normalizeString(it.type),
+        severity: normalizeNumber(it.severity),
+        status: normalizeStatus(it.status),
+        policyId: normalizeString(it.policyId ?? it.policy_id),
+        agentId: normalizeString(it.agentId ?? it.agent_id),
+        userId: normalizeString(it.userId ?? it.user_id),
+        groupId: normalizeString(it.groupId ?? it.group_id),
+        agentCategoryId: normalizeString(
+          it.agentCategoryId ?? it.agent_category_id,
+        ),
+        targetLabel,
+        targetValue,
+        deduplicationKey: normalizeString(
+          it.deduplicationKey ?? it.deduplication_key,
+        ),
+        title: normalizeString(it.title),
+        message: normalizeString(it.message),
+        occurrenceCount: normalizeNumber(
+          it.occurrenceCount ?? it.occurrence_count,
+        ),
         firstOccurredAt: firstIso ? formatDate(firstIso) : undefined,
         lastOccurredAt: lastIso ? formatDate(lastIso) : undefined,
       };
@@ -626,16 +465,6 @@ async function reload() {
   } finally {
     loading.value = false;
   }
-}
-
-function resetFilters() {
-  typeFilter.value = null;
-  statusFilter.value = null;
-  userSidFilter.value = null;
-  groupSidFilter.value = null;
-  agentCategoryIdFilter.value = null;
-  openOnly.value = true;
-  void reload();
 }
 
 async function ackAndReload(id: number) {
@@ -668,19 +497,6 @@ async function closeAndReload(id: number) {
   }
 }
 
-onMounted(async () => {
-  try {
-    const cats = await agentCategoryClient.getAllCategories();
-    const categories = cats.categoriesList || [];
-    agentCategoryOptions.value = categories
-      .map((c) => ({ label: c.info?.name || `Category ${c.categoryId}`, value: c.categoryId }))
-      .filter((o) => o.value > 0)
-      .sort((a, b) => a.label.localeCompare(b.label));
-  } catch {
-    agentCategoryOptions.value = [];
-  }
-});
-
 watch(
   () => [props.active, props.agentId] as const,
   ([active, agentId]) => {
@@ -698,8 +514,15 @@ watch(
   min-height: 300px
   width: 100%
 
-.alerts-filters-card
-  min-width: 760px
-  max-width: 95vw
+.alert-message
+  white-space: pre-wrap
+  line-height: 1.35
+
+.alert-detail-label
+  min-width: 72px
+
+.alert-detail-value
+  white-space: pre-wrap
+  word-break: break-word
 </style>
 
