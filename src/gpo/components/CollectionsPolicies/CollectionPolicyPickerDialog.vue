@@ -367,6 +367,7 @@ interface PolicyDetailsElement {
     name: string;
     display_name?: string;
     value_type?: string;
+    value?: string;
   }>;
 }
 
@@ -770,13 +771,14 @@ function buildPolicyElements(
           )
           .map((item) => {
             const itemId = (item.id as number) ?? 0;
-            const itemName = ensureString(item.name ?? item.value);
+            const itemValue = ensureString(item.value);
+            const itemName = ensureString(item.name ?? itemValue);
             const itemDisplayName =
               ensureString(
                 item.displayName ??
                   item.display_name ??
                   item.text ??
-                  item.value,
+                  itemValue,
               ) || itemName;
             const itemValueType = (item.valueType ??
               item.value_type ??
@@ -786,6 +788,7 @@ function buildPolicyElements(
               name: itemName,
               display_name: itemDisplayName || `Value ${itemId}`,
               value_type: itemValueType,
+              value: itemValue,
             };
           })
       : [];
@@ -933,6 +936,7 @@ async function buildPoliciesWithStatePayload(list: PolicyItem[]): Promise<{
     const savedElements = perPolicyElements.value[id];
     const elementsMetadata: PolicyElementMetadata[] | undefined =
       savedElements?.map((el) => ({
+        id: el.id,
         element_id: el.element_id,
         type: el.type,
         items: el.items,
