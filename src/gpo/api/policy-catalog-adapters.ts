@@ -3,8 +3,10 @@ import type { CategoryNode, PolicyItem } from "../types/policy-catalog";
 function str(val: unknown): string {
   if (val == null) return "";
   if (typeof val === "string") return val;
-  if (typeof val === "object") return "";
-  return String(val);
+  if (typeof val === "number") return Number.isFinite(val) ? `${val}` : "";
+  if (typeof val === "boolean") return val ? "true" : "false";
+  if (typeof val === "bigint") return `${val}`;
+  return "";
 }
 
 function num(val: unknown, fallback: number): number {
@@ -72,6 +74,8 @@ export function normalizePoliciesList(response: unknown): PolicyItem[] {
       explainText?: string;
       scope?: number;
       hash?: string;
+      policy_hash?: string;
+      policyHash?: string;
       state?: boolean;
     };
     const name = str(item.name);
@@ -91,10 +95,9 @@ export function normalizePoliciesList(response: unknown): PolicyItem[] {
       item.scope !== undefined && item.scope !== null
         ? num(item.scope, POLICY_SCOPE_NONE)
         : POLICY_SCOPE_NONE;
+    const rawHash = item.hash ?? item.policy_hash ?? item.policyHash;
     const hash =
-      typeof item.hash === "string" && item.hash.trim()
-        ? item.hash.trim()
-        : undefined;
+      typeof rawHash === "string" && rawHash.trim() ? rawHash.trim() : undefined;
     const state = typeof item.state === "boolean" ? item.state : undefined;
 
     policies.push({
