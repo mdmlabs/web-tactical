@@ -1,48 +1,54 @@
 <template>
   <div class="discover-view">
-    <!-- Info banner -->
-    <q-banner class="bg-blue-1 q-mb-md" rounded dense>
-      <template #avatar><q-icon name="info" color="blue" size="sm" /></template>
-      Showing rules catalog via Wazuh Manager API. For real-time event data, connect to Wazuh Indexer.
+    <!-- Error banner (only when indexer is unreachable) -->
+    <q-banner v-if="discoverStore.errorMessage" class="bg-red-1 q-mb-md" rounded dense>
+      <template #avatar><q-icon name="error_outline" color="red" size="sm" /></template>
+      {{ discoverStore.errorMessage }}
+      <template #action>
+        <q-btn flat dense label="Retry" color="red" @click="discoverStore.search()" />
+      </template>
     </q-banner>
 
     <!-- Top controls -->
     <div class="controls-bar q-mb-md">
       <q-select
-        v-model="indexPattern"
+        v-model="discoverStore.indexPattern"
         :options="indexPatternOptions"
         dense
         outlined
         emit-value
         map-options
         class="index-select"
+        @update:model-value="discoverStore.setIndexPattern($event)"
       />
       <q-input
-        v-model="searchQuery"
+        v-model="discoverStore.searchQuery"
         dense
         outlined
-        placeholder="Search... e.g. level>=10, groups:syscheck"
+        placeholder="Search... e.g. rule.level:>=10, agent.name:server01, rule.groups:syscheck"
         class="search-input"
         clearable
-        @keyup.enter="loadData"
+        @keyup.enter="discoverStore.search()"
+        @clear="discoverStore.search()"
       >
         <template #prepend><q-icon name="search" /></template>
       </q-input>
       <q-select
-        v-model="timeRange"
+        v-model="discoverStore.timeRange"
         :options="timeOptions"
         dense
         outlined
         emit-value
         map-options
         class="time-select"
+        @update:model-value="discoverStore.setTimeRange($event)"
       />
       <q-btn
         flat
         dense
         icon="refresh"
-        :loading="wazuhStore.rulesLoading"
-        @click="loadData"
+        :loading="discoverStore.loading"
+        @click="discoverStore.search()"
       >
         <q-tooltip>Refresh</q-tooltip>
       </q-btn>
@@ -50,8 +56,10 @@
 
     <!-- Histogram -->
     <DiscoverHistogram
-      :hourly-data="wazuhStore.managerHourlyStats"
-      :loading="wazuhStore.managerStatsLoading"
+      :buckets="discoverStore.histogramBuckets"
+      :total-hits="discoverStore.totalHits"
+      :loading="discoverStore.loading"
+      :interval-label="intervalLabel"
       class="q-mb-md"
     />
 
@@ -60,17 +68,22 @@
       <!-- Fields sidebar -->
       <div class="col-auto sidebar-col">
         <DiscoverFieldsSidebar
-          :rules="filteredRules"
-          :selected-fields="selectedFields"
-          @toggle-field="toggleField"
+          :hits="discoverStore.hits"
+          :selected-fields="discoverStore.selectedFields"
+          @toggle-field="discoverStore.toggleField"
         />
       </div>
 
       <!-- Events table -->
       <div class="col">
         <DiscoverEventsTable
-          :rows="filteredRules"
-          :loading="wazuhStore.rulesLoading"
+          :hits="discoverStore.hits"
+          :selected-fields="discoverStore.selectedFields"
+          :loading="discoverStore.loading"
+          :total="discoverStore.totalHits"
+          :page="discoverStore.pagination.page"
+          :rows-per-page="discoverStore.pagination.rowsPerPage"
+          @update:page="discoverStore.setPage"
         />
       </div>
     </div>
@@ -78,22 +91,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
-import { useWazuhStore } from "@/stores/wazuh";
+import { computed, onMounted } from "vue";
+import { useDiscoverStore } from "@/stores/discover";
 import DiscoverHistogram from "@/components/security/DiscoverHistogram.vue";
 import DiscoverFieldsSidebar from "@/components/security/DiscoverFieldsSidebar.vue";
 import DiscoverEventsTable from "@/components/security/DiscoverEventsTable.vue";
 
-const wazuhStore = useWazuhStore();
+const discoverStore = useDiscoverStore();
 
-const indexPattern = ref("wazuh-alerts-*");
 const indexPatternOptions = [
   { label: "wazuh-alerts-*", value: "wazuh-alerts-*" },
   { label: "wazuh-archives-*", value: "wazuh-archives-*" },
 ];
 
-const searchQuery = ref("");
-const timeRange = ref("24h");
 const timeOptions = [
   { label: "Last 15 minutes", value: "15m" },
   { label: "Last 1 hour", value: "1h" },
@@ -102,72 +112,25 @@ const timeOptions = [
   { label: "Last 30 days", value: "30d" },
 ];
 
-const selectedFields = ref<string[]>(["level", "description", "groups"]);
-
-function toggleField(field: string) {
-  const idx = selectedFields.value.indexOf(field);
-  if (idx >= 0) {
-    selectedFields.value.splice(idx, 1);
-  } else {
-    selectedFields.value.push(field);
-  }
-}
-
-// Filter rules based on search query
-const filteredRules = computed(() => {
-  let rules = wazuhStore.rules;
-  if (!searchQuery.value) return rules;
-
-  const q = searchQuery.value.trim();
-
-  // Parse simple filters: level>=N, level=N, groups:value
-  const levelGteMatch = q.match(/^level\s*>=\s*(\d+)$/i);
-  if (levelGteMatch) {
-    const minLevel = parseInt(levelGteMatch[1]);
-    return rules.filter((r) => r.level >= minLevel);
-  }
-
-  const levelEqMatch = q.match(/^level\s*=\s*(\d+)$/i);
-  if (levelEqMatch) {
-    const level = parseInt(levelEqMatch[1]);
-    return rules.filter((r) => r.level === level);
-  }
-
-  const groupMatch = q.match(/^groups?\s*[:=]\s*(.+)$/i);
-  if (groupMatch) {
-    const group = groupMatch[1].trim().toLowerCase();
-    return rules.filter((r) =>
-      (r.groups ?? []).some((g) => g.toLowerCase().includes(group)),
-    );
-  }
-
-  const mitreMatch = q.match(/^mitre\.tactic\s*[:=]\s*(.+)$/i);
-  if (mitreMatch) {
-    const tactic = mitreMatch[1].trim().toLowerCase();
-    return rules.filter((r) =>
-      (r.mitre?.tactic ?? []).some((t) => t.toLowerCase().includes(tactic)),
-    );
-  }
-
-  // Freetext search
-  const lower = q.toLowerCase();
-  return rules.filter(
-    (r) =>
-      r.description?.toLowerCase().includes(lower) ||
-      String(r.id).includes(lower) ||
-      (r.groups ?? []).some((g) => g.toLowerCase().includes(lower)),
-  );
+const intervalLabel = computed(() => {
+  const map: Record<string, string> = {
+    "1m": "timestamp per 1 minute",
+    "5m": "timestamp per 5 minutes",
+    "30m": "timestamp per 30 minutes",
+    "3h": "timestamp per 3 hours",
+    "12h": "timestamp per 12 hours",
+  };
+  return map[discoverStore.histogramInterval] ?? "timestamp per 30 minutes";
 });
 
-async function loadData() {
-  await Promise.allSettled([
-    wazuhStore.fetchRules({ limit: 500, sort: "-level" }),
-    wazuhStore.fetchManagerStatsHourly(),
-  ]);
+function loadData() {
+  discoverStore.search();
 }
 
+defineExpose({ loadData });
+
 onMounted(() => {
-  loadData();
+  discoverStore.fetchEvents();
 });
 </script>
 

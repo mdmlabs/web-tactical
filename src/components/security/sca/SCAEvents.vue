@@ -89,6 +89,31 @@
         <q-btn flat dense no-caps size="sm" icon="add" label="Add filter" @click="showAddFilter = true" />
       </div>
 
+      <!-- Histogram chart -->
+      <q-card flat bordered class="sca-histogram-card q-mb-md">
+        <q-card-section class="q-py-sm">
+          <q-inner-loading :showing="scaStore.eventsHistogramLoading" />
+          <apexchart
+            v-if="!scaStore.eventsHistogramLoading && histogramSeries[0].data.length"
+            type="bar"
+            height="160"
+            :options="histogramOptions"
+            :series="histogramSeries"
+          />
+        </q-card-section>
+      </q-card>
+
+      <!-- Hits info bar -->
+      <div class="sca-hits-bar q-mb-sm">
+        <div class="sca-hits-summary">
+          <span class="sca-hits-count">{{ scaStore.eventsTotal.toLocaleString() }}</span>
+          <span class="sca-hits-label"> hits</span>
+        </div>
+        <div class="sca-hits-range text-caption text-grey">
+          {{ formatDate(scaStore.dateRangeQuery.from) }} - {{ formatDate(scaStore.dateRangeQuery.to) }}
+        </div>
+      </div>
+
       <!-- Results -->
       <q-card flat bordered class="sca-events-card">
         <div v-if="!scaStore.eventsLoading && !scaStore.events.length" class="sca-no-results">
@@ -108,46 +133,21 @@
           @update:pagination="onPaginationChange"
           class="sca-events-table"
         >
-          <template #body-cell-timestamp="props">
-            <q-td :props="props">
-              {{ formatDate(getField(props.row._source, '@timestamp') || getField(props.row._source, 'timestamp')) }}
-            </q-td>
-          </template>
-          <template #body-cell-rule_description="props">
-            <q-td :props="props">
-              {{ getField(props.row._source, 'rule.description') || '-' }}
-            </q-td>
-          </template>
-          <template #body-cell-data_title="props">
-            <q-td :props="props">
-              {{ getField(props.row._source, 'data.sca.check.title') || getField(props.row._source, 'data.title') || '-' }}
-            </q-td>
-          </template>
-          <template #body-cell-data_result="props">
-            <q-td :props="props">
-              <q-badge
-                v-if="getField(props.row._source, 'data.sca.check.result') || getField(props.row._source, 'data.result')"
-                :color="resultColor(getField(props.row._source, 'data.sca.check.result') || getField(props.row._source, 'data.result') || '')"
-                :label="getField(props.row._source, 'data.sca.check.result') || getField(props.row._source, 'data.result')"
-              />
-              <span v-else>-</span>
-            </q-td>
-          </template>
-          <template #body-cell-agent_name="props">
-            <q-td :props="props">
-              {{ getField(props.row._source, 'agent.name') || '-' }}
-            </q-td>
-          </template>
-          <template #body-cell-rule_level="props">
-            <q-td :props="props">
-              {{ getField(props.row._source, 'rule.level') || '-' }}
-            </q-td>
-          </template>
           <template #body="props">
             <q-tr :props="props" @click="expandedRow = expandedRow === props.row._id ? null : props.row._id" class="cursor-pointer">
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                <!-- Use slot rendering from above, but we need to inline here for the row click -->
-                <template v-if="col.name === 'timestamp'">
+                <template v-if="col.name === 'actions'">
+                  <q-btn
+                    flat round dense
+                    size="xs"
+                    icon="search"
+                    color="primary"
+                    @click.stop="scaStore.inspectDocument(props.row)"
+                  >
+                    <q-tooltip>Inspect document details</q-tooltip>
+                  </q-btn>
+                </template>
+                <template v-else-if="col.name === 'timestamp'">
                   {{ formatDate(getField(props.row._source, '@timestamp') || getField(props.row._source, 'timestamp')) }}
                 </template>
                 <template v-else-if="col.name === 'rule_description'">
@@ -156,6 +156,9 @@
                 <template v-else-if="col.name === 'data_title'">
                   {{ getField(props.row._source, 'data.sca.check.title') || getField(props.row._source, 'data.title') || '-' }}
                 </template>
+                <template v-else-if="col.name === 'data_file'">
+                  {{ getField(props.row._source, 'data.sca.check.file') || '-' }}
+                </template>
                 <template v-else-if="col.name === 'data_result'">
                   <q-badge
                     v-if="getField(props.row._source, 'data.sca.check.result') || getField(props.row._source, 'data.result')"
@@ -163,6 +166,9 @@
                     :label="getField(props.row._source, 'data.sca.check.result') || getField(props.row._source, 'data.result')"
                   />
                   <span v-else>-</span>
+                </template>
+                <template v-else-if="col.name === 'sca_policy'">
+                  {{ getField(props.row._source, 'data.sca.policy') || '-' }}
                 </template>
                 <template v-else-if="col.name === 'agent_name'">
                   {{ getField(props.row._source, 'agent.name') || '-' }}
@@ -202,12 +208,52 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Inspect document details panel -->
+    <SCAEventDetail
+      v-if="scaStore.showDetailPanel && scaStore.inspectedEvent"
+      :event="scaStore.inspectedEvent"
+      @close="scaStore.closeInspection()"
+      @view-surrounding="(ev) => scaStore.viewSurroundingDocuments(ev)"
+      @view-single="(ev) => scaStore.viewSingleDocument(ev)"
+      @add-filter="onAddFilterFromDetail"
+    />
+
+    <!-- View surrounding documents panel -->
+    <SCASurroundingDocs
+      :show="scaStore.showSurroundingPanel"
+      :event="scaStore.inspectedEvent"
+      :newer-docs="scaStore.surroundingDocs.newer"
+      :older-docs="scaStore.surroundingDocs.older"
+      :loading="scaStore.surroundingDocsLoading"
+      :load-count="5"
+      @close="scaStore.closeInspection()"
+      @view-surrounding="(ev) => scaStore.viewSurroundingDocuments(ev)"
+      @view-single="(ev) => scaStore.viewSingleDocument(ev)"
+    />
+
+    <!-- View single document panel -->
+    <SCASingleDocument
+      :show="scaStore.showSingleDocPanel"
+      :event="scaStore.inspectedEvent"
+      :document="scaStore.singleDocument"
+      :loading="scaStore.singleDocumentLoading"
+      @close="scaStore.closeInspection()"
+      @view-surrounding="(ev) => { if (ev) scaStore.viewSurroundingDocuments(ev) }"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { useScaStore } from "@/stores/sca";
+import VueApexCharts from "vue3-apexcharts";
+import SCAEventDetail from "./SCAEventDetail.vue";
+import SCASurroundingDocs from "./SCASurroundingDocs.vue";
+import SCASingleDocument from "./SCASingleDocument.vue";
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const apexchart = VueApexCharts;
 
 defineEmits<{ (e: "select-agent"): void }>();
 
@@ -227,13 +273,78 @@ const timeOptions = [
   { label: "Last 30 days", value: "30d" },
 ];
 
+// === Histogram chart config ===
+const histogramSeries = computed(() => [
+  {
+    name: "Count",
+    data: scaStore.eventsHistogramData.map((b) => b.doc_count),
+  },
+]);
+
+const histogramOptions = computed(() => {
+  const buckets = scaStore.eventsHistogramData;
+  const categories = buckets.map((b) => {
+    const d = new Date(b.key);
+    return d.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  });
+
+  const tickAmount = Math.min(categories.length, 12);
+
+  return {
+    chart: {
+      type: "bar" as const,
+      toolbar: { show: false },
+      fontFamily: "inherit",
+    },
+    colors: ["#54b399"],
+    plotOptions: {
+      bar: { borderRadius: 1, columnWidth: "80%" },
+    },
+    dataLabels: { enabled: false },
+    xaxis: {
+      categories,
+      tickAmount,
+      labels: {
+        style: { fontSize: "10px", colors: "#69707d" },
+        rotate: 0,
+        hideOverlappingLabels: true,
+      },
+      title: {
+        text: "timestamp per 30 minutes",
+        style: { fontSize: "12px", color: "#69707d", fontWeight: 400 },
+      },
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+    },
+    yaxis: {
+      title: {
+        text: "Count",
+        style: { fontSize: "12px", color: "#69707d", fontWeight: 400 },
+      },
+      labels: { style: { fontSize: "10px", colors: "#69707d" } },
+    },
+    grid: {
+      borderColor: "#edf0f5",
+      strokeDashArray: 4,
+      xaxis: { lines: { show: false } },
+    },
+    tooltip: {
+      y: { formatter: (val: number) => String(val) },
+    },
+  };
+});
+
 const eventColumns = [
+  { name: "actions", label: "", field: () => "", align: "center" as const, style: "width: 40px" },
   { name: "timestamp", label: "Time", field: () => "", align: "left" as const, sortable: false, style: "width: 180px" },
-  { name: "rule_description", label: "Rule description", field: () => "", align: "left" as const },
-  { name: "data_title", label: "SCA check title", field: () => "", align: "left" as const },
-  { name: "data_result", label: "Result", field: () => "", align: "center" as const, style: "width: 100px" },
-  { name: "agent_name", label: "Agent", field: () => "", align: "left" as const, style: "width: 140px" },
-  { name: "rule_level", label: "Level", field: () => "", align: "center" as const, style: "width: 70px" },
+  { name: "data_title", label: "data.sca.check.title", field: () => "", align: "left" as const },
+  { name: "data_file", label: "data.sca.check.file", field: () => "", align: "left" as const },
+  { name: "data_result", label: "data.sca.check.result", field: () => "", align: "center" as const, style: "width: 120px" },
+  { name: "sca_policy", label: "data.sca.policy", field: () => "", align: "left" as const },
 ];
 
 const tablePagination = ref({
@@ -271,6 +382,16 @@ function onAddFilter() {
       negated: false,
     });
   }
+}
+
+function onAddFilterFromDetail(field: string, value: string) {
+  scaStore.addFilter({
+    field,
+    operator: "is",
+    value,
+    enabled: true,
+    negated: false,
+  });
 }
 
 function getField(obj: Record<string, unknown>, path: string): string {
@@ -363,6 +484,34 @@ function formatDate(dateStr: string): string {
   font-size: 12px;
 }
 
+.sca-histogram-card {
+  border-radius: var(--mdm-radius-lg, 8px);
+  background: var(--mdm-bg-card, #fff);
+  border: 1px solid var(--mdm-border-light, #f0f0f0);
+}
+
+.sca-hits-bar {
+  text-align: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--mdm-border-light, #f0f0f0);
+}
+
+.sca-hits-count {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--mdm-text-primary, #1a1a1a);
+}
+
+.sca-hits-label {
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--mdm-text-primary, #1a1a1a);
+}
+
+.sca-hits-range {
+  margin-top: 2px;
+}
+
 .sca-events-card {
   border-radius: var(--mdm-radius-lg, 8px);
   background: var(--mdm-bg-card, #fff);
@@ -418,6 +567,20 @@ function formatDate(dateStr: string): string {
 .body--dark .sca-events-card {
   background: var(--mdm-bg-card, #111827);
   border-color: var(--mdm-border, #1e293b);
+}
+
+.body--dark .sca-histogram-card {
+  background: var(--mdm-bg-card, #111827);
+  border-color: var(--mdm-border, #1e293b);
+}
+
+.body--dark .sca-hits-count,
+.body--dark .sca-hits-label {
+  color: var(--mdm-text-primary, #e8ecf4);
+}
+
+.body--dark .sca-hits-bar {
+  border-bottom-color: var(--mdm-border, #1e293b);
 }
 
 .body--dark .sca-no-results {

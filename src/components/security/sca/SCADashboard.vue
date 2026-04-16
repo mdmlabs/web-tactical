@@ -104,6 +104,17 @@
                 <span class="sca-stat__value">{{ formatDate(policy.end_scan) }}</span>
               </div>
             </div>
+            <div class="sca-policy-actions">
+              <q-btn
+                flat
+                dense
+                no-caps
+                color="primary"
+                icon="inventory_2"
+                label="View Inventory"
+                @click="onViewInventory(policy.policy_id)"
+              />
+            </div>
           </div>
         </q-card-section>
       </q-card>
@@ -117,6 +128,10 @@ import { useScaStore } from "@/stores/sca";
 defineEmits<{ (e: "select-agent"): void }>();
 
 const scaStore = useScaStore();
+
+function onViewInventory(policyId: string) {
+  scaStore.navigateToPolicyInventory(policyId);
+}
 
 function scoreColor(score: number): string {
   if (score >= 75) return "#4caf50";
@@ -254,6 +269,12 @@ function formatDate(dateStr: string): string {
   display: flex;
   flex-wrap: wrap;
   gap: 24px;
+}
+
+.sca-policy-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .sca-stat {

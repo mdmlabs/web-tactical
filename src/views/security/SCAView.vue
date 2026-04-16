@@ -26,28 +26,103 @@
     <!-- Tab panels -->
     <q-tab-panels v-model="activeTab" animated class="sca-panels">
       <q-tab-panel name="dashboard" class="q-pa-none">
-        <SCADashboard />
+        <SCADashboard @select-agent="showAgentDialog = true" />
       </q-tab-panel>
       <q-tab-panel name="inventory" class="q-pa-none">
-        <SCAInventory />
+        <SCAInventory @select-agent="showAgentDialog = true" />
       </q-tab-panel>
       <q-tab-panel name="events" class="q-pa-none">
-        <SCAEvents />
+        <SCAEvents @select-agent="showAgentDialog = true" />
       </q-tab-panel>
     </q-tab-panels>
+
+    <!-- Agent selection dialog -->
+    <q-dialog v-model="showAgentDialog">
+      <q-card class="sca-agent-dialog">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Select agent</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+        <q-card-section>
+          <q-input
+            v-model="agentSearch"
+            dense
+            outlined
+            placeholder="Search by name, ID, or IP..."
+            clearable
+            class="q-mb-md"
+          >
+            <template #prepend>
+              <q-icon name="search" />
+            </template>
+          </q-input>
+          <q-spinner-dots v-if="wazuhStore.agentsLoading" color="primary" size="32px" class="q-my-md full-width text-center" />
+          <q-list v-else-if="dialogAgents.length" separator class="sca-agent-dialog__list">
+            <q-item
+              v-for="agent in dialogAgents"
+              :key="agent.id"
+              clickable
+              v-close-popup
+              @click="onDialogAgentSelect(agent.id)"
+            >
+              <q-item-section avatar>
+                <q-icon
+                  :name="agent.os?.platform === 'windows' ? 'laptop_windows' : agent.os?.platform === 'darwin' ? 'laptop_mac' : 'computer'"
+                  size="20px"
+                />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>{{ agent.name }}</q-item-label>
+                <q-item-label caption>ID: {{ agent.id }} &middot; {{ agent.ip }}</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-badge
+                  :color="agent.status === 'active' ? 'green' : 'grey'"
+                  :label="agent.status"
+                />
+              </q-item-section>
+            </q-item>
+          </q-list>
+          <div v-else class="text-grey text-center q-pa-md">No agents found</div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useScaStore } from "@/stores/sca";
+import { useWazuhStore } from "@/stores/wazuh";
 import SCAAgentSelector from "@/components/security/sca/SCAAgentSelector.vue";
 import SCADashboard from "@/components/security/sca/SCADashboard.vue";
 import SCAInventory from "@/components/security/sca/SCAInventory.vue";
 import SCAEvents from "@/components/security/sca/SCAEvents.vue";
 
 const scaStore = useScaStore();
+const wazuhStore = useWazuhStore();
 const activeTab = ref(scaStore.activeTab);
+
+// Agent selection dialog
+const showAgentDialog = ref(false);
+const agentSearch = ref("");
+
+const dialogAgents = computed(() => {
+  const agents = wazuhStore.wazuhAgents.filter((a) => a.id !== "000");
+  const needle = agentSearch.value.trim().toLowerCase();
+  if (!needle) return agents;
+  return agents.filter(
+    (a) =>
+      a.name.toLowerCase().includes(needle) ||
+      a.id.includes(needle) ||
+      a.ip.includes(needle),
+  );
+});
+
+function onDialogAgentSelect(agentId: string) {
+  scaStore.setAgent(agentId);
+}
 
 function onTabChange(tab: string) {
   scaStore.setActiveTab(tab as "dashboard" | "inventory" | "events");
@@ -60,7 +135,10 @@ function loadData() {
 
 defineExpose({ loadData });
 
-onMounted(() => {
+onMounted(async () => {
+  if (!wazuhStore.wazuhAgents.length) {
+    await wazuhStore.fetchAgents();
+  }
   scaStore.refreshActiveTab();
 });
 </script>
@@ -128,5 +206,16 @@ onMounted(() => {
 
 .body--dark .sca-panels {
   background: var(--mdm-bg, #0b0e14);
+}
+
+.sca-agent-dialog {
+  min-width: 420px;
+  max-width: 560px;
+  width: 100%;
+}
+
+.sca-agent-dialog__list {
+  max-height: 400px;
+  overflow-y: auto;
 }
 </style>

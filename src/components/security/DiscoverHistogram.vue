@@ -3,7 +3,7 @@
     <q-card-section class="q-py-sm">
       <div class="row items-center justify-between">
         <span class="hits-label">{{ totalHits.toLocaleString() }} hits</span>
-        <span class="text-caption text-grey">timestamp per 30 minutes</span>
+        <span class="text-caption text-grey">{{ intervalLabel }}</span>
       </div>
     </q-card-section>
     <q-card-section class="q-pt-none">
@@ -27,24 +27,40 @@ import VueApexCharts from "vue3-apexcharts";
 const apexchart = VueApexCharts;
 
 const props = defineProps<{
-  hourlyData: number[];
+  buckets: { timestamp: string; count: number }[];
+  totalHits: number;
   loading: boolean;
+  intervalLabel: string;
 }>();
 
-const totalHits = computed(() =>
-  props.hourlyData.reduce((sum, v) => sum + Math.round(v), 0),
-);
-
 const chartSeries = computed(() => {
-  const data = props.hourlyData.length ? props.hourlyData.map(Math.round) : new Array(24).fill(0);
-  return [{ name: "Hits", data }];
+  if (!props.buckets.length) {
+    return [{ name: "Hits", data: new Array(24).fill(0) }];
+  }
+  return [{ name: "Hits", data: props.buckets.map((b) => b.count) }];
 });
 
 const chartOptions = computed(() => {
-  const categories = Array.from({ length: 24 }, (_, i) => {
-    const h = String(i).padStart(2, "0");
-    return `${h}:00`;
-  });
+  let categories: string[];
+  if (props.buckets.length) {
+    categories = props.buckets.map((b) => {
+      try {
+        const d = new Date(b.timestamp);
+        return d.toLocaleTimeString(undefined, {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      } catch {
+        return b.timestamp;
+      }
+    });
+  } else {
+    categories = Array.from({ length: 24 }, (_, i) => {
+      const h = String(i).padStart(2, "0");
+      return `${h}:00`;
+    });
+  }
+
   return {
     chart: {
       type: "bar" as const,
@@ -59,7 +75,12 @@ const chartOptions = computed(() => {
     dataLabels: { enabled: false },
     xaxis: {
       categories,
-      labels: { style: { fontSize: "10px", colors: "#69707d" } },
+      labels: {
+        style: { fontSize: "10px", colors: "#69707d" },
+        rotate: -45,
+        rotateAlways: categories.length > 30,
+        hideOverlappingLabels: true,
+      },
       axisBorder: { show: false },
       axisTicks: { show: false },
     },
@@ -72,7 +93,7 @@ const chartOptions = computed(() => {
       xaxis: { lines: { show: false } },
     },
     tooltip: {
-      y: { formatter: (val: number) => String(val) },
+      y: { formatter: (val: number) => `${val} events` },
     },
   };
 });

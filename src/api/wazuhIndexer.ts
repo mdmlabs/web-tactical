@@ -39,6 +39,23 @@ class WazuhIndexerClient {
   }
 
   /**
+   * Retrieve a single document by index and document ID.
+   * Sends: GET /api/wazuh-indexer/{index}/_doc/{id}
+   */
+  async getDocument<T = unknown>(
+    index: string,
+    docId: string,
+  ): Promise<{ _index: string; _id: string; _source: T; found: boolean }> {
+    const { data } = await this.client.get<{
+      _index: string;
+      _id: string;
+      _source: T;
+      found: boolean;
+    }>(`/${encodeURIComponent(index)}/_doc/${encodeURIComponent(docId)}`);
+    return data;
+  }
+
+  /**
    * Execute multiple search queries in a single request.
    * Sends: POST /api/wazuh-indexer/_msearch
    */
