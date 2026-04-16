@@ -86,7 +86,7 @@
                           <q-item-section avatar>
                             <q-checkbox
                               :model-value="selectedPolicies[policy.id] || false"
-                              @update:model-value="togglePolicySelection(policy.id)"
+                              @update:model-value="togglePolicySelectionWithItem(policy)"
                               @click.stop
                             />
                           </q-item-section>
@@ -173,7 +173,7 @@
                           <q-item-section avatar>
                             <q-checkbox
                               :model-value="selectedPolicies[policy.id] || false"
-                              @update:model-value="togglePolicySelection(policy.id)"
+                              @update:model-value="togglePolicySelectionWithItem(policy)"
                               @click.stop
                             />
                           </q-item-section>
@@ -392,6 +392,8 @@ const {
   clearSelection,
 } = usePolicySelection();
 
+const selectedPolicyItems = ref<Record<string, PolicyItem>>({});
+
 const selectedCategoryId = ref<string | null>(null);
 const categorySearchQuery = ref<string | null>("");
 const selectedCategory = ref<{ id: string; categoryName: string } | null>(null);
@@ -414,27 +416,26 @@ const allPoliciesSearch = ref("");
 const loadingAllPolicies = ref(false);
 const allPoliciesLoaded = ref(false);
 
-const selectedPoliciesList = computed(() => {
-  const list: PolicyItem[] = [];
-  const seen = new Set<string>();
-  for (const group of filteredGroupedPolicies.value) {
-    for (const p of group.policies) {
-      if (selectedPolicies.value[p.id] && !seen.has(p.id)) {
-        list.push(p);
-        seen.add(p.id);
-      }
+const selectedPoliciesList = computed(() =>
+  Object.values(selectedPolicyItems.value),
+);
+
+function togglePolicySelectionWithItem(policy: PolicyItem) {
+  const id = policy.id;
+  const currentlySelected = !!selectedPolicies.value[id];
+  togglePolicySelection(id);
+  const nextSelected = !currentlySelected;
+  if (nextSelected) {
+    selectedPolicyItems.value = { ...selectedPolicyItems.value, [id]: policy };
+    if (policyState.value[id] === undefined) {
+      policyState.value = { ...policyState.value, [id]: true };
     }
+  } else {
+    const next = { ...selectedPolicyItems.value };
+    delete next[id];
+    selectedPolicyItems.value = next;
   }
-  for (const group of filteredAllPoliciesGrouped.value) {
-    for (const p of group.policies) {
-      if (selectedPolicies.value[p.id] && !seen.has(p.id)) {
-        list.push(p);
-        seen.add(p.id);
-      }
-    }
-  }
-  return list;
-});
+}
 
 function setPolicyState(policyId: string, enabled: boolean) {
   policyState.value = { ...policyState.value, [policyId]: enabled };
@@ -612,6 +613,7 @@ watch(
   (visible) => {
     if (visible) {
       clearSelection();
+      selectedPolicyItems.value = {};
       policyHashes.value = {};
       selectedPolicy.value = null;
       selectedCategoryId.value = null;
@@ -628,6 +630,7 @@ watch(
       allPoliciesRaw.value = [];
       allPoliciesSearch.value = "";
       allPoliciesLoaded.value = false;
+      policyState.value = {};
       loadCategories();
     }
   },
@@ -871,7 +874,7 @@ function extractHashFromPolicyDetails(response: unknown): string | null {
       | Record<string, unknown>
       | undefined);
   if (!policy || typeof policy !== "object") return null;
-  const hash = policy.hash ?? policy.policy_hash;
+  const hash = policy.hash ?? policy.policy_hash ?? policy.policyHash;
   if (typeof hash === "string" && hash.trim()) return hash.trim();
   return null;
 }
@@ -890,6 +893,65 @@ async function getHashForPolicy(policyId: string): Promise<string | null> {
   }
 }
 
+function policyLabel(p: PolicyItem): string {
+  return p.displayName || p.name || p.id;
+}
+
+async function resolvePolicyHash(p: PolicyItem): Promise<string | null> {
+  const inline =
+    typeof p.hash === "string" && p.hash.trim() ? p.hash.trim() : null;
+  if (inline) return inline;
+  return await getHashForPolicy(p.id);
+}
+
+async function buildPoliciesWithStatePayload(list: PolicyItem[]): Promise<{
+  policiesWithState: Array<{
+    hash: string;
+    state: boolean;
+    selection?: Record<string, unknown>;
+    elementsMetadata?: PolicyElementMetadata[];
+  }>;
+  skipped: string[];
+}> {
+  const policiesWithState: Array<{
+    hash: string;
+    state: boolean;
+    selection?: Record<string, unknown>;
+    elementsMetadata?: PolicyElementMetadata[];
+  }> = [];
+  const skipped: string[] = [];
+
+  for (const policy of list) {
+    const id = policy.id;
+    const hash = await resolvePolicyHash(policy);
+    if (!hash) {
+      skipped.push(policyLabel(policy));
+      continue;
+    }
+
+    const savedSettings = perPolicySettings.value[id];
+    const savedElements = perPolicyElements.value[id];
+    const elementsMetadata: PolicyElementMetadata[] | undefined =
+      savedElements?.map((el) => ({
+        element_id: el.element_id,
+        type: el.type,
+        items: el.items,
+      }));
+
+    policiesWithState.push({
+      hash,
+      state: policyState.value[id] !== false,
+      selection:
+        savedSettings && Object.keys(savedSettings).length > 0
+          ? savedSettings
+          : undefined,
+      elementsMetadata,
+    });
+  }
+
+  return { policiesWithState, skipped };
+}
+
 async function submitAddPolicies() {
   const collectionId = props.collectionId;
   if (collectionId == null || collectionId <= 0) {
@@ -904,38 +966,8 @@ async function submitAddPolicies() {
 
   applying.value = true;
   try {
-    const policiesWithState: Array<{
-      hash: string;
-      state: boolean;
-      selection?: Record<string, unknown>;
-      elementsMetadata?: PolicyElementMetadata[];
-    }> = [];
-    for (const policy of list) {
-      const id = policy.id;
-      const hash =
-        (typeof policy.hash === "string" && policy.hash.trim()
-          ? policy.hash.trim()
-          : null) ?? (await getHashForPolicy(id));
-      if (hash) {
-        const savedSettings = perPolicySettings.value[id];
-        const savedElements = perPolicyElements.value[id];
-        const elementsMetadata: PolicyElementMetadata[] | undefined =
-          savedElements?.map((el) => ({
-            element_id: el.element_id,
-            type: el.type,
-            items: el.items,
-          }));
-        policiesWithState.push({
-          hash,
-          state: policyState.value[id] !== false,
-          selection:
-            savedSettings && Object.keys(savedSettings).length > 0
-              ? savedSettings
-              : undefined,
-          elementsMetadata,
-        });
-      }
-    }
+    const { policiesWithState, skipped } =
+      await buildPoliciesWithStatePayload(list);
     if (policiesWithState.length === 0) {
       notifyError(
         "Could not get policy hashes for selected policies. " +
@@ -952,6 +984,11 @@ async function submitAddPolicies() {
         ? "Policy added to collection"
         : `${policiesWithState.length} policies added to collection`,
     );
+    if (skipped.length > 0) {
+      notifyError(
+        `Skipped ${skipped.length} policy(ies) without hash: ${skipped.slice(0, 3).join(", ")}${skipped.length > 3 ? ", ..." : ""}`,
+      );
+    }
     emit("done");
     emit("update:modelValue", false);
   } catch (e) {

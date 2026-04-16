@@ -57,30 +57,6 @@
         <template v-slot:body-cell-actions="props">
           <q-td :props="props">
             <div class="no-wrap justify-center q-gutter-xs">
-              <!--
-              <q-btn
-                icon="play_arrow"
-                size="s"
-                flat
-                dense
-                round
-                color="primary"
-                @click.stop="onApplyCollection(props.row)"
-              >
-                <q-tooltip>Apply collection</q-tooltip>
-              </q-btn>
-              <q-btn
-                icon="remove_circle_outline"
-                size="s"
-                flat
-                dense
-                round
-                color="negative"
-                @click.stop="onRemoveCollection(props.row)"
-              >
-                <q-tooltip>Remove collection from target</q-tooltip>
-              </q-btn>
-              -->
               <q-btn
                 icon="edit"
                 size="s"
@@ -110,91 +86,215 @@
       </div>
     </q-scroll-area>
 
-    <q-dialog v-model="detailsDialog" position="right" full-height>
-      <q-card class="collection-details-card">
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Collection details</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
-        </q-card-section>
-        <q-separator />
-        <q-card-section v-if="detailsLoading" class="flex flex-center">
-          <q-spinner size="lg" />
-        </q-card-section>
-        <q-card-section v-else-if="collectionDetails" class="col column">
-          <div class="text-subtitle1 q-mb-sm">
-            <strong>Name:</strong> {{ collectionDetails.name || "—" }}
-          </div>
-          <div class="text-body2 q-mb-md">
-            <strong>Description:</strong>
-            {{
-              collectionDetails.explainText ??
-              collectionDetails.explain_text ??
-              "—"
-            }}
-            <div class="text-subtitle2 q-mb-sm">
-              <strong>Scope:</strong>
-              {{
-                scopeLabel(
-                  collectionDetails.scope ??
-                    operator_pb.PolicyScope.POLICY_SCOPE_NONE,
-                )
-              }}
+    <q-dialog
+      v-model="detailsDialog"
+      transition-show="slide-up"
+      transition-hide="slide-down"
+    >
+      <q-card class="collection-details-dialog">
+        <q-card-section class="collection-details-dialog__header">
+          <div class="row items-center no-wrap">
+            <q-icon
+              name="library_books"
+              size="28px"
+              color="primary"
+              class="q-mr-sm"
+            />
+            <div>
+              <div class="text-h6">Collection details</div>
+              <div v-if="detailsDialogRowName" class="text-caption text-grey-7">
+                {{ detailsDialogRowName }}
+              </div>
             </div>
-          </div>
-          <div class="text-subtitle2 q-mb-sm">
-            Policies ({{
-              collectionDetails.policiesList?.length ??
-              collectionDetails.policies?.length ??
-              0
-            }})
-          </div>
-          <q-list
-            v-if="policiesForDisplay.length"
-            bordered
-            separator
-            class="rounded-borders"
-          >
-            <q-item
-              v-for="(p, idx) in policiesForDisplay"
-              :key="policyKey(p, idx)"
-            >
-              <q-item-section>
-                <q-item-label>
-                  {{ p.displayName ?? p.display_name ?? "—" }}
-                </q-item-label>
-                <q-item-label
-                  caption
-                  v-if="p.explainText ?? p.explain_text"
-                  class="ellipsis-2-lines"
-                >
-                  {{ p.explainText ?? p.explain_text }}
-                </q-item-label>
-              </q-item-section>
-              <!-- <q-item-section side>
-                <q-toggle
-                  :model-value="getPolicyState(p, idx) !== false"
-                  color="primary"
-                  :label="getPolicyState(p, idx) !== false ? 'Enabled' : 'Disabled'"
-                  @update:model-value="(v) => setPolicyStateInCollection(p, idx, !!v)"
-                />
-              </q-item-section> -->
-            </q-item>
-          </q-list>
-          <!-- <q-btn
-            v-if="policiesForDisplay.length"
-            flat
-            dense
-            color="primary"
-            label="Save policy states"
-            :loading="savingPolicyStates"
-            class="q-mt-sm"
-            @click="savePolicyStates"
-          /> -->
-          <div v-else class="text-grey-7 text-body2">
-            No policies in this collection.
+            <q-space />
+            <q-btn icon="close" flat round dense v-close-popup class="q-ml-xs" />
           </div>
         </q-card-section>
+
+        <q-separator />
+
+        <q-card-section
+          v-if="detailsLoading && !collectionDetails"
+          class="collection-details-dialog__body collection-details-dialog__body--center"
+        >
+          <q-spinner-dots color="primary" size="40px" />
+          <div class="text-body2 text-grey-7 q-mt-md">Loading collection…</div>
+        </q-card-section>
+
+        <q-card-section
+          v-else-if="!collectionDetails"
+          class="collection-details-dialog__body collection-details-dialog__empty"
+        >
+          <q-icon name="error_outline" size="48px" color="grey-4" />
+          <div class="text-body1 text-grey-6 q-mt-md">
+            Collection could not be loaded
+          </div>
+        </q-card-section>
+
+        <template v-else>
+          <q-card-section
+            class="collection-details-dialog__body column no-wrap"
+          >
+            <div class="collection-details-dialog__body-top">
+              <div class="q-gutter-md q-mb-md">
+                <div>
+                  <div class="text-caption text-grey-7 text-uppercase">
+                    Name
+                  </div>
+                  <div class="text-body1">
+                    {{ collectionDetails.name || "—" }}
+                  </div>
+                </div>
+                <div>
+                  <div class="text-caption text-grey-7 text-uppercase">
+                    Description
+                  </div>
+                  <div
+                    class="text-body2"
+                    style="white-space: pre-wrap; line-height: 1.5"
+                  >
+                    {{
+                      collectionDetails.explainText ??
+                      collectionDetails.explain_text ??
+                      "—"
+                    }}
+                  </div>
+                </div>
+                <div>
+                  <div class="text-caption text-grey-7 text-uppercase">
+                    Scope
+                  </div>
+                  <q-badge
+                    :color="
+                      collectionDetailScopeBadgeColor(
+                        collectionDetails.scope ??
+                          operator_pb.PolicyScope.POLICY_SCOPE_NONE,
+                      )
+                    "
+                    :label="
+                      scopeLabel(
+                        collectionDetails.scope ??
+                          operator_pb.PolicyScope.POLICY_SCOPE_NONE,
+                      )
+                    "
+                    outline
+                  />
+                </div>
+              </div>
+
+              <q-separator class="q-mb-md" />
+
+              <div class="row items-center no-wrap q-gutter-sm q-mb-sm">
+                <div class="text-subtitle2">Policies</div>
+                <q-badge
+                  v-if="policiesForDisplay.length > 0"
+                  color="primary"
+                  :label="policiesForDisplay.length"
+                  rounded
+                />
+              </div>
+
+              <q-input
+                v-if="policiesForDisplay.length"
+                v-model="policyDetailsSearch"
+                dense
+                outlined
+                clearable
+                debounce="200"
+                placeholder="Search by policy name…"
+                class="q-mb-none"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="search" />
+                </template>
+              </q-input>
+            </div>
+
+            <div class="collection-details-dialog__table-scroll">
+              <div
+                v-if="policiesForDisplay.length === 0"
+                class="collection-details-dialog__empty
+                  collection-details-dialog__empty--compact"
+              >
+                <q-icon name="policy" size="48px" color="grey-4" />
+                <div class="text-body1 text-grey-6 q-mt-md">
+                  No policies in this collection
+                </div>
+              </div>
+
+              <div
+                v-else-if="filteredPoliciesForDisplay.length === 0"
+                class="collection-details-dialog__empty
+                  collection-details-dialog__empty--compact"
+              >
+                <q-icon name="search_off" size="36px" color="grey-4" />
+                <div class="text-body2 text-grey-6 q-mt-sm">
+                  No policies match your search
+                </div>
+              </div>
+
+              <q-table
+                v-else
+                :rows="filteredPoliciesForDisplay"
+                :columns="collectionPoliciesColumns"
+                :row-key="collectionDetailPolicyRowKey"
+                flat
+                bordered
+                :pagination="{ rowsPerPage: 0 }"
+                hide-pagination
+                class="collection-details-dialog__table"
+              >
+                <template v-slot:body-cell-policy="props">
+                  <q-td :props="props">
+                    <div class="text-weight-medium">
+                      {{
+                        props.row.displayName ??
+                        props.row.display_name ??
+                        props.row.name ??
+                        "—"
+                      }}
+                    </div>
+                    <q-expansion-item
+                      v-if="policyDescriptionText(props.row)"
+                      dense
+                      dense-toggle
+                      switch-toggle-side
+                      header-class="effective-desc-toggle q-px-none"
+                      class="q-mt-xs"
+                    >
+                      <template v-slot:header>
+                        <q-item-section class="text-caption text-grey-7">
+                          Description
+                        </q-item-section>
+                      </template>
+                      <div
+                        class="text-caption text-grey-8 q-pl-md q-pb-xs"
+                        style="white-space: pre-wrap; line-height: 1.5"
+                      >
+                        {{ policyDescriptionText(props.row) }}
+                      </div>
+                    </q-expansion-item>
+                  </q-td>
+                </template>
+              </q-table>
+            </div>
+          </q-card-section>
+        </template>
+
+        <q-separator />
+
+        <q-card-actions
+          align="right"
+          class="collection-details-dialog__actions q-px-md q-py-sm"
+        >
+          <q-btn
+            flat
+            label="Close"
+            color="grey-7"
+            no-caps
+            @click="closeCollectionDetailsDialog"
+          />
+        </q-card-actions>
       </q-card>
     </q-dialog>
 
@@ -306,7 +406,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { QTableColumn, useQuasar } from "quasar";
 import {
   collectionsClient,
@@ -387,9 +487,10 @@ const loading = ref(false);
 const detailsDialog = ref(false);
 const detailsLoading = ref(false);
 const detailsCollectionId = ref<number>(0);
+const detailsDialogRowName = ref("");
 const collectionDetails = ref<CollectionDetailsData | null>(null);
 const policyStateInCollection = ref<Record<string, boolean>>({});
-// const savingPolicyStates = ref(false);
+const policyDetailsSearch = ref("");
 
 const createFormVisible = ref(false);
 const createName = ref("");
@@ -468,6 +569,64 @@ const policiesForDisplay = computed(() => {
   return Array.isArray(arr) ? arr : [];
 });
 
+const filteredPoliciesForDisplay = computed(() => {
+  const q = policyDetailsSearch.value?.trim().toLowerCase() ?? "";
+  const list = policiesForDisplay.value;
+  if (!q) return list;
+  return list.filter((p) => {
+    const title = String(
+      p.displayName ?? p.display_name ?? p.name ?? "",
+    ).toLowerCase();
+    const desc = String(
+      p.explainText ?? p.explain_text ?? "",
+    ).toLowerCase();
+    return title.includes(q) || desc.includes(q);
+  });
+});
+
+const collectionPoliciesColumns: QTableColumn[] = [
+  {
+    name: "policy",
+    label: "Policy",
+    field: (row: PolicyItem) =>
+      row.displayName ?? row.display_name ?? row.name ?? "—",
+    align: "left",
+  },
+];
+
+watch(detailsDialog, (open) => {
+  if (!open) {
+    policyDetailsSearch.value = "";
+  }
+});
+
+function collectionDetailPolicyRowKey(row: PolicyItem): string {
+  if (row.id !== undefined && row.id !== null) {
+    return `id-${row.id}`;
+  }
+  const idx = policiesForDisplay.value.indexOf(row);
+  return `idx-${idx >= 0 ? idx : "unknown"}`;
+}
+
+function policyDescriptionText(p: PolicyItem): string {
+  return String(p.explainText ?? p.explain_text ?? "");
+}
+
+function collectionDetailScopeBadgeColor(scope: number): string {
+  switch (scope) {
+    case operator_pb.PolicyScope.POLICY_SCOPE_USER:
+      return "purple-7";
+    case operator_pb.PolicyScope.POLICY_SCOPE_MACHINE:
+      return "blue-7";
+    default:
+      return "grey-6";
+  }
+}
+
+function closeCollectionDetailsDialog() {
+  detailsDialog.value = false;
+}
+
 const collectionsTableColumns: QTableColumn[] = [
   { name: "name", label: "Name", field: "name", align: "left", sortable: true },
   {
@@ -545,24 +704,6 @@ async function submitEditCollection() {
     editSubmitting.value = false;
   }
 }
-
-// function onApplyCollection(row: CollectionRow) {
-//   const payload = { mode: "apply" as const, collectionId: row.id, collectionName: row.name ?? "" };
-//   console.log("[GPOCollectionsTable] Open target dialog — apply collection:", payload);
-//   applyTargetMode.value = "apply";
-//   applyTargetCollectionId.value = row.id;
-//   applyTargetCollectionName.value = row.name ?? "";
-//   applyTargetDialogVisible.value = true;
-// }
-
-// function onRemoveCollection(row: CollectionRow) {
-//   const payload = { mode: "remove" as const, collectionId: row.id, collectionName: row.name ?? "" };
-//   console.log("[GPOCollectionsTable] Open target dialog — remove collection:", payload);
-//   applyTargetMode.value = "remove";
-//   applyTargetCollectionId.value = row.id;
-//   applyTargetCollectionName.value = row.name ?? "";
-//   applyTargetDialogVisible.value = true;
-// }
 
 function openCreateCollection() {
   createName.value = "";
@@ -710,6 +851,8 @@ async function loadCollections() {
 async function onRowClick(_evt: Event, row: CollectionRow) {
   detailsDialog.value = true;
   detailsCollectionId.value = row.id;
+  detailsDialogRowName.value = row.name ?? "";
+  policyDetailsSearch.value = "";
   collectionDetails.value = null;
   policyStateInCollection.value = {};
   detailsLoading.value = true;
@@ -770,62 +913,6 @@ function policyKey(p: PolicyItem, idx: number): string {
   return `idx-${idx}`;
 }
 
-// function getPolicyState(p: PolicyItem, idx: number): boolean {
-//   const id = policyKey(p, idx);
-//   return policyStateInCollection.value[id] !== false;
-// }
-
-// function setPolicyStateInCollection(p: PolicyItem, idx: number, enabled: boolean) {
-//   const id = policyKey(p, idx);
-//   policyStateInCollection.value = {
-//     ...policyStateInCollection.value,
-//     [id]: enabled,
-//   };
-// }
-
-// async function savePolicyStates() {
-//   const cid = detailsCollectionId.value;
-//   if (!cid || cid <= 0) return;
-//   const list = policiesForDisplay.value;
-//   if (list.length === 0) return;
-//   savingPolicyStates.value = true;
-//   try {
-//     const policiesWithState: Array<{ hash: string; state: boolean }> = [];
-//     for (let idx = 0; idx < list.length; idx++) {
-//       const p = list[idx];
-//       const id =
-//         typeof p.id === "number" ? p.id : Number.parseInt(String(p.id ?? ""), 10);
-//       if (Number.isNaN(id)) continue;
-//       let hash: string | null = null;
-//       try {
-//         const resp = await policyCatalogClient.getPolicyDetails(id, "en-US");
-//         const policy = (resp as { policy?: { hash?: string } }).policy;
-//         hash = policy?.hash ?? null;
-//       } catch {
-//         continue;
-//       }
-//       if (hash) {
-//         const key = policyKey(p, idx);
-//         policiesWithState.push({
-//           hash,
-//           state: policyStateInCollection.value[key] !== false,
-//         });
-//       }
-//     }
-//     if (policiesWithState.length === 0) {
-//       notifyError("Could not get policy hashes");
-//       return;
-//     }
-//     await collectionsClient.createCollectionsPolicies(cid, policiesWithState);
-//     notifySuccess("Policy states saved");
-//   } catch (e) {
-//     const msg = e instanceof Error ? e.message : "Error saving policy states";
-//     notifyError(msg);
-//   } finally {
-//     savingPolicyStates.value = false;
-//   }
-// }
-
 function closeAllDialogs() {
   detailsDialog.value = false;
   createFormVisible.value = false;
@@ -871,24 +958,75 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid rgba(18, 177, 209, 0.2)
   flex-shrink: 0
 
-.collection-details-card
-  min-width: 400px
-  max-width: 500px
+.collection-details-dialog
+  width: min(1200px, 96vw)
+  max-width: 96vw
+  max-height: 85vh
   display: flex
   flex-direction: column
-
-.policies-scroll
-  height: min(900px)
-  min-height: 400px
-
-.policies-list
-  min-height: min-content
-
-.ellipsis-2-lines
-  display: -webkit-box
-  -webkit-line-clamp: 2
-  -webkit-box-orient: vertical
   overflow: hidden
+
+.collection-details-dialog__header
+  flex-shrink: 0
+  padding: 16px 20px
+
+.collection-details-dialog__actions
+  flex-shrink: 0
+
+.collection-details-dialog > .q-separator
+  flex-shrink: 0
+
+.collection-details-dialog__body
+  display: flex
+  flex-direction: column
+  flex: 1 1 0
+  min-height:700px
+  overflow: hidden
+  padding: 16px 20px
+
+.collection-details-dialog__body-top
+  flex-shrink: 0
+
+.collection-details-dialog__table-scroll
+  flex: 1 1 0
+  min-height: 0
+  margin-top: 12px
+  overflow: auto
+  -webkit-overflow-scrolling: touch
+
+.collection-details-dialog__body--center
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  min-height: 200px
+
+.collection-details-dialog__table
+  :deep(thead th)
+    font-weight: 600
+    font-size: 12px
+    text-transform: uppercase
+    letter-spacing: 0.5px
+    color: var(--q-grey-7)
+  :deep(tbody td)
+    padding-top: 10px
+    padding-bottom: 10px
+
+.collection-details-dialog__empty
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  padding: 48px 24px
+  text-align: center
+
+.collection-details-dialog__empty--compact
+  padding: 24px 16px
+
+.effective-desc-toggle
+  min-height: 28px !important
+  padding-top: 0
+  padding-bottom: 0
 
 .scope-cell
   display: inline-flex
@@ -915,14 +1053,14 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid rgba(18, 177, 209, 0.3)
 
 .body--dark .scope-cell--user
-  background: rgba(33, 150, 243, 0.22)
-  color: #90caf9
+  background: rgba(13, 71, 161, 0.65)
+  color: #bbdefb
 
 .body--dark .scope-cell--machine
-  background: rgba(76, 175, 80, 0.22)
-  color: #a5d6a7
+  background: rgba(27, 94, 32, 0.65)
+  color: #c8e6c9
 
 .body--dark .scope-cell--both
-  background: rgba(156, 39, 176, 0.22)
-  color: #ce93d8
+  background: rgba(156, 39, 176, 0.35)
+  color: #f3e5f5
 </style>
