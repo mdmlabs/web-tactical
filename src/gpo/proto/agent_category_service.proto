@@ -126,6 +126,7 @@ message AgentCategoryInfo {
     string name = 1;
     google.protobuf.StringValue description = 2;
     optional google.protobuf.Int64Value parent_id = 3;
+    int32 max_agents = 4;
 }
 
 message AgentsListResponse {

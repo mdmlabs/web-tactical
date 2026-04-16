@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package laborato.operator.connectivity;
+
+import "google/protobuf/empty.proto";
+
+enum ConnectivityTargetType {
+  CONNECTIVITY_TARGET_TYPE_UNSPECIFIED = 0;
+  CONNECTIVITY_TARGET_TYPE_AGENT = 1;
+  CONNECTIVITY_TARGET_TYPE_AGENT_CATEGORY = 2;
+  CONNECTIVITY_TARGET_TYPE_USER = 3;
+  CONNECTIVITY_TARGET_TYPE_USER_GROUP = 4;
+}
+
+message ConnectivityPolicy {
+  int64 id = 1;
+  ConnectivityTargetType target_type = 2;
+
+  string agent_id = 3;
+  int64 agent_category_id = 4;
+  bytes user_id = 5;
+  bytes user_group_id = 6;
+
+  uint32 interval_seconds = 7;
+  uint32 grace_seconds = 8;
+  bool is_enabled = 9;
+  uint32 severity = 10;
+}
+
+message GetConnectivityPolicyRequest {
+  int64 id = 1;
+}
+
+message ListConnectivityPoliciesRequest {
+  ConnectivityTargetType target_type = 1;
+
+  string agent_id = 2;
+  int64 agent_category_id = 3;
+  bytes user_id = 4;
+  bytes user_group_id = 5;
+
+  bool enabled_only = 6;
+}
+
+message ListConnectivityPoliciesResponse {
+  repeated ConnectivityPolicy items = 1;
+}
+
+message CreateConnectivityPolicyRequest {
+  ConnectivityPolicy item = 1;
+}
+
+message UpdateConnectivityPolicyRequest {
+  ConnectivityPolicy item = 1;
+}
+
+message DeleteConnectivityPolicyRequest {
+  int64 id = 1;
+}
+
+message SetConnectivityPolicyEnabledRequest {
+  int64 id = 1;
+  bool is_enabled = 2;
+}
+
+service ConnectivityPolicyService {
+  rpc GetConnectivityPolicy(GetConnectivityPolicyRequest) returns (ConnectivityPolicy);
+  rpc ListConnectivityPolicies(ListConnectivityPoliciesRequest) returns (ListConnectivityPoliciesResponse);
+  rpc CreateConnectivityPolicy(CreateConnectivityPolicyRequest) returns (ConnectivityPolicy);
+  rpc UpdateConnectivityPolicy(UpdateConnectivityPolicyRequest) returns (google.protobuf.Empty);
+  rpc DeleteConnectivityPolicy(DeleteConnectivityPolicyRequest) returns (google.protobuf.Empty);
+  rpc SetConnectivityPolicyEnabled(SetConnectivityPolicyEnabledRequest) returns (google.protobuf.Empty);
+}

@@ -136,7 +136,8 @@ message AssigmentsRequestMessage {
 
 message AssigmentsResponse {
   string agent_id = 1;
-  repeated ApplyPolicyCommand commands = 2;
+  repeated ApplyPolicyCommand apply_commands = 2;
+  repeated RemovePolicyCommand remove_commands = 3;
 }
 
 message AgentMessage {

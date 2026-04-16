@@ -629,5 +629,6 @@ message PolicyAssignment {
   PolicyDesiredState desired_state = 2;
   PolicyValueOverride override = 3;
   laborato.common.target.Target target = 4;
-  PolicySummary summary = 5;
+  string sid = 5;
+  PolicySummary summary = 6;
 }
