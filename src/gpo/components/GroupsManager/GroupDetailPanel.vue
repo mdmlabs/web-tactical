@@ -25,6 +25,15 @@
         <q-btn
           flat
           dense
+          color="primary"
+          icon="edit"
+          label=""
+          title="Edit group"
+          @click="$emit('edit')"
+        />
+        <q-btn
+          flat
+          dense
           color="negative"
           icon="delete"
           label=""
@@ -1124,6 +1133,7 @@ async function openCollectionDetailsDialog(collection: AppliedCollection) {
 }
 
 defineEmits<{
+  edit: [];
   delete: [];
   "update:detailTab": [value: string];
   "add-user": [];
