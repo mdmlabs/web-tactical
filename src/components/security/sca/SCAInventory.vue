@@ -126,21 +126,90 @@
           @update:pagination="(p: typeof checksPagination) => checksPagination = p"
           class="sca-checks-table"
         >
-          <template #body-cell-result="props">
-            <q-td :props="props">
-              <q-badge
-                :color="resultColor(props.row.result)"
-                :label="props.row.result"
-              />
-            </q-td>
-          </template>
-          <template #body-cell-title="props">
-            <q-td :props="props" class="sca-title-cell">
-              <div class="sca-check-title">{{ props.row.title }}</div>
-              <div v-if="props.row.description" class="sca-check-desc text-caption text-grey">
-                {{ props.row.description }}
-              </div>
-            </q-td>
+          <template #body="props">
+            <q-tr :props="props" class="sca-check-row" @click="toggleRowExpand(props.row.id)">
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                <template v-if="col.name === 'result'">
+                  <q-badge
+                    :color="resultColor(props.row.result)"
+                    :label="props.row.result"
+                  />
+                </template>
+                <template v-else-if="col.name === 'title'">
+                  <div class="sca-title-cell">
+                    <div class="sca-check-title">
+                      <q-icon
+                        :name="expandedRows.has(props.row.id) ? 'expand_more' : 'chevron_right'"
+                        size="18px"
+                        class="sca-expand-icon"
+                      />
+                      {{ props.row.title }}
+                    </div>
+                    <div v-if="props.row.description" class="sca-check-desc text-caption text-grey">
+                      {{ props.row.description }}
+                    </div>
+                  </div>
+                </template>
+                <template v-else>{{ col.value }}</template>
+              </q-td>
+            </q-tr>
+
+            <!-- Expanded detail row -->
+            <q-tr v-if="expandedRows.has(props.row.id)" class="sca-detail-row">
+              <q-td colspan="100%" class="sca-detail-td">
+                <div class="sca-check-detail">
+                  <!-- Target info -->
+                  <div v-if="getTarget(props.row)" class="sca-detail-section">
+                    <div class="sca-detail-label">{{ getTargetType(props.row) }}:</div>
+                    <div class="sca-detail-value sca-detail-mono">{{ getTarget(props.row) }}</div>
+                  </div>
+
+                  <!-- Rationale -->
+                  <div v-if="props.row.rationale" class="sca-detail-section">
+                    <div class="sca-detail-label">Rationale</div>
+                    <div class="sca-detail-value">{{ props.row.rationale }}</div>
+                  </div>
+
+                  <!-- Remediation -->
+                  <div v-if="props.row.remediation" class="sca-detail-section">
+                    <div class="sca-detail-label">Remediation</div>
+                    <div class="sca-detail-value">{{ props.row.remediation }}</div>
+                  </div>
+
+                  <!-- Description -->
+                  <div v-if="props.row.description" class="sca-detail-section">
+                    <div class="sca-detail-label">Description</div>
+                    <div class="sca-detail-value">{{ props.row.description }}</div>
+                  </div>
+
+                  <!-- Checks (condition + rules) -->
+                  <div v-if="props.row.rules?.length" class="sca-detail-section">
+                    <div class="sca-detail-label">Checks (Condition: {{ props.row.condition || 'all' }})</div>
+                    <ul class="sca-rules-list">
+                      <li v-for="(rule, idx) in props.row.rules" :key="idx">
+                        {{ rule.rule }}
+                      </li>
+                    </ul>
+                  </div>
+
+                  <!-- Compliance -->
+                  <div v-if="props.row.compliance?.length" class="sca-detail-section">
+                    <div class="sca-detail-label">Compliance</div>
+                    <div class="sca-compliance-list">
+                      <div v-for="(c, idx) in props.row.compliance" :key="idx" class="sca-compliance-item">
+                        <strong>{{ c.key }}:</strong> {{ c.value }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Reason (for not applicable) -->
+                  <div v-if="props.row.reason" class="sca-detail-section">
+                    <div class="sca-detail-label">Reason</div>
+                    <div class="sca-detail-value">{{ props.row.reason }}</div>
+                  </div>
+                </div>
+              </q-td>
+            </q-tr>
           </template>
         </q-table>
       </q-card>
@@ -149,9 +218,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, reactive, watch } from "vue";
 import { useScaStore } from "@/stores/sca";
-import type { WazuhSCAPolicy } from "@/types/wazuh";
+import type { WazuhSCAPolicy, WazuhSCACheck } from "@/types/wazuh";
 
 defineEmits<{ (e: "select-agent"): void }>();
 
@@ -203,8 +272,32 @@ const checkColumns = [
   { name: "result", label: "Result", field: "result", align: "center" as const, sortable: true },
 ];
 
+const expandedRows = reactive(new Set<number>());
+
+function toggleRowExpand(id: number) {
+  if (expandedRows.has(id)) {
+    expandedRows.delete(id);
+  } else {
+    expandedRows.add(id);
+  }
+}
+
+function getTarget(row: WazuhSCACheck): string {
+  return row.registry || row.file || row.directory || row.process || row.command || "";
+}
+
+function getTargetType(row: WazuhSCACheck): string {
+  if (row.registry) return "Registry";
+  if (row.file) return "File";
+  if (row.directory) return "Directory";
+  if (row.process) return "Process";
+  if (row.command) return "Command";
+  return "Target";
+}
+
 watch(() => scaStore.selectedPolicyId, (v) => {
   selectedPolicy.value = v;
+  expandedRows.clear();
 });
 
 function onPolicyClick(_evt: Event, row: WazuhSCAPolicy) {
@@ -326,6 +419,16 @@ function formatDate(dateStr: string): string {
 
 .sca-check-title {
   font-weight: 500;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.sca-expand-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--mdm-text-secondary, #666);
+  transition: transform 0.15s ease;
 }
 
 .sca-check-desc {
@@ -334,6 +437,89 @@ function formatDate(dateStr: string): string {
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 480px;
+  padding-left: 22px;
+}
+
+.sca-check-row {
+  cursor: pointer;
+}
+
+.sca-check-row:hover td {
+  background: var(--mdm-bg-hover, #f0f4ff);
+}
+
+/* Expanded detail row */
+.sca-detail-row {
+  background: none;
+}
+
+.sca-detail-td {
+  padding: 0 !important;
+  border-bottom: 2px solid var(--mdm-border-light, #e0e4ea);
+}
+
+.sca-check-detail {
+  padding: 16px 24px 20px 24px;
+  background: var(--mdm-bg-subtle, #f8f9fc);
+  border-top: 1px solid var(--mdm-border-light, #e0e4ea);
+}
+
+.sca-detail-section {
+  margin-bottom: 14px;
+}
+
+.sca-detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.sca-detail-label {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--mdm-text-primary, #1a1a1a);
+  margin-bottom: 4px;
+}
+
+.sca-detail-value {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--mdm-text-secondary, #444);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.sca-detail-mono {
+  font-family: monospace;
+  font-size: 12px;
+  background: var(--mdm-bg-code, #eef1f6);
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.sca-rules-list {
+  margin: 4px 0 0 8px;
+  padding: 0 0 0 16px;
+  list-style: disc;
+}
+
+.sca-rules-list li {
+  font-family: monospace;
+  font-size: 12px;
+  margin-bottom: 4px;
+  line-height: 1.5;
+  color: var(--mdm-text-secondary, #444);
+  word-break: break-all;
+}
+
+.sca-compliance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sca-compliance-item {
+  font-size: 13px;
+  color: var(--mdm-text-secondary, #444);
 }
 
 .sca-checks-table :deep(.q-table__bottom) {
@@ -349,6 +535,10 @@ function formatDate(dateStr: string): string {
   .sca-checks-actions {
     flex-wrap: wrap;
   }
+
+  .sca-check-detail {
+    padding: 12px 16px;
+  }
 }
 
 /* Dark mode */
@@ -363,5 +553,36 @@ function formatDate(dateStr: string): string {
 
 .body--dark .sca-policy-table :deep(tr:hover td) {
   background: var(--mdm-bg-hover, #1e293b);
+}
+
+.body--dark .sca-check-row:hover td {
+  background: var(--mdm-bg-hover, #1e293b);
+}
+
+.body--dark .sca-check-detail {
+  background: var(--mdm-bg-subtle, #0d1421);
+  border-top-color: var(--mdm-border, #1e293b);
+}
+
+.body--dark .sca-detail-td {
+  border-bottom-color: var(--mdm-border, #1e293b);
+}
+
+.body--dark .sca-detail-label {
+  color: var(--mdm-text-primary, #e8ecf4);
+}
+
+.body--dark .sca-detail-value,
+.body--dark .sca-rules-list li,
+.body--dark .sca-compliance-item {
+  color: var(--mdm-text-secondary, #94a3b8);
+}
+
+.body--dark .sca-detail-mono {
+  background: var(--mdm-bg-code, #1a2332);
+}
+
+.body--dark .sca-expand-icon {
+  color: var(--mdm-text-secondary, #94a3b8);
 }
 </style>

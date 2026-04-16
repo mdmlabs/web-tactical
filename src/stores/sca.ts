@@ -48,6 +48,23 @@ export const useScaStore = defineStore("sca", () => {
   const eventsFilters = ref<SCAFilter[]>([]);
   const indexerAvailable = ref(true);
 
+  // === Document inspection state ===
+  const inspectedEvent = ref<SCAEvent | null>(null);
+  const inspectedEventLoading = ref(false);
+  const surroundingDocs = ref<{ newer: SCAEvent[]; older: SCAEvent[] }>({ newer: [], older: [] });
+  const surroundingDocsLoading = ref(false);
+  const singleDocument = ref<Record<string, unknown> | null>(null);
+  const singleDocumentLoading = ref(false);
+  const showDetailPanel = ref(false);
+  const showSurroundingPanel = ref(false);
+  const showSingleDocPanel = ref(false);
+
+  // === Histogram state ===
+  const eventsHistogramData = ref<
+    { key: number; key_as_string: string; doc_count: number }[]
+  >([]);
+  const eventsHistogramLoading = ref(false);
+
   // === Getters ===
   const hasAgent = computed(() => !!selectedAgentId.value);
 
@@ -174,35 +191,52 @@ export const useScaStore = defineStore("sca", () => {
     fetchChecks();
   }
 
+  /** Navigate from Dashboard to Inventory tab with a specific policy pre-selected */
+  function navigateToPolicyInventory(policyId: string) {
+    selectedPolicyId.value = policyId;
+    checks.value = [];
+    inventorySearch.value = "";
+    activeTab.value = "inventory";
+    fetchChecks();
+  }
+
+  // === Shared query builder for events ===
+  function buildEventsMusts(): Record<string, unknown>[] {
+    const must: Record<string, unknown>[] = [
+      { match: { "rule.groups": "sca" } },
+      {
+        range: {
+          "@timestamp": {
+            gte: dateRangeQuery.value.from,
+            lte: dateRangeQuery.value.to,
+          },
+        },
+      },
+    ];
+
+    if (selectedAgentId.value) {
+      must.push({ match: { "agent.id": selectedAgentId.value } });
+    }
+
+    for (const f of eventsFilters.value) {
+      if (!f.enabled) continue;
+      const clause = filterToClause(f);
+      if (clause) must.push(clause);
+    }
+
+    if (eventsSearch.value.trim()) {
+      must.push({ query_string: { query: eventsSearch.value.trim() } });
+    }
+
+    return must;
+  }
+
   // === Events: fetch from Wazuh Indexer ===
   async function fetchEvents() {
     eventsLoading.value = true;
+    fetchEventsHistogram();
     try {
-      const must: Record<string, unknown>[] = [
-        { match: { "rule.groups": "sca" } },
-        {
-          range: {
-            "@timestamp": {
-              gte: dateRangeQuery.value.from,
-              lte: dateRangeQuery.value.to,
-            },
-          },
-        },
-      ];
-
-      if (selectedAgentId.value) {
-        must.push({ match: { "agent.id": selectedAgentId.value } });
-      }
-
-      for (const f of eventsFilters.value) {
-        if (!f.enabled) continue;
-        const clause = filterToClause(f);
-        if (clause) must.push(clause);
-      }
-
-      if (eventsSearch.value.trim()) {
-        must.push({ query_string: { query: eventsSearch.value.trim() } });
-      }
+      const must = buildEventsMusts();
 
       const from =
         (eventsPagination.value.page - 1) * eventsPagination.value.rowsPerPage;
@@ -234,6 +268,166 @@ export const useScaStore = defineStore("sca", () => {
     } finally {
       eventsLoading.value = false;
     }
+  }
+
+  // === Histogram: fetch 30-minute aggregation from Wazuh Indexer ===
+  async function fetchEventsHistogram() {
+    eventsHistogramLoading.value = true;
+    try {
+      const must = buildEventsMusts();
+
+      const body: OpenSearchQueryBody = {
+        query: { bool: { must } },
+        size: 0,
+        aggs: {
+          events_over_time: {
+            date_histogram: {
+              field: "@timestamp",
+              fixed_interval: "30m",
+              min_doc_count: 0,
+              extended_bounds: {
+                min: dateRangeQuery.value.from,
+                max: dateRangeQuery.value.to,
+              },
+            },
+          },
+        },
+      };
+
+      const resp = await wazuhIndexerApi.search("wazuh-alerts-*", body);
+
+      const agg = resp.aggregations?.events_over_time as
+        | {
+            buckets: {
+              key: number;
+              key_as_string: string;
+              doc_count: number;
+            }[];
+          }
+        | undefined;
+
+      eventsHistogramData.value = agg?.buckets ?? [];
+    } catch (e) {
+      console.error("[SCA] Histogram fetch error:", e);
+    } finally {
+      eventsHistogramLoading.value = false;
+    }
+  }
+
+  // === Document inspection actions ===
+
+  /** Open the "Inspect document details" panel for a given event */
+  function inspectDocument(event: SCAEvent) {
+    inspectedEvent.value = event;
+    showDetailPanel.value = true;
+    showSurroundingPanel.value = false;
+    showSingleDocPanel.value = false;
+  }
+
+  /** Fetch full document from indexer and show single document view */
+  async function viewSingleDocument(event: SCAEvent) {
+    singleDocumentLoading.value = true;
+    showSingleDocPanel.value = true;
+    showDetailPanel.value = false;
+    showSurroundingPanel.value = false;
+    inspectedEvent.value = event;
+    try {
+      const resp = await wazuhIndexerApi.getDocument<Record<string, unknown>>(
+        event._index,
+        event._id,
+      );
+      singleDocument.value = {
+        _index: resp._index,
+        _id: resp._id,
+        _source: resp._source,
+      };
+    } catch (e) {
+      console.error("[SCA] Single document fetch error:", e);
+      Notify.create({ type: "negative", message: "Failed to fetch document", timeout: 3000 });
+      singleDocument.value = null;
+    } finally {
+      singleDocumentLoading.value = false;
+    }
+  }
+
+  /** Fetch N documents before and after a given event by timestamp */
+  async function viewSurroundingDocuments(event: SCAEvent, count = 5) {
+    surroundingDocsLoading.value = true;
+    showSurroundingPanel.value = true;
+    showDetailPanel.value = false;
+    showSingleDocPanel.value = false;
+    inspectedEvent.value = event;
+    try {
+      const timestamp =
+        (event._source["@timestamp"] as string) ??
+        (event._source["timestamp"] as string);
+
+      // Fetch newer documents (after the target event)
+      const newerBody: OpenSearchQueryBody = {
+        query: {
+          bool: {
+            must: [
+              { range: { "@timestamp": { gt: timestamp } } },
+            ],
+            filter: [
+              { term: { _index: event._index } },
+            ],
+          },
+        },
+        size: count,
+        sort: [{ "@timestamp": { order: "asc" } }],
+      };
+
+      // Fetch older documents (before the target event)
+      const olderBody: OpenSearchQueryBody = {
+        query: {
+          bool: {
+            must: [
+              { range: { "@timestamp": { lt: timestamp } } },
+            ],
+            filter: [
+              { term: { _index: event._index } },
+            ],
+          },
+        },
+        size: count,
+        sort: [{ "@timestamp": { order: "desc" } }],
+      };
+
+      const [newerResp, olderResp] = await Promise.all([
+        wazuhIndexerApi.search<SCAEvent>(event._index, newerBody),
+        wazuhIndexerApi.search<SCAEvent>(event._index, olderBody),
+      ]);
+
+      surroundingDocs.value = {
+        newer: newerResp.hits.hits.map((h) => ({
+          _id: h._id,
+          _index: h._index,
+          _source: h._source,
+        })),
+        older: olderResp.hits.hits.map((h) => ({
+          _id: h._id,
+          _index: h._index,
+          _source: h._source,
+        })),
+      };
+    } catch (e) {
+      console.error("[SCA] Surrounding docs fetch error:", e);
+      Notify.create({ type: "negative", message: "Failed to fetch surrounding documents", timeout: 3000 });
+      surroundingDocs.value = { newer: [], older: [] };
+    } finally {
+      surroundingDocsLoading.value = false;
+    }
+  }
+
+  /** Close all inspection panels */
+  function closeInspection() {
+    showDetailPanel.value = false;
+    showSurroundingPanel.value = false;
+    showSingleDocPanel.value = false;
+    inspectedEvent.value = null;
+    singleDocument.value = null;
+    surroundingDocs.value = { newer: [], older: [] };
   }
 
   function filterToClause(f: SCAFilter): Record<string, unknown> | null {
@@ -348,6 +542,19 @@ export const useScaStore = defineStore("sca", () => {
     eventsDateRange,
     eventsFilters,
     indexerAvailable,
+    eventsHistogramData,
+    eventsHistogramLoading,
+
+    // Document inspection state
+    inspectedEvent,
+    inspectedEventLoading,
+    surroundingDocs,
+    surroundingDocsLoading,
+    singleDocument,
+    singleDocumentLoading,
+    showDetailPanel,
+    showSurroundingPanel,
+    showSingleDocPanel,
 
     // Getters
     hasAgent,
@@ -362,7 +569,9 @@ export const useScaStore = defineStore("sca", () => {
     fetchPolicies,
     fetchChecks,
     selectPolicy,
+    navigateToPolicyInventory,
     fetchEvents,
+    fetchEventsHistogram,
     addFilter,
     removeFilter,
     clearFilters,
@@ -371,5 +580,11 @@ export const useScaStore = defineStore("sca", () => {
     setEventsDateRange,
     setEventsSearch,
     exportChecksCSV,
+
+    // Document inspection actions
+    inspectDocument,
+    viewSingleDocument,
+    viewSurroundingDocuments,
+    closeInspection,
   };
 });
