@@ -69,7 +69,10 @@ function getImportsForFile(filePath) {
     imports.user = true;
     imports.node = true;
     imports.policy = true;
-  } else if (fileName === "wsl_lifecycel_service_pb.js") {
+  } else if (
+    fileName === "wsl_lifecycel_service_pb.js" ||
+    fileName === "wsl_lifecycle_service_pb.js"
+  ) {
     imports.wrappers = true;
     imports.timestamp = true;
     imports.empty = true;
@@ -640,6 +643,10 @@ function main() {
     },
     {
       path: path.join(GENERATED_DIR, "wsl_lifecycel_service_pb.js"),
+      package: "laborato.operator.service",
+    },
+    {
+      path: path.join(GENERATED_DIR, "wsl_lifecycle_service_pb.js"),
       package: "laborato.operator.service",
     },
     {

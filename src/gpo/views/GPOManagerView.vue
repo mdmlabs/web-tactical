@@ -641,6 +641,16 @@
                                   </q-item-section>
                                   <q-item-section>Assign policy</q-item-section>
                                 </q-item>
+                                <q-item
+                                  clickable
+                                  v-close-popup
+                                  @click="openWslDialog(props.row)"
+                                >
+                                  <q-item-section side>
+                                    <q-icon name="terminal" size="xs" />
+                                  </q-item-section>
+                                  <q-item-section>WSL</q-item-section>
+                                </q-item>
                                 <q-separator />
                                 <q-item
                                   clickable
@@ -1489,8 +1499,6 @@
       <GPOPolicySettingsDialog
         v-model="showApplyPolicyDialog"
         :agent="selectedAgent"
-        @applied="onPolicySettingsApplied"
-        @disabled="onPolicySettingsDisabled"
       />
 
       <AppliedPoliciesDialog
@@ -2164,6 +2172,11 @@
         :users="usersList"
         :initial-user-sid="initialUserSid"
       />
+      <WslUserDialog
+        v-model="showWslDialog"
+        :agent="selectedAgent"
+        :user="wslDialogUser"
+      />
     </div>
   </q-page>
 </template>
@@ -2197,6 +2210,7 @@ import GroupsMachinesModal from "../components/GroupsMachines/GroupsMachinesModa
 import AdmxManagementTab from "../components/PolicyLibrary/AdmxManagementTab.vue";
 import WindowsAdmxPolicies from "../components/WindowsPolicies/WindowsAdmxPolicies.vue";
 import AgentAlertsTab from "../components/AgentAlertsTab.vue";
+import WslUserDialog from "../components/WslUserDialog.vue";
 import type {
   GPOPolicy,
   CreateGPOPolicyRequest,
@@ -2263,6 +2277,8 @@ const showApplyPolicyDialog = ref(false);
 const showApplyPolicyDialogForUser = ref(false);
 const initialUserSid = ref<string>("");
 const showAppliedPoliciesDialog = ref(false);
+const showWslDialog = ref(false);
+const wslDialogUser = ref<User | null>(null);
 
 const showCreateUserDialog = ref(false);
 const showAddUserDialog = ref(false);
@@ -3064,9 +3080,21 @@ const openApplyPolicyDialogForUser = (user: { sid: string; name: string }) => {
   showApplyPolicyDialogForUser.value = true;
 };
 
+const openWslDialog = (user: User) => {
+  if (!selectedAgent.value) return;
+  wslDialogUser.value = user;
+  showWslDialog.value = true;
+};
+
 watch(showApplyPolicyDialogForUser, (newVal) => {
   if (!newVal) {
     initialUserSid.value = "";
+  }
+});
+
+watch(showWslDialog, (newVal) => {
+  if (!newVal) {
+    wslDialogUser.value = null;
   }
 });
 
@@ -3811,23 +3839,6 @@ async function refreshAppliedPoliciesDialog() {
     notifyError("Error loading applied policies");
   } finally {
     showAppliedPoliciesLoading.value = false;
-  }
-}
-
-function onPolicySettingsApplied(
-  policyId: string,
-  settings: Record<string, unknown>,
-) {
-  if (selectedAgent.value) {
-    console.log("Policy applied:", policyId, settings);
-    notifySuccess("Policy applied successfully");
-  }
-}
-
-function onPolicySettingsDisabled(policyId: string) {
-  if (selectedAgent.value) {
-    console.log("Policy disabled:", policyId);
-    notifySuccess("Policy disabled successfully");
   }
 }
 
