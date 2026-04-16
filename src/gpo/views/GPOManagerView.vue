@@ -41,6 +41,11 @@
                       />
                       <q-tab name="users" icon="people" label="Users" />
                       <q-tab name="groups" icon="group" label="Groups" />
+                      <q-tab
+                        name="alerts"
+                        icon="warning"
+                        label="Alerts"
+                      />
                     </q-tabs>
                   </div>
                   <div class="col-auto q-pa-sm">
@@ -60,107 +65,119 @@
               <q-tab-panels v-model="contentTab" class="gpo-content-tab-panels">
                 <q-tab-panel name="overview" class="q-pa-md">
                   <div v-if="selectedAgent">
+                    <div class="text-h6 q-mb-md">Overview</div>
                     <q-card>
                       <q-card-section>
-                        <div class="row q-gutter-md">
-                          <div class="col-4">
-                            <div class="text-caption text-grey-7">Hostname</div>
-                            <div>
-                              {{
-                                agentDetails?.hostName ||
-                                selectedAgent.hostname ||
-                                "N/A"
-                              }}
-                            </div>
-                          </div>
-                          <div class="col-4">
-                            <div class="text-caption text-grey-7">Status</div>
-                            <q-badge
-                              :color="
-                                getAgentStatusColor(
-                                  agentDetails?.isOnline !== undefined
-                                    ? agentDetails.isOnline
-                                      ? 'online'
-                                      : 'offline'
-                                    : selectedAgent.status,
-                                )
-                              "
-                              :label="
-                                getAgentStatusLabel(
-                                  agentDetails?.isOnline !== undefined
-                                    ? agentDetails.isOnline
-                                      ? 'online'
-                                      : 'offline'
-                                    : selectedAgent.status,
-                                )
-                              "
-                            />
-                          </div>
-                          <div class="col-4">
-                            <div class="text-caption text-grey-7">
-                              Last answer
-                            </div>
-                            <div>
-                              {{
-                                agentDetails?.lastHeartbeatUnix
-                                  ? formatDate(
-                                      new Date(
-                                        (typeof agentDetails.lastHeartbeatUnix ===
-                                        "string"
-                                          ? Number.parseInt(
-                                              agentDetails.lastHeartbeatUnix,
-                                              10,
-                                            )
-                                          : agentDetails.lastHeartbeatUnix) *
-                                          1000,
-                                      ).toISOString(),
-                                    )
-                                  : formatDate(selectedAgent.last_seen)
-                              }}
-                            </div>
-                          </div>
-                        </div>
-                        <div class="row q-gutter-md q-mt-md">
-                          <div class="col-4">
-                            <div class="text-caption text-grey-7">
-                              Operating system
-                            </div>
-                            <div>
-                              {{ agentOsVersion }}
-                            </div>
-                          </div>
-                          <div class="col-4">
-                            <div class="text-caption text-grey-7">Model</div>
-                            <div>
-                              {{ agentDetails?.nodeInfo?.model || "N/A" }}
-                            </div>
-                          </div>
-                          <div class="col-4">
-                            <div class="text-caption text-grey-7">
-                              Firmware version
-                            </div>
-                            <div>
-                              {{
-                                agentDetails?.nodeInfo?.firmwareversion || "N/A"
-                              }}
-                            </div>
-                          </div>
-                        </div>
-                        <div class="row q-gutter-md q-mt-md">
-                          <div class="col-4">
-                            <div class="text-caption text-grey-7">
-                              In the domain
-                            </div>
-                            <div>
-                              {{
-                                agentDetails?.nodeInfo?.isdomainjoined
-                                  ? "Yes"
-                                  : "No"
-                              }}
+                        <div class="system-info-wrap">
+                          <div class="system-info-summary">
+                            <div class="row q-col-gutter-md">
+                              <div class="col-12 col-md-6">
+                                <div class="system-info-kv">
+                                  <div class="system-info-k">Hostname</div>
+                                  <div class="system-info-v">
+                                    {{ agentSystemHostname }}
+                                  </div>
+                                </div>
+                                <div class="system-info-kv">
+                                  <div class="system-info-k">Status</div>
+                                  <div class="system-info-v">
+                                    <q-badge
+                                      :color="
+                                        getAgentStatusColor(
+                                          agentDetails?.isOnline !== undefined
+                                            ? agentDetails.isOnline
+                                              ? 'online'
+                                              : 'offline'
+                                            : selectedAgent.status,
+                                        )
+                                      "
+                                      :label="
+                                        getAgentStatusLabel(
+                                          agentDetails?.isOnline !== undefined
+                                            ? agentDetails.isOnline
+                                              ? 'online'
+                                              : 'offline'
+                                            : selectedAgent.status,
+                                        )
+                                      "
+                                    />
+                                  </div>
+                                </div>
+                                <div class="system-info-kv">
+                                  <div class="system-info-k">Last answer</div>
+                                  <div class="system-info-v">
+                                    {{
+                                      agentDetails?.lastHeartbeatUnix
+                                        ? formatDate(
+                                            new Date(
+                                              (typeof agentDetails.lastHeartbeatUnix ===
+                                              "string"
+                                                ? Number.parseInt(
+                                                    agentDetails.lastHeartbeatUnix,
+                                                    10,
+                                                  )
+                                                : agentDetails.lastHeartbeatUnix) *
+                                                1000,
+                                            ).toISOString(),
+                                          )
+                                        : formatDate(selectedAgent.last_seen)
+                                    }}
+                                  </div>
+                                </div>
+                                <div class="system-info-kv">
+                                  <div class="system-info-k">
+                                    Operating system
+                                  </div>
+                                  <div class="system-info-v">
+                                    {{ agentOsVersion }}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div class="col-12 col-md-6">
+                                <div class="system-info-kv">
+                                  <div class="system-info-k">OS build</div>
+                                  <div class="system-info-v">
+                                    {{
+                                      agentDetails?.nodeInfo?.osbuild || "N/A"
+                                    }}
+                                  </div>
+                                </div>
+                                <div class="system-info-kv">
+                                  <div class="system-info-k">Model</div>
+                                  <div class="system-info-v">
+                                    {{ agentDetails?.nodeInfo?.model || "N/A" }}
+                                  </div>
+                                </div>
+                                <div class="system-info-kv">
+                                  <div class="system-info-k">
+                                    Firmware version
+                                  </div>
+                                  <div class="system-info-v">
+                                    {{
+                                      agentDetails?.nodeInfo?.firmwareversion ||
+                                      "N/A"
+                                    }}
+                                  </div>
+                                </div>
+                                <div class="system-info-kv">
+                                  <div class="system-info-k">In the domain</div>
+                                  <div class="system-info-v">
+                                    {{
+                                      agentDetails?.nodeInfo?.isdomainjoined
+                                        ? "Yes"
+                                        : "No"
+                                    }}
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </q-card-section>
+
+                      <q-separator />
+
                       <q-card-actions>
                         <q-btn
                           color="primary"
@@ -806,6 +823,17 @@
                       </q-table>
                     </q-scroll-area>
                   </div>
+                </q-tab-panel>
+
+                <q-tab-panel name="alerts" class="q-pa-md">
+                  <AgentAlertsTab
+                    :agent-id="selectedAgent?.id ?? null"
+                    :users="usersList"
+                    :groups="groupsList"
+                    :users-loading="usersLoading"
+                    :groups-loading="groupsLoading"
+                    :active="contentTab === 'alerts'"
+                  />
                 </q-tab-panel>
               </q-tab-panels>
             </div>
@@ -1474,6 +1502,7 @@
         :agent="selectedAgent"
         :assignments="appliedDialogAssignments"
         :effective-policies="appliedDialogEffective"
+        :users="usersList"
         :loading="showAppliedPoliciesLoading"
         @refresh="refreshAppliedPoliciesDialog"
       />
@@ -2171,6 +2200,7 @@ import GroupsManagerModal from "../components/GroupsManager/GroupsManagerModal.v
 import GroupsMachinesModal from "../components/GroupsMachines/GroupsMachinesModal.vue";
 import AdmxManagementTab from "../components/PolicyLibrary/AdmxManagementTab.vue";
 import WindowsAdmxPolicies from "../components/WindowsPolicies/WindowsAdmxPolicies.vue";
+import AgentAlertsTab from "../components/AgentAlertsTab.vue";
 import type {
   GPOPolicy,
   CreateGPOPolicyRequest,
