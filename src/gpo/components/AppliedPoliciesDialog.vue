@@ -208,6 +208,15 @@
                   </q-td>
                 </template>
 
+                <template v-slot:body-cell-user="props">
+                  <q-td :props="props">
+                    <div v-if="assignmentUserName(props.row)" class="text-weight-medium">
+                      {{ assignmentUserName(props.row) }}
+                    </div>
+                    <span v-else class="text-grey-5">—</span>
+                  </q-td>
+                </template>
+
                 <template v-slot:body-cell-scope="props">
                   <q-td :props="props">
                     <q-badge
@@ -394,11 +403,19 @@ interface Agent {
   status: string;
 }
 
+interface DialogUser {
+  sid: string;
+  name?: string;
+  displayName?: string;
+  samAccountName?: string;
+}
+
 const props = defineProps<{
   modelValue: boolean;
   agent: Agent | null;
   assignments?: Array<Record<string, unknown>>;
   effectivePolicies?: Array<Record<string, unknown>>;
+  users?: DialogUser[];
   loading?: boolean;
 }>();
 
@@ -437,6 +454,15 @@ watch(dialogVisible, (open) => {
 const loading = computed(() => !!props.loading);
 const assignments = computed(() => props.assignments || []);
 const effectivePolicies = computed(() => props.effectivePolicies || []);
+const users = computed(() => props.users || []);
+const usersBySid = computed(() => {
+  const map = new Map<string, DialogUser>();
+  for (const user of users.value) {
+    const sid = String(user.sid || "").trim();
+    if (sid) map.set(sid, user);
+  }
+  return map;
+});
 
 function assignmentPolicyName(row: Record<string, unknown>): string {
   return String(
@@ -456,11 +482,30 @@ function effectivePolicyName(p: Record<string, unknown>): string {
   ).toLowerCase();
 }
 
+function assignmentUserName(row: Record<string, unknown>): string {
+  const sid = assignmentSid(row);
+  if (!sid) return "";
+  if (sid === "Machine") return "Machine";
+  const user = usersBySid.value.get(sid);
+  if (!user) return "";
+  return String(
+    user.displayName || user.name || user.samAccountName || user.sid || "",
+  ).trim();
+}
+
 const filteredAssignments = computed(() => {
   const list = assignments.value;
   const q = assignmentsSearch.value.trim().toLowerCase();
   if (!q) return list;
-  return list.filter((row) => assignmentPolicyName(row).includes(q));
+  return list.filter((row) => {
+    const userName = assignmentUserName(row).toLowerCase();
+    const sid = assignmentSid(row).toLowerCase();
+    return (
+      assignmentPolicyName(row).includes(q) ||
+      userName.includes(q) ||
+      sid.includes(q)
+    );
+  });
 });
 
 const filteredEffectivePolicies = computed(() => {
@@ -515,6 +560,15 @@ const assignmentColumns: QTableColumn[] = [
           row["userSid"] ||
           "",
       ),
+  },
+  {
+    name: "user",
+    label: "User",
+    align: "left",
+    field: (row: Record<string, unknown>) =>
+      assignmentUserName(row) || assignmentSid(row),
+    sortable: true,
+    style: "max-width: 120px",
   },
   {
     name: "scope",
@@ -670,6 +724,10 @@ function targetLabel(row: Record<string, unknown>): string {
   }
 
   return String(t);
+}
+
+function assignmentSid(row: Record<string, unknown>): string {
+  return String(row["sid"] ?? row["userSid"] ?? row["user_sid"] ?? "").trim();
 }
 
 function policyScopeEnumLabel(scope: unknown): string | null {

@@ -49,6 +49,9 @@ import * as wrappers_pb from "google-protobuf/google/protobuf/wrappers_pb";
 import * as empty_pb from "google-protobuf/google/protobuf/empty_pb";
 import * as agent_category_service_pb from "@/generated/agent_category_service_pb";
 import type * as agent_category_service_pb_types from "@/generated/agent_category_service_pb";
+import { AlertQueryServiceClient } from "@/generated/operator/Alerts_serviceServiceClientPb";
+import * as operator_alerts_service_pb from "@/generated/operator/alerts_service_pb";
+import type * as operator_alerts_service_pb_types from "@/generated/operator/alerts_service_pb";
 import { useAuthStore } from "@/stores/auth";
 import {
   GroupInfo,
@@ -125,6 +128,61 @@ const policyStateServiceClient = createClient(PolicyStateServiceClient);
 const agentCategoryServiceClient = createClient(
   OperatorAgentCategoryServiceClient,
 );
+const alertQueryServiceClient = createClient(AlertQueryServiceClient);
+
+export const alertsClient = {
+  AlertStatus: operator_alerts_service_pb.AlertStatus,
+
+  async getAlert(
+    id: number,
+  ): Promise<operator_alerts_service_pb_types.AlertItem.AsObject> {
+    const req = new operator_alerts_service_pb.GetAlertRequest();
+    req.setId(Math.floor(Number(id)));
+    const resp = await alertQueryServiceClient.getAlert(req, createGrpcMetadata());
+    return resp.toObject();
+  },
+
+  async listAlerts(params: {
+    agentId?: string;
+    userId?: Uint8Array | string;
+    groupId?: Uint8Array | string;
+    agentCategoryId?: number;
+    type?: string;
+    status?: operator_alerts_service_pb.AlertStatus;
+    openOnly?: boolean;
+  }): Promise<operator_alerts_service_pb_types.ListAlertsResponse.AsObject> {
+    const req = new operator_alerts_service_pb.ListAlertsRequest();
+    if (params.agentId) req.setAgentId(params.agentId);
+    if (params.userId != null) req.setUserId(params.userId);
+    if (params.groupId != null) req.setGroupId(params.groupId);
+    if (params.agentCategoryId != null)
+      req.setAgentCategoryId(Math.floor(Number(params.agentCategoryId)));
+    if (params.type) req.setType(params.type);
+    if (params.status != null) req.setStatus(params.status);
+    if (params.openOnly != null) req.setOpenOnly(params.openOnly);
+
+    const resp = await alertQueryServiceClient.listAlerts(req, createGrpcMetadata());
+    return resp.toObject();
+  },
+
+  async acknowledgeAlert(id: number): Promise<void> {
+    const req = new operator_alerts_service_pb.AcknowledgeAlertRequest();
+    req.setId(Math.floor(Number(id)));
+    await alertQueryServiceClient.acknowledgeAlert(req, createGrpcMetadata());
+  },
+
+  async resolveAlert(id: number): Promise<void> {
+    const req = new operator_alerts_service_pb.ResolveAlertRequest();
+    req.setId(Math.floor(Number(id)));
+    await alertQueryServiceClient.resolveAlert(req, createGrpcMetadata());
+  },
+
+  async closeAlert(id: number): Promise<void> {
+    const req = new operator_alerts_service_pb.CloseAlertRequest();
+    req.setId(Math.floor(Number(id)));
+    await alertQueryServiceClient.closeAlert(req, createGrpcMetadata());
+  },
+};
 
 export const policyCatalogClient = {
   async listPoliciesGroupedByScope(
