@@ -21,6 +21,7 @@ import {
   SetUserAccountExpirationRequest,
   SetGroupChildGroupsRequest,
   CreateUserGroupRequest,
+  UpdateGroupRequest,
   GroupIdRequest,
   GroupRequest,
   UserGroupRequest,
@@ -926,6 +927,38 @@ export const userControlClient = {
       request: req.toObject(),
     });
     const response = await operatorUserControlServiceClient.createGroup(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async updateGroup(
+    target: Target,
+    groupId: string,
+    currentSamGroupName: string,
+    newSamGroupName: string,
+    opts?: {
+      description?: string;
+      maxUsers?: number;
+      maxAgents?: number;
+    },
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new UpdateGroupRequest();
+    req.setTarget(target);
+    req.setGroupId(groupId);
+    req.setCurrentSamGroupName(currentSamGroupName);
+    req.setNewSamGroupName(newSamGroupName);
+    if (opts?.description !== undefined) {
+      const w = new wrappers_pb.StringValue();
+      w.setValue(opts.description);
+      req.setDescription(w);
+    }
+    const maxUsersInt = toNonNegativeInt(opts?.maxUsers);
+    if (maxUsersInt !== undefined) req.setMaxUsers(maxUsersInt);
+    const maxAgentsInt = toNonNegativeInt(opts?.maxAgents);
+    if (maxAgentsInt !== undefined) req.setMaxAgent(maxAgentsInt);
+    const response = await operatorUserControlServiceClient.updateGroup(
       req,
       createGrpcMetadata(),
     );
@@ -2349,6 +2382,12 @@ export const collectionsClient = {
 
       request.addPolicies(model);
     }
+
+    // const createCollectionsPoliciesRequestObj = request.toObject();
+    // console.log(
+    //   "[createCollectionsPolicies] request:",
+    //   JSON.stringify(createCollectionsPoliciesRequestObj, null, 2),
+    // );
 
     try {
       const response =

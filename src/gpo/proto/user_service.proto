@@ -11,6 +11,7 @@ import "google/protobuf/empty.proto";
 package laborato.operator.service;
 
 
+
 service OperatorUserControlService {
     rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
     rpc UpdateUser(UpdateUserRequest) returns (UserControlResponse);
@@ -21,6 +22,7 @@ service OperatorUserControlService {
     rpc ExpireUserPassword(UserIdentifier) returns (UserControlResponse);
     rpc SetUserAccountExpiration(SetUserAccountExpirationRequest) returns (UserControlResponse);
     rpc CreateGroup(CreateUserGroupRequest) returns (CreateGroupResponse);
+    rpc UpdateGroup(UpdateGroupRequest) returns (UserControlResponse);
     rpc DeleteGroup(GroupRequest) returns (UserControlResponse);
     rpc AddUserToGroup(UserGroupRequest) returns (UserControlResponse);
     rpc RemoveUserFromGroup(UserGroupRequest) returns (UserControlResponse);
@@ -216,6 +218,16 @@ message CreateUserGroupRequest {
     optional string parent_id = 4;
     int32 max_users = 5;
     int32 max_agent = 6;
+}
+
+message UpdateGroupRequest {
+    laborato.common.target.Target target = 1;
+    string group_id = 2;
+    string current_sam_group_name = 3;
+    string new_sam_group_name = 4;
+    google.protobuf.StringValue description = 5;
+    int32 max_users = 6;
+    int32 max_agent = 7;
 }
 
 message GroupRequest {

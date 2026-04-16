@@ -675,16 +675,56 @@ function ensureString(val: unknown): string {
   return String(val);
 }
 
+
+function coercePositivePolicyElementId(raw: unknown): number {
+  if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
+    return Math.trunc(raw);
+  }
+  if (typeof raw === "string" && raw.trim() !== "") {
+    const n = Number.parseInt(raw, 10);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return 0;
+}
+
+function readPolicyElementRecordId(el: Record<string, unknown>): number {
+  const fromFields = [
+    el.id,
+    el.policyElementId,
+    el.policyDetailsElementId,
+    el.policy_details_element_id,
+  ];
+  for (const v of fromFields) {
+    const n = coercePositivePolicyElementId(v);
+    if (n > 0) return n;
+  }
+  return 0;
+}
+
 function buildPresentationMap(
   presentationList: unknown[],
-): Map<string, { type: string; text?: string; default_value?: string }> {
+): Map<
+  string,
+  {
+    type: string;
+    text?: string;
+    default_value?: string;
+    presentationNumericId?: number;
+  }
+> {
   const map = new Map<
     string,
-    { type: string; text?: string; default_value?: string }
+    {
+      type: string;
+      text?: string;
+      default_value?: string;
+      presentationNumericId?: number;
+    }
   >();
   for (const presEl of presentationList) {
     if (!presEl || typeof presEl !== "object") continue;
     const p = presEl as {
+      id?: number;
       refId?: string;
       ref_id?: string;
       type?: string;
@@ -699,10 +739,13 @@ function buildPresentationMap(
         ? p.text
         : (p.text as { value?: string })?.value;
     const defaultVal = p.defaultValue ?? p.default_value;
+    const presentationNumericId = coercePositivePolicyElementId(p.id);
     map.set(refId, {
       type: p.type ?? "",
       text,
       default_value: typeof defaultVal === "string" ? defaultVal : undefined,
+      presentationNumericId:
+        presentationNumericId > 0 ? presentationNumericId : undefined,
     });
   }
   return map;
@@ -726,7 +769,12 @@ function buildPolicyElements(
   policyElements: unknown[],
   presentationMap: Map<
     string,
-    { type: string; text?: string; default_value?: string }
+    {
+      type: string;
+      text?: string;
+      default_value?: string;
+      presentationNumericId?: number;
+    }
   >,
 ): PolicyDetailsElement[] {
   const elements: PolicyDetailsElement[] = [];
@@ -753,6 +801,7 @@ function buildPolicyElements(
       itemsList?: unknown[];
       items?: unknown[];
     };
+    const elemRec = el as Record<string, unknown>;
     const elementId = elem.elementId ?? elem.element_id ?? "";
     const presentationEl = presentationMap.get(elementId);
     if (!presentationEl) continue;
@@ -792,8 +841,16 @@ function buildPolicyElements(
             };
           })
       : [];
+    const idFromPolicyElement = readPolicyElementRecordId(elemRec);
+    const idFromPresentation =
+      presentationEl.presentationNumericId &&
+      presentationEl.presentationNumericId > 0
+        ? presentationEl.presentationNumericId
+        : 0;
+    const resolvedElementId =
+      idFromPolicyElement > 0 ? idFromPolicyElement : idFromPresentation;
     elements.push({
-      id: elem.id ?? 0,
+      id: resolvedElementId,
       element_id: elementId,
       type: finalType,
       value_name: (elem.valueName ?? elem.value_name) as string | undefined,
