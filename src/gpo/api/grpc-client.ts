@@ -71,7 +71,7 @@ interface WindowWithEnv {
   };
 }
 
-function getGrpcUrl(): string {
+export function getGrpcUrl(): string {
   if (import.meta.env.DEV) {
     return "/api/grpc";
   }
@@ -529,6 +529,20 @@ export const agentCategoryClient = {
     const request = new empty_pb.Empty();
 
     const response = await agentCategoryServiceClient.getAllCategories(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async exportAllCategories(
+    exportFormat: export_pb_types.ExportFormat = export_pb.ExportFormat.CSV,
+  ): Promise<export_pb_types.ExportResponse.AsObject> {
+    const request = new agent_category_service_pb.ExportCategoriesRequest();
+    request.setExportFormat(exportFormat);
+
+    const response = await agentCategoryServiceClient.exportAllCategories(
       request,
       createGrpcMetadata(),
     );

@@ -69,6 +69,12 @@
               />
             </div>
           </q-tab>
+          <q-tab name="connectivity">
+            <div class="row items-center no-wrap q-gutter-x-sm">
+              <q-icon name="network_check" size="20px" />
+              <span>Connectivity</span>
+            </div>
+          </q-tab>
         </q-tabs>
       </q-card-section>
 
@@ -368,6 +374,21 @@
               </q-table>
             </div>
           </q-tab-panel>
+
+          <q-tab-panel name="connectivity" class="q-pa-none">
+            <ConnectivityPoliciesTab
+              v-if="agent"
+              compact
+              :fixed-target="{ type: 'agent', agentId: agent.id }"
+              @changed="refresh"
+            />
+            <div v-else class="applied-policies-dialog__empty">
+              <q-icon name="info" size="40px" color="grey-5" />
+              <div class="text-body2 text-grey-6 q-mt-sm">
+                Select an agent to view connectivity policies
+              </div>
+            </div>
+          </q-tab-panel>
         </q-tab-panels>
       </q-card-section>
 
@@ -396,6 +417,7 @@ import {
   type PolicyTargetParams,
 } from "../api/grpc-client";
 import { notifySuccess, notifyError } from "@/utils/notify";
+import ConnectivityPoliciesTab from "./ConnectivityPolicy/ConnectivityPoliciesTab.vue";
 
 interface Agent {
   id: string;

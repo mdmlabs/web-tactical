@@ -828,10 +828,6 @@
                 <q-tab-panel name="alerts" class="q-pa-md">
                   <AgentAlertsTab
                     :agent-id="selectedAgent?.id ?? null"
-                    :users="usersList"
-                    :groups="groupsList"
-                    :users-loading="usersLoading"
-                    :groups-loading="groupsLoading"
                     :active="contentTab === 'alerts'"
                   />
                 </q-tab-panel>
