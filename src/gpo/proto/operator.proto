@@ -597,6 +597,17 @@ service PolicyStateService {
 
   rpc GetAssignments (GetAssignmentsRequest)
       returns (GetAssignmentsResponse);
+
+  rpc ExportAssignments(ExportPolicyStateRequest)
+      returns (laborato.common.export.ExportResponse);
+
+  rpc ExportEffectivePolicies(ExportPolicyStateRequest)
+      returns (laborato.common.export.ExportResponse);
+}
+
+message ExportPolicyStateRequest {
+    laborato.common.target.Target target = 1;
+    laborato.common.export.ExportFormat export_format = 2;
 }
 
 message GetEffectivePoliciesRequest {
