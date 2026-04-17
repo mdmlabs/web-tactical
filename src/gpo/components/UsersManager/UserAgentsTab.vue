@@ -14,30 +14,81 @@
         @click="$emit('add-agent')"
       />
     </div>
+
+    <div v-if="!loading" class="q-mb-md">
+      <q-input
+        v-model="search"
+        dense
+        outlined
+        placeholder="Search agents..."
+        clearable
+        style="max-width: 320px"
+      >
+        <template #prepend>
+          <q-icon name="search" />
+        </template>
+      </q-input>
+    </div>
     <div v-if="loading" class="text-center q-pa-md">
       <q-spinner color="primary" />
     </div>
     <div v-else-if="agents.length === 0" class="text-grey-6 text-caption">
       No agents
     </div>
-    <q-list v-else bordered separator>
-      <q-item
-        v-for="agent in agents"
-        :key="agent.id"
-        class="row items-center cursor-pointer"
-        clickable
-        @click="$emit('open-agent-dashboard', agent.id)"
-      >
-        <q-item-section avatar>
-          <q-icon name="laptop" color="primary" />
-        </q-item-section>
-        <q-item-section>
-          <q-item-label>{{ agent.name }}</q-item-label>
-          <q-item-label v-if="agent.name !== agent.id" caption class="text-grey-6">
-            {{ agent.id }}
-          </q-item-label>
-        </q-item-section>
-        <q-item-section side>
+    <q-table
+      v-else
+      :rows="filteredAgents"
+      :columns="columns"
+      row-key="id"
+      flat
+      dense
+      :pagination="pagination"
+      :rows-per-page-options="[10, 20, 50, 100]"
+      separator="horizontal"
+      class="users-agents-table"
+      no-data-label="No agents"
+      @row-click="(_, row) => $emit('open-agent-dashboard', row.id)"
+    >
+      <template #body-cell-name="props">
+        <q-td :props="props">
+          <div class="row items-center no-wrap q-gutter-x-sm">
+            <q-icon name="laptop" color="primary" size="18px" />
+            <div class="col">
+              <div class="text-weight-medium">
+                {{ props.row.name || props.row.id }}
+              </div>
+              <div
+                v-if="props.row.name !== props.row.id"
+                class="text-caption text-grey-6"
+              >
+                {{ props.row.id }}
+              </div>
+            </div>
+          </div>
+        </q-td>
+      </template>
+
+      <template #body-cell-status="props">
+        <q-td :props="props">
+          <q-badge
+            v-if="props.row.status"
+            :color="getStatusColor(props.row.status)"
+            :label="props.row.status"
+            class="text-capitalize"
+            rounded
+          />
+          <span v-else class="text-grey-5">—</span>
+        </q-td>
+      </template>
+
+      <template #body-cell-last_boot="props">
+        <q-td :props="props">
+          {{ props.row.last_boot ? formatDate(props.row.last_boot) : "—" }}
+        </q-td>
+      </template>
+
+      <template #body-cell-actions="props">
+        <q-td :props="props">
           <q-btn
             flat
             round
@@ -45,23 +96,29 @@
             icon="remove_circle_outline"
             size="sm"
             color="negative"
-            :loading="removingAgentId === agent.id"
+            :loading="removingAgentId === props.row.id"
             title="Remove agent"
-            @click.stop="$emit('remove-agent', agent.id)"
+            @click.stop="$emit('remove-agent', props.row.id)"
           />
-        </q-item-section>
-      </q-item>
-    </q-list>
+        </q-td>
+      </template>
+    </q-table>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed, ref } from "vue";
+import type { QTableColumn } from "quasar";
+import { formatDate } from "@/utils/format";
+
 export interface AgentRow {
   id: string;
   name: string;
+  status?: string;
+  last_boot?: string;
 }
 
-defineProps<{
+const props = defineProps<{
   agents: AgentRow[];
   loading: boolean;
   hasTarget: boolean;
@@ -73,4 +130,67 @@ defineEmits<{
   "remove-agent": [agentId: string];
   "open-agent-dashboard": [agentId: string];
 }>();
+
+function getStatusColor(status: string): string {
+  const s = (status ?? "").toLowerCase().trim();
+  if (s === "online" || s === "active" || s === "connected") return "positive";
+  if (s === "offline" || s === "disconnected") return "negative";
+  return "grey";
+}
+
+const search = ref("");
+const pagination = ref({
+  page: 1,
+  rowsPerPage: 20,
+  sortBy: "name",
+  descending: false,
+});
+
+const columns = computed<QTableColumn<AgentRow>[]>(() => [
+  {
+    name: "name",
+    label: "Name",
+    field: (row) => row.name || row.id,
+    align: "left",
+    sortable: true,
+  },
+  {
+    name: "status",
+    label: "Status",
+    field: "status",
+    align: "left",
+    sortable: true,
+  },
+  {
+    name: "last_boot",
+    label: "Last boot",
+    field: "last_boot",
+    align: "left",
+    sortable: true,
+  },
+  {
+    name: "actions",
+    label: "",
+    field: (row) => row.id,
+    align: "right",
+    sortable: false,
+  },
+]);
+
+const filteredAgents = computed(() => {
+  const q = (search.value ?? "").trim().toLowerCase();
+  if (!q) return props.agents;
+  return props.agents.filter((a) => {
+    const id = (a.id ?? "").toLowerCase();
+    const name = (a.name ?? "").toLowerCase();
+    const status = (a.status ?? "").toLowerCase();
+    return id.includes(q) || name.includes(q) || status.includes(q);
+  });
+});
 </script>
+
+<style scoped lang="sass">
+.users-agents-table
+  :deep(tbody tr)
+    cursor: pointer
+</style>

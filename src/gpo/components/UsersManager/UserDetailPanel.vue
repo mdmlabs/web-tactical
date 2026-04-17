@@ -32,6 +32,39 @@
           </div>
         </div>
         <q-space />
+        <div v-if="user" class="row items-center no-wrap q-gutter-x-xs q-mr-sm">
+          <q-icon
+            :name="user.info?.isenabled !== false ? 'check_circle' : 'block'"
+            :color="user.info?.isenabled !== false ? 'positive' : 'negative'"
+            size="18px"
+          >
+            <q-tooltip>
+              {{ user.info?.isenabled !== false ? "Enabled" : "Disabled" }}
+            </q-tooltip>
+          </q-icon>
+          <q-icon
+            :name="user.info?.islocked ? 'lock' : 'lock_open'"
+            :color="user.info?.islocked ? 'negative' : 'grey'"
+            size="18px"
+          >
+            <q-tooltip>
+              {{ user.info?.islocked ? "Locked" : "Not locked" }}
+            </q-tooltip>
+          </q-icon>
+          <q-icon
+            :name="user.info?.passwordexpired ? 'warning' : 'check_circle'"
+            :color="user.info?.passwordexpired ? 'orange' : 'grey'"
+            size="18px"
+          >
+            <q-tooltip>
+              {{
+                user.info?.passwordexpired
+                  ? "Password expired"
+                  : "Password not expired"
+              }}
+            </q-tooltip>
+          </q-icon>
+        </div>
         <q-btn
           flat
           round
@@ -152,123 +185,111 @@
       </div>
 
       <template v-else-if="user">
-        <div class="row q-gutter-sm q-px-lg q-py-md">
-          <q-card flat bordered class="col-auto">
-            <q-card-section
-              class="q-pa-sm text-center"
-              style="min-width: 100px"
-            >
-              <div class="text-caption text-grey-6">Enabled</div>
-              <q-icon
-                :name="
-                  user.info?.isenabled !== false ? 'check_circle' : 'block'
-                "
-                :color="
-                  user.info?.isenabled !== false ? 'positive' : 'negative'
-                "
-                size="sm"
-              />
-            </q-card-section>
-          </q-card>
-          <q-card flat bordered class="col-auto">
-            <q-card-section
-              class="q-pa-sm text-center"
-              style="min-width: 100px"
-            >
-              <div class="text-caption text-grey-6">Locked</div>
-              <q-icon
-                :name="user.info?.islocked ? 'lock' : 'lock_open'"
-                :color="user.info?.islocked ? 'negative' : 'grey'"
-                size="sm"
-              />
-            </q-card-section>
-          </q-card>
-          <q-card flat bordered class="col-auto">
-            <q-card-section
-              class="q-pa-sm text-center"
-              style="min-width: 100px"
-            >
-              <div class="text-caption text-grey-6">Password expired</div>
-              <q-icon
-                :name="user.info?.passwordexpired ? 'warning' : 'check_circle'"
-                :color="user.info?.passwordexpired ? 'orange' : 'grey'"
-                size="sm"
-              />
-            </q-card-section>
-          </q-card>
+        <div class="q-px-lg q-py-md">
+          <div class="row q-col-gutter-md summary-row">
+            <div class="col-12 col-md-6 summary-col">
+              <div class="system-info-summary summary-card">
+                <div class="text-caption text-grey-7 q-mb-xs">User</div>
+                <q-scroll-area class="summary-scroll">
+                  <UserInfoTab :user="user" />
+                </q-scroll-area>
+              </div>
+            </div>
+            <div class="col-12 col-md-6 summary-col">
+              <div class="system-info-summary summary-card">
+                <div class="row items-center q-mb-sm">
+                  <div class="text-caption text-grey-7">Groups</div>
+                  <q-space />
+                  <q-btn
+                    flat
+                    dense
+                    color="primary"
+                    icon="group_add"
+                    label=""
+                    :disable="!hasTarget"
+                    :title="!hasTarget ? 'Select target first (click badge in header)' : ''"
+                    @click="$emit('add-to-group')"
+                  />
+                </div>
+                <q-input
+                  v-model="groupsSearch"
+                  dense
+                  outlined
+                  clearable
+                  placeholder="Search groups..."
+                  class="q-mb-sm"
+                  :disable="groupsLoading"
+                >
+                  <template #prepend>
+                    <q-icon name="search" />
+                  </template>
+                </q-input>
+                <UserGroupsTab
+                  compact
+                  :groups="filteredGroupsForCard"
+                  :loading="groupsLoading"
+                  :has-target="hasTarget"
+                  :searchable="false"
+                  :compact-height-px="300"
+                  @add-to-group="$emit('add-to-group')"
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
         <q-separator />
 
-        <q-tabs
-          :model-value="detailTab"
-          dense
-          inline-label
-          class="text-grey gpo-detail-tabs"
-          active-color="primary"
-          indicator-color="primary"
-          align="left"
-          narrow-indicator
-          no-caps
-          @update:model-value="$emit('update:detailTab', $event)"
-        >
-          <q-tab name="info" icon="info" label="Info" />
-          <q-tab name="groups" icon="group" label="Groups">
-            <q-badge
-              v-if="groups.length"
-              color="primary"
-              :label="groups.length"
-              floating
-              rounded
-            />
-          </q-tab>
-          <q-tab name="agents" icon="dns" label="Agents">
-            <q-badge
-              v-if="agents.length"
-              color="primary"
-              :label="agents.length"
-              floating
-              rounded
-            />
-          </q-tab>
-          <q-tab
-            name="collections"
-            icon="collections_bookmark"
-            label="Policy collections"
+        <div class="users-detail-tabs-wrap q-pt-sm">
+          <q-tabs
+            :model-value="detailTab"
+            dense
+            inline-label
+            class="text-grey gpo-detail-tabs users-detail-tabs"
+            active-color="primary"
+            indicator-color="primary"
+            align="left"
+            narrow-indicator
+            no-caps
+            @update:model-value="$emit('update:detailTab', $event)"
           >
-            <q-badge
-              v-if="appliedCollectionsLoading"
-              color="grey"
-              label="..."
-              floating
-              rounded
-            />
-            <q-badge
-              v-else-if="(appliedCollections?.length ?? 0) > 0"
-              color="primary"
-              :label="appliedCollections?.length ?? 0"
-              floating
-              rounded
-            />
-          </q-tab>
-          <q-tab name="alerts" icon="warning" label="Alerts" />
-          <q-tab name="connectivity" icon="network_check" label="Connectivity" />
-        </q-tabs>
+            <q-tab name="agents" icon="dns" label="Agents">
+              <q-badge
+                v-if="agents.length"
+                color="primary"
+                :label="agents.length"
+                floating
+                rounded
+              />
+            </q-tab>
+            <q-tab
+              name="collections"
+              icon="collections_bookmark"
+              label="Policy collections"
+            >
+              <q-badge
+                v-if="appliedCollectionsLoading"
+                color="grey"
+                label="..."
+                floating
+                rounded
+              />
+              <q-badge
+                v-else-if="(appliedCollections?.length ?? 0) > 0"
+                color="primary"
+                :label="appliedCollections?.length ?? 0"
+                floating
+                rounded
+              />
+            </q-tab>
+            <q-tab name="alerts" icon="warning" label="Alerts" />
+            <q-tab name="connectivity" icon="network_check" label="Connectivity" />
+          </q-tabs>
+        </div>
 
         <q-separator />
 
         <q-tab-panels :model-value="detailTab" class="users-tab-panels">
-          <q-tab-panel name="info" class="q-pa-md">
-            <UserInfoTab :user="user" />
-          </q-tab-panel>
-          <q-tab-panel name="groups" class="q-pa-md">
-            <UserGroupsTab
-              :groups="groups"
-              :loading="groupsLoading"
-              :has-target="hasTarget"
-              @add-to-group="$emit('add-to-group')"
-            />
-          </q-tab-panel>
           <q-tab-panel name="agents" class="q-pa-md">
             <UserAgentsTab
               :agents="agents"
@@ -767,6 +788,18 @@ const alertsUserId = computed(() => {
   return id && id !== "" ? id : null;
 });
 
+const groupsSearch = ref("");
+const filteredGroupsForCard = computed(() => {
+  const q = (groupsSearch.value ?? "").trim().toLowerCase();
+  if (!q) return props.groups;
+  return (props.groups ?? []).filter((g) => {
+    const name = String(g.displayname || g.name || "").toLowerCase();
+    const sam = String(g.samaccountname || "").toLowerCase();
+    const desc = String(g.description || "").toLowerCase();
+    return name.includes(q) || sam.includes(q) || desc.includes(q);
+  });
+});
+
 const connectivityUserTarget = computed<ConnectivityPolicyTarget | null>(() =>
   alertsUserId.value ? { type: "user", userId: alertsUserId.value } : null,
 );
@@ -1125,6 +1158,74 @@ function exportCollections(format: "csv" | "xlsx") {
 .users-tab-panels
   flex: 1
   overflow: auto
+
+.users-detail-tabs-wrap
+  flex-shrink: 0
+  padding-left: 24px
+  padding-right: 24px
+  padding-bottom: 4px
+  background-color: rgba(0, 0, 0, 0.04)
+
+.body--dark .users-detail-tabs-wrap
+  background-color: rgba(255, 255, 255, 0.07)
+
+.users-detail-tabs
+  background-color: transparent
+
+.system-info-summary
+  background: rgba(16, 137, 211, 0.04)
+  border: 1px solid rgba(18, 177, 209, 0.18)
+  border-radius: 10px
+  padding: 8px 12px
+
+.body--dark .system-info-summary
+  background: rgba(18, 177, 209, 0.06)
+  border: 1px solid rgba(18, 177, 209, 0.28)
+
+.system-info-kv
+  display: flex
+  gap: 10px
+  padding: 6px 0
+
+.system-info-kv + .system-info-kv
+  border-top: 1px dashed rgba(18, 177, 209, 0.18)
+
+.system-info-k
+  min-width: 120px
+  color: rgba(0, 0, 0, 0.55)
+  font-size: 12px
+  line-height: 16px
+
+.body--dark .system-info-k
+  color: rgba(255, 255, 255, 0.65)
+
+.system-info-v
+  flex: 1
+  min-width: 0
+  color: rgba(0, 0, 0, 0.88)
+  font-size: 13px
+  line-height: 18px
+  word-break: break-word
+
+.body--dark .system-info-v
+  color: rgba(255, 255, 255, 0.88)
+
+.summary-row
+  align-items: stretch
+
+.summary-col
+  display: flex
+
+.summary-card
+  width: 100%
+  height: 420px
+  display: flex
+  flex-direction: column
+  overflow: hidden
+
+.summary-scroll
+  flex: 1
+  min-height: 0
 
 .policy-collections-toolbar-search
   min-width: 0
