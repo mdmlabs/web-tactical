@@ -73,7 +73,7 @@
         <q-btn
           color="primary"
           icon="add"
-          label="Add"
+          label=""
           @click="openCreateDialog"
         />
       </div>

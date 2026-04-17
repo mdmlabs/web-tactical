@@ -37,7 +37,73 @@ export interface GroupRow {
 export interface AgentRow {
   id: string;
   name: string;
+  status?: string;
+  last_seen?: string;
+  last_boot?: string;
 }
+
+type RawAgentListItem = {
+  agent_id?: string;
+  agentId?: string;
+  host_name?: string;
+  hostName?: string;
+  is_online?: boolean;
+  isOnline?: boolean;
+  last_heartbeat_unix?: number | string;
+  lastHeartbeatUnix?: number | string;
+};
+
+function unixSecondsToIso(value: number | string | undefined): string | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  const ts =
+    typeof value === "string" ? Number.parseInt(value, 10) : Number(value);
+  if (!Number.isFinite(ts) || ts <= 0) return undefined;
+  return new Date(ts * 1000).toISOString();
+}
+
+function normalizeAgentFromListItem(a: RawAgentListItem): AgentRow | null {
+  const id = (a.agent_id ?? a.agentId ?? "").trim();
+  if (!id) return null;
+
+  const name = (a.host_name ?? a.hostName ?? "").trim() || id;
+  const isOnline = a.is_online ?? a.isOnline;
+  const lastSeenIso = unixSecondsToIso(a.last_heartbeat_unix ?? a.lastHeartbeatUnix);
+  let status: string | undefined;
+  if (isOnline !== undefined) status = isOnline ? "online" : "offline";
+
+  return {
+    id,
+    name,
+    status,
+    last_seen: lastSeenIso,
+  };
+}
+
+type AgentDetailsLike = {
+  nodeInfo?: {
+    lastboottime?: { seconds?: number | string };
+    lastBootTime?: { seconds?: number | string };
+  };
+};
+
+function secondsToIso(value: number | string | undefined): string | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  const s = typeof value === "string" ? Number.parseInt(value, 10) : Number(value);
+  if (!Number.isFinite(s) || s <= 0) return undefined;
+  return new Date(s * 1000).toISOString();
+}
+
+function extractLastBootIso(details: unknown): string | undefined {
+  const d = details as AgentDetailsLike | null;
+  const sec =
+    d?.nodeInfo?.lastboottime?.seconds ??
+    d?.nodeInfo?.lastBootTime?.seconds ??
+    undefined;
+  return secondsToIso(sec);
+}
+
+const bootTimeCache = new Map<string, { value?: string; ts: number }>();
+const BOOT_CACHE_TTL = 5 * 60 * 1000;
 
 export function useUserActions() {
   const $q = useQuasar();
@@ -50,7 +116,7 @@ export function useUserActions() {
   const selectedUserId = ref<string | null>(null);
   const userDetail = ref<UserWithIdInfo.AsObject | null>(null);
   const userDetailLoading = ref(false);
-  const detailTab = ref("info");
+  const detailTab = ref("agents");
 
   const userGroups = ref<GroupRow[]>([]);
   const userGroupsLoading = ref(false);
@@ -161,22 +227,93 @@ export function useUserActions() {
         selectedUserId.value,
       );
       const agentIds = res.agentIdsList ?? [];
-      
+
+      if (agentIds.length === 0) {
+        userAgents.value = [];
+        return;
+      }
+
+      try {
+        const listRes = await agentServiceClientWrapper.listAgents(agentIds);
+        const agents = (listRes as { agentsList?: RawAgentListItem[] }).agentsList ?? [];
+
+        const byId = new Map<string, AgentRow>();
+        for (const a of agents) {
+          const normalized = normalizeAgentFromListItem(a);
+          if (!normalized) continue;
+          byId.set(normalized.id, normalized);
+        }
+
+        userAgents.value = agentIds.map((id) => byId.get(id) ?? { id, name: id });
+
+        const now = Date.now();
+        const idsToFetch = agentIds.filter((id) => {
+          const cached = bootTimeCache.get(id);
+          return !(cached && now - cached.ts < BOOT_CACHE_TTL);
+        });
+
+        const mapWithConcurrency = async <T, R>(
+          items: T[],
+          concurrency: number,
+          fn: (item: T) => Promise<R>,
+        ): Promise<R[]> => {
+          const results: R[] = [];
+          for (let i = 0; i < items.length; i += concurrency) {
+            const batch = items.slice(i, i + concurrency);
+            const batchResults = await Promise.all(batch.map(fn));
+            results.push(...batchResults);
+          }
+          return results;
+        };
+
+        await mapWithConcurrency(idsToFetch, 3, async (id) => {
+          try {
+            const details = await agentServiceClientWrapper.getAgent(id);
+            const iso = extractLastBootIso(details);
+            bootTimeCache.set(id, { value: iso, ts: Date.now() });
+          } catch {
+            bootTimeCache.set(id, { value: undefined, ts: Date.now() });
+          }
+        });
+
+        userAgents.value = userAgents.value.map((row) => {
+          const cached = bootTimeCache.get(row.id);
+          return cached?.value ? { ...row, last_boot: cached.value } : row;
+        });
+        return;
+      } catch {
+        //игнор
+      }
+
       const agentsWithNames = await Promise.all(
         agentIds.map(async (id) => {
           try {
             const agent = await agentServiceClientWrapper.getAgent(id);
-            const name = 
+            const name =
               (agent as { hostName?: string; host_name?: string }).hostName ??
               (agent as { hostName?: string; host_name?: string }).host_name ??
               id;
-            return { id, name };
+            const status =
+              (agent as { status?: string }).status ??
+              (agent as { is_online?: boolean; isOnline?: boolean }).is_online ??
+              (agent as { is_online?: boolean; isOnline?: boolean }).isOnline ??
+              undefined;
+            const lastSeen =
+              (agent as { last_seen?: string }).last_seen ??
+              (agent as { lastSeen?: string }).lastSeen ??
+              undefined;
+            return {
+              id,
+              name: (name ?? id).trim() || id,
+              status: typeof status === "string" ? status : undefined,
+              last_seen: typeof lastSeen === "string" ? lastSeen : undefined,
+            };
           } catch {
             return { id, name: id };
           }
-        })
+        }),
       );
-      
+
       userAgents.value = agentsWithNames;
     } catch {
       // игнор
