@@ -2094,6 +2094,38 @@ export const policyStateClient = {
     return response.toObject();
   },
 
+  async exportAssignments(
+    target: Target,
+    exportFormat: export_pb_types.ExportFormat = export_pb.ExportFormat.CSV,
+  ): Promise<export_pb_types.ExportResponse.AsObject> {
+    const request = new operator_pb.ExportPolicyStateRequest();
+    request.setTarget(target);
+    request.setExportFormat(exportFormat);
+
+    const response = await policyStateServiceClient.exportAssignments(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async exportEffectivePolicies(
+    target: Target,
+    exportFormat: export_pb_types.ExportFormat = export_pb.ExportFormat.CSV,
+  ): Promise<export_pb_types.ExportResponse.AsObject> {
+    const request = new operator_pb.ExportPolicyStateRequest();
+    request.setTarget(target);
+    request.setExportFormat(exportFormat);
+
+    const response = await policyStateServiceClient.exportEffectivePolicies(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
   async getEffectivePoliciesFor(
     targetType: PolicyTargetType,
     targetParams: PolicyTargetParams & { langCode?: string } = {},
@@ -2110,6 +2142,28 @@ export const policyStateClient = {
     const { langCode, ...params } = targetParams;
     const target = createPolicyTargetFromParams(targetType, params);
     return await this.getAssignments(target, langCode);
+  },
+
+  async exportAssignmentsFor(
+    targetType: PolicyTargetType,
+    targetParams: PolicyTargetParams & {
+      exportFormat?: export_pb_types.ExportFormat;
+    } = {},
+  ): Promise<export_pb_types.ExportResponse.AsObject> {
+    const { exportFormat, ...params } = targetParams;
+    const target = createPolicyTargetFromParams(targetType, params);
+    return await this.exportAssignments(target, exportFormat);
+  },
+
+  async exportEffectivePoliciesFor(
+    targetType: PolicyTargetType,
+    targetParams: PolicyTargetParams & {
+      exportFormat?: export_pb_types.ExportFormat;
+    } = {},
+  ): Promise<export_pb_types.ExportResponse.AsObject> {
+    const { exportFormat, ...params } = targetParams;
+    const target = createPolicyTargetFromParams(targetType, params);
+    return await this.exportEffectivePolicies(target, exportFormat);
   },
 };
 
