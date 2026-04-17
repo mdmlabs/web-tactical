@@ -251,6 +251,8 @@
               rounded
             />
           </q-tab>
+          <q-tab name="alerts" icon="warning" label="Alerts" />
+          <q-tab name="connectivity" icon="network_check" label="Connectivity" />
         </q-tabs>
 
         <q-separator />
@@ -535,6 +537,27 @@
               </div>
             </div>
           </q-tab-panel>
+          <q-tab-panel name="alerts" class="q-pa-md">
+            <AgentAlertsTab
+              v-if="alertsUserId"
+              :user-id="alertsUserId"
+              :active="detailTab === 'alerts'"
+            />
+            <div v-else class="text-grey-6 text-body2">
+              User identifier is not available for alerts.
+            </div>
+          </q-tab-panel>
+          <q-tab-panel name="connectivity" class="q-pa-md">
+            <ConnectivityPoliciesTab
+              v-if="connectivityUserTarget"
+              :key="`conn-user-${alertsUserId}`"
+              compact
+              :fixed-target="connectivityUserTarget"
+            />
+            <div v-else class="text-grey-6 text-body2">
+              User identifier is not available for connectivity policies.
+            </div>
+          </q-tab-panel>
         </q-tab-panels>
       </template>
     </template>
@@ -702,6 +725,9 @@ import type { GroupRow, AgentRow } from "@/gpo/composables/useUserActions";
 import { exportPolicyCollections } from "@/utils/csv";
 import { policyStateClient, createAgentTarget } from "@/gpo/api/grpc-client";
 import ComplianceBar from "@/gpo/components/shared/ComplianceBar.vue";
+import type { ConnectivityPolicyTarget } from "@/gpo/api/connectivity-policy";
+import AgentAlertsTab from "@/gpo/components/AgentAlertsTab.vue";
+import ConnectivityPoliciesTab from "@/gpo/components/ConnectivityPolicy/ConnectivityPoliciesTab.vue";
 import UserInfoTab from "./UserInfoTab.vue";
 import UserGroupsTab from "./UserGroupsTab.vue";
 import UserAgentsTab from "./UserAgentsTab.vue";
@@ -734,6 +760,15 @@ const props = withDefaults(
     appliedCollectionsLoading: false,
     canRemoveCollection: false,
   },
+);
+
+const alertsUserId = computed(() => {
+  const id = props.user?.userid || props.selectedId;
+  return id && id !== "" ? id : null;
+});
+
+const connectivityUserTarget = computed<ConnectivityPolicyTarget | null>(() =>
+  alertsUserId.value ? { type: "user", userId: alertsUserId.value } : null,
 );
 
 defineEmits<{

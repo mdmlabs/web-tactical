@@ -10,6 +10,10 @@ import {
   UpdateConnectivityPolicyRequest,
 } from "@/generated/operator/connectivity_policy_service_pb";
 import { createGrpcMetadata, getGrpcUrl } from "@/gpo/api/grpc-client";
+import {
+  connectivityBytesToGuidString,
+  guidToDotNetBytes,
+} from "@/utils/guid-bytes";
 
 export type ConnectivityTargetKind =
   | "agent"
@@ -21,8 +25,8 @@ export interface ConnectivityPolicyTarget {
   type: ConnectivityTargetKind;
   agentId?: string;
   categoryId?: number;
-  userId?: string;
-  userGroupId?: string;
+  userId?: string | Uint8Array;
+  userGroupId?: string | Uint8Array;
 }
 
 export interface ConnectivityPolicyRecord extends ConnectivityPolicyTarget {
@@ -117,6 +121,16 @@ function extractString(
   return "";
 }
 
+function toUserOrGroupBytes(
+  value: string | Uint8Array | undefined,
+  field: "userId" | "userGroupId",
+): Uint8Array {
+  if (value == null || (typeof value === "string" && value.trim() === "")) {
+    throw new Error(`${field} is required`);
+  }
+  return value instanceof Uint8Array ? value : guidToDotNetBytes(value);
+}
+
 function applyTarget<
   T extends {
     setTargetType?: (value: ConnectivityTargetType) => unknown;
@@ -145,13 +159,13 @@ function applyTarget<
   }
 
   if (normalizedType === "user") {
-    if (!target.userId) throw new Error("userId is required");
-    message.setUserId?.(target.userId);
+    const bytes = toUserOrGroupBytes(target.userId, "userId");
+    message.setUserId?.(bytes as unknown as string);
     return;
   }
 
-  if (!target.userGroupId) throw new Error("userGroupId is required");
-  message.setUserGroupId?.(target.userGroupId);
+  const groupBytes = toUserOrGroupBytes(target.userGroupId, "userGroupId");
+  message.setUserGroupId?.(groupBytes as unknown as string);
 }
 
 function buildPolicyMessage(
@@ -185,9 +199,14 @@ function normalizePolicy(
     categoryId:
       toOptionalNumber(raw.agentCategoryId ?? raw.agent_category_id) ??
       undefined,
-    userId: extractString(raw, "userId", "user_id") || undefined,
+    userId:
+      extractString(raw, "userId", "user_id") ||
+      connectivityBytesToGuidString(raw.userId ?? raw.user_id) ||
+      undefined,
     userGroupId:
-      extractString(raw, "userGroupId", "user_group_id") || undefined,
+      extractString(raw, "userGroupId", "user_group_id") ||
+      connectivityBytesToGuidString(raw.userGroupId ?? raw.user_group_id) ||
+      undefined,
     intervalSeconds:
       toOptionalNumber(raw.intervalSeconds ?? raw.interval_seconds) ?? 0,
     graceSeconds: toOptionalNumber(raw.graceSeconds ?? raw.grace_seconds) ?? 0,

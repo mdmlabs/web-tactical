@@ -100,10 +100,12 @@
       :loading="editLoading"
       :name="editCategoryForm.name"
       :description="editCategoryForm.description"
+      :max-agents="editCategoryForm.maxAgents"
       @show="loadCategoryForEdit"
       @save="doUpdateCategory"
       @update:name="editCategoryForm.name = $event"
       @update:description="editCategoryForm.description = $event"
+      @update:max-agents="editCategoryForm.maxAgents = $event"
     />
 
     <MoveCategoryDialog
@@ -501,9 +503,14 @@ const actionLoading = computed(
 
 const showEditCategory = ref(false);
 const showMoveCategory = ref(false);
-const editCategoryForm = ref<{ name: string; description: string }>({
+const editCategoryForm = ref<{
+  name: string;
+  description: string;
+  maxAgents: number | null;
+}>({
   name: "",
   description: "",
+  maxAgents: 0,
 });
 const moveCategoryForm = ref<{ parentId: number | null }>({ parentId: null });
 
@@ -1270,6 +1277,7 @@ async function loadCategoryForEdit() {
         name: info.name ?? selectedCategory.value?.name ?? "",
         description:
           info.description?.value ?? selectedCategory.value?.description ?? "",
+        maxAgents: info.maxAgents ?? 0,
       };
     }
   } finally {
@@ -1282,6 +1290,7 @@ function openEditCategoryDialog() {
     editCategoryForm.value = {
       name: selectedCategory.value.name,
       description: selectedCategory.value.description ?? "",
+      maxAgents: 0,
     };
   }
   showEditCategory.value = true;
@@ -1296,6 +1305,7 @@ async function doUpdateCategory() {
       categoryId: id,
       name: editCategoryForm.value.name.trim(),
       description: editCategoryForm.value.description.trim() || undefined,
+      maxAgents: editCategoryForm.value.maxAgents ?? 0,
     });
     if (res.status === 0) {
       notifySuccess("Category updated");

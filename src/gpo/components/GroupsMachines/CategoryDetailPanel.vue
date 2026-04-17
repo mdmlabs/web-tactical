@@ -116,6 +116,8 @@
             rounded
           />
         </q-tab>
+        <q-tab name="alerts" icon="warning" label="Alerts" />
+        <q-tab name="connectivity" icon="network_check" label="Connectivity" />
       </q-tabs>
 
       <q-separator />
@@ -492,6 +494,23 @@
             </template>
           </div>
         </q-tab-panel>
+
+        <q-tab-panel name="alerts" class="q-pa-md">
+          <AgentAlertsTab
+            v-if="selectedCategoryId != null"
+            :agent-category-id="selectedCategoryId"
+            :active="detailTab === 'alerts'"
+          />
+        </q-tab-panel>
+
+        <q-tab-panel name="connectivity" class="q-pa-md">
+          <ConnectivityPoliciesTab
+            v-if="connectivityCategoryTarget"
+            :key="`conn-cat-${selectedCategoryId}`"
+            compact
+            :fixed-target="connectivityCategoryTarget"
+          />
+        </q-tab-panel>
       </q-tab-panels>
     </template>
   </div>
@@ -500,7 +519,10 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import type { QTableColumn } from "quasar";
+import AgentAlertsTab from "@/gpo/components/AgentAlertsTab.vue";
+import ConnectivityPoliciesTab from "@/gpo/components/ConnectivityPolicy/ConnectivityPoliciesTab.vue";
 import ComplianceBar from "@/gpo/components/shared/ComplianceBar.vue";
+import type { ConnectivityPolicyTarget } from "@/gpo/api/connectivity-policy";
 import { exportPolicyCollections } from "@/utils/csv";
 
 interface PolicyCollection {
@@ -529,6 +551,13 @@ const props = defineProps<{
   categoryAppliedCollectionsLoading: boolean;
   collectionsColumns: QTableColumn[];
 }>();
+
+const connectivityCategoryTarget = computed<ConnectivityPolicyTarget | null>(
+  () =>
+    props.selectedCategoryId == null
+      ? null
+      : { type: "agentCategory", categoryId: props.selectedCategoryId },
+);
 
 defineEmits<{
   edit: [];

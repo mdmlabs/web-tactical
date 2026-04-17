@@ -2878,9 +2878,16 @@ async function loadGroupsForAgent(agentId: string) {
   }
 }
 
-const selectAgent = async (agent: Agent) => {
-  if (selectedAgent.value?.id === agent.id) {
+const selectAgent = async (
+  agent: Agent,
+  options?: { skipToggle?: boolean },
+) => {
+  const same = selectedAgent.value?.id === agent.id;
+  if (!options?.skipToggle && same) {
     clearAgentSelection();
+    return;
+  }
+  if (options?.skipToggle && same) {
     return;
   }
   selectedAgent.value = agent;
@@ -2890,6 +2897,22 @@ const selectAgent = async (agent: Agent) => {
     loadAgentDetails(agent.id);
   }
 };
+
+async function syncAgentSelectionFromRouteQuery() {
+  const agentIdFromQuery = route.query.agent_id as string | undefined;
+  if (!agentIdFromQuery) {
+    return;
+  }
+  let agent = gpoAgents.value.find((a) => a.id === agentIdFromQuery);
+  if (!agent) {
+    await loadAgents();
+    agent = gpoAgents.value.find((a) => a.id === agentIdFromQuery);
+  }
+  if (agent) {
+    await selectAgent(agent, { skipToggle: true });
+    mainTab.value = "dashboard";
+  }
+}
 
 const loadAgentDetails = async (agentId: string) => {
   try {
@@ -3866,15 +3889,15 @@ onMounted(async () => {
     policiesStore.fetchPolicies();
     treeStore.fetchPolicyTree();
   }
-  const agentIdFromQuery = route.query.agent_id as string | undefined;
-  if (agentIdFromQuery) {
-    const agent = gpoAgents.value.find((a) => a.id === agentIdFromQuery);
-    if (agent) {
-      selectAgent(agent);
-      mainTab.value = "dashboard";
-    }
-  }
+  await syncAgentSelectionFromRouteQuery();
 });
+
+watch(
+  () => route.query.agent_id,
+  () => {
+    void syncAgentSelectionFromRouteQuery();
+  },
+);
 
 function exportPolicies(
   category: "all" | "templates" | "archive",

@@ -3,13 +3,13 @@
     :model-value="modelValue"
     @update:model-value="$emit('update:modelValue', $event)"
   >
-    <q-card style="min-width: 360px; margin-bottom: 250px">
+    <q-card class="create-category-card">
       <q-card-section class="row items-center q-pb-none">
         <div class="text-h6">Create Category</div>
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
-      <q-card-section>
+      <q-card-section class="create-category-card__body q-pt-sm">
         <q-input
           v-model="nameModel"
           label="Category Name *"
@@ -40,6 +40,16 @@
           </template>
         </q-select>
         <q-input
+          v-model.number="maxAgentsModel"
+          label="Max agents"
+          type="number"
+          outlined
+          dense
+          class="q-mb-sm"
+          :min="0"
+          hint="Maximum agents allowed in this machine group"
+        />
+        <q-input
           v-model="descriptionModel"
           label="Description"
           outlined
@@ -47,20 +57,6 @@
           type="textarea"
           rows="2"
         />
-        <q-separator class="q-my-sm" />
-        <div class="text-subtitle2 text-grey-7 q-mb-sm">Limits</div>
-        <div class="row q-col-gutter-sm">
-          <div class="col-12">
-            <q-input
-              v-model.number="maxAgentsModel"
-              label="Max agents"
-              type="number"
-              outlined
-              dense
-              :min="0"
-            />
-          </div>
-        </div>
       </q-card-section>
       <q-card-actions align="right">
         <q-btn flat label="Cancel" v-close-popup />
@@ -118,3 +114,17 @@ const maxAgentsModel = computed({
   set: (v) => emit("update:maxAgents", v),
 });
 </script>
+
+<style scoped lang="sass">
+.create-category-card
+  min-width: 360px
+  max-width: 480px
+  max-height: min(90vh, 640px)
+  display: flex
+  flex-direction: column
+
+.create-category-card__body
+  overflow-y: auto
+  flex: 1 1 auto
+  min-height: 0
+</style>

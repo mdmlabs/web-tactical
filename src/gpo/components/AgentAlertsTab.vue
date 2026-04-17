@@ -1,5 +1,5 @@
 <template>
-  <div v-if="agentId" class="column full-height">
+  <div v-if="hasAlertScope" class="column full-height">
     <div class="row q-col-gutter-md q-mb-md items-end">
       <div class="col-12 col-md-4">
         <q-select
@@ -31,7 +31,7 @@
     <q-scroll-area class="agent-tab-table-scroll">
       <q-table
         :rows="filteredRows"
-        :columns="columns"
+        :columns="tableColumns"
         row-key="id"
         :pagination="{ rowsPerPage: 20 }"
         :loading="loading"
@@ -40,7 +40,7 @@
       >
         <template v-slot:no-data>
           <div class="full-width row flex-center q-pa-lg text-grey-6">
-            Alerts not found for the selected agent
+            {{ emptyListMessage }}
           </div>
         </template>
 
@@ -186,7 +186,14 @@ import { notifyError, notifySuccess } from "@/utils/notify";
 import { alertsClient } from "../api/grpc-client";
 
 const props = defineProps<{
-  agentId: string | null;
+  /** Alerts for a single agent (dashboard). */
+  agentId?: string | null;
+  /** Alerts scoped to a directory user (Users Manager). */
+  userId?: string | null;
+  /** Alerts scoped to a group (Groups Manager). */
+  groupId?: string | null;
+  /** Alerts scoped to a machine group / agent category (Machine groups). */
+  agentCategoryId?: number | null;
   active: boolean;
 }>();
 
@@ -221,27 +228,78 @@ const statusOptions: Array<{ label: string; value: number | null }> = [
 ];
 
 const rows = ref<AlertRow[]>([]);
-const loadedForAgentId = ref<string | null>(null);
+const loadedForListKey = ref<string | null>(null);
+
+const hasAlertScope = computed(() => {
+  if (props.agentId) return true;
+  if (props.userId != null && props.userId !== "") return true;
+  if (props.groupId != null && props.groupId !== "") return true;
+  if (props.agentCategoryId != null) return true;
+  return false;
+});
+
+/** When the list is already scoped to one entity, the Target column is redundant. */
+const hideTargetColumn = computed(
+  () =>
+    !props.agentId &&
+    (Boolean(props.userId) ||
+      Boolean(props.groupId) ||
+      props.agentCategoryId != null),
+);
+
+const emptyListMessage = computed(() => {
+  if (props.userId) return "No alerts for this user";
+  if (props.groupId) return "No alerts for this group";
+  if (props.agentCategoryId != null) return "No alerts for this machine group";
+  return "Alerts not found for the selected agent";
+});
+
 const filteredRows = computed(() => {
   if (statusFilter.value === null) return rows.value;
   return rows.value.filter((row) => row.status === statusFilter.value);
 });
 
-const columns: QTableColumn[] = [
-  // { name: "id", label: "ID", align: "left", field: "id", sortable: true },
-  { name: "severity", label: "Severity", align: "left", field: "severity", sortable: true },
-  { name: "status", label: "Status", align: "left", field: "status" },
-  { name: "target", label: "Target", align: "left", field: "targetLabel", sortable: true },
-  { name: "title", label: "Alert", align: "left", field: "title" },
-  {
-    name: "activity",
-    label: "Activity",
-    align: "left",
-    field: "occurrenceCount",
-    sortable: true,
-  },
-  { name: "actions", label: "Actions", align: "center", field: "actions" },
-];
+const tableColumns = computed<QTableColumn[]>(() => {
+  const cols: QTableColumn[] = [
+    {
+      name: "severity",
+      label: "Severity",
+      align: "left",
+      field: "severity",
+      sortable: true,
+    },
+    { name: "status", label: "Status", align: "left", field: "status" },
+  ];
+  if (!hideTargetColumn.value) {
+    cols.push({
+      name: "target",
+      label: "Target",
+      align: "left",
+      field: "targetLabel",
+      sortable: true,
+    });
+  }
+  cols.push(
+    { name: "title", label: "Alert", align: "left", field: "title" },
+    {
+      name: "activity",
+      label: "Activity",
+      align: "left",
+      field: "occurrenceCount",
+      sortable: true,
+    },
+    { name: "actions", label: "Actions", align: "center", field: "actions" },
+  );
+  return cols;
+});
+
+function buildListKey(): string | null {
+  if (props.agentId) return `a:${props.agentId}`;
+  if (props.userId) return `u:${props.userId}`;
+  if (props.groupId) return `g:${props.groupId}`;
+  if (props.agentCategoryId != null) return `c:${props.agentCategoryId}`;
+  return null;
+}
 
 function normalizeString(value: unknown): string {
   if (value === null || value === undefined) return "";
@@ -412,13 +470,19 @@ function alertDetails(row: AlertRow): Array<{ label: string; value: string }> {
 }
 
 async function reload() {
-  if (!props.agentId) return;
+  const listKey = buildListKey();
+  if (!listKey) return;
   loading.value = true;
   try {
-    const resp = await alertsClient.listAlerts({
-      agentId: props.agentId,
-      status: statusFilter.value ?? undefined,
-    });
+    const req: Parameters<typeof alertsClient.listAlerts>[0] = {};
+    if (props.agentId) req.agentId = props.agentId;
+    else if (props.userId) req.userId = props.userId;
+    else if (props.groupId) req.groupId = props.groupId;
+    else if (props.agentCategoryId != null)
+      req.agentCategoryId = props.agentCategoryId;
+    if (statusFilter.value !== null) req.status = statusFilter.value;
+
+    const resp = await alertsClient.listAlerts(req);
 
     const responseObj = resp as unknown as {
       itemsList?: Array<Record<string, unknown>>;
@@ -426,7 +490,9 @@ async function reload() {
     };
     const items = responseObj.itemsList ?? responseObj.items ?? [];
     rows.value = items.map((it) => {
-      const firstIso = parseAlertDate(it.firstOccurredAt ?? it.first_occurred_at);
+      const firstIso = parseAlertDate(
+        it.firstOccurredAt ?? it.first_occurred_at,
+      );
       const lastIso = parseAlertDate(it.lastOccurredAt ?? it.last_occurred_at);
       const { targetLabel, targetValue } = resolveTargetLabel(it);
 
@@ -457,10 +523,10 @@ async function reload() {
       };
     });
 
-    loadedForAgentId.value = props.agentId;
+    loadedForListKey.value = listKey;
   } catch (e) {
     rows.value = [];
-    loadedForAgentId.value = null;
+    loadedForListKey.value = null;
     notifyError(e instanceof Error ? e.message : "Alerts could not be uploaded");
   } finally {
     loading.value = false;
@@ -498,10 +564,10 @@ async function closeAndReload(id: number) {
 }
 
 watch(
-  () => [props.active, props.agentId] as const,
-  ([active, agentId]) => {
-    if (!active || !agentId) return;
-    if (loadedForAgentId.value === agentId) return;
+  () => [props.active, buildListKey()] as const,
+  ([active, listKey]) => {
+    if (!active || !listKey) return;
+    if (loadedForListKey.value === listKey) return;
     void reload();
   },
   { immediate: true },
