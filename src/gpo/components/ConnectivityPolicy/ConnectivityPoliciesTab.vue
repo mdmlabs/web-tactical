@@ -81,7 +81,7 @@
 
     <q-table
       :rows="filteredRows"
-      :columns="columns"
+      :columns="tableColumns"
       row-key="id"
       flat
       bordered
@@ -317,49 +317,58 @@ const targetTypeOptions = [
 
 const targetFormOptions = targetTypeOptions.filter((option) => option.value !== "all");
 
-const columns: QTableColumn[] = [
-  {
-    name: "target",
-    label: "Target",
-    align: "left",
-    field: "targetLabel",
-    sortable: true,
-  },
-  {
-    name: "interval",
-    label: "Interval",
-    align: "center",
-    field: (row: ConnectivityRow) => row.intervalSeconds,
-    sortable: true,
-  },
-  {
-    name: "grace",
-    label: "Grace",
-    align: "center",
-    field: (row: ConnectivityRow) => row.graceSeconds,
-    sortable: true,
-  },
-  {
-    name: "severity",
-    label: "Severity",
-    align: "center",
-    field: (row: ConnectivityRow) => row.severity,
-    sortable: true,
-  },
-  {
-    name: "status",
-    label: "Enabled",
-    align: "center",
-    field: (row: ConnectivityRow) => row.isEnabled,
-    sortable: true,
-  },
-  {
-    name: "actions",
-    label: "",
-    align: "right",
-    field: () => "",
-  },
-];
+/** Скрываем колонку Target, когда список уже отфильтрован по одному fixed target. */
+const hideTargetColumn = computed(() => Boolean(props.fixedTarget));
+
+const tableColumns = computed<QTableColumn[]>(() => {
+  const cols: QTableColumn[] = [];
+  if (!hideTargetColumn.value) {
+    cols.push({
+      name: "target",
+      label: "Target",
+      align: "left",
+      field: "targetLabel",
+      sortable: true,
+    });
+  }
+  cols.push(
+    {
+      name: "interval",
+      label: "Interval",
+      align: "center",
+      field: (row: ConnectivityRow) => row.intervalSeconds,
+      sortable: true,
+    },
+    {
+      name: "grace",
+      label: "Grace",
+      align: "center",
+      field: (row: ConnectivityRow) => row.graceSeconds,
+      sortable: true,
+    },
+    {
+      name: "severity",
+      label: "Severity",
+      align: "center",
+      field: (row: ConnectivityRow) => row.severity,
+      sortable: true,
+    },
+    {
+      name: "status",
+      label: "Enabled",
+      align: "center",
+      field: (row: ConnectivityRow) => row.isEnabled,
+      sortable: true,
+    },
+    {
+      name: "actions",
+      label: "",
+      align: "right",
+      field: () => "",
+    },
+  );
+  return cols;
+});
 
 const optionsByType = computed<Record<ConnectivityTargetKind, TargetOption[]>>(() => ({
   agent: allAgents.value,

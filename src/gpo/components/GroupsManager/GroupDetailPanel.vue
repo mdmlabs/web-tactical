@@ -144,6 +144,8 @@
             rounded
           />
         </q-tab>
+        <q-tab name="alerts" icon="warning" label="Alerts" />
+        <q-tab name="connectivity" icon="network_check" label="Connectivity" />
       </q-tabs>
 
       <q-separator />
@@ -353,7 +355,9 @@
                 />
               </div>
               <q-input
-                v-if="viewMode === 'policies' && !groupAppliedCollectionsLoading"
+                v-if="
+                  viewMode === 'policies' && !groupAppliedCollectionsLoading
+                "
                 v-model="tabPolicySearchQuery"
                 dense
                 outlined
@@ -575,6 +579,29 @@
             </template>
           </div>
         </q-tab-panel>
+
+        <q-tab-panel name="alerts" class="q-pa-md">
+          <AgentAlertsTab
+            v-if="selectedGroupId"
+            :group-id="selectedGroupId"
+            :active="detailTab === 'alerts'"
+          />
+          <div v-else class="text-grey-6 text-body2">
+            Group identifier is not available for alerts.
+          </div>
+        </q-tab-panel>
+
+        <q-tab-panel name="connectivity" class="q-pa-md">
+          <ConnectivityPoliciesTab
+            v-if="connectivityGroupTarget"
+            :key="`conn-group-${selectedGroupId}`"
+            compact
+            :fixed-target="connectivityGroupTarget"
+          />
+          <div v-else class="text-grey-6 text-body2">
+            Group identifier is not available for connectivity policies.
+          </div>
+        </q-tab-panel>
       </q-tab-panels>
     </template>
 
@@ -687,9 +714,7 @@
                               <span class="tooltip-icon error">✗</span>
                               <span
                                 >Not Assigned:
-                                {{
-                                  p.compliance.notAssignedAgents
-                                }}
+                                {{ p.compliance.notAssignedAgents }}
                                 agents</span
                               >
                             </div>
@@ -734,6 +759,9 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import type { ConnectivityPolicyTarget } from "@/gpo/api/connectivity-policy";
+import AgentAlertsTab from "@/gpo/components/AgentAlertsTab.vue";
+import ConnectivityPoliciesTab from "@/gpo/components/ConnectivityPolicy/ConnectivityPoliciesTab.vue";
 import ComplianceBar from "@/gpo/components/shared/ComplianceBar.vue";
 import { exportPolicyCollections } from "@/utils/csv";
 import { policyStateClient, createAgentTarget } from "@/gpo/api/grpc-client";
@@ -915,6 +943,12 @@ const props = defineProps<{
   groupAppliedCollectionsLoading: boolean;
   canRemoveCollection: boolean;
 }>();
+
+const connectivityGroupTarget = computed<ConnectivityPolicyTarget | null>(() =>
+  props.selectedGroupId
+    ? { type: "userGroup", userGroupId: props.selectedGroupId }
+    : null,
+);
 
 async function mapWithConcurrency<T, R>(
   items: T[],

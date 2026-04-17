@@ -414,6 +414,7 @@ export const agentCategoryClient = {
     categoryId: number;
     name: string;
     description?: string;
+    maxAgents?: number;
   }): Promise<agent_category_service_pb_types.AgentCategoryControlResponse.AsObject> {
     const request = new agent_category_service_pb.UpdateAgentCategoryRequest();
     request.setCategoryId(params.categoryId);
@@ -424,6 +425,9 @@ export const agentCategoryClient = {
       descWrapper.setValue(params.description);
       request.setDescription(descWrapper);
     }
+
+    request.setMaxAgents(Math.max(0, Math.floor(params.maxAgents ?? 0)));
+
     const response = await agentCategoryServiceClient.updateCategory(
       request,
       createGrpcMetadata(),
