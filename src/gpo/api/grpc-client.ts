@@ -21,6 +21,7 @@ import {
   SetUserAccountExpirationRequest,
   SetGroupChildGroupsRequest,
   CreateUserGroupRequest,
+  UpdateGroupRequest,
   GroupIdRequest,
   GroupRequest,
   UserGroupRequest,
@@ -49,6 +50,9 @@ import * as wrappers_pb from "google-protobuf/google/protobuf/wrappers_pb";
 import * as empty_pb from "google-protobuf/google/protobuf/empty_pb";
 import * as agent_category_service_pb from "@/generated/agent_category_service_pb";
 import type * as agent_category_service_pb_types from "@/generated/agent_category_service_pb";
+import { AlertQueryServiceClient } from "@/generated/operator/Alerts_serviceServiceClientPb";
+import * as operator_alerts_service_pb from "@/generated/operator/alerts_service_pb";
+import type * as operator_alerts_service_pb_types from "@/generated/operator/alerts_service_pb";
 import { useAuthStore } from "@/stores/auth";
 import {
   GroupInfo,
@@ -68,7 +72,7 @@ interface WindowWithEnv {
   };
 }
 
-function getGrpcUrl(): string {
+export function getGrpcUrl(): string {
   if (import.meta.env.DEV) {
     return "/api/grpc";
   }
@@ -125,6 +129,61 @@ const policyStateServiceClient = createClient(PolicyStateServiceClient);
 const agentCategoryServiceClient = createClient(
   OperatorAgentCategoryServiceClient,
 );
+const alertQueryServiceClient = createClient(AlertQueryServiceClient);
+
+export const alertsClient = {
+  AlertStatus: operator_alerts_service_pb.AlertStatus,
+
+  async getAlert(
+    id: number,
+  ): Promise<operator_alerts_service_pb_types.AlertItem.AsObject> {
+    const req = new operator_alerts_service_pb.GetAlertRequest();
+    req.setId(Math.floor(Number(id)));
+    const resp = await alertQueryServiceClient.getAlert(req, createGrpcMetadata());
+    return resp.toObject();
+  },
+
+  async listAlerts(params: {
+    agentId?: string;
+    userId?: Uint8Array | string;
+    groupId?: Uint8Array | string;
+    agentCategoryId?: number;
+    type?: string;
+    status?: operator_alerts_service_pb.AlertStatus;
+    openOnly?: boolean;
+  }): Promise<operator_alerts_service_pb_types.ListAlertsResponse.AsObject> {
+    const req = new operator_alerts_service_pb.ListAlertsRequest();
+    if (params.agentId) req.setAgentId(params.agentId);
+    if (params.userId != null) req.setUserId(params.userId);
+    if (params.groupId != null) req.setGroupId(params.groupId);
+    if (params.agentCategoryId != null)
+      req.setAgentCategoryId(Math.floor(Number(params.agentCategoryId)));
+    if (params.type) req.setType(params.type);
+    if (params.status != null) req.setStatus(params.status);
+    if (params.openOnly != null) req.setOpenOnly(params.openOnly);
+
+    const resp = await alertQueryServiceClient.listAlerts(req, createGrpcMetadata());
+    return resp.toObject();
+  },
+
+  async acknowledgeAlert(id: number): Promise<void> {
+    const req = new operator_alerts_service_pb.AcknowledgeAlertRequest();
+    req.setId(Math.floor(Number(id)));
+    await alertQueryServiceClient.acknowledgeAlert(req, createGrpcMetadata());
+  },
+
+  async resolveAlert(id: number): Promise<void> {
+    const req = new operator_alerts_service_pb.ResolveAlertRequest();
+    req.setId(Math.floor(Number(id)));
+    await alertQueryServiceClient.resolveAlert(req, createGrpcMetadata());
+  },
+
+  async closeAlert(id: number): Promise<void> {
+    const req = new operator_alerts_service_pb.CloseAlertRequest();
+    req.setId(Math.floor(Number(id)));
+    await alertQueryServiceClient.closeAlert(req, createGrpcMetadata());
+  },
+};
 
 export const policyCatalogClient = {
   async listPoliciesGroupedByScope(
@@ -355,6 +414,7 @@ export const agentCategoryClient = {
     categoryId: number;
     name: string;
     description?: string;
+    maxAgents?: number;
   }): Promise<agent_category_service_pb_types.AgentCategoryControlResponse.AsObject> {
     const request = new agent_category_service_pb.UpdateAgentCategoryRequest();
     request.setCategoryId(params.categoryId);
@@ -365,6 +425,9 @@ export const agentCategoryClient = {
       descWrapper.setValue(params.description);
       request.setDescription(descWrapper);
     }
+
+    request.setMaxAgents(Math.max(0, Math.floor(params.maxAgents ?? 0)));
+
     const response = await agentCategoryServiceClient.updateCategory(
       request,
       createGrpcMetadata(),
@@ -471,6 +534,20 @@ export const agentCategoryClient = {
     const request = new empty_pb.Empty();
 
     const response = await agentCategoryServiceClient.getAllCategories(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async exportAllCategories(
+    exportFormat: export_pb_types.ExportFormat = export_pb.ExportFormat.CSV,
+  ): Promise<export_pb_types.ExportResponse.AsObject> {
+    const request = new agent_category_service_pb.ExportCategoriesRequest();
+    request.setExportFormat(exportFormat);
+
+    const response = await agentCategoryServiceClient.exportAllCategories(
       request,
       createGrpcMetadata(),
     );
@@ -854,6 +931,38 @@ export const userControlClient = {
       request: req.toObject(),
     });
     const response = await operatorUserControlServiceClient.createGroup(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async updateGroup(
+    target: Target,
+    groupId: string,
+    currentSamGroupName: string,
+    newSamGroupName: string,
+    opts?: {
+      description?: string;
+      maxUsers?: number;
+      maxAgents?: number;
+    },
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new UpdateGroupRequest();
+    req.setTarget(target);
+    req.setGroupId(groupId);
+    req.setCurrentSamGroupName(currentSamGroupName);
+    req.setNewSamGroupName(newSamGroupName);
+    if (opts?.description !== undefined) {
+      const w = new wrappers_pb.StringValue();
+      w.setValue(opts.description);
+      req.setDescription(w);
+    }
+    const maxUsersInt = toNonNegativeInt(opts?.maxUsers);
+    if (maxUsersInt !== undefined) req.setMaxUsers(maxUsersInt);
+    const maxAgentsInt = toNonNegativeInt(opts?.maxAgents);
+    if (maxAgentsInt !== undefined) req.setMaxAgent(maxAgentsInt);
+    const response = await operatorUserControlServiceClient.updateGroup(
       req,
       createGrpcMetadata(),
     );
@@ -1985,6 +2094,38 @@ export const policyStateClient = {
     return response.toObject();
   },
 
+  async exportAssignments(
+    target: Target,
+    exportFormat: export_pb_types.ExportFormat = export_pb.ExportFormat.CSV,
+  ): Promise<export_pb_types.ExportResponse.AsObject> {
+    const request = new operator_pb.ExportPolicyStateRequest();
+    request.setTarget(target);
+    request.setExportFormat(exportFormat);
+
+    const response = await policyStateServiceClient.exportAssignments(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async exportEffectivePolicies(
+    target: Target,
+    exportFormat: export_pb_types.ExportFormat = export_pb.ExportFormat.CSV,
+  ): Promise<export_pb_types.ExportResponse.AsObject> {
+    const request = new operator_pb.ExportPolicyStateRequest();
+    request.setTarget(target);
+    request.setExportFormat(exportFormat);
+
+    const response = await policyStateServiceClient.exportEffectivePolicies(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
   async getEffectivePoliciesFor(
     targetType: PolicyTargetType,
     targetParams: PolicyTargetParams & { langCode?: string } = {},
@@ -2001,6 +2142,28 @@ export const policyStateClient = {
     const { langCode, ...params } = targetParams;
     const target = createPolicyTargetFromParams(targetType, params);
     return await this.getAssignments(target, langCode);
+  },
+
+  async exportAssignmentsFor(
+    targetType: PolicyTargetType,
+    targetParams: PolicyTargetParams & {
+      exportFormat?: export_pb_types.ExportFormat;
+    } = {},
+  ): Promise<export_pb_types.ExportResponse.AsObject> {
+    const { exportFormat, ...params } = targetParams;
+    const target = createPolicyTargetFromParams(targetType, params);
+    return await this.exportAssignments(target, exportFormat);
+  },
+
+  async exportEffectivePoliciesFor(
+    targetType: PolicyTargetType,
+    targetParams: PolicyTargetParams & {
+      exportFormat?: export_pb_types.ExportFormat;
+    } = {},
+  ): Promise<export_pb_types.ExportResponse.AsObject> {
+    const { exportFormat, ...params } = targetParams;
+    const target = createPolicyTargetFromParams(targetType, params);
+    return await this.exportEffectivePolicies(target, exportFormat);
   },
 };
 
@@ -2277,6 +2440,12 @@ export const collectionsClient = {
 
       request.addPolicies(model);
     }
+
+    // const createCollectionsPoliciesRequestObj = request.toObject();
+    // console.log(
+    //   "[createCollectionsPolicies] request:",
+    //   JSON.stringify(createCollectionsPoliciesRequestObj, null, 2),
+    // );
 
     try {
       const response =

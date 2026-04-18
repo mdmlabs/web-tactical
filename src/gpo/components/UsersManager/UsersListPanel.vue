@@ -44,10 +44,7 @@
       </q-input>
     </div>
 
-    <div
-      v-if="loading"
-      class="column items-center justify-center q-pa-xl"
-    >
+    <div v-if="loading" class="column items-center justify-center q-pa-xl">
       <q-spinner color="primary" size="2em" />
       <div class="q-mt-sm text-caption">Loading users...</div>
     </div>
@@ -68,11 +65,7 @@
       />
     </div>
 
-    <q-list
-      v-else-if="users.length > 0"
-      class="users-list"
-      separator
-    >
+    <q-list v-else-if="users.length > 0" class="users-list" separator>
       <q-item
         v-for="u in users"
         :key="u.userid"
@@ -99,10 +92,7 @@
       </q-item>
     </q-list>
 
-    <div
-      v-else
-      class="column items-center justify-center q-pa-xl text-grey-6"
-    >
+    <div v-else class="column items-center justify-center q-pa-xl text-grey-6">
       <q-icon name="person_off" size="2rem" class="q-mb-sm" />
       <div class="text-caption">
         {{ search ? "No users match the filter" : "No users found" }}
@@ -133,12 +123,13 @@ defineEmits<{
 
 <style scoped lang="sass">
 .users-left-panel
-  width: 300px
+  width: 200px
   min-width: 240px
   max-width: 360px
   display: flex
   flex-direction: column
   border-right: 1px solid rgba(0,0,0,.12)
+
 
 .users-left-header
   flex-shrink: 0

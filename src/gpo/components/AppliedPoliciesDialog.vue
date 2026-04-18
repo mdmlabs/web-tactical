@@ -69,6 +69,12 @@
               />
             </div>
           </q-tab>
+          <q-tab name="connectivity">
+            <div class="row items-center no-wrap q-gutter-x-sm">
+              <q-icon name="network_check" size="20px" />
+              <span>Connectivity</span>
+            </div>
+          </q-tab>
         </q-tabs>
       </q-card-section>
 
@@ -84,20 +90,50 @@
               </div>
             </div>
 
-            <div
-              v-else-if="assignments.length === 0"
-              class="applied-policies-dialog__empty"
-            >
-              <q-icon name="assignment_late" size="48px" color="grey-4" />
-              <div class="text-body1 text-grey-6 q-mt-md">
-                No assignments found
+            <template v-else>
+              <div v-if="agent" class="row justify-end q-mb-md">
+                <q-btn-dropdown
+                  outline
+                  color="primary"
+                  icon="download"
+                  label=""
+                  :loading="exportAssignmentsLoading"
+                  :disable="exportAssignmentsLoading"
+                  no-caps
+                >
+                  <q-list>
+                    <q-item
+                      clickable
+                      v-close-popup
+                      @click="handleExportAssignments('csv')"
+                    >
+                      <q-item-section>CSV</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-close-popup
+                      @click="handleExportAssignments('xlsx')"
+                    >
+                      <q-item-section>Excel (XLSX)</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-btn-dropdown>
               </div>
-              <div class="text-caption text-grey-5 q-mt-xs">
-                Assign policies using the "Apply Policy" dialog
-              </div>
-            </div>
 
-            <div v-else>
+              <div
+                v-if="assignments.length === 0"
+                class="applied-policies-dialog__empty"
+              >
+                <q-icon name="assignment_late" size="48px" color="grey-4" />
+                <div class="text-body1 text-grey-6 q-mt-md">
+                  No assignments found
+                </div>
+                <div class="text-caption text-grey-5 q-mt-xs">
+                  Assign policies using the "Apply Policy" dialog
+                </div>
+              </div>
+
+              <div v-else>
               <q-input
                 :model-value="assignmentsSearch"
                 dense
@@ -208,6 +244,15 @@
                   </q-td>
                 </template>
 
+                <template v-slot:body-cell-user="props">
+                  <q-td :props="props">
+                    <div v-if="assignmentUserName(props.row)" class="text-weight-medium">
+                      {{ assignmentUserName(props.row) }}
+                    </div>
+                    <span v-else class="text-grey-5">—</span>
+                  </q-td>
+                </template>
+
                 <template v-slot:body-cell-scope="props">
                   <q-td :props="props">
                     <q-badge
@@ -219,7 +264,8 @@
                 </template>
 
               </q-table>
-            </div>
+              </div>
+            </template>
           </q-tab-panel>
 
           <q-tab-panel name="effective" class="q-pa-none">
@@ -230,20 +276,50 @@
               </div>
             </div>
 
-            <div
-              v-else-if="effectivePolicies.length === 0"
-              class="applied-policies-dialog__empty"
-            >
-              <q-icon name="policy" size="48px" color="grey-4" />
-              <div class="text-body1 text-grey-6 q-mt-md">
-                No effective policies
+            <template v-else>
+              <div v-if="agent" class="row justify-end q-mb-md">
+                <q-btn-dropdown
+                  outline
+                  color="teal"
+                  icon="download"
+                  label=""
+                  :loading="exportEffectiveLoading"
+                  :disable="exportEffectiveLoading"
+                  no-caps
+                >
+                  <q-list>
+                    <q-item
+                      clickable
+                      v-close-popup
+                      @click="handleExportEffectivePolicies('csv')"
+                    >
+                      <q-item-section>CSV</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-close-popup
+                      @click="handleExportEffectivePolicies('xlsx')"
+                    >
+                      <q-item-section>Excel (XLSX)</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-btn-dropdown>
               </div>
-              <div class="text-caption text-grey-5 q-mt-xs">
-                Effective policies appear after assignments are resolved
-              </div>
-            </div>
 
-            <div v-else>
+              <div
+                v-if="effectivePolicies.length === 0"
+                class="applied-policies-dialog__empty"
+              >
+                <q-icon name="policy" size="48px" color="grey-4" />
+                <div class="text-body1 text-grey-6 q-mt-md">
+                  No effective policies
+                </div>
+                <div class="text-caption text-grey-5 q-mt-xs">
+                  Effective policies appear after assignments are resolved
+                </div>
+              </div>
+
+              <div v-else>
               <q-input
                 :model-value="effectiveSearch"
                 dense
@@ -357,6 +433,22 @@
                   </q-td>
                 </template>
               </q-table>
+              </div>
+            </template>
+          </q-tab-panel>
+
+          <q-tab-panel name="connectivity" class="q-pa-none">
+            <ConnectivityPoliciesTab
+              v-if="agent"
+              compact
+              :fixed-target="{ type: 'agent', agentId: agent.id }"
+              @changed="refresh"
+            />
+            <div v-else class="applied-policies-dialog__empty">
+              <q-icon name="info" size="40px" color="grey-5" />
+              <div class="text-body2 text-grey-6 q-mt-sm">
+                Select an agent to view connectivity policies
+              </div>
             </div>
           </q-tab-panel>
         </q-tab-panels>
@@ -383,10 +475,13 @@ import { QTableColumn } from "quasar";
 
 import {
   policyAssignmentClient,
+  policyStateClient,
   type PolicyTargetType,
   type PolicyTargetParams,
 } from "../api/grpc-client";
+import export_pb from "@/generated/common/export_pb";
 import { notifySuccess, notifyError } from "@/utils/notify";
+import ConnectivityPoliciesTab from "./ConnectivityPolicy/ConnectivityPoliciesTab.vue";
 
 interface Agent {
   id: string;
@@ -394,11 +489,19 @@ interface Agent {
   status: string;
 }
 
+interface DialogUser {
+  sid: string;
+  name?: string;
+  displayName?: string;
+  samAccountName?: string;
+}
+
 const props = defineProps<{
   modelValue: boolean;
   agent: Agent | null;
   assignments?: Array<Record<string, unknown>>;
   effectivePolicies?: Array<Record<string, unknown>>;
+  users?: DialogUser[];
   loading?: boolean;
 }>();
 
@@ -418,6 +521,106 @@ const dialogTab = ref("assignments");
 const assignmentsSearch = ref("");
 const effectiveSearch = ref("");
 const removingPolicyHash = ref<string | null>(null);
+const exportAssignmentsLoading = ref(false);
+const exportEffectiveLoading = ref(false);
+
+function downloadBlob(
+  content: Uint8Array | string,
+  fileName: string,
+  mimeType: string,
+) {
+  const bytes =
+    typeof content === "string"
+      ? new Uint8Array(
+          Array.from(atob(content), (c) => c.codePointAt(0) ?? 0),
+        )
+      : new Uint8Array(content);
+  const blob = new Blob([bytes.buffer], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function exportFileBaseName(kind: "assignments" | "effective"): string {
+  const host = props.agent
+    ? String(props.agent.hostname || props.agent.id).replaceAll(
+        /[^a-zA-Z0-9._-]+/g,
+        "_",
+      )
+    : "agent";
+  return `policy_${kind}_${host}`;
+}
+
+async function handleExportAssignments(format: "csv" | "xlsx") {
+  if (!props.agent) return;
+  exportAssignmentsLoading.value = true;
+  try {
+    const exportFormat =
+      format === "xlsx"
+        ? export_pb.ExportFormat.XLSX
+        : export_pb.ExportFormat.CSV;
+    const res = await policyStateClient.exportAssignmentsFor("agent", {
+      agentId: props.agent.id,
+      exportFormat,
+    });
+    const mimeType =
+      format === "xlsx"
+        ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        : "text/csv";
+    const fallbackName = `${exportFileBaseName("assignments")}.${format}`;
+    downloadBlob(res.content, res.fileName || fallbackName, mimeType);
+    notifySuccess(
+      format === "xlsx"
+        ? "Assignments exported as XLSX"
+        : "Assignments exported as CSV",
+    );
+  } catch (err) {
+    notifyError(
+      err instanceof Error ? err.message : "Failed to export assignments",
+    );
+  } finally {
+    exportAssignmentsLoading.value = false;
+  }
+}
+
+async function handleExportEffectivePolicies(format: "csv" | "xlsx") {
+  if (!props.agent) return;
+  exportEffectiveLoading.value = true;
+  try {
+    const exportFormat =
+      format === "xlsx"
+        ? export_pb.ExportFormat.XLSX
+        : export_pb.ExportFormat.CSV;
+    const res = await policyStateClient.exportEffectivePoliciesFor("agent", {
+      agentId: props.agent.id,
+      exportFormat,
+    });
+    const mimeType =
+      format === "xlsx"
+        ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        : "text/csv";
+    const fallbackName = `${exportFileBaseName("effective")}.${format}`;
+    downloadBlob(res.content, res.fileName || fallbackName, mimeType);
+    notifySuccess(
+      format === "xlsx"
+        ? "Effective policies exported as XLSX"
+        : "Effective policies exported as CSV",
+    );
+  } catch (err) {
+    notifyError(
+      err instanceof Error
+        ? err.message
+        : "Failed to export effective policies",
+    );
+  } finally {
+    exportEffectiveLoading.value = false;
+  }
+}
 
 function onAssignmentsSearchInput(value: string | number | null | undefined) {
   assignmentsSearch.value = value == null ? "" : String(value);
@@ -437,6 +640,15 @@ watch(dialogVisible, (open) => {
 const loading = computed(() => !!props.loading);
 const assignments = computed(() => props.assignments || []);
 const effectivePolicies = computed(() => props.effectivePolicies || []);
+const users = computed(() => props.users || []);
+const usersBySid = computed(() => {
+  const map = new Map<string, DialogUser>();
+  for (const user of users.value) {
+    const sid = String(user.sid || "").trim();
+    if (sid) map.set(sid, user);
+  }
+  return map;
+});
 
 function assignmentPolicyName(row: Record<string, unknown>): string {
   return String(
@@ -456,11 +668,30 @@ function effectivePolicyName(p: Record<string, unknown>): string {
   ).toLowerCase();
 }
 
+function assignmentUserName(row: Record<string, unknown>): string {
+  const sid = assignmentSid(row);
+  if (!sid) return "";
+  if (sid === "Machine") return "Machine";
+  const user = usersBySid.value.get(sid);
+  if (!user) return "";
+  return String(
+    user.displayName || user.name || user.samAccountName || user.sid || "",
+  ).trim();
+}
+
 const filteredAssignments = computed(() => {
   const list = assignments.value;
   const q = assignmentsSearch.value.trim().toLowerCase();
   if (!q) return list;
-  return list.filter((row) => assignmentPolicyName(row).includes(q));
+  return list.filter((row) => {
+    const userName = assignmentUserName(row).toLowerCase();
+    const sid = assignmentSid(row).toLowerCase();
+    return (
+      assignmentPolicyName(row).includes(q) ||
+      userName.includes(q) ||
+      sid.includes(q)
+    );
+  });
 });
 
 const filteredEffectivePolicies = computed(() => {
@@ -515,6 +746,15 @@ const assignmentColumns: QTableColumn[] = [
           row["userSid"] ||
           "",
       ),
+  },
+  {
+    name: "user",
+    label: "User",
+    align: "left",
+    field: (row: Record<string, unknown>) =>
+      assignmentUserName(row) || assignmentSid(row),
+    sortable: true,
+    style: "max-width: 120px",
   },
   {
     name: "scope",
@@ -670,6 +910,10 @@ function targetLabel(row: Record<string, unknown>): string {
   }
 
   return String(t);
+}
+
+function assignmentSid(row: Record<string, unknown>): string {
+  return String(row["sid"] ?? row["userSid"] ?? row["user_sid"] ?? "").trim();
 }
 
 function policyScopeEnumLabel(scope: unknown): string | null {

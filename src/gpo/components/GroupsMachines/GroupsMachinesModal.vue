@@ -14,6 +14,25 @@
         <q-icon name="devices" size="sm" class="q-mr-sm" color="primary" />
         <q-toolbar-title>Groups Machines</q-toolbar-title>
 
+        <q-btn-dropdown
+          flat
+          dense
+          icon="file_download"
+          color="primary"
+          title="Export categories"
+          :loading="exportLoading"
+          no-caps
+        >
+          <q-list dense>
+            <q-item clickable v-close-popup @click="handleExportCategories('csv')">
+              <q-item-section>Export CSV</q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="handleExportCategories('xlsx')">
+              <q-item-section>Export XLSX</q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
+
         <q-btn
           v-if="!standalonePage"
           flat
@@ -81,10 +100,12 @@
       :loading="editLoading"
       :name="editCategoryForm.name"
       :description="editCategoryForm.description"
+      :max-agents="editCategoryForm.maxAgents"
       @show="loadCategoryForEdit"
       @save="doUpdateCategory"
       @update:name="editCategoryForm.name = $event"
       @update:description="editCategoryForm.description = $event"
+      @update:max-agents="editCategoryForm.maxAgents = $event"
     />
 
     <MoveCategoryDialog
@@ -169,6 +190,7 @@
 import { ref, computed, watch, onMounted, reactive } from "vue";
 import { useRouter } from "vue-router";
 import { useQuasar } from "quasar";
+import export_pb from "@/generated/common/export_pb";
 import {
   agentCategoryClient,
   getSingleAgentIdFromTarget,
@@ -180,6 +202,7 @@ import {
 } from "@/gpo/api/grpc-client";
 import operator_pb from "@/generated/operator_pb";
 import type { TargetRef } from "@/gpo/composables/useTargetSelection";
+import { fetchAgentRowsForIds } from "@/gpo/composables/useUserActions";
 import TargetSelectionDialog from "@/gpo/components/shared/TargetSelectionDialog.vue";
 import { notifyError, notifySuccess } from "@/utils/notify";
 
@@ -209,6 +232,8 @@ interface TreeNode {
 interface AgentRow {
   id: string;
   name: string;
+  status?: string;
+  last_boot?: string;
 }
 
 type AgentNameById = Record<string, string | undefined>;
@@ -237,6 +262,7 @@ function goToAgentDashboard(agentId: string) {
 }
 
 const categoriesLoading = ref(false);
+const exportLoading = ref(false);
 const categoriesError = ref<string | null>(null);
 const categorySearch = ref("");
 const categoryTreeNodes = ref<TreeNode[]>([]);
@@ -480,9 +506,14 @@ const actionLoading = computed(
 
 const showEditCategory = ref(false);
 const showMoveCategory = ref(false);
-const editCategoryForm = ref<{ name: string; description: string }>({
+const editCategoryForm = ref<{
+  name: string;
+  description: string;
+  maxAgents: number | null;
+}>({
   name: "",
   description: "",
+  maxAgents: 0,
 });
 const moveCategoryForm = ref<{ parentId: number | null }>({ parentId: null });
 
@@ -766,6 +797,43 @@ async function loadCategories() {
       err instanceof Error ? err.message : "Failed to load categories";
   } finally {
     categoriesLoading.value = false;
+  }
+}
+
+function downloadBlob(content: Uint8Array | string, fileName: string, mimeType: string) {
+  const bytes = typeof content === "string"
+    ? new Uint8Array(Array.from(atob(content), (char) => char.codePointAt(0) ?? 0))
+    : new Uint8Array(content);
+  const blob = new Blob([bytes.buffer], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function handleExportCategories(format: "csv" | "xlsx") {
+  exportLoading.value = true;
+  try {
+    const exportFormat = format === "xlsx"
+      ? export_pb.ExportFormat.XLSX
+      : export_pb.ExportFormat.CSV;
+    const res = await agentCategoryClient.exportAllCategories(exportFormat);
+    const mimeType = format === "xlsx"
+      ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      : "text/csv";
+    const fallbackName = `machine-groups_export.${format}`;
+    downloadBlob(res.content, res.fileName || fallbackName, mimeType);
+    notifySuccess(`Machine groups exported as ${format.toUpperCase()}`);
+  } catch (err) {
+    notifyError(
+      err instanceof Error ? err.message : "Failed to export machine groups",
+    );
+  } finally {
+    exportLoading.value = false;
   }
 }
 
@@ -1124,15 +1192,7 @@ async function loadCategoryDetails(categoryId: number) {
       const r = agentsRes.value;
       if (r.status === 0) {
         const agentIds = r.agentIdsList ?? [];
-        const agentsWithNames = await mapWithConcurrency(
-          agentIds,
-          10,
-          async (id: string) => {
-            const name = await resolveAgentName(id);
-            return { id, name };
-          },
-        );
-        categoryAgents.value = agentsWithNames;
+        categoryAgents.value = await fetchAgentRowsForIds(agentIds);
       }
     }
     if (childrenRes.status === "fulfilled") {
@@ -1212,6 +1272,7 @@ async function loadCategoryForEdit() {
         name: info.name ?? selectedCategory.value?.name ?? "",
         description:
           info.description?.value ?? selectedCategory.value?.description ?? "",
+        maxAgents: info.maxAgents ?? 0,
       };
     }
   } finally {
@@ -1224,6 +1285,7 @@ function openEditCategoryDialog() {
     editCategoryForm.value = {
       name: selectedCategory.value.name,
       description: selectedCategory.value.description ?? "",
+      maxAgents: 0,
     };
   }
   showEditCategory.value = true;
@@ -1238,6 +1300,7 @@ async function doUpdateCategory() {
       categoryId: id,
       name: editCategoryForm.value.name.trim(),
       description: editCategoryForm.value.description.trim() || undefined,
+      maxAgents: editCategoryForm.value.maxAgents ?? 0,
     });
     if (res.status === 0) {
       notifySuccess("Category updated");
@@ -1429,7 +1492,7 @@ async function removeAgentFromCategory(agentId: string) {
 
 function prepareSetAgentsForm() {
   setAgentsForm.value = {
-    agentIdsText: categoryAgents.value.join("\n"),
+    agentIdsText: categoryAgents.value.map((a) => a.id).join("\n"),
   };
 }
 
@@ -1468,8 +1531,15 @@ async function doSetCategoryAgents() {
 <style scoped lang="sass">
 .groups-machines-layout
   height: 100%
+  background: #fff
   display: flex
   flex-direction: column
+
+.groups-manager-header
+  flex-shrink: 0
+  background-color: transparent
+  color: black
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12)
 
 .groups-manager-page
   flex: 1
@@ -1550,6 +1620,13 @@ async function doSetCategoryAgents() {
 
 .body--dark .groups-left-panel
   border-right-color: rgba(255, 255, 255, 0.12)
+
+.body--dark .groups-manager-header
+  color: rgba(255, 255, 255, 0.87)
+  border-bottom-color: rgba(255, 255, 255, 0.12)
+
+.body--dark .groups-machines-layout
+  background: rgba(30, 30, 30, 0.98)
 
 .body--dark .policies-list-container
   border-color: rgba(255, 255, 255, 0.12)

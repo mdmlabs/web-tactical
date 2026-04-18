@@ -25,6 +25,15 @@
         <q-btn
           flat
           dense
+          color="primary"
+          icon="edit"
+          label=""
+          title="Edit group"
+          @click="$emit('edit')"
+        />
+        <q-btn
+          flat
+          dense
           color="negative"
           icon="delete"
           label=""
@@ -35,160 +44,199 @@
 
       <q-separator />
 
-      <div class="row q-gutter-sm q-px-lg q-py-md">
-        <q-card flat bordered class="col-auto">
-          <q-card-section class="q-pa-sm text-center" style="min-width: 120px">
-            <div class="text-caption text-grey-6">SAM Name</div>
-            <div class="text-body2 text-weight-medium">
-              {{ group?.samaccountname || "—" }}
+      <div class="groups-detail-main">
+        <div v-if="detailLoading" class="flex flex-center q-pa-xl groups-detail-summary">
+          <q-spinner color="primary" size="2em" />
+        </div>
+        <div v-else class="groups-detail-summary q-px-lg q-py-md">
+          <div class="row q-col-gutter-md summary-row">
+            <div class="col-12 col-md-6 summary-col">
+              <div class="system-info-summary summary-card">
+                <div class="text-caption text-grey-7 q-mb-xs">Group</div>
+                <q-scroll-area class="summary-scroll">
+                  <div class="system-info-kv">
+                    <div class="system-info-k">SAM name</div>
+                    <div class="system-info-v">
+                      {{ group?.samaccountname || "—" }}
+                    </div>
+                  </div>
+                  <div class="system-info-kv">
+                    <div class="system-info-k">SID</div>
+                    <div class="system-info-v text-mono" style="font-size: 11px">
+                      {{ group?.sid || "—" }}
+                    </div>
+                  </div>
+                  <div class="system-info-kv">
+                    <div class="system-info-k">Description</div>
+                    <div class="system-info-v">
+                      {{ group?.description || "—" }}
+                    </div>
+                  </div>
+                  <div class="system-info-kv">
+                    <div class="system-info-k">Distinguished name</div>
+                    <div class="system-info-v">
+                      {{ group?.distinguishedname || "—" }}
+                    </div>
+                  </div>
+                  <div class="system-info-kv">
+                    <div class="system-info-k">Users (in group / max)</div>
+                    <div class="system-info-v">
+                      {{ usersQuotaLine }}
+                    </div>
+                  </div>
+                  <div class="system-info-kv">
+                    <div class="system-info-k">Agents (linked / max)</div>
+                    <div class="system-info-v">
+                      {{ agentsQuotaLine }}
+                    </div>
+                  </div>
+                </q-scroll-area>
+              </div>
             </div>
-          </q-card-section>
-        </q-card>
-        <q-card flat bordered class="col-auto">
-          <q-card-section class="q-pa-sm text-center" style="min-width: 120px">
-            <div class="text-caption text-grey-6">SID</div>
-            <div
-              class="text-body2 text-weight-medium text-mono"
-              style="font-size: 11px"
-            >
-              {{ group?.sid || "—" }}
-            </div>
-          </q-card-section>
-        </q-card>
-        <q-card flat bordered class="col">
-          <q-card-section class="q-pa-sm">
-            <div class="text-caption text-grey-6">Description</div>
-            <div class="text-body2">
-              {{ group?.description || "—" }}
-            </div>
-          </q-card-section>
-        </q-card>
-      </div>
-
-      <q-separator />
-
-      <q-tabs
-        :model-value="detailTab"
-        dense
-        inline-label
-        class="text-grey gpo-detail-tabs"
-        active-color="primary"
-        indicator-color="primary"
-        align="left"
-        narrow-indicator
-        no-caps
-        @update:model-value="(v: string) => $emit('update:detailTab', v)"
-      >
-        <q-tab name="members" icon="people" label="Members">
-          <q-badge
-            v-if="groupUsers.length"
-            color="primary"
-            :label="groupUsers.length"
-            floating
-            rounded
-          />
-        </q-tab>
-        <q-tab name="children" icon="account_tree" label="Child Groups">
-          <q-badge
-            v-if="groupChildren.length"
-            color="primary"
-            :label="groupChildren.length"
-            floating
-            rounded
-          />
-        </q-tab>
-        <q-tab name="parents" icon="call_merge" label="Parent Groups">
-          <q-badge
-            v-if="groupParents.length"
-            color="primary"
-            :label="groupParents.length"
-            floating
-            rounded
-          />
-        </q-tab>
-        <q-tab name="agents" icon="dns" label="Agents">
-          <q-badge
-            v-if="groupAgents.length"
-            color="primary"
-            :label="groupAgents.length"
-            floating
-            rounded
-          />
-        </q-tab>
-        <q-tab
-          name="collections"
-          icon="collections_bookmark"
-          label="Policy collections"
-        >
-          <q-badge
-            v-if="groupAppliedCollectionsLoading"
-            color="grey"
-            label="..."
-            floating
-            rounded
-          />
-          <q-badge
-            v-else-if="groupAppliedCollections.length > 0"
-            color="primary"
-            :label="groupAppliedCollections.length"
-            floating
-            rounded
-          />
-        </q-tab>
-      </q-tabs>
-
-      <q-separator />
-
-      <q-tab-panels :model-value="detailTab" class="groups-tab-panels">
-        <q-tab-panel name="members" class="q-pa-md">
-          <div class="row items-center q-mb-md">
-            <div class="text-subtitle2">Group Members</div>
-            <q-space />
-            <q-btn
-              flat
-              dense
-              color="primary"
-              icon="person_add"
-              label=""
-              :disable="!selectedGroupSam"
-              @click="$emit('add-user')"
-            />
-          </div>
-
-          <div v-if="detailLoading" class="text-center q-pa-md">
-            <q-spinner color="primary" />
-          </div>
-          <q-table
-            v-else
-            :rows="groupUsers"
-            :columns="usersColumns"
-            row-key="samaccountname"
-            flat
-            bordered
-            dense
-            :rows-per-page-options="[15, 30, 50, 0]"
-            :no-data-label="'No members in this group'"
-          >
-            <template v-slot:body-cell-actions="cellProps">
-              <q-td :props="cellProps">
-                <q-btn
-                  flat
-                  round
+            <div class="col-12 col-md-6 summary-col">
+              <div
+                class="system-info-summary summary-card summary-card--members"
+              >
+                <div class="row items-center q-mb-sm flex-shrink-0">
+                  <div class="text-caption text-grey-7">Members</div>
+                  <q-badge
+                    v-if="groupUsers.length"
+                    class="q-ml-xs"
+                    color="primary"
+                    :label="groupUsers.length"
+                    rounded
+                  />
+                  <q-space />
+                  <q-btn
+                    flat
+                    dense
+                    color="primary"
+                    icon="person_add"
+                    label=""
+                    size="sm"
+                    :disable="!selectedGroupSam"
+                    @click="$emit('add-user')"
+                  />
+                </div>
+                <q-input
+                  v-model="membersSearch"
                   dense
-                  icon="person_remove"
-                  size="xs"
-                  color="negative"
-                  title="Remove from group"
-                  @click="$emit('remove-user', cellProps.row)"
-                />
-              </q-td>
-            </template>
-          </q-table>
-        </q-tab-panel>
+                  outlined
+                  clearable
+                  placeholder="Search members..."
+                  class="q-mb-sm flex-shrink-0 summary-members-search"
+                >
+                  <template #prepend>
+                    <q-icon name="search" />
+                  </template>
+                </q-input>
+                <div class="summary-members-body">
+                  <q-table
+                    :rows="filteredGroupUsersForCard"
+                    :columns="usersColumns"
+                    row-key="samaccountname"
+                    flat
+                    dense
+                    bordered
+                    class="summary-members-table"
+                    :rows-per-page-options="[15, 30, 50, 0]"
+                    :pagination="membersTabPagination"
+                    :no-data-label="membersTableNoDataLabel"
+                  >
+                    <template #body-cell-actions="cellProps">
+                      <q-td :props="cellProps">
+                        <q-btn
+                          flat
+                          round
+                          dense
+                          icon="person_remove"
+                          size="xs"
+                          color="negative"
+                          title="Remove from group"
+                          @click="$emit('remove-user', cellProps.row)"
+                        />
+                      </q-td>
+                    </template>
+                  </q-table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
+        <q-separator class="groups-detail-sep" />
+
+        <div class="groups-detail-tabs-wrap q-pt-sm">
+          <q-tabs
+            :model-value="detailTab"
+            dense
+            inline-label
+            class="text-grey gpo-detail-tabs groups-detail-tabs"
+            active-color="primary"
+            indicator-color="primary"
+            align="left"
+            narrow-indicator
+            no-caps
+            @update:model-value="(v: string) => $emit('update:detailTab', v)"
+          >
+            <q-tab name="children" icon="account_tree" label="Child groups">
+              <q-badge
+                v-if="groupChildren.length"
+                color="primary"
+                :label="groupChildren.length"
+                floating
+                rounded
+              />
+            </q-tab>
+            <q-tab name="parents" icon="call_merge" label="Parent groups">
+              <q-badge
+                v-if="groupParents.length"
+                color="primary"
+                :label="groupParents.length"
+                floating
+                rounded
+              />
+            </q-tab>
+            <q-tab name="agents" icon="dns" label="Agents">
+              <q-badge
+                v-if="groupAgents.length"
+                color="primary"
+                :label="groupAgents.length"
+                floating
+                rounded
+              />
+            </q-tab>
+            <q-tab
+              name="collections"
+              icon="collections_bookmark"
+              label="Policy collections"
+            >
+              <q-badge
+                v-if="groupAppliedCollectionsLoading"
+                color="grey"
+                label="..."
+                floating
+                rounded
+              />
+              <q-badge
+                v-else-if="groupAppliedCollections.length > 0"
+                color="primary"
+                :label="groupAppliedCollections.length"
+                floating
+                rounded
+              />
+            </q-tab>
+            <q-tab name="alerts" icon="warning" label="Alerts" />
+            <q-tab name="connectivity" icon="network_check" label="Connectivity" />
+          </q-tabs>
+        </div>
+
+        <q-separator class="groups-detail-sep" />
+
+        <q-tab-panels :model-value="detailTab" class="groups-tab-panels">
         <q-tab-panel name="children" class="q-pa-md">
           <div class="row items-center q-mb-md">
-            <div class="text-subtitle2">Child Groups</div>
+            <div class="text-subtitle2">Child groups</div>
             <q-space />
             <q-btn
               color="primary"
@@ -212,9 +260,10 @@
             bordered
             dense
             :rows-per-page-options="[15, 30, 50, 0]"
+            :pagination="relationPaginationChildren"
             :no-data-label="'No child groups'"
           >
-            <template v-slot:body-cell-name="cellProps">
+            <template #body-cell-name="cellProps">
               <q-td :props="cellProps">
                 <span
                   class="text-primary cursor-pointer"
@@ -227,7 +276,7 @@
         </q-tab-panel>
 
         <q-tab-panel name="parents" class="q-pa-md">
-          <div class="text-subtitle2 q-mb-md">Parent Groups</div>
+          <div class="text-subtitle2 q-mb-md">Parent groups</div>
           <div v-if="detailLoading" class="text-center q-pa-md">
             <q-spinner color="primary" />
           </div>
@@ -240,9 +289,10 @@
             bordered
             dense
             :rows-per-page-options="[15, 30, 50, 0]"
+            :pagination="relationPaginationParents"
             :no-data-label="'No parent groups'"
           >
-            <template v-slot:body-cell-name="cellProps">
+            <template #body-cell-name="cellProps">
               <q-td :props="cellProps">
                 <span
                   class="text-primary cursor-pointer"
@@ -255,65 +305,16 @@
         </q-tab-panel>
 
         <q-tab-panel name="agents" class="q-pa-md">
-          <div class="row items-center q-mb-md">
-            <div class="text-subtitle2">Agents linked to this group</div>
-            <q-space />
-            <q-btn
-              flat
-              dense
-              color="primary"
-              icon="add_circle_outline"
-              label=""
-              :disable="!selectedGroupId"
-              title="Select a group first"
-              @click="$emit('add-agent')"
-            />
-          </div>
-          <div v-if="detailLoading" class="text-center q-pa-md">
-            <q-spinner color="primary" />
-          </div>
-          <div
-            v-else-if="groupAgents.length === 0"
-            class="text-grey-6 text-caption"
-          >
-            No agents linked
-          </div>
-          <q-list v-else bordered separator>
-            <q-item
-              v-for="agent in groupAgents"
-              :key="agent.id"
-              class="row items-center cursor-pointer"
-              clickable
-              @click="$emit('open-agent-dashboard', agent.id)"
-            >
-              <q-item-section avatar>
-                <q-icon name="laptop" color="primary" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>{{ agent.name }}</q-item-label>
-                <q-item-label
-                  v-if="agent.name !== agent.id"
-                  caption
-                  class="text-grey-6"
-                >
-                  {{ agent.id }}
-                </q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <q-btn
-                  flat
-                  round
-                  dense
-                  icon="remove_circle_outline"
-                  size="sm"
-                  color="negative"
-                  :loading="removingAgentId === agent.id"
-                  title="Remove agent"
-                  @click.stop="$emit('remove-agent', agent.id)"
-                />
-              </q-item-section>
-            </q-item>
-          </q-list>
+          <UserAgentsTab
+            no-target-hint="Select a group first"
+            :agents="groupAgents"
+            :loading="detailLoading"
+            :has-target="!!selectedGroupId"
+            :removing-agent-id="removingAgentId"
+            @add-agent="$emit('add-agent')"
+            @remove-agent="$emit('remove-agent', $event)"
+            @open-agent-dashboard="$emit('open-agent-dashboard', $event)"
+          />
         </q-tab-panel>
 
         <q-tab-panel name="collections" class="q-pa-md">
@@ -344,11 +345,15 @@
                 />
               </div>
               <q-input
-                v-if="viewMode === 'policies' && !groupAppliedCollectionsLoading"
+                v-if="!groupAppliedCollectionsLoading"
                 v-model="tabPolicySearchQuery"
                 dense
                 outlined
-                placeholder="Search by policy..."
+                :placeholder="
+                  viewMode === 'collections'
+                    ? 'Search by collection...'
+                    : 'Search by policy...'
+                "
                 clearable
                 class="col policy-collections-toolbar-search"
               >
@@ -418,8 +423,20 @@
               </div>
               <template v-else-if="groupAppliedCollections.length">
                 <template v-if="viewMode === 'collections'">
+                  <div
+                    v-if="filteredGroupAppliedCollections.length === 0"
+                    class="text-center text-grey-6 q-pa-md"
+                  >
+                    <q-icon name="search_off" size="md" class="q-mb-sm" />
+                    <div>
+                      No collections matching "{{
+                        tabPolicySearchQuery ?? ""
+                      }}"
+                    </div>
+                  </div>
                   <q-table
-                    :rows="groupAppliedCollections"
+                    v-else
+                    :rows="filteredGroupAppliedCollections"
                     :columns="collectionsColumns"
                     row-key="id"
                     flat
@@ -566,7 +583,31 @@
             </template>
           </div>
         </q-tab-panel>
+
+        <q-tab-panel name="alerts" class="q-pa-md">
+          <AgentAlertsTab
+            v-if="selectedGroupId"
+            :group-id="selectedGroupId"
+            :active="detailTab === 'alerts'"
+          />
+          <div v-else class="text-grey-6 text-body2">
+            Group identifier is not available for alerts.
+          </div>
+        </q-tab-panel>
+
+        <q-tab-panel name="connectivity" class="q-pa-md">
+          <ConnectivityPoliciesTab
+            v-if="connectivityGroupTarget"
+            :key="`conn-group-${selectedGroupId}`"
+            compact
+            :fixed-target="connectivityGroupTarget"
+          />
+          <div v-else class="text-grey-6 text-body2">
+            Group identifier is not available for connectivity policies.
+          </div>
+        </q-tab-panel>
       </q-tab-panels>
+      </div>
     </template>
 
     <q-dialog v-model="showCollectionDetailsDialog" position="standard">
@@ -678,9 +719,7 @@
                               <span class="tooltip-icon error">✗</span>
                               <span
                                 >Not Assigned:
-                                {{
-                                  p.compliance.notAssignedAgents
-                                }}
+                                {{ p.compliance.notAssignedAgents }}
                                 agents</span
                               >
                             </div>
@@ -724,8 +763,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
+import type { ConnectivityPolicyTarget } from "@/gpo/api/connectivity-policy";
+import AgentAlertsTab from "@/gpo/components/AgentAlertsTab.vue";
+import ConnectivityPoliciesTab from "@/gpo/components/ConnectivityPolicy/ConnectivityPoliciesTab.vue";
 import ComplianceBar from "@/gpo/components/shared/ComplianceBar.vue";
+import UserAgentsTab from "@/gpo/components/UsersManager/UserAgentsTab.vue";
+import type { AgentRow } from "@/gpo/composables/useUserActions";
 import { exportPolicyCollections } from "@/utils/csv";
 import { policyStateClient, createAgentTarget } from "@/gpo/api/grpc-client";
 
@@ -736,6 +780,8 @@ export interface GroupRow {
   samaccountname?: string;
   description?: string;
   sid?: string;
+  maxUsers?: number;
+  maxAgents?: number;
 }
 
 export interface AppliedCollection {
@@ -755,11 +801,6 @@ interface PolicyWithCompliance {
     totalAgents: number;
     loading: boolean;
   };
-}
-
-export interface AgentRow {
-  id: string;
-  name: string;
 }
 
 const usersColumns = [
@@ -847,6 +888,10 @@ const collectionsColumns = [
   },
 ];
 
+const membersTabPagination = ref({ page: 1, rowsPerPage: 15 });
+const relationPaginationChildren = ref({ page: 1, rowsPerPage: 15 });
+const relationPaginationParents = ref({ page: 1, rowsPerPage: 15 });
+
 const showCollectionDetailsDialog = ref(false);
 const selectedCollection = ref<AppliedCollection | null>(null);
 const policySearchQuery = ref("");
@@ -878,6 +923,16 @@ const policiesGrouped = computed(() => {
   result.sort((a, b) => b.collections.length - a.collections.length);
   return result;
 });
+
+const filteredGroupAppliedCollections = computed(() => {
+  const list = props.groupAppliedCollections ?? [];
+  const q = (tabPolicySearchQuery.value ?? "").toLowerCase().trim();
+  if (!q) return list;
+  return list.filter((row) =>
+    (row.name ?? "").toLowerCase().includes(q),
+  );
+});
+
 const policyComplianceCache = new Map<
   string,
   {
@@ -906,6 +961,75 @@ const props = defineProps<{
   groupAppliedCollectionsLoading: boolean;
   canRemoveCollection: boolean;
 }>();
+
+const membersSearch = ref("");
+
+const filteredGroupUsersForCard = computed(() => {
+  const list = props.groupUsers ?? [];
+  const q = (membersSearch.value ?? "").trim().toLowerCase();
+  if (!q) return list;
+  return list.filter((u: GroupRow) => {
+    const display = (u.displayname ?? "").toLowerCase();
+    const sam = (u.samaccountname ?? "").toLowerCase();
+    const sid = (u.sid ?? "").toLowerCase();
+    const desc = (u.description ?? "").toLowerCase();
+    return (
+      display.includes(q) ||
+      sam.includes(q) ||
+      sid.includes(q) ||
+      desc.includes(q)
+    );
+  });
+});
+
+const membersTableNoDataLabel = computed(() => {
+  if ((props.groupUsers?.length ?? 0) === 0) {
+    return "No members in this group";
+  }
+  if (filteredGroupUsersForCard.value.length === 0) {
+    return "No matching members";
+  }
+  return "No members in this group";
+});
+
+watch(
+  () => props.selectedGroupSam,
+  () => {
+    membersSearch.value = "";
+  },
+);
+
+watch(membersSearch, () => {
+  membersTabPagination.value = {
+    ...membersTabPagination.value,
+    page: 1,
+  };
+});
+
+function formatCountVsLimit(
+  count: number,
+  max: number | undefined | null,
+): string {
+  const c = Number.isFinite(count) ? count : 0;
+  if (max === undefined || max === null || Number.isNaN(Number(max))) {
+    return String(c);
+  }
+  return `${c} / ${max}`;
+}
+
+const usersQuotaLine = computed(() =>
+  formatCountVsLimit(props.groupUsers?.length ?? 0, props.group?.maxUsers),
+);
+
+const agentsQuotaLine = computed(() =>
+  formatCountVsLimit(props.groupAgents?.length ?? 0, props.group?.maxAgents),
+);
+
+const connectivityGroupTarget = computed<ConnectivityPolicyTarget | null>(() =>
+  props.selectedGroupId
+    ? { type: "userGroup", userGroupId: props.selectedGroupId }
+    : null,
+);
 
 async function mapWithConcurrency<T, R>(
   items: T[],
@@ -1124,6 +1248,7 @@ async function openCollectionDetailsDialog(collection: AppliedCollection) {
 }
 
 defineEmits<{
+  edit: [];
   delete: [];
   "update:detailTab": [value: string];
   "add-user": [];
@@ -1153,9 +1278,119 @@ function exportCollections(format: "csv" | "xlsx") {
 .groups-detail-header
   flex-shrink: 0
 
-.groups-tab-panels
+.groups-detail-main
   flex: 1
+  min-height: 0
+  display: flex
+  flex-direction: column
+  overflow: hidden
+
+.groups-detail-summary
+  flex-shrink: 0
+
+.groups-detail-sep
+  flex-shrink: 0
+
+.groups-detail-tabs-wrap
+  flex-shrink: 0
+  padding-left: 24px
+  padding-right: 24px
+  padding-bottom: 4px
+  background-color: rgba(0, 0, 0, 0.04)
+
+.body--dark .groups-detail-tabs-wrap
+  background-color: rgba(255, 255, 255, 0.07)
+
+.groups-detail-tabs
+  background-color: transparent
+
+.summary-row
+  align-items: stretch
+
+.summary-col
+  display: flex
+
+.summary-card
+  width: 100%
+  height: clamp(200px, 35vh, 360px)
+  display: flex
+  flex-direction: column
+  overflow: hidden
+
+.summary-scroll
+  flex: 1
+  min-height: 0
+
+.summary-card--members
+  min-height: 0
+
+.summary-members-search
+  min-width: 0
+
+.summary-members-body
+  flex: 1 1 0
+  min-height: 0
+  min-width: 0
   overflow: auto
+  -webkit-overflow-scrolling: touch
+
+.summary-members-table
+  :deep(.q-table__bottom)
+    padding: 4px 8px
+  :deep(.q-table thead th)
+    font-size: 12px
+  :deep(.q-table tbody td)
+    font-size: 12px
+
+.system-info-kv
+  display: flex
+  gap: 10px
+  padding: 6px 0
+
+.system-info-kv + .system-info-kv
+  border-top: 1px dashed rgba(18, 177, 209, 0.18)
+
+.system-info-k
+  min-width: 120px
+  color: rgba(0, 0, 0, 0.55)
+  font-size: 12px
+  line-height: 16px
+
+.body--dark .system-info-k
+  color: rgba(255, 255, 255, 0.65)
+
+.system-info-v
+  flex: 1
+  min-width: 0
+  color: rgba(0, 0, 0, 0.88)
+  font-size: 13px
+  line-height: 18px
+  word-break: break-word
+
+.body--dark .system-info-v
+  color: rgba(255, 255, 255, 0.88)
+
+.system-info-summary
+  background: rgba(16, 137, 211, 0.02)
+  border: 1px solid rgba(18, 177, 209, 0.18)
+  border-radius: 10px
+  padding: 8px 12px
+
+.body--dark .system-info-summary
+  background: rgba(18, 177, 209, 0.06)
+  border: 1px solid rgba(18, 177, 209, 0.28)
+
+.groups-tab-panels
+  flex: 1 1 0%
+  min-height: 0
+  overflow: hidden
+  display: flex
+  flex-direction: column
+
+  :deep(.q-panel)
+    flex: 1 1 0%
+    min-height: 0
+    overflow: auto
 
 .policy-collections-toolbar-search
   min-width: 0

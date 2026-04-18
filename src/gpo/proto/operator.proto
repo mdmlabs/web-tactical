@@ -597,6 +597,17 @@ service PolicyStateService {
 
   rpc GetAssignments (GetAssignmentsRequest)
       returns (GetAssignmentsResponse);
+
+  rpc ExportAssignments(ExportPolicyStateRequest)
+      returns (laborato.common.export.ExportResponse);
+
+  rpc ExportEffectivePolicies(ExportPolicyStateRequest)
+      returns (laborato.common.export.ExportResponse);
+}
+
+message ExportPolicyStateRequest {
+    laborato.common.target.Target target = 1;
+    laborato.common.export.ExportFormat export_format = 2;
 }
 
 message GetEffectivePoliciesRequest {
@@ -629,5 +640,6 @@ message PolicyAssignment {
   PolicyDesiredState desired_state = 2;
   PolicyValueOverride override = 3;
   laborato.common.target.Target target = 4;
-  PolicySummary summary = 5;
+  string sid = 5;
+  PolicySummary summary = 6;
 }

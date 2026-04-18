@@ -88,6 +88,7 @@
           @remove-collection-by-id="handleRemoveCollectionById"
           @open-agent-dashboard="goToAgentDashboard"
           @manage-child-groups="openManageChildGroupsDialog"
+          @edit="openEditGroupDialog"
         />
       </div>
     </div>
@@ -98,6 +99,16 @@
       :parent-group-options="parentGroupOptions"
       :initial-parent-id="selectedGroupId"
       @create="handleCreateGroup"
+    />
+
+    <EditGroupDialog
+      v-model="showEditGroup"
+      :loading="editGroupLoading"
+      :initial-sam-group-name="selectedGroupSam ?? ''"
+      :initial-description="selectedGroup?.description ?? ''"
+      :initial-max-users="selectedGroup?.maxUsers"
+      :initial-max-agents="selectedGroup?.maxAgents"
+      @save="handleUpdateGroup"
     />
 
     <AddUserToGroupDialog
@@ -160,18 +171,22 @@ import {
   createGlobalTarget,
   policyAssignmentClient,
   collectionsClient,
-  agentServiceClientWrapper,
   policyStateClient,
 } from "@/gpo/api/grpc-client";
 import export_pb from "@/generated/common/export_pb";
 import type { Target } from "@/gpo/api/grpc-client";
 import type { TargetRef } from "@/gpo/composables/useTargetSelection";
+import {
+  fetchAgentRowsForIds,
+  type AgentRow,
+} from "@/gpo/composables/useUserActions";
 import TargetSelectionDialog from "@/gpo/components/shared/TargetSelectionDialog.vue";
 import { notifyError, notifySuccess } from "@/utils/notify";
 
 import GroupsListPanel from "./GroupsListPanel.vue";
 import GroupDetailPanel from "./GroupDetailPanel.vue";
 import CreateGroupDialog from "./dialogs/CreateGroupDialog.vue";
+import EditGroupDialog from "./dialogs/EditGroupDialog.vue";
 import AddUserToGroupDialog from "./dialogs/AddUserToGroupDialog.vue";
 import ApplyCollectionToGroupDialog from "./dialogs/ApplyCollectionToGroupDialog.vue";
 import RemoveCollectionFromGroupDialog from "./dialogs/RemoveCollectionFromGroupDialog.vue";
@@ -185,6 +200,8 @@ interface GroupRow {
   description?: string;
   sid?: string;
   groupid?: string;
+  maxUsers?: number;
+  maxAgents?: number;
 }
 
 interface TreeNode {
@@ -197,11 +214,6 @@ interface TreeNode {
 
 interface GroupRowWithId extends GroupRow {
   groupId: string;
-}
-
-interface AgentRow {
-  id: string;
-  name: string;
 }
 
 const props = withDefaults(
@@ -240,7 +252,7 @@ const groupSearch = ref("");
 const selectedGroupSam = ref<string | null>(null);
 const selectedGroupId = ref<string | null>(null);
 const selectedGroup = ref<GroupRow | null>(null);
-const detailTab = ref("members");
+const detailTab = ref("children");
 const detailLoading = ref(false);
 
 const groupUsers = ref<GroupRow[]>([]);
@@ -253,6 +265,9 @@ const deleteLoading = ref(false);
 
 const showCreateGroup = ref(false);
 const createGroupLoading = ref(false);
+
+const showEditGroup = ref(false);
+const editGroupLoading = ref(false);
 
 const showManageChildGroups = ref(false);
 const manageChildGroupsLoading = ref(false);
@@ -455,6 +470,8 @@ type ApiGroupTreeNode = {
     samaccountname?: string;
     description?: string;
     sid?: string;
+    maxUsers?: number;
+    maxAgents?: number;
   };
   childrenList?: ApiGroupTreeNode[];
 };
@@ -476,6 +493,8 @@ function mapGroupTreeNodeToTreeNode(
     samaccountname: info?.samaccountname || "",
     description: info?.description || "",
     sid: info?.sid || "",
+    maxUsers: info?.maxUsers,
+    maxAgents: info?.maxAgents,
   });
   const children = (node.childrenList || []).map((child) =>
     mapGroupTreeNodeToTreeNode(child, flatList),
@@ -698,7 +717,7 @@ function selectGroup(nodeId: string | null) {
   selectedGroupId.value = found.groupId;
   selectedGroupSam.value = found.samaccountname || found.groupId;
   selectedGroup.value = found;
-  detailTab.value = "members";
+  detailTab.value = "children";
   loadGroupDetails(found.groupId);
 }
 
@@ -771,21 +790,8 @@ async function loadGroupDetails(groupId: string) {
     }
     if (agentsRes.status === "fulfilled") {
       const agentIds = agentsRes.value.agentIdsList || [];
-      const agentsWithNames = await Promise.all(
-        agentIds.map(async (id: string) => {
-          try {
-            const agent = await agentServiceClientWrapper.getAgent(id);
-            const name =
-              (agent as { hostName?: string; host_name?: string }).hostName ??
-              (agent as { hostName?: string; host_name?: string }).host_name ??
-              id;
-            return { id, name };
-          } catch {
-            return { id, name: id };
-          }
-        }),
-      );
-      groupAgents.value = agentsWithNames;
+      groupAgents.value =
+        agentIds.length > 0 ? await fetchAgentRowsForIds(agentIds) : [];
     }
   } finally {
     detailLoading.value = false;
@@ -832,6 +838,68 @@ async function doDeleteGroup() {
 
 function openCreateGroupDialog() {
   showCreateGroup.value = true;
+}
+
+function openEditGroupDialog() {
+  showEditGroup.value = true;
+}
+
+async function handleUpdateGroup(payload: {
+  newSamGroupName: string;
+  description: string;
+  maxUsers?: number;
+  maxAgents?: number;
+}) {
+  const groupId = selectedGroupId.value;
+  const currentSam = selectedGroupSam.value;
+  if (!groupId || !currentSam) return;
+  const target = selectedGroupId.value
+    ? createGroupTarget(selectedGroupId.value)
+    : currentUserGroupTarget.value;
+  if (!target) return;
+  editGroupLoading.value = true;
+  try {
+    const res = await userControlClient.updateGroup(
+      target,
+      groupId,
+      currentSam,
+      payload.newSamGroupName,
+      {
+        description: payload.description,
+        maxUsers: payload.maxUsers,
+        maxAgents: payload.maxAgents,
+      },
+    );
+    if (res.status === 0) {
+      $q.notify({
+        type: "positive",
+        message: `Group "${payload.newSamGroupName}" updated`,
+      });
+      showEditGroup.value = false;
+      await loadGroups();
+      const found = allGroups.value.find((g) => g.groupId === groupId);
+      if (found) {
+        selectedGroupSam.value =
+          found.samaccountname || payload.newSamGroupName;
+        selectedGroup.value = found;
+      } else {
+        selectedGroupSam.value = payload.newSamGroupName;
+      }
+      await loadGroupDetails(groupId);
+    } else {
+      $q.notify({
+        type: "negative",
+        message: res.errorMessage || "Update failed",
+      });
+    }
+  } catch (err) {
+    $q.notify({
+      type: "negative",
+      message: err instanceof Error ? err.message : "Update failed",
+    });
+  } finally {
+    editGroupLoading.value = false;
+  }
 }
 
 async function handleCreateGroup(payload: {

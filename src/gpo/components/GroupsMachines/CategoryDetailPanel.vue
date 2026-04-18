@@ -116,81 +116,37 @@
             rounded
           />
         </q-tab>
+        <q-tab name="alerts" icon="warning" label="Alerts" />
+        <q-tab name="connectivity" icon="network_check" label="Connectivity" />
       </q-tabs>
 
       <q-separator />
 
       <q-tab-panels :model-value="detailTab" class="groups-tab-panels">
         <q-tab-panel name="agents" class="q-pa-md">
-          <div class="row items-center q-mb-md">
-            <div class="text-subtitle2">Agents in this category</div>
-            <q-space />
-            <q-btn
-              flat
-              dense
-              color="secondary"
-              icon="open_in_new"
-              label=""
-              :disable="selectedCategoryId == null"
-              title="Replace the entire list of agents"
-              class="q-mr-sm"
-              @click="$emit('set-agents')"
-            />
-            <q-btn
-              flat
-              dense
-              color="primary"
-              icon="add_circle_outline"
-              label=""
-              :disable="selectedCategoryId == null"
-              title="Select a category first"
-              @click="$emit('add-agent')"
-            />
-          </div>
-          <div v-if="detailLoading" class="text-center q-pa-md">
-            <q-spinner color="primary" />
-          </div>
-          <div
-            v-else-if="(categoryAgents?.length ?? 0) === 0"
-            class="text-grey-6 text-caption"
+          <UserAgentsTab
+            no-target-hint="Select a category first"
+            :agents="categoryAgents"
+            :loading="detailLoading"
+            :has-target="selectedCategoryId != null"
+            @add-agent="$emit('add-agent')"
+            @remove-agent="$emit('remove-agent', $event)"
+            @open-agent-dashboard="$emit('open-agent-dashboard', $event)"
           >
-            No agents in this category
-          </div>
-          <q-list v-else bordered separator>
-            <q-item
-              v-for="agent in categoryAgents"
-              :key="agent.id"
-              class="row items-center cursor-pointer"
-              clickable
-              @click="$emit('open-agent-dashboard', agent.id)"
-            >
-              <q-item-section avatar>
-                <q-icon name="laptop" color="primary" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>{{ agent.name }}</q-item-label>
-                <q-item-label
-                  v-if="agent.name !== agent.id"
-                  caption
-                  class="text-grey-6"
-                >
-                  {{ agent.id }}
-                </q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <q-btn
-                  flat
-                  round
-                  dense
-                  icon="remove_circle_outline"
-                  size="xs"
-                  color="negative"
-                  title="Remove from category"
-                  @click.stop="$emit('remove-agent', agent.id)"
-                />
-              </q-item-section>
-            </q-item>
-          </q-list>
+            <template #toolbar-extra>
+              <q-btn
+                flat
+                dense
+                color="secondary"
+                icon="open_in_new"
+                label=""
+                class="q-mr-sm"
+                :disable="selectedCategoryId == null"
+                title="Replace the entire list of agents"
+                @click="$emit('set-agents')"
+              />
+            </template>
+          </UserAgentsTab>
         </q-tab-panel>
 
         <q-tab-panel name="children" class="q-pa-md">
@@ -249,13 +205,15 @@
                 />
               </div>
               <q-input
-                v-if="
-                  viewMode === 'policies' && !categoryAppliedCollectionsLoading
-                "
+                v-if="!categoryAppliedCollectionsLoading"
                 v-model="policySearchQuery"
                 dense
                 outlined
-                placeholder="Search by policy..."
+                :placeholder="
+                  viewMode === 'collections'
+                    ? 'Search by collection...'
+                    : 'Search by policy...'
+                "
                 clearable
                 class="col policy-collections-toolbar-search"
               >
@@ -330,8 +288,20 @@
                 v-else-if="(categoryAppliedCollections?.length ?? 0) > 0"
               >
                 <template v-if="viewMode === 'collections'">
+                  <div
+                    v-if="filteredCategoryAppliedCollections.length === 0"
+                    class="text-center text-grey-6 q-pa-md"
+                  >
+                    <q-icon name="search_off" size="md" class="q-mb-sm" />
+                    <div>
+                      No collections matching "{{
+                        policySearchQuery ?? ""
+                      }}"
+                    </div>
+                  </div>
                   <q-table
-                    :rows="categoryAppliedCollections"
+                    v-else
+                    :rows="filteredCategoryAppliedCollections"
                     :columns="collectionsColumns"
                     row-key="id"
                     flat
@@ -492,6 +462,23 @@
             </template>
           </div>
         </q-tab-panel>
+
+        <q-tab-panel name="alerts" class="q-pa-md">
+          <AgentAlertsTab
+            v-if="selectedCategoryId != null"
+            :agent-category-id="selectedCategoryId"
+            :active="detailTab === 'alerts'"
+          />
+        </q-tab-panel>
+
+        <q-tab-panel name="connectivity" class="q-pa-md">
+          <ConnectivityPoliciesTab
+            v-if="connectivityCategoryTarget"
+            :key="`conn-cat-${selectedCategoryId}`"
+            compact
+            :fixed-target="connectivityCategoryTarget"
+          />
+        </q-tab-panel>
       </q-tab-panels>
     </template>
   </div>
@@ -500,7 +487,11 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import type { QTableColumn } from "quasar";
+import AgentAlertsTab from "@/gpo/components/AgentAlertsTab.vue";
+import ConnectivityPoliciesTab from "@/gpo/components/ConnectivityPolicy/ConnectivityPoliciesTab.vue";
 import ComplianceBar from "@/gpo/components/shared/ComplianceBar.vue";
+import UserAgentsTab from "@/gpo/components/UsersManager/UserAgentsTab.vue";
+import type { ConnectivityPolicyTarget } from "@/gpo/api/connectivity-policy";
 import { exportPolicyCollections } from "@/utils/csv";
 
 interface PolicyCollection {
@@ -522,13 +513,25 @@ const props = defineProps<{
   detailTab: string;
   detailLoading: boolean;
   actionLoading: boolean;
-  categoryAgents: Array<{ id: string; name: string }>;
+  categoryAgents: Array<{
+    id: string;
+    name: string;
+    status?: string;
+    last_boot?: string;
+  }>;
   categoryChildren: unknown[];
   childrenColumns: QTableColumn[];
   categoryAppliedCollections: PolicyCollection[];
   categoryAppliedCollectionsLoading: boolean;
   collectionsColumns: QTableColumn[];
 }>();
+
+const connectivityCategoryTarget = computed<ConnectivityPolicyTarget | null>(
+  () =>
+    props.selectedCategoryId == null
+      ? null
+      : { type: "agentCategory", categoryId: props.selectedCategoryId },
+);
 
 defineEmits<{
   edit: [];
@@ -570,6 +573,15 @@ const policiesGrouped = computed(() => {
   }
   result.sort((a, b) => b.collections.length - a.collections.length);
   return result;
+});
+
+const filteredCategoryAppliedCollections = computed(() => {
+  const list = props.categoryAppliedCollections ?? [];
+  const q = (policySearchQuery.value ?? "").toLowerCase().trim();
+  if (!q) return list;
+  return list.filter((row) =>
+    (row.name ?? "").toLowerCase().includes(q),
+  );
 });
 
 function exportCollections(format: "csv" | "xlsx") {

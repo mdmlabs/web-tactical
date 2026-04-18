@@ -86,7 +86,7 @@
                           <q-item-section avatar>
                             <q-checkbox
                               :model-value="selectedPolicies[policy.id] || false"
-                              @update:model-value="togglePolicySelection(policy.id)"
+                              @update:model-value="togglePolicySelectionWithItem(policy)"
                               @click.stop
                             />
                           </q-item-section>
@@ -173,7 +173,7 @@
                           <q-item-section avatar>
                             <q-checkbox
                               :model-value="selectedPolicies[policy.id] || false"
-                              @update:model-value="togglePolicySelection(policy.id)"
+                              @update:model-value="togglePolicySelectionWithItem(policy)"
                               @click.stop
                             />
                           </q-item-section>
@@ -367,6 +367,7 @@ interface PolicyDetailsElement {
     name: string;
     display_name?: string;
     value_type?: string;
+    value?: string;
   }>;
 }
 
@@ -392,6 +393,8 @@ const {
   clearSelection,
 } = usePolicySelection();
 
+const selectedPolicyItems = ref<Record<string, PolicyItem>>({});
+
 const selectedCategoryId = ref<string | null>(null);
 const categorySearchQuery = ref<string | null>("");
 const selectedCategory = ref<{ id: string; categoryName: string } | null>(null);
@@ -414,27 +417,26 @@ const allPoliciesSearch = ref("");
 const loadingAllPolicies = ref(false);
 const allPoliciesLoaded = ref(false);
 
-const selectedPoliciesList = computed(() => {
-  const list: PolicyItem[] = [];
-  const seen = new Set<string>();
-  for (const group of filteredGroupedPolicies.value) {
-    for (const p of group.policies) {
-      if (selectedPolicies.value[p.id] && !seen.has(p.id)) {
-        list.push(p);
-        seen.add(p.id);
-      }
+const selectedPoliciesList = computed(() =>
+  Object.values(selectedPolicyItems.value),
+);
+
+function togglePolicySelectionWithItem(policy: PolicyItem) {
+  const id = policy.id;
+  const currentlySelected = !!selectedPolicies.value[id];
+  togglePolicySelection(id);
+  const nextSelected = !currentlySelected;
+  if (nextSelected) {
+    selectedPolicyItems.value = { ...selectedPolicyItems.value, [id]: policy };
+    if (policyState.value[id] === undefined) {
+      policyState.value = { ...policyState.value, [id]: true };
     }
+  } else {
+    const next = { ...selectedPolicyItems.value };
+    delete next[id];
+    selectedPolicyItems.value = next;
   }
-  for (const group of filteredAllPoliciesGrouped.value) {
-    for (const p of group.policies) {
-      if (selectedPolicies.value[p.id] && !seen.has(p.id)) {
-        list.push(p);
-        seen.add(p.id);
-      }
-    }
-  }
-  return list;
-});
+}
 
 function setPolicyState(policyId: string, enabled: boolean) {
   policyState.value = { ...policyState.value, [policyId]: enabled };
@@ -612,6 +614,7 @@ watch(
   (visible) => {
     if (visible) {
       clearSelection();
+      selectedPolicyItems.value = {};
       policyHashes.value = {};
       selectedPolicy.value = null;
       selectedCategoryId.value = null;
@@ -628,6 +631,7 @@ watch(
       allPoliciesRaw.value = [];
       allPoliciesSearch.value = "";
       allPoliciesLoaded.value = false;
+      policyState.value = {};
       loadCategories();
     }
   },
@@ -671,16 +675,56 @@ function ensureString(val: unknown): string {
   return String(val);
 }
 
+
+function coercePositivePolicyElementId(raw: unknown): number {
+  if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
+    return Math.trunc(raw);
+  }
+  if (typeof raw === "string" && raw.trim() !== "") {
+    const n = Number.parseInt(raw, 10);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return 0;
+}
+
+function readPolicyElementRecordId(el: Record<string, unknown>): number {
+  const fromFields = [
+    el.id,
+    el.policyElementId,
+    el.policyDetailsElementId,
+    el.policy_details_element_id,
+  ];
+  for (const v of fromFields) {
+    const n = coercePositivePolicyElementId(v);
+    if (n > 0) return n;
+  }
+  return 0;
+}
+
 function buildPresentationMap(
   presentationList: unknown[],
-): Map<string, { type: string; text?: string; default_value?: string }> {
+): Map<
+  string,
+  {
+    type: string;
+    text?: string;
+    default_value?: string;
+    presentationNumericId?: number;
+  }
+> {
   const map = new Map<
     string,
-    { type: string; text?: string; default_value?: string }
+    {
+      type: string;
+      text?: string;
+      default_value?: string;
+      presentationNumericId?: number;
+    }
   >();
   for (const presEl of presentationList) {
     if (!presEl || typeof presEl !== "object") continue;
     const p = presEl as {
+      id?: number;
       refId?: string;
       ref_id?: string;
       type?: string;
@@ -695,10 +739,13 @@ function buildPresentationMap(
         ? p.text
         : (p.text as { value?: string })?.value;
     const defaultVal = p.defaultValue ?? p.default_value;
+    const presentationNumericId = coercePositivePolicyElementId(p.id);
     map.set(refId, {
       type: p.type ?? "",
       text,
       default_value: typeof defaultVal === "string" ? defaultVal : undefined,
+      presentationNumericId:
+        presentationNumericId > 0 ? presentationNumericId : undefined,
     });
   }
   return map;
@@ -722,7 +769,12 @@ function buildPolicyElements(
   policyElements: unknown[],
   presentationMap: Map<
     string,
-    { type: string; text?: string; default_value?: string }
+    {
+      type: string;
+      text?: string;
+      default_value?: string;
+      presentationNumericId?: number;
+    }
   >,
 ): PolicyDetailsElement[] {
   const elements: PolicyDetailsElement[] = [];
@@ -749,6 +801,7 @@ function buildPolicyElements(
       itemsList?: unknown[];
       items?: unknown[];
     };
+    const elemRec = el as Record<string, unknown>;
     const elementId = elem.elementId ?? elem.element_id ?? "";
     const presentationEl = presentationMap.get(elementId);
     if (!presentationEl) continue;
@@ -767,13 +820,14 @@ function buildPolicyElements(
           )
           .map((item) => {
             const itemId = (item.id as number) ?? 0;
-            const itemName = ensureString(item.name ?? item.value);
+            const itemValue = ensureString(item.value);
+            const itemName = ensureString(item.name ?? itemValue);
             const itemDisplayName =
               ensureString(
                 item.displayName ??
                   item.display_name ??
                   item.text ??
-                  item.value,
+                  itemValue,
               ) || itemName;
             const itemValueType = (item.valueType ??
               item.value_type ??
@@ -783,11 +837,20 @@ function buildPolicyElements(
               name: itemName,
               display_name: itemDisplayName || `Value ${itemId}`,
               value_type: itemValueType,
+              value: itemValue,
             };
           })
       : [];
+    const idFromPolicyElement = readPolicyElementRecordId(elemRec);
+    const idFromPresentation =
+      presentationEl.presentationNumericId &&
+      presentationEl.presentationNumericId > 0
+        ? presentationEl.presentationNumericId
+        : 0;
+    const resolvedElementId =
+      idFromPolicyElement > 0 ? idFromPolicyElement : idFromPresentation;
     elements.push({
-      id: elem.id ?? 0,
+      id: resolvedElementId,
       element_id: elementId,
       type: finalType,
       value_name: (elem.valueName ?? elem.value_name) as string | undefined,
@@ -871,7 +934,7 @@ function extractHashFromPolicyDetails(response: unknown): string | null {
       | Record<string, unknown>
       | undefined);
   if (!policy || typeof policy !== "object") return null;
-  const hash = policy.hash ?? policy.policy_hash;
+  const hash = policy.hash ?? policy.policy_hash ?? policy.policyHash;
   if (typeof hash === "string" && hash.trim()) return hash.trim();
   return null;
 }
@@ -890,6 +953,66 @@ async function getHashForPolicy(policyId: string): Promise<string | null> {
   }
 }
 
+function policyLabel(p: PolicyItem): string {
+  return p.displayName || p.name || p.id;
+}
+
+async function resolvePolicyHash(p: PolicyItem): Promise<string | null> {
+  const inline =
+    typeof p.hash === "string" && p.hash.trim() ? p.hash.trim() : null;
+  if (inline) return inline;
+  return await getHashForPolicy(p.id);
+}
+
+async function buildPoliciesWithStatePayload(list: PolicyItem[]): Promise<{
+  policiesWithState: Array<{
+    hash: string;
+    state: boolean;
+    selection?: Record<string, unknown>;
+    elementsMetadata?: PolicyElementMetadata[];
+  }>;
+  skipped: string[];
+}> {
+  const policiesWithState: Array<{
+    hash: string;
+    state: boolean;
+    selection?: Record<string, unknown>;
+    elementsMetadata?: PolicyElementMetadata[];
+  }> = [];
+  const skipped: string[] = [];
+
+  for (const policy of list) {
+    const id = policy.id;
+    const hash = await resolvePolicyHash(policy);
+    if (!hash) {
+      skipped.push(policyLabel(policy));
+      continue;
+    }
+
+    const savedSettings = perPolicySettings.value[id];
+    const savedElements = perPolicyElements.value[id];
+    const elementsMetadata: PolicyElementMetadata[] | undefined =
+      savedElements?.map((el) => ({
+        id: el.id,
+        element_id: el.element_id,
+        type: el.type,
+        items: el.items,
+      }));
+
+    policiesWithState.push({
+      hash,
+      state: policyState.value[id] !== false,
+      selection:
+        savedSettings && Object.keys(savedSettings).length > 0
+          ? savedSettings
+          : undefined,
+      elementsMetadata,
+    });
+  }
+
+  return { policiesWithState, skipped };
+}
+
 async function submitAddPolicies() {
   const collectionId = props.collectionId;
   if (collectionId == null || collectionId <= 0) {
@@ -904,38 +1027,8 @@ async function submitAddPolicies() {
 
   applying.value = true;
   try {
-    const policiesWithState: Array<{
-      hash: string;
-      state: boolean;
-      selection?: Record<string, unknown>;
-      elementsMetadata?: PolicyElementMetadata[];
-    }> = [];
-    for (const policy of list) {
-      const id = policy.id;
-      const hash =
-        (typeof policy.hash === "string" && policy.hash.trim()
-          ? policy.hash.trim()
-          : null) ?? (await getHashForPolicy(id));
-      if (hash) {
-        const savedSettings = perPolicySettings.value[id];
-        const savedElements = perPolicyElements.value[id];
-        const elementsMetadata: PolicyElementMetadata[] | undefined =
-          savedElements?.map((el) => ({
-            element_id: el.element_id,
-            type: el.type,
-            items: el.items,
-          }));
-        policiesWithState.push({
-          hash,
-          state: policyState.value[id] !== false,
-          selection:
-            savedSettings && Object.keys(savedSettings).length > 0
-              ? savedSettings
-              : undefined,
-          elementsMetadata,
-        });
-      }
-    }
+    const { policiesWithState, skipped } =
+      await buildPoliciesWithStatePayload(list);
     if (policiesWithState.length === 0) {
       notifyError(
         "Could not get policy hashes for selected policies. " +
@@ -952,6 +1045,11 @@ async function submitAddPolicies() {
         ? "Policy added to collection"
         : `${policiesWithState.length} policies added to collection`,
     );
+    if (skipped.length > 0) {
+      notifyError(
+        `Skipped ${skipped.length} policy(ies) without hash: ${skipped.slice(0, 3).join(", ")}${skipped.length > 3 ? ", ..." : ""}`,
+      );
+    }
     emit("done");
     emit("update:modelValue", false);
   } catch (e) {
