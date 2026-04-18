@@ -31,7 +31,10 @@
     <div v-if="loading" class="text-center q-pa-md">
       <q-spinner color="primary" />
     </div>
-    <q-scroll-area v-if="compact && !loading" class="groups-compact-scroll">
+    <q-scroll-area
+      v-if="compact && !loading && !scrollInParent"
+      class="groups-compact-scroll"
+    >
       <q-table
         :rows="filteredGroups"
         :columns="columns"
@@ -68,6 +71,7 @@ const props = defineProps<{
   compact?: boolean;
   searchable?: boolean;
   compactHeightPx?: number;
+  scrollInParent?: boolean;
 }>();
 
 defineEmits<{ "add-to-group": [] }>();

@@ -4,7 +4,7 @@
       v-if="!selectedId"
       class="column items-center justify-center full-height text-grey-6"
     >
-      <q-icon name="person" size="3rem" class="q-mb-md" />
+      <q-icon name="person" size="3rem" class="q-mb-sm" />
       <div class="text-h6">Select a user</div>
       <div class="text-caption q-mt-xs">
         Click on a user in the list or create a new one
@@ -12,7 +12,7 @@
     </div>
 
     <template v-else>
-      <div class="users-detail-header q-px-lg q-py-md row items-center">
+      <div class="users-detail-header q-px-md q-py-sm row items-center">
         <div>
           <div class="text-h6 text-weight-medium">
             {{
@@ -185,13 +185,18 @@
       </div>
 
       <template v-else-if="user">
-        <div class="q-px-lg q-py-md">
+        <div class="users-detail-main">
+        <div class="users-detail-summary q-px-lg q-py-md">
           <div class="row q-col-gutter-md summary-row">
             <div class="col-12 col-md-6 summary-col">
               <div class="system-info-summary summary-card">
                 <div class="text-caption text-grey-7 q-mb-xs">User</div>
                 <q-scroll-area class="summary-scroll">
-                  <UserInfoTab :user="user" />
+                  <UserInfoTab
+                    :user="user"
+                    :agents-count="agents.length"
+                    :applied-collections-count="appliedCollections.length"
+                  />
                 </q-scroll-area>
               </div>
             </div>
@@ -224,21 +229,23 @@
                     <q-icon name="search" />
                   </template>
                 </q-input>
-                <UserGroupsTab
-                  compact
-                  :groups="filteredGroupsForCard"
-                  :loading="groupsLoading"
-                  :has-target="hasTarget"
-                  :searchable="false"
-                  :compact-height-px="300"
-                  @add-to-group="$emit('add-to-group')"
-                />
+                <q-scroll-area class="summary-scroll">
+                  <UserGroupsTab
+                    compact
+                    scroll-in-parent
+                    :groups="filteredGroupsForCard"
+                    :loading="groupsLoading"
+                    :has-target="hasTarget"
+                    :searchable="false"
+                    @add-to-group="$emit('add-to-group')"
+                  />
+                </q-scroll-area>
               </div>
             </div>
           </div>
         </div>
 
-        <q-separator />
+        <q-separator class="users-detail-sep" />
 
         <div class="users-detail-tabs-wrap q-pt-sm">
           <q-tabs
@@ -287,7 +294,7 @@
           </q-tabs>
         </div>
 
-        <q-separator />
+        <q-separator class="users-detail-sep" />
 
         <q-tab-panels :model-value="detailTab" class="users-tab-panels">
           <q-tab-panel name="agents" class="q-pa-md">
@@ -329,11 +336,15 @@
                   />
                 </div>
                 <q-input
-                  v-if="viewMode === 'policies' && !appliedCollectionsLoading"
+                  v-if="!appliedCollectionsLoading"
                   v-model="tabPolicySearchQuery"
                   dense
                   outlined
-                  placeholder="Search by policy..."
+                  :placeholder="
+                    viewMode === 'collections'
+                      ? 'Search by collection...'
+                      : 'Search by policy...'
+                  "
                   clearable
                   class="col policy-collections-toolbar-search"
                 >
@@ -404,8 +415,20 @@
               </div>
               <template v-else-if="appliedCollections.length">
                 <template v-if="viewMode === 'collections'">
+                  <div
+                    v-if="filteredAppliedCollections.length === 0"
+                    class="text-center text-grey-6 q-pa-md"
+                  >
+                    <q-icon name="search_off" size="md" class="q-mb-sm" />
+                    <div>
+                      No collections matching "{{
+                        tabPolicySearchQuery ?? ""
+                      }}"
+                    </div>
+                  </div>
                   <q-table
-                    :rows="appliedCollections"
+                    v-else
+                    :rows="filteredAppliedCollections"
                     :columns="collectionsColumns"
                     row-key="id"
                     flat
@@ -580,6 +603,7 @@
             </div>
           </q-tab-panel>
         </q-tab-panels>
+        </div>
       </template>
     </template>
 
@@ -900,6 +924,15 @@ const policiesGrouped = computed(() => {
   return result;
 });
 
+const filteredAppliedCollections = computed(() => {
+  const list = props.appliedCollections ?? [];
+  const q = (tabPolicySearchQuery.value ?? "").toLowerCase().trim();
+  if (!q) return list;
+  return list.filter((row) =>
+    (row.name ?? "").toLowerCase().includes(q),
+  );
+});
+
 interface PolicyWithCompliance {
   id: number;
   name: string;
@@ -1155,9 +1188,30 @@ function exportCollections(format: "csv" | "xlsx") {
 .users-detail-header
   flex-shrink: 0
 
-.users-tab-panels
+.users-detail-main
   flex: 1
-  overflow: auto
+  min-height: 0
+  display: flex
+  flex-direction: column
+  overflow: hidden
+
+.users-detail-summary
+  flex-shrink: 0
+
+.users-detail-sep
+  flex-shrink: 0
+
+.users-tab-panels
+  flex: 1 1 0%
+  min-height: 0
+  overflow: hidden
+  display: flex
+  flex-direction: column
+
+  :deep(.q-panel)
+    flex: 1 1 0%
+    min-height: 0
+    overflow: auto
 
 .users-detail-tabs-wrap
   flex-shrink: 0
@@ -1173,7 +1227,7 @@ function exportCollections(format: "csv" | "xlsx") {
   background-color: transparent
 
 .system-info-summary
-  background: rgba(16, 137, 211, 0.04)
+  background: rgba(16, 137, 211, 0.02)
   border: 1px solid rgba(18, 177, 209, 0.18)
   border-radius: 10px
   padding: 8px 12px
@@ -1218,7 +1272,7 @@ function exportCollections(format: "csv" | "xlsx") {
 
 .summary-card
   width: 100%
-  height: 420px
+  height: clamp(200px, 35vh, 360px)
   display: flex
   flex-direction: column
   overflow: hidden
