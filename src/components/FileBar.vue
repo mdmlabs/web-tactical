@@ -655,6 +655,7 @@
                     <q-item-section avatar><q-icon name="folder" size="sm" /></q-item-section>
                     <q-item-section>Groups</q-item-section>
                   </q-item>
+                  <q-separator spaced />
                   <q-item clickable v-ripple @click="navigateToSecurity('it-hygiene')" class="filebar-popup-item" v-close-popup>
                     <q-item-section avatar><q-icon name="health_and_safety" size="sm" /></q-item-section>
                     <q-item-section>IT Hygiene</q-item-section>
@@ -667,9 +668,15 @@
                     <q-item-section avatar><q-icon name="fingerprint" size="sm" /></q-item-section>
                     <q-item-section>FIM</q-item-section>
                   </q-item>
+                  <q-separator spaced />
+                  <q-item-label header class="text-weight-bold">Compliance</q-item-label>
                   <q-item clickable v-ripple @click="navigateToSecurity('sca')" class="filebar-popup-item" v-close-popup>
                     <q-item-section avatar><q-icon name="verified_user" size="sm" /></q-item-section>
                     <q-item-section>SCA</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('compliance')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="credit_card" size="sm" /></q-item-section>
+                    <q-item-section>PCI DSS</q-item-section>
                   </q-item>
                 </q-list>
               </q-menu>
@@ -690,22 +697,34 @@
                 <q-item-section avatar><q-icon name="folder" /></q-item-section>
                 <q-item-section>Groups</q-item-section>
               </q-item>
-              <q-item clickable v-ripple @click="navigateToSecurity('it-hygiene')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('it-hygiene') }]">
-                <q-item-section avatar><q-icon name="health_and_safety" /></q-item-section>
-                <q-item-section>IT Hygiene</q-item-section>
-              </q-item>
-              <q-item clickable v-ripple @click="navigateToSecurity('discover')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('discover') }]">
-                <q-item-section avatar><q-icon name="explore" /></q-item-section>
-                <q-item-section>Discover</q-item-section>
-              </q-item>
-              <q-item clickable v-ripple @click="navigateToSecurity('fim')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('fim') }]">
-                <q-item-section avatar><q-icon name="fingerprint" /></q-item-section>
-                <q-item-section>FIM</q-item-section>
-              </q-item>
-              <q-item clickable v-ripple @click="navigateToSecurity('sca')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('sca') }]">
-                <q-item-section avatar><q-icon name="verified_user" /></q-item-section>
-                <q-item-section>SCA</q-item-section>
-              </q-item>
+              <q-expansion-item icon="health_and_safety" label="IT Hygiene" dense :default-opened="isActiveSecurityTab('it-hygiene') || isActiveSecurityTab('discover') || isActiveSecurityTab('fim')" class="filebar-submenu">
+                <q-list>
+                  <q-item clickable v-ripple @click="navigateToSecurity('it-hygiene')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('it-hygiene') }]">
+                    <q-item-section avatar><q-icon name="health_and_safety" /></q-item-section>
+                    <q-item-section>Overview</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('discover')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('discover') }]">
+                    <q-item-section avatar><q-icon name="explore" /></q-item-section>
+                    <q-item-section>Discover</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('fim')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('fim') }]">
+                    <q-item-section avatar><q-icon name="fingerprint" /></q-item-section>
+                    <q-item-section>FIM</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-expansion-item>
+              <q-expansion-item icon="policy" label="Compliance" dense :default-opened="isActiveSecurityTab('sca') || isActiveSecurityTab('compliance')" class="filebar-submenu">
+                <q-list>
+                  <q-item clickable v-ripple @click="navigateToSecurity('sca')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('sca') }]">
+                    <q-item-section avatar><q-icon name="verified_user" /></q-item-section>
+                    <q-item-section>SCA</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('compliance')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('compliance') }]">
+                    <q-item-section avatar><q-icon name="credit_card" /></q-item-section>
+                    <q-item-section>PCI DSS</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-expansion-item>
             </q-list>
           </q-expansion-item>
 
@@ -1642,6 +1661,7 @@ export default {
         discover: "SecurityDiscover",
         fim: "SecurityFIM",
         sca: "SecuritySCA",
+        compliance: "CompliancePCIDSS",
       };
       this.$router.push({ name: routeMap[tab] || "SecurityAgents" });
     },
@@ -1650,6 +1670,7 @@ export default {
       if (tab === "agents") return path.startsWith("/security/agents") || path === "/security";
       if (tab === "alerts") return path === "/security/alerts";
       if (tab === "groups") return path === "/security/groups";
+      if (tab === "compliance") return path.startsWith("/security/compliance");
       if (tab === "it-hygiene") return path === "/security/it-hygiene";
       if (tab === "discover") return path === "/security/discover";
       if (tab === "fim") return path.startsWith("/security/fim");
