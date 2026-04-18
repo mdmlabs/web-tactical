@@ -171,12 +171,15 @@ import {
   createGlobalTarget,
   policyAssignmentClient,
   collectionsClient,
-  agentServiceClientWrapper,
   policyStateClient,
 } from "@/gpo/api/grpc-client";
 import export_pb from "@/generated/common/export_pb";
 import type { Target } from "@/gpo/api/grpc-client";
 import type { TargetRef } from "@/gpo/composables/useTargetSelection";
+import {
+  fetchAgentRowsForIds,
+  type AgentRow,
+} from "@/gpo/composables/useUserActions";
 import TargetSelectionDialog from "@/gpo/components/shared/TargetSelectionDialog.vue";
 import { notifyError, notifySuccess } from "@/utils/notify";
 
@@ -211,11 +214,6 @@ interface TreeNode {
 
 interface GroupRowWithId extends GroupRow {
   groupId: string;
-}
-
-interface AgentRow {
-  id: string;
-  name: string;
 }
 
 const props = withDefaults(
@@ -254,7 +252,7 @@ const groupSearch = ref("");
 const selectedGroupSam = ref<string | null>(null);
 const selectedGroupId = ref<string | null>(null);
 const selectedGroup = ref<GroupRow | null>(null);
-const detailTab = ref("members");
+const detailTab = ref("children");
 const detailLoading = ref(false);
 
 const groupUsers = ref<GroupRow[]>([]);
@@ -719,7 +717,7 @@ function selectGroup(nodeId: string | null) {
   selectedGroupId.value = found.groupId;
   selectedGroupSam.value = found.samaccountname || found.groupId;
   selectedGroup.value = found;
-  detailTab.value = "members";
+  detailTab.value = "children";
   loadGroupDetails(found.groupId);
 }
 
@@ -792,21 +790,8 @@ async function loadGroupDetails(groupId: string) {
     }
     if (agentsRes.status === "fulfilled") {
       const agentIds = agentsRes.value.agentIdsList || [];
-      const agentsWithNames = await Promise.all(
-        agentIds.map(async (id: string) => {
-          try {
-            const agent = await agentServiceClientWrapper.getAgent(id);
-            const name =
-              (agent as { hostName?: string; host_name?: string }).hostName ??
-              (agent as { hostName?: string; host_name?: string }).host_name ??
-              id;
-            return { id, name };
-          } catch {
-            return { id, name: id };
-          }
-        }),
-      );
-      groupAgents.value = agentsWithNames;
+      groupAgents.value =
+        agentIds.length > 0 ? await fetchAgentRowsForIds(agentIds) : [];
     }
   } finally {
     detailLoading.value = false;
