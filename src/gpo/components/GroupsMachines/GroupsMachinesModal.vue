@@ -202,6 +202,7 @@ import {
 } from "@/gpo/api/grpc-client";
 import operator_pb from "@/generated/operator_pb";
 import type { TargetRef } from "@/gpo/composables/useTargetSelection";
+import { fetchAgentRowsForIds } from "@/gpo/composables/useUserActions";
 import TargetSelectionDialog from "@/gpo/components/shared/TargetSelectionDialog.vue";
 import { notifyError, notifySuccess } from "@/utils/notify";
 
@@ -231,6 +232,8 @@ interface TreeNode {
 interface AgentRow {
   id: string;
   name: string;
+  status?: string;
+  last_boot?: string;
 }
 
 type AgentNameById = Record<string, string | undefined>;
@@ -1189,15 +1192,7 @@ async function loadCategoryDetails(categoryId: number) {
       const r = agentsRes.value;
       if (r.status === 0) {
         const agentIds = r.agentIdsList ?? [];
-        const agentsWithNames = await mapWithConcurrency(
-          agentIds,
-          10,
-          async (id: string) => {
-            const name = await resolveAgentName(id);
-            return { id, name };
-          },
-        );
-        categoryAgents.value = agentsWithNames;
+        categoryAgents.value = await fetchAgentRowsForIds(agentIds);
       }
     }
     if (childrenRes.status === "fulfilled") {
@@ -1497,7 +1492,7 @@ async function removeAgentFromCategory(agentId: string) {
 
 function prepareSetAgentsForm() {
   setAgentsForm.value = {
-    agentIdsText: categoryAgents.value.join("\n"),
+    agentIdsText: categoryAgents.value.map((a) => a.id).join("\n"),
   };
 }
 

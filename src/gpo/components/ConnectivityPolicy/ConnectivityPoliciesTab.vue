@@ -433,13 +433,18 @@ function formatTargetLabel(target: Partial<ConnectivityPolicyTarget>): string {
     );
   }
   if (target.type === "user") {
-    return lookupLabel(allUsers.value, target.userId) || target.userId || "User";
+    const userId = target.userId == null ? "" : String(target.userId);
+    return lookupLabel(allUsers.value, userId) || userId || "User";
   }
-  return (
-    lookupLabel(allGroups.value, target.userGroupId) ||
-    target.userGroupId ||
-    "User group"
-  );
+  if (target.type === "userGroup") {
+    const groupId = target.userGroupId == null ? "" : String(target.userGroupId);
+    return (
+      lookupLabel(allGroups.value, groupId) ||
+      groupId ||
+      "User group"
+    );
+  }
+  return "Target";
 }
 
 function lookupLabel(
@@ -503,9 +508,9 @@ function openEditDialog(row: ConnectivityRow): void {
   } else if (row.type === "agentCategory") {
     targetValue = row.categoryId ?? null;
   } else if (row.type === "user") {
-    targetValue = row.userId ?? null;
+    targetValue = row.userId == null ? null : String(row.userId);
   } else {
-    targetValue = row.userGroupId ?? null;
+    targetValue = row.userGroupId == null ? null : String(row.userGroupId);
   }
   form.targetValue = targetValue;
   form.intervalSeconds = row.intervalSeconds;
@@ -524,10 +529,16 @@ async function loadTargetOptions(): Promise<void> {
   ]);
 
   allAgents.value = (agentsRes.agentsList || [])
-    .map((agent) => ({
-      label: agent.hostName || agent.host_name || agent.agentId || agent.agent_id || "Agent",
-      value: agent.agentId || agent.agent_id || "",
-    }))
+    .map((agent) => {
+      const legacy = agent as unknown as Record<string, unknown>;
+      const value = String(
+        agent.agentId || legacy.agent_id || legacy.agentId || "",
+      ).trim();
+      const label = String(
+        agent.hostName || legacy.host_name || value || "Agent",
+      ).trim();
+      return { label, value };
+    })
     .filter((option) => option.value);
 
   allCategories.value = (categoriesRes.categoriesList || [])
