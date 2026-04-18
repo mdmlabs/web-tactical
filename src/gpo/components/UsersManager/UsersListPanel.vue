@@ -123,12 +123,13 @@ defineEmits<{
 
 <style scoped lang="sass">
 .users-left-panel
-  width: 300px
+  width: 200px
   min-width: 240px
   max-width: 360px
   display: flex
   flex-direction: column
   border-right: 1px solid rgba(0,0,0,.12)
+
 
 .users-left-header
   flex-shrink: 0

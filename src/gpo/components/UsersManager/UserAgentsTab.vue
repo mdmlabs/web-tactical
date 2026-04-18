@@ -1,8 +1,7 @@
 <template>
   <div>
-    <div class="row items-center q-mb-md">
-      <div class="text-subtitle2">Effective agents</div>
-      <q-space />
+    <div class="row items-center justify-end no-wrap q-gutter-x-sm q-mb-xs">
+      <slot name="toolbar-extra" />
       <q-btn
         flat
         dense
@@ -10,12 +9,12 @@
         icon="add_circle_outline"
         label=""
         :disable="!hasTarget"
-        :title="!hasTarget ? 'Select target first (click badge in header)' : ''"
+        :title="!hasTarget ? noTargetHint : ''"
         @click="$emit('add-agent')"
       />
     </div>
 
-    <div v-if="!loading" class="q-mb-md">
+    <div v-if="!loading" class="q-mb-xs">
       <q-input
         v-model="search"
         dense
@@ -29,7 +28,7 @@
         </template>
       </q-input>
     </div>
-    <div v-if="loading" class="text-center q-pa-md">
+    <div v-if="loading" class="text-center q-pa-sm">
       <q-spinner color="primary" />
     </div>
     <div v-else-if="agents.length === 0" class="text-grey-6 text-caption">
@@ -118,12 +117,18 @@ export interface AgentRow {
   last_boot?: string;
 }
 
-const props = defineProps<{
-  agents: AgentRow[];
-  loading: boolean;
-  hasTarget: boolean;
-  removingAgentId?: string | null;
-}>();
+const props = withDefaults(
+  defineProps<{
+    agents: AgentRow[];
+    loading: boolean;
+    hasTarget: boolean;
+    removingAgentId?: string | null;
+    noTargetHint?: string;
+  }>(),
+  {
+    noTargetHint: "Select target first (click badge in header)",
+  },
+);
 
 defineEmits<{
   "add-agent": [];

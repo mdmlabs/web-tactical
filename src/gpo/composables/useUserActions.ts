@@ -105,6 +105,96 @@ function extractLastBootIso(details: unknown): string | undefined {
 const bootTimeCache = new Map<string, { value?: string; ts: number }>();
 const BOOT_CACHE_TTL = 5 * 60 * 1000;
 
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    const batchResults = await Promise.all(batch.map(fn));
+    results.push(...batchResults);
+  }
+  return results;
+}
+
+export async function fetchAgentRowsForIds(
+  agentIds: string[],
+): Promise<AgentRow[]> {
+  if (!agentIds.length) return [];
+
+  try {
+    const listRes = await agentServiceClientWrapper.listAgents(agentIds);
+    const agents =
+      (listRes as { agentsList?: RawAgentListItem[] }).agentsList ?? [];
+
+    const byId = new Map<string, AgentRow>();
+    for (const a of agents) {
+      const normalized = normalizeAgentFromListItem(a);
+      if (!normalized) continue;
+      byId.set(normalized.id, normalized);
+    }
+
+    let rows = agentIds.map((id) => byId.get(id) ?? { id, name: id });
+
+    const now = Date.now();
+    const idsToFetch = agentIds.filter((id) => {
+      const cached = bootTimeCache.get(id);
+      return !(cached && now - cached.ts < BOOT_CACHE_TTL);
+    });
+
+    await mapWithConcurrency(idsToFetch, 3, async (id) => {
+      try {
+        const details = await agentServiceClientWrapper.getAgent(id);
+        const iso = extractLastBootIso(details);
+        bootTimeCache.set(id, { value: iso, ts: Date.now() });
+      } catch {
+        bootTimeCache.set(id, { value: undefined, ts: Date.now() });
+      }
+    });
+
+    rows = rows.map((row) => {
+      const cached = bootTimeCache.get(row.id);
+      return cached?.value ? { ...row, last_boot: cached.value } : row;
+    });
+    return rows;
+  } catch {
+    // игнор
+  }
+
+  const agentsWithNames = await Promise.all(
+    agentIds.map(async (id) => {
+      try {
+        const agent = await agentServiceClientWrapper.getAgent(id);
+        const name =
+          (agent as { hostName?: string; host_name?: string }).hostName ??
+          (agent as { hostName?: string; host_name?: string }).host_name ??
+          id;
+        const status =
+          (agent as { status?: string }).status ??
+          (agent as { is_online?: boolean; isOnline?: boolean }).is_online ??
+          (agent as { is_online?: boolean; isOnline?: boolean }).isOnline ??
+          undefined;
+        const lastSeen =
+          (agent as { last_seen?: string }).last_seen ??
+          (agent as { lastSeen?: string }).lastSeen ??
+          undefined;
+        return {
+          id,
+          name: (name ?? id).trim() || id,
+          status: typeof status === "string" ? status : undefined,
+          last_seen: typeof lastSeen === "string" ? lastSeen : undefined,
+        };
+      } catch {
+        return { id, name: id };
+      }
+    }),
+  );
+
+  return agentsWithNames;
+}
+
 export function useUserActions() {
   const $q = useQuasar();
 
@@ -233,88 +323,7 @@ export function useUserActions() {
         return;
       }
 
-      try {
-        const listRes = await agentServiceClientWrapper.listAgents(agentIds);
-        const agents = (listRes as { agentsList?: RawAgentListItem[] }).agentsList ?? [];
-
-        const byId = new Map<string, AgentRow>();
-        for (const a of agents) {
-          const normalized = normalizeAgentFromListItem(a);
-          if (!normalized) continue;
-          byId.set(normalized.id, normalized);
-        }
-
-        userAgents.value = agentIds.map((id) => byId.get(id) ?? { id, name: id });
-
-        const now = Date.now();
-        const idsToFetch = agentIds.filter((id) => {
-          const cached = bootTimeCache.get(id);
-          return !(cached && now - cached.ts < BOOT_CACHE_TTL);
-        });
-
-        const mapWithConcurrency = async <T, R>(
-          items: T[],
-          concurrency: number,
-          fn: (item: T) => Promise<R>,
-        ): Promise<R[]> => {
-          const results: R[] = [];
-          for (let i = 0; i < items.length; i += concurrency) {
-            const batch = items.slice(i, i + concurrency);
-            const batchResults = await Promise.all(batch.map(fn));
-            results.push(...batchResults);
-          }
-          return results;
-        };
-
-        await mapWithConcurrency(idsToFetch, 3, async (id) => {
-          try {
-            const details = await agentServiceClientWrapper.getAgent(id);
-            const iso = extractLastBootIso(details);
-            bootTimeCache.set(id, { value: iso, ts: Date.now() });
-          } catch {
-            bootTimeCache.set(id, { value: undefined, ts: Date.now() });
-          }
-        });
-
-        userAgents.value = userAgents.value.map((row) => {
-          const cached = bootTimeCache.get(row.id);
-          return cached?.value ? { ...row, last_boot: cached.value } : row;
-        });
-        return;
-      } catch {
-        //игнор
-      }
-
-      const agentsWithNames = await Promise.all(
-        agentIds.map(async (id) => {
-          try {
-            const agent = await agentServiceClientWrapper.getAgent(id);
-            const name =
-              (agent as { hostName?: string; host_name?: string }).hostName ??
-              (agent as { hostName?: string; host_name?: string }).host_name ??
-              id;
-            const status =
-              (agent as { status?: string }).status ??
-              (agent as { is_online?: boolean; isOnline?: boolean }).is_online ??
-              (agent as { is_online?: boolean; isOnline?: boolean }).isOnline ??
-              undefined;
-            const lastSeen =
-              (agent as { last_seen?: string }).last_seen ??
-              (agent as { lastSeen?: string }).lastSeen ??
-              undefined;
-            return {
-              id,
-              name: (name ?? id).trim() || id,
-              status: typeof status === "string" ? status : undefined,
-              last_seen: typeof lastSeen === "string" ? lastSeen : undefined,
-            };
-          } catch {
-            return { id, name: id };
-          }
-        }),
-      );
-
-      userAgents.value = agentsWithNames;
+      userAgents.value = await fetchAgentRowsForIds(agentIds);
     } catch {
       // игнор
     } finally {
