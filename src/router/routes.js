@@ -190,6 +190,12 @@ const routes = [
             component: () =>
               import("@/views/security/SCAView.vue"),
           },
+          {
+            path: "compliance",
+            name: "CompliancePCIDSS",
+            component: () =>
+              import("@/views/security/CompliancePCIDSS.vue"),
+          },
         ],
       },
     ],

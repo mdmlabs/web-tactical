@@ -7,7 +7,7 @@
         <span class="sec-topbar__badge">{{ currentPageLabel }}</span>
       </div>
       <div class="sec-topbar__right">
-        <q-btn flat no-caps icon="refresh" label="Refresh" class="sec-refresh-btn" @click="onRefresh" />
+        <q-btn v-if="showRefreshBtn" flat no-caps icon="refresh" label="Refresh" class="sec-refresh-btn" @click="onRefresh" />
       </div>
     </div>
 
@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import { useWazuhStore } from "@/stores/wazuh";
 
@@ -50,6 +50,18 @@ function onRefresh() {
     childView.value.loadData();
   }
 }
+
+const showRefreshBtn = ref(false);
+
+watch(
+  () => route.name,
+  async () => {
+    showRefreshBtn.value = false;
+    await nextTick();
+    showRefreshBtn.value = typeof childView.value?.loadData === "function";
+  },
+  { immediate: true },
+);
 
 onMounted(async () => {
   if (!wazuhStore.wazuhAgents.length) {
