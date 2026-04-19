@@ -674,9 +674,25 @@
                     <q-item-section avatar><q-icon name="verified_user" size="sm" /></q-item-section>
                     <q-item-section>SCA</q-item-section>
                   </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('compliance')" class="filebar-popup-item" v-close-popup>
+                  <q-item clickable v-ripple @click="navigateToSecurity('compliance/pci-dss')" class="filebar-popup-item" v-close-popup>
                     <q-item-section avatar><q-icon name="credit_card" size="sm" /></q-item-section>
                     <q-item-section>PCI DSS</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('compliance/gdpr')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="gavel" size="sm" /></q-item-section>
+                    <q-item-section>GDPR</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('compliance/hipaa')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="local_hospital" size="sm" /></q-item-section>
+                    <q-item-section>HIPAA</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('compliance/nist80053')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="account_balance" size="sm" /></q-item-section>
+                    <q-item-section>NIST 800-53</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('compliance/tsc')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="assessment" size="sm" /></q-item-section>
+                    <q-item-section>TSC / SOC 2</q-item-section>
                   </q-item>
                 </q-list>
               </q-menu>
@@ -719,9 +735,25 @@
                     <q-item-section avatar><q-icon name="verified_user" /></q-item-section>
                     <q-item-section>SCA</q-item-section>
                   </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('compliance')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('compliance') }]">
+                  <q-item clickable v-ripple @click="navigateToSecurity('compliance/pci-dss')" :class="['filebar-menu-item', { 'active-menu-item': isActiveComplianceFramework('pci-dss') }]">
                     <q-item-section avatar><q-icon name="credit_card" /></q-item-section>
                     <q-item-section>PCI DSS</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('compliance/gdpr')" :class="['filebar-menu-item', { 'active-menu-item': isActiveComplianceFramework('gdpr') }]">
+                    <q-item-section avatar><q-icon name="gavel" /></q-item-section>
+                    <q-item-section>GDPR</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('compliance/hipaa')" :class="['filebar-menu-item', { 'active-menu-item': isActiveComplianceFramework('hipaa') }]">
+                    <q-item-section avatar><q-icon name="local_hospital" /></q-item-section>
+                    <q-item-section>HIPAA</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('compliance/nist80053')" :class="['filebar-menu-item', { 'active-menu-item': isActiveComplianceFramework('nist80053') }]">
+                    <q-item-section avatar><q-icon name="account_balance" /></q-item-section>
+                    <q-item-section>NIST 800-53</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('compliance/tsc')" :class="['filebar-menu-item', { 'active-menu-item': isActiveComplianceFramework('tsc') }]">
+                    <q-item-section avatar><q-icon name="assessment" /></q-item-section>
+                    <q-item-section>TSC / SOC 2</q-item-section>
                   </q-item>
                 </q-list>
               </q-expansion-item>
@@ -1653,6 +1685,11 @@ export default {
       if (this.isMobile) {
         this.closeDrawer();
       }
+      // Compliance framework paths like "compliance/pci-dss" navigate directly
+      if (tab.startsWith("compliance/")) {
+        this.$router.push("/security/" + tab);
+        return;
+      }
       const routeMap = {
         agents: "SecurityAgents",
         alerts: "SecurityAlerts",
@@ -1661,9 +1698,11 @@ export default {
         discover: "SecurityDiscover",
         fim: "SecurityFIM",
         sca: "SecuritySCA",
-        compliance: "CompliancePCIDSS",
       };
       this.$router.push({ name: routeMap[tab] || "SecurityAgents" });
+    },
+    isActiveComplianceFramework(framework) {
+      return this.currentPath === "/security/compliance/" + framework;
     },
     isActiveSecurityTab(tab) {
       const path = this.currentPath;
