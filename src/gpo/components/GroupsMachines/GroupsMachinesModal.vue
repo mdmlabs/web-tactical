@@ -1300,7 +1300,7 @@ async function doUpdateCategory() {
       categoryId: id,
       name: editCategoryForm.value.name.trim(),
       description: editCategoryForm.value.description.trim() || undefined,
-      maxAgents: editCategoryForm.value.maxAgents ?? 0,
+      maxAgents: editCategoryForm.value.maxAgents || undefined,
     });
     if (res.status === 0) {
       notifySuccess("Category updated");
