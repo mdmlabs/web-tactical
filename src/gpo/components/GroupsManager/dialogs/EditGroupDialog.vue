@@ -99,16 +99,16 @@ const emit = defineEmits<{
 const form = ref({
   newSamGroupName: "",
   description: "",
-  maxUsers: undefined as number | undefined,
-  maxAgents: undefined as number | undefined,
+  maxUsers: null as number | null,
+  maxAgents: null as number | null,
 });
 
 function resetForm() {
   form.value = {
     newSamGroupName: props.initialSamGroupName,
     description: props.initialDescription ?? "",
-    maxUsers: props.initialMaxUsers,
-    maxAgents: props.initialMaxAgents,
+    maxUsers: props.initialMaxUsers ?? null,
+    maxAgents: props.initialMaxAgents ?? null,
   };
 }
 
@@ -116,6 +116,20 @@ watch(
   () => props.modelValue,
   (open) => {
     if (open) resetForm();
+  },
+  { immediate: true },
+);
+
+watch(
+  () => [props.initialMaxUsers, props.initialMaxAgents] as const,
+  ([nextUsers, nextAgents]) => {
+    if (!props.modelValue) return;
+    if (form.value.maxUsers === null && nextUsers != null) {
+      form.value.maxUsers = nextUsers;
+    }
+    if (form.value.maxAgents === null && nextAgents != null) {
+      form.value.maxAgents = nextAgents;
+    }
   },
   { immediate: true },
 );
