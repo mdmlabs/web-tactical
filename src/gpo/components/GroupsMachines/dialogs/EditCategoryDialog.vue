@@ -2,6 +2,7 @@
   <q-dialog
     :model-value="modelValue"
     @update:model-value="$emit('update:modelValue', $event)"
+    @show="emit('show')"
   >
     <q-card class="edit-category-card">
       <q-card-section class="row items-center q-pb-none">

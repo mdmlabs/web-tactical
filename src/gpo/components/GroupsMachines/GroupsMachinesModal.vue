@@ -513,7 +513,7 @@ const editCategoryForm = ref<{
 }>({
   name: "",
   description: "",
-  maxAgents: 0,
+  maxAgents: null,
 });
 const moveCategoryForm = ref<{ parentId: number | null }>({ parentId: null });
 
@@ -528,7 +528,7 @@ const createCategoryForm = ref<{
   name: "",
   description: "",
   parentId: null,
-  maxAgents: 0,
+  maxAgents: null,
 });
 
 function collectCategoriesFromTree(
@@ -1255,7 +1255,7 @@ function openCreateCategoryDialog() {
     name: "",
     description: "",
     parentId: selectedCategoryId.value ?? null,
-    maxAgents: 0,
+    maxAgents: null,
   };
   showCreateCategory.value = true;
 }
@@ -1272,7 +1272,7 @@ async function loadCategoryForEdit() {
         name: info.name ?? selectedCategory.value?.name ?? "",
         description:
           info.description?.value ?? selectedCategory.value?.description ?? "",
-        maxAgents: info.maxAgents ?? 0,
+        maxAgents: info.maxAgents ?? null,
       };
     }
   } finally {
@@ -1285,7 +1285,7 @@ function openEditCategoryDialog() {
     editCategoryForm.value = {
       name: selectedCategory.value.name,
       description: selectedCategory.value.description ?? "",
-      maxAgents: 0,
+      maxAgents: null,
     };
   }
   showEditCategory.value = true;
@@ -1300,7 +1300,7 @@ async function doUpdateCategory() {
       categoryId: id,
       name: editCategoryForm.value.name.trim(),
       description: editCategoryForm.value.description.trim() || undefined,
-      maxAgents: editCategoryForm.value.maxAgents ?? 0,
+      maxAgents: editCategoryForm.value.maxAgents ?? undefined,
     });
     if (res.status === 0) {
       notifySuccess("Category updated");
@@ -1360,7 +1360,7 @@ async function doCreateCategory() {
       name: createCategoryForm.value.name.trim(),
       description: createCategoryForm.value.description.trim() || undefined,
       parentId: createCategoryForm.value.parentId ?? undefined,
-      maxAgents: createCategoryForm.value.maxAgents ?? 0,
+      maxAgents: createCategoryForm.value.maxAgents ?? undefined,
     });
     if (res.status === 0) {
       notifySuccess(`Category "${createCategoryForm.value.name}" created`);
