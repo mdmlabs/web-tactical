@@ -63,14 +63,18 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { useRoute } from "vue-router";
 import { useHipaaStore } from "@/stores/hipaa";
+import { useWazuhStore } from "@/stores/wazuh";
 import HIPAAAgentSelector from "@/components/security/hipaa/HIPAAAgentSelector.vue";
 import HIPAADashboard from "@/components/security/hipaa/HIPAADashboard.vue";
 import HIPAAControls from "@/components/security/hipaa/HIPAAControls.vue";
 import HIPAAEvents from "@/components/security/hipaa/HIPAAEvents.vue";
 import HIPAARequirementDetail from "@/components/security/hipaa/HIPAARequirementDetail.vue";
 
+const route = useRoute();
 const store = useHipaaStore();
+const wazuhStore = useWazuhStore();
 const activeTab = ref(store.activeTab);
 
 const dateRangeOptions = [
@@ -92,7 +96,19 @@ function loadData() {
 
 defineExpose({ loadData });
 
-onMounted(() => {
+onMounted(async () => {
+  // Pre-select agent from query param if navigated from Agent Detail
+  const queryAgentId = route.query.agentId as string | undefined;
+  if (queryAgentId) {
+    if (!wazuhStore.wazuhAgents.length) {
+      await wazuhStore.fetchAgents();
+    }
+    const agent = wazuhStore.wazuhAgents.find((a) => a.id === queryAgentId);
+    if (agent) {
+      store.setSelectedAgent({ id: agent.id, name: agent.name });
+    }
+  }
+
   store.fetchAgentsList();
   store.refreshActiveTab();
 });

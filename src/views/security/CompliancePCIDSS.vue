@@ -63,14 +63,18 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { useRoute } from "vue-router";
 import { usePciDssStore } from "@/stores/pciDss";
+import { useWazuhStore } from "@/stores/wazuh";
 import PCIDSSAgentSelector from "@/components/security/pciDss/PCIDSSAgentSelector.vue";
 import PCIDSSDashboard from "@/components/security/pciDss/PCIDSSDashboard.vue";
 import PCIDSSControls from "@/components/security/pciDss/PCIDSSControls.vue";
 import PCIDSSEvents from "@/components/security/pciDss/PCIDSSEvents.vue";
 import PCIDSSRequirementDetail from "@/components/security/pciDss/PCIDSSRequirementDetail.vue";
 
+const route = useRoute();
 const store = usePciDssStore();
+const wazuhStore = useWazuhStore();
 const activeTab = ref(store.activeTab);
 
 const dateRangeOptions = [
@@ -92,7 +96,19 @@ function loadData() {
 
 defineExpose({ loadData });
 
-onMounted(() => {
+onMounted(async () => {
+  // Pre-select agent from query param if navigated from Agent Detail
+  const queryAgentId = route.query.agentId as string | undefined;
+  if (queryAgentId) {
+    if (!wazuhStore.wazuhAgents.length) {
+      await wazuhStore.fetchAgents();
+    }
+    const agent = wazuhStore.wazuhAgents.find((a) => a.id === queryAgentId);
+    if (agent) {
+      store.setSelectedAgent({ id: agent.id, name: agent.name });
+    }
+  }
+
   store.fetchAgentsList();
   store.refreshActiveTab();
 });

@@ -63,14 +63,18 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { useRoute } from "vue-router";
 import { useNist80053Store } from "@/stores/nist80053";
+import { useWazuhStore } from "@/stores/wazuh";
 import NIST80053AgentSelector from "@/components/security/nist80053/NIST80053AgentSelector.vue";
 import NIST80053Dashboard from "@/components/security/nist80053/NIST80053Dashboard.vue";
 import NIST80053Controls from "@/components/security/nist80053/NIST80053Controls.vue";
 import NIST80053Events from "@/components/security/nist80053/NIST80053Events.vue";
 import NIST80053Detail from "@/components/security/nist80053/NIST80053Detail.vue";
 
+const route = useRoute();
 const store = useNist80053Store();
+const wazuhStore = useWazuhStore();
 const activeTab = ref(store.activeTab);
 
 const dateRangeOptions = [
@@ -92,7 +96,19 @@ function loadData() {
 
 defineExpose({ loadData });
 
-onMounted(() => {
+onMounted(async () => {
+  // Pre-select agent from query param if navigated from Agent Detail
+  const queryAgentId = route.query.agentId as string | undefined;
+  if (queryAgentId) {
+    if (!wazuhStore.wazuhAgents.length) {
+      await wazuhStore.fetchAgents();
+    }
+    const agent = wazuhStore.wazuhAgents.find((a) => a.id === queryAgentId);
+    if (agent) {
+      store.setSelectedAgent({ id: agent.id, name: agent.name });
+    }
+  }
+
   store.fetchAgentsList();
   store.refreshActiveTab();
 });
