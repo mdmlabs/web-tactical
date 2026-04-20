@@ -63,14 +63,18 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { useRoute } from "vue-router";
 import { useGdprStore } from "@/stores/gdpr";
+import { useWazuhStore } from "@/stores/wazuh";
 import GDPRAgentSelector from "@/components/security/gdpr/GDPRAgentSelector.vue";
 import GDPRDashboard from "@/components/security/gdpr/GDPRDashboard.vue";
 import GDPRControls from "@/components/security/gdpr/GDPRControls.vue";
 import GDPREvents from "@/components/security/gdpr/GDPREvents.vue";
 import GDPRRequirementDetail from "@/components/security/gdpr/GDPRRequirementDetail.vue";
 
+const route = useRoute();
 const store = useGdprStore();
+const wazuhStore = useWazuhStore();
 const activeTab = ref(store.activeTab);
 
 const dateRangeOptions = [
@@ -92,7 +96,19 @@ function loadData() {
 
 defineExpose({ loadData });
 
-onMounted(() => {
+onMounted(async () => {
+  // Pre-select agent from query param if navigated from Agent Detail
+  const queryAgentId = route.query.agentId as string | undefined;
+  if (queryAgentId) {
+    if (!wazuhStore.wazuhAgents.length) {
+      await wazuhStore.fetchAgents();
+    }
+    const agent = wazuhStore.wazuhAgents.find((a) => a.id === queryAgentId);
+    if (agent) {
+      store.setSelectedAgent({ id: agent.id, name: agent.name });
+    }
+  }
+
   store.fetchAgentsList();
   store.refreshActiveTab();
 });

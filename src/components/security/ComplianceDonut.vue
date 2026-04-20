@@ -4,8 +4,8 @@
       <div class="row items-center justify-between">
         <div class="text-h6">Compliance</div>
         <q-select
-          v-model="framework"
-          :options="frameworkOptions"
+          v-model="selectedFramework"
+          :options="computedFrameworkOptions"
           dense
           outlined
           emit-value
@@ -30,13 +30,14 @@
           <div
             v-for="(item, idx) in topItems"
             :key="item.requirement"
-            class="legend-item"
+            class="legend-item legend-item--clickable"
+            @click="onItemClick(item)"
           >
             <span
               class="legend-dot"
               :style="{ background: colors[idx % colors.length] }"
             />
-            <span>{{ item.requirement }} ({{ item.count }})</span>
+            <span class="legend-text">{{ item.requirement }} ({{ item.count }})</span>
           </div>
         </div>
       </div>
@@ -45,21 +46,41 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { computed, watch } from "vue";
 import VueApexCharts from "vue3-apexcharts";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const apexchart = VueApexCharts;
 
-const props = defineProps<{
-  data: { requirement: string; count: number }[];
-  loading: boolean;
+const props = withDefaults(
+  defineProps<{
+    data: { requirement: string; count: number }[];
+    loading: boolean;
+    frameworks?: { label: string; value: string }[];
+  }>(),
+  {
+    frameworks: () => [{ label: "PCI DSS", value: "pci_dss" }],
+  },
+);
+
+const emit = defineEmits<{
+  "item-click": [payload: { requirement: string; framework: string }];
 }>();
 
-const framework = ref("pci_dss");
-const frameworkOptions = [
-  { label: "PCI DSS", value: "pci_dss" },
-];
+const selectedFramework = defineModel<string>("framework", { default: "pci_dss" });
+
+const computedFrameworkOptions = computed(() => props.frameworks);
+
+// Auto-select first available framework if current selection has no data
+watch(
+  () => props.frameworks,
+  (fws) => {
+    if (fws.length > 0 && !fws.find((f) => f.value === selectedFramework.value)) {
+      selectedFramework.value = fws[0].value;
+    }
+  },
+  { immediate: true },
+);
 
 const colors = ["#47c68e", "#00a9e5", "#fdbc40", "#ff645c", "#a481d4", "#006bb8"];
 
@@ -96,6 +117,13 @@ const chartOptions = computed(() => ({
   stroke: { width: 2, colors: ["#fff"] },
   tooltip: { enabled: true },
 }));
+
+function onItemClick(item: { requirement: string; count: number }) {
+  emit("item-click", {
+    requirement: item.requirement,
+    framework: selectedFramework.value,
+  });
+}
 </script>
 
 <style scoped>
@@ -125,6 +153,22 @@ const chartOptions = computed(() => ({
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.legend-item--clickable {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px 6px;
+  margin: -2px -6px;
+  transition: background 0.15s;
+}
+
+.legend-item--clickable:hover {
+  background: var(--mdm-bg-hover, rgba(0, 0, 0, 0.04));
+}
+
+.legend-item--clickable:hover .legend-text {
+  color: var(--mdm-primary, #2563eb);
 }
 
 .legend-dot {

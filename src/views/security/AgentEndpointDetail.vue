@@ -166,13 +166,12 @@
         </div>
         <!-- Compliance -->
         <div class="aed-card aed-card--compliance">
-          <div class="aed-card-header">
-            <div class="aed-card-title">Compliance</div>
-            <q-badge color="blue-grey-2" text-color="blue-grey-9" label="PCI DSS" class="q-ml-sm" />
-          </div>
           <ComplianceDonut
-            :data="wazuhStore.pciDssRuleCounts"
-            :loading="wazuhStore.rulesLoading"
+            v-model:framework="complianceFramework"
+            :data="complianceDonutData"
+            :loading="agentComplianceStore.loading"
+            :frameworks="agentComplianceStore.availableFrameworks"
+            @item-click="onComplianceItemClick"
           />
         </div>
       </div>
@@ -323,6 +322,7 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useWazuhStore } from "@/stores/wazuh";
+import { useAgentComplianceStore } from "@/stores/agentCompliance";
 import EventsEvolutionChart from "@/components/security/EventsEvolutionChart.vue";
 import ComplianceDonut from "@/components/security/ComplianceDonut.vue";
 import ScaTable from "@/components/security/ScaTable.vue";
@@ -330,16 +330,23 @@ import ScaTable from "@/components/security/ScaTable.vue";
 const route = useRoute();
 const router = useRouter();
 const wazuhStore = useWazuhStore();
+const agentComplianceStore = useAgentComplianceStore();
 
 const agentId = computed(() => route.params.agentId as string);
 const selectedAgentId = ref("");
 const tab = ref("threat");
 const fimSearch = ref("");
+const complianceFramework = ref("pci_dss");
 
 const agentsLoading = computed(() => wazuhStore.agentsLoading);
 
 const agent = computed(() =>
   wazuhStore.wazuhAgents.find((a) => a.id === agentId.value) ?? null,
+);
+
+// Compliance data for the currently selected framework
+const complianceDonutData = computed(() =>
+  agentComplianceStore.getDataForFramework(complianceFramework.value),
 );
 
 // Agent selector options (show name + id like Wazuh)
@@ -356,6 +363,26 @@ function switchAgent(newId: string) {
 function refreshAll() {
   if (agentId.value) {
     wazuhStore.fetchAgentDetail(agentId.value);
+    agentComplianceStore.fetchComplianceForAgent(agentId.value);
+  }
+}
+
+// Compliance click navigation
+function onComplianceItemClick(payload: { requirement: string; framework: string }) {
+  const frameworkRouteMap: Record<string, string> = {
+    pci_dss: "pci-dss",
+    gdpr: "gdpr",
+    hipaa: "hipaa",
+    nist_800_53: "nist80053",
+    tsc: "tsc",
+  };
+  const fw = frameworkRouteMap[payload.framework];
+  if (fw) {
+    router.push({
+      name: "ComplianceHub",
+      params: { framework: fw },
+      query: { agentId: agentId.value },
+    });
   }
 }
 
@@ -512,6 +539,7 @@ watch(agentId, (newId) => {
   if (newId) {
     selectedAgentId.value = newId;
     wazuhStore.fetchAgentDetail(newId);
+    agentComplianceStore.fetchComplianceForAgent(newId);
   }
 });
 
@@ -522,6 +550,7 @@ onMounted(async () => {
   selectedAgentId.value = agentId.value;
   if (agentId.value) {
     wazuhStore.fetchAgentDetail(agentId.value);
+    agentComplianceStore.fetchComplianceForAgent(agentId.value);
   }
 });
 </script>

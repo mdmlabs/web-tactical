@@ -63,14 +63,18 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { useRoute } from "vue-router";
 import { useTscStore } from "@/stores/tsc";
+import { useWazuhStore } from "@/stores/wazuh";
 import TSCAgentSelector from "@/components/security/tsc/TSCAgentSelector.vue";
 import TSCDashboard from "@/components/security/tsc/TSCDashboard.vue";
 import TSCControls from "@/components/security/tsc/TSCControls.vue";
 import TSCEvents from "@/components/security/tsc/TSCEvents.vue";
 import TSCRequirementDetail from "@/components/security/tsc/TSCRequirementDetail.vue";
 
+const route = useRoute();
 const store = useTscStore();
+const wazuhStore = useWazuhStore();
 const activeTab = ref(store.activeTab);
 
 const dateRangeOptions = [
@@ -92,7 +96,19 @@ function loadData() {
 
 defineExpose({ loadData });
 
-onMounted(() => {
+onMounted(async () => {
+  // Pre-select agent from query param if navigated from Agent Detail
+  const queryAgentId = route.query.agentId as string | undefined;
+  if (queryAgentId) {
+    if (!wazuhStore.wazuhAgents.length) {
+      await wazuhStore.fetchAgents();
+    }
+    const agent = wazuhStore.wazuhAgents.find((a) => a.id === queryAgentId);
+    if (agent) {
+      store.setSelectedAgent({ id: agent.id, name: agent.name });
+    }
+  }
+
   store.fetchAgentsList();
   store.refreshActiveTab();
 });
