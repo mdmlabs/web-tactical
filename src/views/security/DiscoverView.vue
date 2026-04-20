@@ -100,8 +100,8 @@ import DiscoverEventsTable from "@/components/security/DiscoverEventsTable.vue";
 const discoverStore = useDiscoverStore();
 
 const indexPatternOptions = [
-  { label: "wazuh-alerts-*", value: "wazuh-alerts-*" },
-  { label: "wazuh-archives-*", value: "wazuh-archives-*" },
+  { label: "ossec-alerts-*", value: "ossec-alerts-*" },
+  { label: "ossec-archives-*", value: "ossec-archives-*" },
 ];
 
 const timeOptions = [
