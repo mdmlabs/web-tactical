@@ -42,7 +42,7 @@ export const DISCOVER_KNOWN_FIELDS: string[] = [
 
 export const useDiscoverStore = defineStore("discover", () => {
   // === State ===
-  const indexPattern = ref("wazuh-alerts-*");
+  const indexPattern = ref("ossec-alerts-*");
   const searchQuery = ref("");
   const timeRange = ref<"15m" | "1h" | "24h" | "7d" | "30d">("24h");
   const selectedFields = ref<string[]>(["rule.level", "rule.id", "rule.description", "@timestamp"]);
@@ -169,7 +169,7 @@ export const useDiscoverStore = defineStore("discover", () => {
       if (isAxiosError(e) && e.response?.status === 401) {
         errorMessage.value = "Authentication failed. Check Wazuh Indexer credentials.";
       } else if (isAxiosError(e) && e.response?.status === 404) {
-        errorMessage.value = `Index pattern "${indexPattern.value}" not found. Ensure Wazuh alerts are being indexed.`;
+        errorMessage.value = `Index pattern "${indexPattern.value}" not found. Ensure OSSEC alerts are being indexed.`;
       } else if (isAxiosError(e) && !e.response) {
         errorMessage.value = "Wazuh Indexer is unreachable. Check connection settings.";
       } else {
