@@ -37,6 +37,7 @@ const labelMap: Record<string, string> = {
   SecurityGroupDetail: "Groups",
   SecurityDiscover: "Discover",
   SecurityFIM: "File Integrity Monitoring",
+  ThreatHunting: "Threat Hunting",
   SecuritySCA: "Configuration Assessment",
   ComplianceHub: "Compliance",
 };

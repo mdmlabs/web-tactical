@@ -669,6 +669,10 @@
                     <q-item-section>FIM</q-item-section>
                   </q-item>
                   <q-separator spaced />
+                  <q-item clickable v-ripple @click="navigateToSecurity('threat-hunting')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="track_changes" size="sm" /></q-item-section>
+                    <q-item-section>Threat Hunting</q-item-section>
+                  </q-item>
                   <q-item clickable v-ripple @click="navigateToSecurity('compliance')" class="filebar-popup-item" v-close-popup>
                     <q-item-section avatar><q-icon name="policy" size="sm" /></q-item-section>
                     <q-item-section>Compliance</q-item-section>
@@ -708,6 +712,10 @@
                   </q-item>
                 </q-list>
               </q-expansion-item>
+              <q-item clickable v-ripple @click="navigateToSecurity('threat-hunting')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('threat-hunting') }]">
+                <q-item-section avatar><q-icon name="track_changes" /></q-item-section>
+                <q-item-section>Threat Hunting</q-item-section>
+              </q-item>
               <q-item clickable v-ripple @click="navigateToSecurity('compliance')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('compliance') }]">
                 <q-item-section avatar><q-icon name="policy" /></q-item-section>
                 <q-item-section>Compliance</q-item-section>
@@ -1652,6 +1660,7 @@ export default {
         "it-hygiene": "ITHygiene",
         discover: "SecurityDiscover",
         fim: "SecurityFIM",
+        "threat-hunting": "ThreatHunting",
       };
       this.$router.push({ name: routeMap[tab] || "SecurityAgents" });
     },
@@ -1667,6 +1676,7 @@ export default {
       if (tab === "it-hygiene") return path === "/security/it-hygiene";
       if (tab === "discover") return path === "/security/discover";
       if (tab === "fim") return path.startsWith("/security/fim");
+      if (tab === "threat-hunting") return path.startsWith("/security/threat-hunting");
       return false;
     },
     clearCache() {

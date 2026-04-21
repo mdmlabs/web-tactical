@@ -185,6 +185,12 @@ const routes = [
               import("@/views/security/FIMView.vue"),
           },
           {
+            path: "threat-hunting",
+            name: "ThreatHunting",
+            component: () =>
+              import("@/views/security/ThreatHuntingView.vue"),
+          },
+          {
             path: "sca",
             redirect: "/security/compliance/sca",
           },
