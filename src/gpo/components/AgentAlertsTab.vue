@@ -78,7 +78,10 @@
                 {{ alertTypeLabel(props.row.type) }}
               </q-badge>
             </div>
-            <div v-if="props.row.message" class="text-caption text-grey-7 alert-message">
+            <div
+              v-if="props.row.message"
+              class="text-caption text-grey-7 alert-message"
+            >
               {{ props.row.message }}
             </div>
             <q-expansion-item
@@ -140,7 +143,10 @@
                 size="sm"
                 color="primary"
                 icon="done"
-                :disable="props.row.status !== alertsClient.AlertStatus.ALERT_STATUS_OPEN"
+                :disable="
+                  props.row.status !==
+                  alertsClient.AlertStatus.ALERT_STATUS_OPEN
+                "
                 @click="ackAndReload(props.row.id)"
               >
                 <q-tooltip>Acknowledge</q-tooltip>
@@ -152,8 +158,10 @@
                 color="positive"
                 icon="check_circle"
                 :disable="
-                  props.row.status === alertsClient.AlertStatus.ALERT_STATUS_RESOLVED ||
-                  props.row.status === alertsClient.AlertStatus.ALERT_STATUS_CLOSED
+                  props.row.status ===
+                    alertsClient.AlertStatus.ALERT_STATUS_RESOLVED ||
+                  props.row.status ===
+                    alertsClient.AlertStatus.ALERT_STATUS_CLOSED
                 "
                 @click="resolveAndReload(props.row.id)"
               >
@@ -165,7 +173,10 @@
                 size="sm"
                 color="negative"
                 icon="close"
-                :disable="props.row.status === alertsClient.AlertStatus.ALERT_STATUS_CLOSED"
+                :disable="
+                  props.row.status ===
+                  alertsClient.AlertStatus.ALERT_STATUS_CLOSED
+                "
                 @click="closeAndReload(props.row.id)"
               >
                 <q-tooltip>Close</q-tooltip>
@@ -186,13 +197,9 @@ import { notifyError, notifySuccess } from "@/utils/notify";
 import { alertsClient } from "../api/grpc-client";
 
 const props = defineProps<{
-  /** Alerts for a single agent (dashboard). */
   agentId?: string | null;
-  /** Alerts scoped to a directory user (Users Manager). */
   userId?: string | null;
-  /** Alerts scoped to a group (Groups Manager). */
   groupId?: string | null;
-  /** Alerts scoped to a machine group / agent category (Machine groups). */
   agentCategoryId?: number | null;
   active: boolean;
 }>();
@@ -222,7 +229,10 @@ const statusFilter = ref<number | null>(null);
 const statusOptions: Array<{ label: string; value: number | null }> = [
   { label: "All", value: null },
   { label: "Open", value: alertsClient.AlertStatus.ALERT_STATUS_OPEN },
-  { label: "Acknowledged", value: alertsClient.AlertStatus.ALERT_STATUS_ACKNOWLEDGED },
+  {
+    label: "Acknowledged",
+    value: alertsClient.AlertStatus.ALERT_STATUS_ACKNOWLEDGED,
+  },
   { label: "Resolved", value: alertsClient.AlertStatus.ALERT_STATUS_RESOLVED },
   { label: "Closed", value: alertsClient.AlertStatus.ALERT_STATUS_CLOSED },
 ];
@@ -238,7 +248,6 @@ const hasAlertScope = computed(() => {
   return false;
 });
 
-/** When the list is already scoped to one entity, the Target column is redundant. */
 const hideTargetColumn = computed(
   () =>
     !props.agentId &&
@@ -527,7 +536,9 @@ async function reload() {
   } catch (e) {
     rows.value = [];
     loadedForListKey.value = null;
-    notifyError(e instanceof Error ? e.message : "Alerts could not be uploaded");
+    notifyError(
+      e instanceof Error ? e.message : "Alerts could not be uploaded",
+    );
   } finally {
     loading.value = false;
   }
@@ -549,7 +560,9 @@ async function resolveAndReload(id: number) {
     notifySuccess("Alert resolved");
     await reload();
   } catch (e) {
-    notifyError(e instanceof Error ? e.message : "Couldn't close alert as resolved");
+    notifyError(
+      e instanceof Error ? e.message : "Couldn't close alert as resolved",
+    );
   }
 }
 
@@ -591,4 +604,3 @@ watch(
   white-space: pre-wrap
   word-break: break-word
 </style>
-

@@ -642,4 +642,10 @@ message PolicyAssignment {
   laborato.common.target.Target target = 4;
   string sid = 5;
   PolicySummary summary = 6;
+  repeated PolicyAssigmentsState state = 7;
+}
+
+message PolicyAssigmentsState {
+  string id_name = 1;
+  string value = 2;
 }
