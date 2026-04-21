@@ -233,7 +233,8 @@
 
         <q-separator class="groups-detail-sep" />
 
-        <q-tab-panels :model-value="detailTab" class="groups-tab-panels">
+        <q-scroll-area class="groups-tab-scroll">
+          <q-tab-panels :model-value="detailTab" class="groups-tab-panels">
         <q-tab-panel name="children" class="q-pa-md">
           <div class="row items-center q-mb-md">
             <div class="text-subtitle2">Child groups</div>
@@ -606,7 +607,8 @@
             Group identifier is not available for connectivity policies.
           </div>
         </q-tab-panel>
-      </q-tab-panels>
+          </q-tab-panels>
+        </q-scroll-area>
       </div>
     </template>
 
@@ -1271,6 +1273,7 @@ function exportCollections(format: "csv" | "xlsx") {
 <style scoped lang="sass">
 .groups-right-panel
   flex: 1
+  min-height: 0
   display: flex
   flex-direction: column
   overflow: hidden
@@ -1290,6 +1293,10 @@ function exportCollections(format: "csv" | "xlsx") {
 
 .groups-detail-sep
   flex-shrink: 0
+
+.groups-tab-scroll
+  flex: 1 1 0%
+  min-height: 0
 
 .groups-detail-tabs-wrap
   flex-shrink: 0

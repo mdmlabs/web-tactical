@@ -139,7 +139,10 @@ export const alertsClient = {
   ): Promise<operator_alerts_service_pb_types.AlertItem.AsObject> {
     const req = new operator_alerts_service_pb.GetAlertRequest();
     req.setId(Math.floor(Number(id)));
-    const resp = await alertQueryServiceClient.getAlert(req, createGrpcMetadata());
+    const resp = await alertQueryServiceClient.getAlert(
+      req,
+      createGrpcMetadata(),
+    );
     return resp.toObject();
   },
 
@@ -162,7 +165,10 @@ export const alertsClient = {
     if (params.status != null) req.setStatus(params.status);
     if (params.openOnly != null) req.setOpenOnly(params.openOnly);
 
-    const resp = await alertQueryServiceClient.listAlerts(req, createGrpcMetadata());
+    const resp = await alertQueryServiceClient.listAlerts(
+      req,
+      createGrpcMetadata(),
+    );
     return resp.toObject();
   },
 
