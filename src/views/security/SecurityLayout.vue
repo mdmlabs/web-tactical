@@ -41,19 +41,10 @@ const labelMap: Record<string, string> = {
   ComplianceHub: "Compliance",
 };
 
-const complianceLabelMap: Record<string, string> = {
-  "pci-dss": "PCI DSS",
-  gdpr: "GDPR",
-  hipaa: "HIPAA",
-  nist80053: "NIST 800-53",
-  tsc: "TSC / SOC 2",
-};
-
 const currentPageLabel = computed(() => {
   const name = route.name as string;
   if (name === "ComplianceHub") {
-    const fw = (route.params.framework as string) || "pci-dss";
-    return complianceLabelMap[fw] ?? "Compliance";
+    return "Compliance";
   }
   return labelMap[name] ?? "Security";
 });

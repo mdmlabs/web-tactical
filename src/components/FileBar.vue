@@ -669,30 +669,9 @@
                     <q-item-section>FIM</q-item-section>
                   </q-item>
                   <q-separator spaced />
-                  <q-item-label header class="text-weight-bold">Compliance</q-item-label>
-                  <q-item clickable v-ripple @click="navigateToSecurity('sca')" class="filebar-popup-item" v-close-popup>
-                    <q-item-section avatar><q-icon name="verified_user" size="sm" /></q-item-section>
-                    <q-item-section>SCA</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('compliance/pci-dss')" class="filebar-popup-item" v-close-popup>
-                    <q-item-section avatar><q-icon name="credit_card" size="sm" /></q-item-section>
-                    <q-item-section>PCI DSS</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('compliance/gdpr')" class="filebar-popup-item" v-close-popup>
-                    <q-item-section avatar><q-icon name="gavel" size="sm" /></q-item-section>
-                    <q-item-section>GDPR</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('compliance/hipaa')" class="filebar-popup-item" v-close-popup>
-                    <q-item-section avatar><q-icon name="local_hospital" size="sm" /></q-item-section>
-                    <q-item-section>HIPAA</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('compliance/nist80053')" class="filebar-popup-item" v-close-popup>
-                    <q-item-section avatar><q-icon name="account_balance" size="sm" /></q-item-section>
-                    <q-item-section>NIST 800-53</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('compliance/tsc')" class="filebar-popup-item" v-close-popup>
-                    <q-item-section avatar><q-icon name="assessment" size="sm" /></q-item-section>
-                    <q-item-section>TSC / SOC 2</q-item-section>
+                  <q-item clickable v-ripple @click="navigateToSecurity('compliance')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="policy" size="sm" /></q-item-section>
+                    <q-item-section>Compliance</q-item-section>
                   </q-item>
                 </q-list>
               </q-menu>
@@ -729,34 +708,10 @@
                   </q-item>
                 </q-list>
               </q-expansion-item>
-              <q-expansion-item icon="policy" label="Compliance" dense :default-opened="isActiveSecurityTab('sca') || isActiveSecurityTab('compliance')" class="filebar-submenu">
-                <q-list>
-                  <q-item clickable v-ripple @click="navigateToSecurity('sca')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('sca') }]">
-                    <q-item-section avatar><q-icon name="verified_user" /></q-item-section>
-                    <q-item-section>SCA</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('compliance/pci-dss')" :class="['filebar-menu-item', { 'active-menu-item': isActiveComplianceFramework('pci-dss') }]">
-                    <q-item-section avatar><q-icon name="credit_card" /></q-item-section>
-                    <q-item-section>PCI DSS</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('compliance/gdpr')" :class="['filebar-menu-item', { 'active-menu-item': isActiveComplianceFramework('gdpr') }]">
-                    <q-item-section avatar><q-icon name="gavel" /></q-item-section>
-                    <q-item-section>GDPR</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('compliance/hipaa')" :class="['filebar-menu-item', { 'active-menu-item': isActiveComplianceFramework('hipaa') }]">
-                    <q-item-section avatar><q-icon name="local_hospital" /></q-item-section>
-                    <q-item-section>HIPAA</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('compliance/nist80053')" :class="['filebar-menu-item', { 'active-menu-item': isActiveComplianceFramework('nist80053') }]">
-                    <q-item-section avatar><q-icon name="account_balance" /></q-item-section>
-                    <q-item-section>NIST 800-53</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('compliance/tsc')" :class="['filebar-menu-item', { 'active-menu-item': isActiveComplianceFramework('tsc') }]">
-                    <q-item-section avatar><q-icon name="assessment" /></q-item-section>
-                    <q-item-section>TSC / SOC 2</q-item-section>
-                  </q-item>
-                </q-list>
-              </q-expansion-item>
+              <q-item clickable v-ripple @click="navigateToSecurity('compliance')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('compliance') }]">
+                <q-item-section avatar><q-icon name="policy" /></q-item-section>
+                <q-item-section>Compliance</q-item-section>
+              </q-item>
             </q-list>
           </q-expansion-item>
 
@@ -1685,9 +1640,9 @@ export default {
       if (this.isMobile) {
         this.closeDrawer();
       }
-      // Compliance framework paths like "compliance/pci-dss" navigate directly
-      if (tab.startsWith("compliance/")) {
-        this.$router.push("/security/" + tab);
+      // Compliance hub navigates to the unified compliance page
+      if (tab === "compliance") {
+        this.$router.push({ name: "ComplianceHub" });
         return;
       }
       const routeMap = {
@@ -1697,7 +1652,6 @@ export default {
         "it-hygiene": "ITHygiene",
         discover: "SecurityDiscover",
         fim: "SecurityFIM",
-        sca: "SecuritySCA",
       };
       this.$router.push({ name: routeMap[tab] || "SecurityAgents" });
     },
@@ -1709,11 +1663,10 @@ export default {
       if (tab === "agents") return path.startsWith("/security/agents") || path === "/security";
       if (tab === "alerts") return path === "/security/alerts";
       if (tab === "groups") return path === "/security/groups";
-      if (tab === "compliance") return path.startsWith("/security/compliance");
+      if (tab === "compliance") return path.startsWith("/security/compliance") || path.startsWith("/security/sca");
       if (tab === "it-hygiene") return path === "/security/it-hygiene";
       if (tab === "discover") return path === "/security/discover";
       if (tab === "fim") return path.startsWith("/security/fim");
-      if (tab === "sca") return path.startsWith("/security/sca");
       return false;
     },
     clearCache() {
