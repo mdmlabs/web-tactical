@@ -12,15 +12,7 @@
     </div>
 
     <template v-else>
-      <div class="groups-detail-header q-px-lg q-py-md row items-center">
-        <div>
-          <div class="text-h6 text-weight-medium">
-            {{ group?.displayname || group?.name || selectedGroupSam }}
-          </div>
-          <div class="text-caption text-grey-6">
-            {{ group?.distinguishedname || selectedGroupSam }}
-          </div>
-        </div>
+      <div class="groups-detail-header q-px-sm q-py-sm row items-center">
         <q-space />
         <q-btn
           flat
@@ -42,13 +34,11 @@
         />
       </div>
 
-      <q-separator />
-
       <div class="groups-detail-main">
         <div v-if="detailLoading" class="flex flex-center q-pa-xl groups-detail-summary">
           <q-spinner color="primary" size="2em" />
         </div>
-        <div v-else class="groups-detail-summary q-px-lg q-py-md">
+        <div v-else class="groups-detail-summary q-px-sm q-py-sm">
           <div class="row q-col-gutter-md summary-row">
             <div class="col-12 col-md-6 summary-col">
               <div class="system-info-summary summary-card">
