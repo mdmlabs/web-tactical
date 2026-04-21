@@ -186,9 +186,7 @@ const routes = [
           },
           {
             path: "sca",
-            name: "SecuritySCA",
-            component: () =>
-              import("@/views/security/SCAView.vue"),
+            redirect: "/security/compliance/sca",
           },
           {
             path: "compliance/:framework?",

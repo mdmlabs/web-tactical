@@ -40,6 +40,12 @@ export const DISCOVER_KNOWN_FIELDS: string[] = [
   "full_log",
 ];
 
+/** Map display index names (ossec-*) to actual backend index names (wazuh-*) */
+const INDEX_PATTERN_MAP: Record<string, string> = {
+  "ossec-alerts-*": "wazuh-alerts-*",
+  "ossec-archives-*": "wazuh-archives-*",
+};
+
 export const useDiscoverStore = defineStore("discover", () => {
   // === State ===
   const indexPattern = ref("ossec-alerts-*");
@@ -140,8 +146,10 @@ export const useDiscoverStore = defineStore("discover", () => {
         },
       };
 
+      const apiIndex = INDEX_PATTERN_MAP[indexPattern.value] ?? indexPattern.value;
+
       const resp = await wazuhIndexerApi.search<DiscoverHit>(
-        indexPattern.value,
+        apiIndex,
         body,
       );
 
