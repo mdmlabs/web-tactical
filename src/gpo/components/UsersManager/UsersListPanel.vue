@@ -1,7 +1,17 @@
 <template>
   <div class="users-left-panel">
     <div class="users-left-header row items-center q-px-md q-py-sm">
-      <div class="text-subtitle1 text-weight-medium">Users</div>
+      <div class="row items-center no-wrap q-gutter-x-sm">
+        <div class="text-subtitle1 text-weight-medium">Users</div>
+        <q-badge
+          v-if="!loading && !error && users.length > 0"
+          color="grey-3"
+          text-color="grey-8"
+          :label="users.length"
+          rounded
+          class="users-count-badge"
+        />
+      </div>
       <q-space />
       <q-btn
         flat
@@ -65,32 +75,64 @@
       />
     </div>
 
-    <q-list v-else-if="users.length > 0" class="users-list" separator>
-      <q-item
-        v-for="u in users"
-        :key="u.userid"
-        clickable
-        v-ripple
-        :active="selectedId === u.userid"
-        active-class="users-list-item-active"
-        @click="$emit('select', u)"
-      >
-        <q-item-section avatar>
-          <q-icon
-            name="person"
-            :color="u.info?.isenabled !== false ? 'primary' : 'grey'"
-          />
-        </q-item-section>
-        <q-item-section>
-          <q-item-label>{{
-            u.info?.displayname || u.info?.samaccountname || u.userid
-          }}</q-item-label>
-          <q-item-label caption>{{
-            u.info?.samaccountname || u.userid
-          }}</q-item-label>
-        </q-item-section>
-      </q-item>
-    </q-list>
+    <q-scroll-area
+      v-else-if="users.length > 0"
+      class="users-list-scroll"
+    >
+      <q-list class="users-list" separator>
+        <q-item
+          v-for="u in users"
+          :key="u.userid"
+          dense
+          clickable
+          v-ripple
+          class="users-list-item"
+          :active="selectedId === u.userid"
+          active-class="users-list-item-active"
+          @click="$emit('select', u)"
+        >
+          <q-item-section avatar class="users-list-avatar-wrap">
+            <div
+              class="users-list-avatar"
+              :class="{
+                'users-list-avatar--inactive': u.info?.isenabled === false,
+              }"
+            >
+              <q-icon name="person" size="18px" class="users-list-avatar-icon" />
+            </div>
+          </q-item-section>
+          <q-item-section>
+            <q-item-label class="users-list-title ellipsis" lines="1">{{
+              u.info?.displayname || u.info?.samaccountname || u.userid
+            }}</q-item-label>
+            <q-item-label caption class="users-list-sub ellipsis" lines="1">{{
+              u.info?.samaccountname || u.userid
+            }}</q-item-label>
+          </q-item-section>
+          <q-item-section side class="users-list-side">
+            <div class="row items-center no-wrap q-gutter-x-xs">
+              <q-icon
+                v-if="u.info?.passwordexpired"
+                name="schedule"
+                color="warning"
+                size="16px"
+              >
+                <q-tooltip>Password expired</q-tooltip>
+              </q-icon>
+              <q-icon
+                :name="u.info?.islocked ? 'lock' : 'lock_open'"
+                :color="u.info?.islocked ? 'negative' : 'grey-6'"
+                size="18px"
+              >
+                <q-tooltip>
+                  {{ u.info?.islocked ? "Locked" : "Not locked" }}
+                </q-tooltip>
+              </q-icon>
+            </div>
+          </q-item-section>
+        </q-item>
+      </q-list>
+    </q-scroll-area>
 
     <div v-else class="column items-center justify-center q-pa-xl text-grey-6">
       <q-icon name="person_off" size="2rem" class="q-mb-sm" />
@@ -134,17 +176,87 @@ defineEmits<{
 .users-left-header
   flex-shrink: 0
 
-.users-list
+.users-count-badge
+  font-weight: 600
+  font-size: 11px
+  padding: 2px 8px
+  letter-spacing: 0.02em
+
+.users-list-scroll
   flex: 1 1 0
-  overflow: auto
   min-height: 0
 
+.users-list
+  padding: 4px 0
+
+.users-list :deep(.q-item)
+  border-left: 3px solid transparent
+  transition: background-color 0.15s ease, border-left-color 0.15s ease
+
+.users-list :deep(.q-item:not(.users-list-item-active):hover)
+  background: rgba(0, 0, 0, 0.04)
+
 .users-list-item-active
-  background: rgba(25, 118, 210, .1)
+  background: rgba(25, 118, 210, 0.08)
+  border-left-color: #1976d2 !important
+
+.users-list-avatar-wrap
+  min-width: 40px
+
+.users-list-avatar
+  width: 32px
+  height: 32px
+  border-radius: 8px
+  display: flex
+  align-items: center
+  justify-content: center
+  color: #0d47a1
+  background: #e3f2fd
+  border: 1px solid rgb(144, 202, 249)
+
+.users-list-avatar-icon
+  opacity: 0.9
+
+.users-list-avatar--inactive
+  color: #424242
+  background: #f5f5f5
+  border-color: #e0e0e0
+
+.users-list-title
+  font-size: 13px
+  font-weight: 600
+  line-height: 1.25
+
+.users-list-sub
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace
+  font-size: 11px
+  opacity: 0.85
+
+.users-list-side
+  padding-left: 4px
 
 .body--dark .users-left-panel
   border-right-color: rgba(255, 255, 255, 0.12)
 
+.body--dark .users-list :deep(.q-item:not(.users-list-item-active):hover)
+  background: rgba(255, 255, 255, 0.06)
+
 .body--dark .users-list-item-active
-  background: rgba(25, 118, 210, 0.25)
+  background: rgba(25, 118, 210, 0.22)
+
+.body--dark .users-list-avatar
+  color: #e3f2fd
+  background: #1565c0
+  border: 1px solid rgb(66, 165, 245)
+
+.body--dark .users-list-avatar-icon
+  opacity: 0.95
+
+.body--dark .users-list-avatar--inactive
+  color: #eeeeee
+  background: #424242
+  border-color: #616161
+
+.body--dark .users-count-badge
+  background: rgba(255, 255, 255, 0.12) !important
 </style>

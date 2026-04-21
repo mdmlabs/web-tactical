@@ -26,13 +26,15 @@
 
       <q-card-section class="user-picker-dialog__body">
         <q-input
-          v-model="search"
+          :model-value="search"
           outlined
           dense
           clearable
           debounce="200"
           placeholder="Search by name..."
           class="q-mb-md"
+          @update:model-value="onSearchUpdate"
+          @clear="onSearchUpdate('')"
         >
           <template #prepend>
             <q-icon name="search" />
@@ -143,12 +145,15 @@ const selected = ref<UserPickerRow | null>(null);
 
 watch(
   () => props.modelValue,
-  (open) => {
-    if (!open) return;
+  () => {
     search.value = "";
     selected.value = null;
   },
 );
+
+function onSearchUpdate(val: unknown) {
+  search.value = String(val ?? "");
+}
 
 const filteredRows = computed(() => {
   const s = search.value.trim().toLowerCase();

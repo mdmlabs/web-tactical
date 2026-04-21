@@ -12,25 +12,7 @@
     </div>
 
     <template v-else>
-      <div class="users-detail-header q-px-md q-py-sm row items-center">
-        <div>
-          <div class="text-h6 text-weight-medium">
-            {{
-              user?.info?.displayname ||
-              user?.info?.samaccountname ||
-              selectedId
-            }}
-          </div>
-          <div class="text-caption text-grey-6">
-            {{ user?.info?.samaccountname || selectedId }}
-            <span
-              v-if="user?.info?.sid"
-              class="q-ml-sm text-mono"
-              style="font-size: 11px"
-              >{{ user.info.sid }}</span
-            >
-          </div>
-        </div>
+      <div class="users-detail-header q-px-sm q-py-sm row items-center">
         <q-space />
         <div v-if="user" class="row items-center no-wrap q-gutter-x-xs q-mr-sm">
           <q-icon
@@ -40,15 +22,6 @@
           >
             <q-tooltip>
               {{ user.info?.isenabled !== false ? "Enabled" : "Disabled" }}
-            </q-tooltip>
-          </q-icon>
-          <q-icon
-            :name="user.info?.islocked ? 'lock' : 'lock_open'"
-            :color="user.info?.islocked ? 'negative' : 'grey'"
-            size="18px"
-          >
-            <q-tooltip>
-              {{ user.info?.islocked ? "Locked" : "Not locked" }}
             </q-tooltip>
           </q-icon>
           <q-icon
@@ -178,16 +151,14 @@
         </q-btn>
       </div>
 
-      <q-separator />
-
       <div v-if="loading" class="flex flex-center q-pa-xl">
         <q-spinner color="primary" size="2em" />
       </div>
 
       <template v-else-if="user">
         <div class="users-detail-main">
-          <div class="users-detail-summary q-px-lg q-py-md">
-            <div class="row q-col-gutter-md summary-row">
+          <div class="users-detail-summary q-px-sm q-py-sm">
+            <div class="row q-col-gutter-sm summary-row">
               <div class="col-12 col-md-6 summary-col">
                 <div class="system-info-summary summary-card">
                   <div class="text-caption text-grey-7 q-mb-xs">User</div>
