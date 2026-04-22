@@ -2506,6 +2506,25 @@ export const collectionsClient = {
     return response.toObject();
   },
 
+  async exportCollectionPolicies(
+    langCode: string = "en-US",
+    scope: operator_pb.PolicyScope = operator_pb.PolicyScope.POLICY_SCOPE_NONE,
+    exportFormat: export_pb_types.ExportFormat = export_pb.ExportFormat.CSV,
+  ): Promise<export_pb_types.ExportResponse.AsObject> {
+    const request = new operator_pb.ExportCollectionPoliciesRequest();
+    request.setLangCode(langCode);
+    request.setScope(scope);
+    request.setExportFormat(exportFormat);
+
+    const response =
+      await collectionsControlServiceClient.exportCollectionPolicies(
+        request,
+        createGrpcMetadata(),
+      );
+
+    return response.toObject();
+  },
+
   async getAppliedCollectionsByAgentCategory(
     categoryId: number,
     langCode: string = "en-US",
