@@ -872,8 +872,18 @@ export default {
         })
         .onOk(() => this.$store.dispatch("loadTree"));
     },
+    subtreeHasAgents(nodes) {
+      for (const n of nodes ?? []) {
+        if (n.site?.agent_count > 0) return true;
+        if (n.children?.length && this.subtreeHasAgents(n.children)) return true;
+      }
+      return false;
+    },
     showDeleteModal(node) {
-      if (node.site && node.site.agent_count > 0) {
+      const hasAgents =
+        (node.site?.agent_count > 0) ||
+        this.subtreeHasAgents(node.children);
+      if (hasAgents) {
         this.$q
           .dialog({
             component: DeleteClient,
