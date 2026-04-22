@@ -274,7 +274,7 @@ function showDeleteModal(node: TreeNode) {
     }).onOk(async () => {
       $q.loading.show();
       try {
-        const { data } = await axios.delete(`/clients/sites/${node.id}/`);
+        const { data } = await axios.delete(`/clients/sites/${node.master_id}/`);
         notifySuccess(data);
         clearTreeSelected();
       } catch (e) {

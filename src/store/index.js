@@ -426,6 +426,7 @@ export default function () {
                   let siteNode = {
                     label: site.name,
                     id: site.id,
+                    master_id: site.master_id,
                     raw: `Site|${site.id}`,
                     header: childNodes.length > 0 ? "root" : "generic",
                     icon: childNodes.length > 0 ? "corporate_fare" : "business_center",

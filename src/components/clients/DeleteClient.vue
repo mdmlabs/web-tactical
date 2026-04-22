@@ -85,7 +85,7 @@ export default {
       }).onOk(async () => {
         loading.value = true;
         try {
-          const result = await removeSite(props.object.id, {
+          const result = await removeSite(props.object.master_id, {
             move_to_site: site.value,
           });
           notifySuccess(result);
