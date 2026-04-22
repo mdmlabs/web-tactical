@@ -39,6 +39,16 @@
             label="Description"
           />
         </q-card-section>
+        <q-card-section>
+          <q-input
+            outlined
+            dense
+            type="number"
+            v-model.number="state.max_agents"
+            label="Max Agents"
+            :min="0"
+          />
+        </q-card-section>
 
         <div class="q-pl-sm text-h6" v-if="customFields.length > 0">
           Custom Fields
@@ -99,8 +109,8 @@ export default {
 
     // sites for logic
     const state = !!props.site
-      ? ref(Object.assign({}, props.site))
-      : ref({ parent: props.parent || null, name: "", description: "" });
+      ? ref(Object.assign({ max_agents: 0 }, props.site))
+      : ref({ parent: props.parent || null, name: "", description: "", max_agents: 0 });
     const custom_fields = ref({});
     const customFields = ref([]);
     const loading = ref(false);
@@ -137,6 +147,10 @@ export default {
     async function getSiteCustomFieldValues() {
       loading.value = true;
       const data = await fetchSite(props.site.id);
+      if (data.name != null) state.value.name = data.name;
+      if (data.description != null) state.value.description = data.description;
+      if (data.parent != null) state.value.parent = data.parent;
+      if (data.max_agents != null) state.value.max_agents = data.max_agents;
 
       for (let field of customFields.value) {
         const value = data.custom_fields.find(
