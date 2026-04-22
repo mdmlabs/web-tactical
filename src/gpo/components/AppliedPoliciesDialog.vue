@@ -461,6 +461,18 @@
                   </q-td>
                 </template>
 
+                <template v-slot:body-cell-user="props">
+                  <q-td :props="props">
+                    <span
+                      v-if="effectiveUserColumnLabel(props.row)"
+                      class="text-weight-medium"
+                    >
+                      {{ effectiveUserColumnLabel(props.row) }}
+                    </span>
+                    <span v-else class="text-grey-5">—</span>
+                  </q-td>
+                </template>
+
                 <template v-slot:body-cell-scope="props">
                   <q-td :props="props">
                     <q-badge
@@ -468,6 +480,80 @@
                       :label="effectiveScopeLabel(props.row)"
                       outline
                     />
+                  </q-td>
+                </template>
+
+                <template v-slot:body-cell-values="props">
+                  <q-td :props="props">
+                    <span
+                      v-if="
+                        policySelectionToParamItems(
+                          props.row.selection ?? props.row.Selection,
+                        ).length === 0
+                      "
+                      class="text-grey-5"
+                    >
+                      No parameters
+                    </span>
+                    <div v-else class="assignment-values-block">
+                      <q-expansion-item
+                        dense
+                        dense-toggle
+                        switch-toggle-side
+                        header-class="assignment-values-expansion-header effective-desc-toggle q-px-none"
+                        class="assignment-values-expansion q-mt-xs"
+                      >
+                        <template v-slot:header>
+                          <q-item-section
+                            side
+                            class="assignment-values-expansion__icon"
+                          >
+                            <q-icon name="subject" size="18px" class="text-grey-6" />
+                          </q-item-section>
+                          <q-item-section>
+                            <div class="row items-center no-wrap q-gutter-x-sm">
+                              <span
+                                class="assignment-values-expansion__label text-caption text-grey-6"
+                              >
+                                Parameters
+                              </span>
+                              <q-badge
+                                outline
+                                color="grey-6"
+                                :label="
+                                  String(
+                                    policySelectionToParamItems(
+                                      props.row.selection ?? props.row.Selection,
+                                    ).length,
+                                  )
+                                "
+                              />
+                            </div>
+                            <div
+                              class="assignment-values-summary text-caption text-grey-8 q-mt-xs"
+                            >
+                              {{ effectivePolicySelectionSummary(props.row) }}
+                            </div>
+                          </q-item-section>
+                        </template>
+                        <div class="assignment-values-panel">
+                          <div
+                            v-for="(it, effValIdx) in policySelectionToParamItems(
+                              props.row.selection ?? props.row.Selection,
+                            )"
+                            :key="`eff-sel-${effValIdx}`"
+                            class="assignment-values-row"
+                          >
+                            <div class="assignment-values-key">
+                              {{ it.idName }}
+                            </div>
+                            <div class="assignment-values-val">
+                              {{ it.value || "—" }}
+                            </div>
+                          </div>
+                        </div>
+                      </q-expansion-item>
+                    </div>
                   </q-td>
                 </template>
 
@@ -538,6 +624,7 @@ import { QTableColumn } from "quasar";
 import {
   policyAssignmentClient,
   policyStateClient,
+  policySelectionToParamItems,
   type PolicyTargetType,
   type PolicyTargetParams,
 } from "../api/grpc-client";
@@ -730,6 +817,48 @@ function effectivePolicyName(p: Record<string, unknown>): string {
   ).toLowerCase();
 }
 
+function effectivePolicyRowSid(row: Record<string, unknown>): string {
+  return String(
+    row["userSid"] ?? row["user_sid"] ?? row["usersid"] ?? "",
+  ).trim();
+}
+
+function effectiveSummaryObject(
+  row: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  const s = row["summary"];
+  if (s && typeof s === "object" && !Array.isArray(s)) {
+    return s as Record<string, unknown>;
+  }
+  return undefined;
+}
+
+function effectivePolicySearchBlob(row: Record<string, unknown>): string {
+  const parts: string[] = [effectivePolicyName(row), effectivePolicyRowSid(row)];
+  parts.push(scopeLabel(row).toLowerCase());
+  const sum = effectiveSummaryObject(row);
+  if (sum) {
+    parts.push(
+      String(sum["id"] ?? ""),
+      String(sum["name"] ?? ""),
+      String(sum["displayName"] ?? sum["display_name"] ?? ""),
+    );
+  }
+  return parts.join(" ").toLowerCase();
+}
+
+function effectiveUserColumnLabel(row: Record<string, unknown>): string {
+  const sid = effectivePolicyRowSid(row);
+  if (!sid) return "";
+  if (sid === "Machine") return "Machine";
+  const user = usersBySid.value.get(sid);
+  if (user) {
+    const name = String(user.displayName || user.name || "").trim();
+    if (name) return name;
+  }
+  return "User";
+}
+
 function assignmentUserName(row: Record<string, unknown>): string {
   const sid = assignmentSid(row);
   if (!sid) return "";
@@ -760,7 +889,21 @@ const filteredEffectivePolicies = computed(() => {
   const list = effectivePolicies.value;
   const q = effectiveSearch.value.trim().toLowerCase();
   if (!q) return list;
-  return list.filter((p) => effectivePolicyName(p).includes(q));
+  return list.filter((p) => {
+    if (effectivePolicySearchBlob(p).includes(q)) return true;
+    const items = policySelectionToParamItems(
+      p["selection"] ?? p["Selection"],
+    );
+    for (const it of items) {
+      if (
+        it.idName.toLowerCase().includes(q) ||
+        it.value.toLowerCase().includes(q)
+      ) {
+        return true;
+      }
+    }
+    return false;
+  });
 });
 
 const assignmentColumns: QTableColumn[] = [
@@ -854,12 +997,33 @@ const effectiveColumns: QTableColumn[] = [
       String(row["policySource"] ?? row["policy_source"] ?? row["source"] ?? ""),
   },
   {
+    name: "values",
+    label: "Values",
+    align: "left",
+    field: (row: Record<string, unknown>) =>
+      policySelectionToParamItems(
+        row["selection"] ?? row["Selection"],
+      ).length,
+    sortable: true,
+    style: "min-width: 240px",
+  },
+  
+  {
+    name: "user",
+    label: "User",
+    align: "left",
+    field: (row: Record<string, unknown>) =>
+      effectiveUserColumnLabel(row) || "—",
+    sortable: true,
+    style: "max-width: 200px",
+  },
+  {
     name: "scope",
     label: "Scope",
     align: "center",
-    field: (row: Record<string, unknown>) =>
-      String(row["scope"] ?? ""),
+    field: (row: Record<string, unknown>) => scopeLabel(row),
   },
+
   {
     name: "actions",
     label: "",
@@ -980,6 +1144,20 @@ function assignmentSid(row: Record<string, unknown>): string {
   return String(row["sid"] ?? row["userSid"] ?? row["user_sid"] ?? "").trim();
 }
 
+function effectivePolicySelectionSummary(row: Record<string, unknown>): string {
+  const items = policySelectionToParamItems(
+    row["selection"] ?? row["Selection"],
+  );
+  const n = items.length;
+  if (n === 0) return "No parameters";
+  const first = items[0];
+  const firstText = first.value
+    ? `${first.idName}: ${first.value}`
+    : first.idName;
+  if (n === 1) return firstText;
+  return `${firstText} +${n - 1}`;
+}
+
 function assignmentStateItems(
   row: Record<string, unknown>,
 ): Array<{ idName: string; value: string }> {
@@ -1094,7 +1272,7 @@ function removeTargetForEffective(
   p: Record<string, unknown>,
   agentId: string,
 ): { targetType: PolicyTargetType; params: PolicyTargetParams } {
-  const userSid = String(p["userSid"] || p["user_sid"] || "").trim();
+  const userSid = effectivePolicyRowSid(p);
   if (userSid) {
     return {
       targetType: "user_on_agent",

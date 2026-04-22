@@ -1956,6 +1956,132 @@ export function createPolicySelection(
   return selection;
 }
 
+export function policySelectionToParamItems(
+  sel: unknown,
+): Array<{ idName: string; value: string }> {
+  if (sel === null || sel === undefined) return [];
+  if (typeof sel !== "object") return [];
+  const o = sel as Record<string, unknown>;
+  const out: Array<{ idName: string; value: string }> = [];
+
+  const elements = (o["elementsList"] ??
+    o["elements_list"] ??
+    o["elements"]) as unknown;
+  if (Array.isArray(elements) && elements.length > 0) {
+    for (const el of elements) {
+      if (el && typeof el === "object") {
+        out.push(
+          ...policyElementSelectionToParamItems(el as Record<string, unknown>),
+        );
+      }
+    }
+  } else {
+    const v = o["value"];
+    if (v !== undefined && v !== null && String(v).trim() !== "") {
+      out.push({ idName: "value", value: String(v) });
+    }
+  }
+
+  const listKeys = (o["listKeysList"] ??
+    o["list_keys"] ??
+    o["listKeys"]) as unknown;
+  if (Array.isArray(listKeys) && listKeys.length > 0) {
+    for (const k of listKeys) {
+      out.push({ idName: "list", value: String(k) });
+    }
+  }
+
+  return out;
+}
+
+function policyElementSelectionToParamItems(
+  e: Record<string, unknown>,
+): Array<{ idName: string; value: string }> {
+  const idName = String(e["idName"] ?? e["id_name"] ?? "").trim();
+  const childs = (e["childsList"] ?? e["childs_list"] ?? e["childs"]) as unknown;
+
+  if (Array.isArray(childs) && childs.length > 0) {
+    const allValuesOnly = childs.every((c) => {
+      if (!c || typeof c !== "object") return false;
+      const cobj = c as Record<string, unknown>;
+      const cid = String(cobj["idName"] ?? cobj["id_name"] ?? "").trim();
+      const sub: unknown =
+        cobj["childsList"] ?? cobj["childs_list"] ?? cobj["childs"];
+      return !cid && !(Array.isArray(sub) && sub.length > 0);
+    });
+    if (allValuesOnly) {
+      const values = childs
+        .map((c) => String((c as Record<string, unknown>)["value"] ?? "").trim())
+        .filter(Boolean);
+      if (values.length > 0) {
+        return [
+          { idName: idName || "items", value: values.join(", ") },
+        ];
+      }
+      return [];
+    }
+    const acc: Array<{ idName: string; value: string }> = [];
+    for (const c of childs) {
+      if (c && typeof c === "object") {
+        acc.push(
+          ...policyElementItemToParamItems(
+            c as Record<string, unknown>,
+            idName,
+          ),
+        );
+      }
+    }
+    return acc;
+  }
+
+  const val = String(e["value"] ?? "").trim();
+  if (idName) {
+    return [{ idName, value: val || "—" }];
+  }
+  if (val) {
+    return [{ idName: "value", value: val }];
+  }
+  return [];
+}
+
+function policyElementItemToParamItems(
+  it: Record<string, unknown>,
+  parentName: string,
+): Array<{ idName: string; value: string }> {
+  const id = String(it["idName"] ?? it["id_name"] ?? "").trim();
+  const childs = (it["childsList"] ?? it["childs_list"] ?? it["childs"]) as unknown;
+  let path: string;
+  if (id) {
+    path = parentName ? `${parentName} / ${id}` : id;
+  } else {
+    path = parentName;
+  }
+
+  if (Array.isArray(childs) && childs.length > 0) {
+    const out: Array<{ idName: string; value: string }> = [];
+    for (const c of childs) {
+      if (c && typeof c === "object") {
+        out.push(
+          ...policyElementItemToParamItems(
+            c as Record<string, unknown>,
+            path || id || "item",
+          ),
+        );
+      }
+    }
+    return out;
+  }
+
+  const val = String(it["value"] ?? "").trim();
+  if (path) {
+    return [{ idName: path, value: val || "—" }];
+  }
+  if (val) {
+    return [{ idName: "value", value: val }];
+  }
+  return [];
+}
+
 export const policyAssignmentClient = {
   async assignPolicy(
     policyHash: string,
