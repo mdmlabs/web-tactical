@@ -630,6 +630,7 @@ message EffectivePolicy {
   PolicySource source = 2;
   string userSid = 3;
   PolicySummary summary = 4;
+  laborato.common.policy.PolicySelection selection = 5;
 }
 
 message GetAssignmentsRequest {
