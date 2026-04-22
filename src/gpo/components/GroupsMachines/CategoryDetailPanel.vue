@@ -129,8 +129,8 @@
             :agents="categoryAgents"
             :loading="detailLoading"
             :has-target="selectedCategoryId != null"
+            hide-remove
             @add-agent="$emit('add-agent')"
-            @remove-agent="$emit('remove-agent', $event)"
             @open-agent-dashboard="$emit('open-agent-dashboard', $event)"
           >
           </UserAgentsTab>

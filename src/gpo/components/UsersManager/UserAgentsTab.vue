@@ -89,6 +89,7 @@
       <template #body-cell-actions="props">
         <q-td :props="props">
           <q-btn
+            v-if="!hideRemove"
             flat
             round
             dense
@@ -124,9 +125,11 @@ const props = withDefaults(
     hasTarget: boolean;
     removingAgentId?: string | null;
     noTargetHint?: string;
+    hideRemove?: boolean;
   }>(),
   {
     noTargetHint: "Select target first (click badge in header)",
+    hideRemove: false,
   },
 );
 
