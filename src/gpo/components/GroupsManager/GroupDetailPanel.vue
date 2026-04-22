@@ -230,12 +230,13 @@
             <div class="text-subtitle2">Child groups</div>
             <q-space />
             <q-btn
+              flat
+              dense
               color="primary"
               icon="add_circle_outline"
               label=""
-              size="sm"
-              outline
-              dense
+              :disable="!selectedGroupId"
+              :title="!selectedGroupId ? 'Select a group first' : ''"
               @click="$emit('manage-child-groups')"
             />
           </div>

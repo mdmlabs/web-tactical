@@ -125,7 +125,7 @@
     <ApplyCollectionToGroupDialog
       v-model="showApplyCollectionDialog"
       :group-sam="selectedGroupSam ?? ''"
-      :options="applyCollectionOptions"
+      :options="applyCollectionAvailableOptions"
       :options-loading="applyCollectionLoading"
       :loading="applyCollectionApplying"
       @apply="handleApplyCollectionToGroup"
@@ -293,6 +293,11 @@ const applyCollectionLoading = ref(false);
 const applyCollectionApplying = ref(false);
 const applyCollectionSelectedId = ref<number | null>(null);
 const applyCollectionOptions = ref<{ id: number; label: string }[]>([]);
+
+const applyCollectionAvailableOptions = computed(() => {
+  const applied = new Set((groupAppliedCollections.value ?? []).map((c) => c.id));
+  return (applyCollectionOptions.value ?? []).filter((o) => !applied.has(o.id));
+});
 
 const groupAppliedCollections = ref<
   {
