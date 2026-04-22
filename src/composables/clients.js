@@ -37,7 +37,8 @@ export function useParentSiteDropdown(onMount = false) {
     const data = await fetchSitesFlat();
     parentSiteOptions.value = data.map((s) => ({
       label: s.ancestors ? `${s.ancestors} / ${s.name}` : s.name,
-      value: s.id,
+      value: s.master_id,
+      id: s.id,
     }));
   }
 

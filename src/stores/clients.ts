@@ -123,6 +123,7 @@ export const useClientsStore = defineStore("clients", () => {
           const siteNode: TreeNode = {
             label: site.name,
             id: site.id,
+            master_id: site.master_id,
             raw: `Site|${site.id}`,
             header: allChildren.length > 0 ? "root" : "generic",
             icon:

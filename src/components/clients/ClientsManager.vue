@@ -173,7 +173,7 @@ export default {
         }).onOk(async () => {
           loading.value = true;
           try {
-            const result = await removeSite(site.id);
+            const result = await removeSite(site.master_id);
             notifySuccess(result);
             await getSites();
           } catch (e) {

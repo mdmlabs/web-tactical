@@ -107,8 +107,16 @@ export default {
 
     async function submit() {
       loading.value = true;
+      const parentOption =
+        parentSiteOptions.value.find((o) => o.value === state.value.parent) ||
+        parentSiteOptions.value.find((o) => o.id === state.value.parent);
       const data = {
-        site: state.value,
+        site: {
+          name: state.value.name,
+          description: state.value.description || "",
+          parent: parentOption?.value ?? null,
+          max_agents: state.value.max_agents ?? 0,
+        },
         custom_fields: formatCustomFields(
           customFields.value,
           custom_fields.value,
@@ -116,7 +124,7 @@ export default {
       };
       try {
         const result = !!props.site
-          ? await editSite(props.site.id, data)
+          ? await editSite(props.site.master_id, data)
           : await saveSite(data);
         notifySuccess(result);
         onDialogOK();
