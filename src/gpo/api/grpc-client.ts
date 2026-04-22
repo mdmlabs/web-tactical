@@ -53,6 +53,7 @@ import type * as agent_category_service_pb_types from "@/generated/agent_categor
 import { AlertQueryServiceClient } from "@/generated/operator/Alerts_serviceServiceClientPb";
 import * as operator_alerts_service_pb from "@/generated/operator/alerts_service_pb";
 import type * as operator_alerts_service_pb_types from "@/generated/operator/alerts_service_pb";
+import { guidToDotNetBytes } from "@/utils/guid-bytes";
 import { useAuthStore } from "@/stores/auth";
 import {
   GroupInfo,
@@ -131,6 +132,20 @@ const agentCategoryServiceClient = createClient(
 );
 const alertQueryServiceClient = createClient(AlertQueryServiceClient);
 
+const ALERT_GUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function toAlertListBytesField(
+  value: Uint8Array | string,
+): string | Uint8Array {
+  if (value instanceof Uint8Array) return value;
+  const s = String(value).trim();
+  if (s !== "" && ALERT_GUID_RE.test(s)) {
+    return guidToDotNetBytes(s);
+  }
+  return s;
+}
+
 export const alertsClient = {
   AlertStatus: operator_alerts_service_pb.AlertStatus,
 
@@ -157,8 +172,14 @@ export const alertsClient = {
   }): Promise<operator_alerts_service_pb_types.ListAlertsResponse.AsObject> {
     const req = new operator_alerts_service_pb.ListAlertsRequest();
     if (params.agentId) req.setAgentId(params.agentId);
-    if (params.userId != null) req.setUserId(params.userId);
-    if (params.groupId != null) req.setGroupId(params.groupId);
+    if (params.userId != null) {
+      const raw = toAlertListBytesField(params.userId);
+      req.setUserId(raw as string);
+    }
+    if (params.groupId != null) {
+      const raw = toAlertListBytesField(params.groupId);
+      req.setGroupId(raw as string);
+    }
     if (params.agentCategoryId != null)
       req.setAgentCategoryId(Math.floor(Number(params.agentCategoryId)));
     if (params.type) req.setType(params.type);
