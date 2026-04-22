@@ -180,8 +180,8 @@ function submit() {
 
 <style scoped>
 .user-picker-dialog {
-  width: min(920px, 96vw);
-  max-width: 96vw;
+  width: min(600px, 50vw);
+  max-width: 50vw;
   max-height: min(780px, 88vh);
   display: flex;
   flex-direction: column;

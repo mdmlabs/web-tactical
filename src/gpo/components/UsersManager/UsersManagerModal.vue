@@ -149,33 +149,52 @@
               userDetail?.info?.samaccountname ?? selectedUserId
             }}</strong>
           </div>
-          <q-select
-            v-model="applyCollectionSelectedId"
-            :options="applyCollectionOptions"
-            option-value="id"
-            option-label="label"
-            emit-value
-            map-options
-            label="Collection *"
+
+          <q-input
+            v-model="applyCollectionSearch"
             outlined
             dense
-            :loading="applyCollectionLoading"
-            :disable="applyCollectionLoading"
             clearable
-            options-dense
+            debounce="200"
+            placeholder="Search collections..."
+            class="q-mb-md"
+            :disable="applyCollectionLoading"
+            @update:model-value="applyCollectionSearch = String($event ?? '')"
+            @clear="applyCollectionSearch = ''"
           >
-            <template v-slot:no-option>
-              <q-item>
-                <q-item-section class="text-grey">
-                  {{
-                    applyCollectionLoading
-                      ? "Loading..."
-                      : "No collections available"
-                  }}
-                </q-item-section>
-              </q-item>
+            <template #prepend>
+              <q-icon name="search" />
             </template>
-          </q-select>
+          </q-input>
+
+          <q-table
+            flat
+            bordered
+            dense
+            :rows="applyCollectionFilteredRows"
+            :columns="applyCollectionColumns"
+            row-key="key"
+            selection="single"
+            v-model:selected="applyCollectionSelectedRows"
+            hide-pagination
+            :rows-per-page-options="[0]"
+            :loading="applyCollectionLoading"
+            @row-click="onApplyCollectionRowClick"
+          >
+            <template #no-data>
+              <div class="full-width text-center text-grey-6 q-pa-md">
+                {{
+                  applyCollectionLoading
+                    ? "Loading..."
+                    : applyCollectionOptions.length === 0
+                      ? "No collections available"
+                      : !applyCollectionHasAvailable
+                        ? "All collections already applied"
+                        : "No collections found"
+                }}
+              </div>
+            </template>
+          </q-table>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancel" v-close-popup />
@@ -183,7 +202,7 @@
             color="primary"
             label="Apply"
             :loading="applyCollectionApplying"
-            :disable="!applyCollectionSelectedId"
+            :disable="applyCollectionSelectedId == null"
             @click="confirmApplyCollectionToUser"
           />
         </q-card-actions>
@@ -335,6 +354,34 @@ const applyCollectionLoading = ref(false);
 const applyCollectionApplying = ref(false);
 const applyCollectionSelectedId = ref<number | null>(null);
 const applyCollectionOptions = ref<{ id: number; label: string }[]>([]);
+const applyCollectionSearch = ref("");
+const applyCollectionSelectedRows = ref<{ key: string; id: number; label: string }[]>([]);
+
+const applyCollectionColumns = [
+  { name: "label", label: "Collection", field: "label", align: "left" as const },
+];
+
+const appliedCollectionIds = computed(
+  () => new Set((userAppliedCollections.value ?? []).map((c) => c.id)),
+);
+
+const applyCollectionRows = computed(() =>
+  (applyCollectionOptions.value ?? [])
+    .filter((c) => !appliedCollectionIds.value.has(c.id))
+    .map((c) => ({ key: String(c.id), id: c.id, label: c.label })),
+);
+
+const applyCollectionHasAvailable = computed(
+  () => applyCollectionRows.value.length > 0,
+);
+
+const applyCollectionFilteredRows = computed(() => {
+  const q = applyCollectionSearch.value.trim().toLowerCase();
+  if (!q) return applyCollectionRows.value;
+  return applyCollectionRows.value.filter((r) =>
+    (r.label ?? "").toLowerCase().includes(q),
+  );
+});
 
 const userAppliedCollections = ref<
   {
@@ -672,6 +719,8 @@ async function loadCollectionsForApply() {
   applyCollectionLoading.value = true;
   applyCollectionSelectedId.value = null;
   applyCollectionOptions.value = [];
+  applyCollectionSearch.value = "";
+  applyCollectionSelectedRows.value = [];
   try {
     const response = await collectionsClient.getAllCollections("en-US");
     const list =
@@ -722,6 +771,14 @@ async function loadCollectionsForApply() {
   } finally {
     applyCollectionLoading.value = false;
   }
+}
+
+function onApplyCollectionRowClick(
+  _evt: unknown,
+  row: { key: string; id: number; label: string },
+) {
+  applyCollectionSelectedRows.value = [row];
+  applyCollectionSelectedId.value = row.id;
 }
 
 function confirmApplyCollectionToUser() {

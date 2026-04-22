@@ -149,7 +149,7 @@
       "
       :loading="applyCollectionLoading"
       :applying="applyCollectionApplying"
-      :options="applyCollectionOptions"
+      :options="applyCollectionAvailableOptions"
       :model-selected-id="applyCollectionSelectedId"
       @show="loadCollectionsForApply"
       @update:selected-id="applyCollectionSelectedId = $event"
@@ -611,6 +611,13 @@ const applyCollectionLoading = ref(false);
 const applyCollectionApplying = ref(false);
 const applyCollectionSelectedId = ref<number | null>(null);
 const applyCollectionOptions = ref<{ id: number; label: string }[]>([]);
+
+const applyCollectionAvailableOptions = computed(() => {
+  const applied = new Set(
+    (categoryAppliedCollections.value ?? []).map((c) => c.id),
+  );
+  return (applyCollectionOptions.value ?? []).filter((o) => !applied.has(o.id));
+});
 
 const categoryAppliedCollections = ref<
   {

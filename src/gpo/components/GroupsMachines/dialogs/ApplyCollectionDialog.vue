@@ -2,6 +2,7 @@
   <q-dialog
     :model-value="modelValue"
     position="standard"
+    persistent
     @update:model-value="$emit('update:modelValue', $event)"
     @show="$emit('show')"
   >
@@ -16,29 +17,49 @@
         <div class="text-caption text-grey-7 q-mb-sm">
           Category: <strong>{{ categoryLabel }}</strong>
         </div>
-        <q-select
-          v-model="selectedId"
-          :options="options"
-          option-value="id"
-          option-label="label"
-          emit-value
-          map-options
-          label="Collection *"
+        <q-input
+          v-model="search"
           outlined
           dense
-          :loading="loading"
-          :disable="loading"
           clearable
-          options-dense
+          debounce="200"
+          placeholder="Search collections..."
+          class="q-mb-md"
+          :disable="loading"
+          @update:model-value="search = String($event ?? '')"
+          @clear="search = ''"
         >
-          <template v-slot:no-option>
-            <q-item>
-              <q-item-section class="text-grey">
-                {{ loading ? "Loading..." : "No collections available" }}
-              </q-item-section>
-            </q-item>
+          <template #prepend>
+            <q-icon name="search" />
           </template>
-        </q-select>
+        </q-input>
+
+        <q-table
+          flat
+          bordered
+          dense
+          :rows="filteredRows"
+          :columns="columns"
+          row-key="key"
+          selection="single"
+          v-model:selected="selectedRows"
+          hide-pagination
+          :rows-per-page-options="[0]"
+          :loading="loading"
+          @row-click="onRowClick"
+        >
+          <template #no-data>
+            <div class="full-width text-center text-grey-6 q-pa-md">
+              {{
+                loading
+                  ? "Loading..."
+                  : options.length === 0
+                    ? "No collections available"
+                    : "No collections found"
+              }}
+            </div>
+          </template>
+        </q-table>
       </q-card-section>
       <q-card-actions align="right">
         <q-btn flat label="Cancel" v-close-popup />
@@ -55,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -77,4 +98,38 @@ const selectedId = computed({
   get: () => props.modelSelectedId,
   set: (v) => emit("update:selectedId", v),
 });
+
+const search = ref("");
+const selectedRows = ref<{ key: string; id: number; label: string }[]>([]);
+
+const columns = [
+  { name: "label", label: "Collection", field: "label", align: "left" as const },
+];
+
+const rows = computed(() =>
+  (props.options ?? []).map((o) => ({ key: String(o.id), id: o.id, label: o.label })),
+);
+
+const filteredRows = computed(() => {
+  const q = search.value.trim().toLowerCase();
+  if (!q) return rows.value;
+  return rows.value.filter((r) => (r.label ?? "").toLowerCase().includes(q));
+});
+
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (!open) return;
+    search.value = "";
+    const currentId = selectedId.value;
+    const key = currentId == null ? "" : String(currentId);
+    const row = rows.value.find((r) => r.key === key);
+    selectedRows.value = row ? [row] : [];
+  },
+);
+
+function onRowClick(_evt: unknown, row: { key: string; id: number; label: string }) {
+  selectedRows.value = [row];
+  selectedId.value = row.id;
+}
 </script>
