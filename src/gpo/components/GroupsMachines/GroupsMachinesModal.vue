@@ -1186,9 +1186,28 @@ async function loadCategoryDetails(categoryId: number) {
   }
 }
 
+async function hasAgentsInSubtree(rootId: number): Promise<boolean> {
+  if (categoryAgents.value.length > 0) return true;
+
+  const descendantIds = new Set<number>();
+  collectCategoryIdAndDescendants(rootId, categoryTreeNodes.value, descendantIds);
+  descendantIds.delete(rootId);
+
+  for (const id of descendantIds) {
+    try {
+      const res = await agentCategoryClient.getCategoryAgents(id);
+      if (res.status === 0 && (res.agentIdsList ?? []).length > 0) return true;
+    } catch {
+      // ignore
+    }
+  }
+  return false;
+}
+
 async function confirmDeleteCategory() {
   if (selectedCategoryId.value == null) return;
-  if (categoryAgents.value.length > 0) {
+  const hasAgents = await hasAgentsInSubtree(selectedCategoryId.value);
+  if (hasAgents) {
     const { data } = await axios.get("/clients/sites/?leaf=true");
     deleteMoveToSiteOptions.value = (data as { id: number; master_id: number; name: string }[])
       .filter((s) => s.id !== selectedCategoryId.value)
