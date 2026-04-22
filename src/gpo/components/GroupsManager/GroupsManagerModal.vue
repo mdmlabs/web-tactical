@@ -111,19 +111,21 @@
       @save="handleUpdateGroup"
     />
 
-    <AddUserToGroupDialog
+    <UserPickerDialog
       v-model="showAddUser"
-      :group-sam="selectedGroupSam ?? ''"
+      title="Add user to group"
+      :subtitle="`Group: ${selectedGroupSam ?? ''}`"
+      confirm-label="Add"
       :options="addUserOptions"
       :options-loading="addUserOptionsLoading"
       :loading="addUserLoading"
-      @add="handleAddUserToGroup"
+      @select="handleAddUserToGroup"
     />
 
     <ApplyCollectionToGroupDialog
       v-model="showApplyCollectionDialog"
       :group-sam="selectedGroupSam ?? ''"
-      :options="applyCollectionOptions"
+      :options="applyCollectionAvailableOptions"
       :options-loading="applyCollectionLoading"
       :loading="applyCollectionApplying"
       @apply="handleApplyCollectionToGroup"
@@ -187,7 +189,7 @@ import GroupsListPanel from "./GroupsListPanel.vue";
 import GroupDetailPanel from "./GroupDetailPanel.vue";
 import CreateGroupDialog from "./dialogs/CreateGroupDialog.vue";
 import EditGroupDialog from "./dialogs/EditGroupDialog.vue";
-import AddUserToGroupDialog from "./dialogs/AddUserToGroupDialog.vue";
+import UserPickerDialog from "@/gpo/components/shared/UserPickerDialog.vue";
 import ApplyCollectionToGroupDialog from "./dialogs/ApplyCollectionToGroupDialog.vue";
 import RemoveCollectionFromGroupDialog from "./dialogs/RemoveCollectionFromGroupDialog.vue";
 import ManageChildGroupsDialog from "./dialogs/ManageChildGroupsDialog.vue";
@@ -292,6 +294,11 @@ const applyCollectionApplying = ref(false);
 const applyCollectionSelectedId = ref<number | null>(null);
 const applyCollectionOptions = ref<{ id: number; label: string }[]>([]);
 
+const applyCollectionAvailableOptions = computed(() => {
+  const applied = new Set((groupAppliedCollections.value ?? []).map((c) => c.id));
+  return (applyCollectionOptions.value ?? []).filter((o) => !applied.has(o.id));
+});
+
 const groupAppliedCollections = ref<
   {
     id: number;
@@ -308,7 +315,15 @@ const groupAppliedCollections = ref<
 >([]);
 const groupAppliedCollectionsLoading = ref(false);
 
-const complianceCache = new Map<string, { assignedAndApplied: number; assignedNotApplied: number; notAssigned: number; timestamp: number }>();
+const complianceCache = new Map<
+  string,
+  {
+    assignedAndApplied: number;
+    assignedNotApplied: number;
+    notAssigned: number;
+    timestamp: number;
+  }
+>();
 const COMPLIANCE_CACHE_TTL = 5 * 60 * 1000;
 
 const canRemoveGroupCollection = computed(
@@ -343,22 +358,30 @@ async function calculateGroupCompliance(
   groupId: string,
   collectionPolicies: { id: number; name: string }[],
   agentsInGroup: AgentRow[],
-): Promise<{ assignedAndApplied: number; assignedNotApplied: number; notAssigned: number }> {
+): Promise<{
+  assignedAndApplied: number;
+  assignedNotApplied: number;
+  notAssigned: number;
+}> {
   if (!collectionPolicies || collectionPolicies.length === 0) {
     return { assignedAndApplied: 0, assignedNotApplied: 0, notAssigned: 0 };
   }
 
   if (!agentsInGroup || agentsInGroup.length === 0) {
-    return { assignedAndApplied: 0, assignedNotApplied: 0, notAssigned: collectionPolicies.length };
+    return {
+      assignedAndApplied: 0,
+      assignedNotApplied: 0,
+      notAssigned: collectionPolicies.length,
+    };
   }
 
   const cacheKey = `${groupId}_${collectionPolicies.map((p) => p.id).join(",")}_${agentsInGroup.length}`;
   const cached = complianceCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < COMPLIANCE_CACHE_TTL) {
-    return { 
-      assignedAndApplied: cached.assignedAndApplied, 
+    return {
+      assignedAndApplied: cached.assignedAndApplied,
       assignedNotApplied: cached.assignedNotApplied,
-      notAssigned: cached.notAssigned
+      notAssigned: cached.notAssigned,
     };
   }
 
@@ -375,15 +398,18 @@ async function calculateGroupCompliance(
               effectivePolicies: [],
             };
           }
-          
-          const [assignmentsResponse, effectivePoliciesResponse] = await Promise.all([
-            policyStateClient.getAssignments(target, "en-US").catch(() => {
-              return { assignmentsList: [] };
-            }),
-            policyStateClient.getEffectivePolicies(target, "en-US").catch(() => {
-              return { policiesList: [] };
-            }),
-          ]);
+
+          const [assignmentsResponse, effectivePoliciesResponse] =
+            await Promise.all([
+              policyStateClient.getAssignments(target, "en-US").catch(() => {
+                return { assignmentsList: [] };
+              }),
+              policyStateClient
+                .getEffectivePolicies(target, "en-US")
+                .catch(() => {
+                  return { policiesList: [] };
+                }),
+            ]);
 
           return {
             assignments: assignmentsResponse.assignmentsList || [],
@@ -412,7 +438,7 @@ async function calculateGroupCompliance(
           assignedPolicyHashes.add(assignment.policyHash);
         }
       }
-      
+
       for (const policy of result.effectivePolicies) {
         if (policy.summary?.id) {
           const policyId = String(policy.summary.id);
@@ -432,12 +458,14 @@ async function calculateGroupCompliance(
     for (const policy of collectionPolicies) {
       const policyIdStr = String(policy.id);
       const policyHash = `policy_${policyIdStr}`;
-      
-      const isAssigned = assignedPolicyHashes.has(policyIdStr) || 
-                        assignedPolicyHashes.has(policyHash);
-      const isApplied = effectivePolicyHashes.has(policyIdStr) || 
-                       effectivePolicyHashes.has(policyHash);
-      
+
+      const isAssigned =
+        assignedPolicyHashes.has(policyIdStr) ||
+        assignedPolicyHashes.has(policyHash);
+      const isApplied =
+        effectivePolicyHashes.has(policyIdStr) ||
+        effectivePolicyHashes.has(policyHash);
+
       if (isAssigned && isApplied) {
         assignedAndApplied++;
       } else if (isAssigned && !isApplied) {
@@ -452,7 +480,11 @@ async function calculateGroupCompliance(
     return result;
   } catch (err) {
     console.error("Error calculating group compliance:", err);
-    return { assignedAndApplied: 0, assignedNotApplied: 0, notAssigned: collectionPolicies.length };
+    return {
+      assignedAndApplied: 0,
+      assignedNotApplied: 0,
+      notAssigned: collectionPolicies.length,
+    };
   }
 }
 
@@ -608,10 +640,15 @@ async function handleRemoveGroupAgent(agentId: string) {
   });
 }
 
-function downloadBlob(content: Uint8Array | string, fileName: string, mimeType: string) {
-  const bytes = typeof content === "string"
-    ? new Uint8Array(Array.from(atob(content), (c) => c.codePointAt(0) ?? 0))
-    : new Uint8Array(content);
+function downloadBlob(
+  content: Uint8Array | string,
+  fileName: string,
+  mimeType: string,
+) {
+  const bytes =
+    typeof content === "string"
+      ? new Uint8Array(Array.from(atob(content), (c) => c.codePointAt(0) ?? 0))
+      : new Uint8Array(content);
   const blob = new Blob([bytes.buffer], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -626,13 +663,15 @@ function downloadBlob(content: Uint8Array | string, fileName: string, mimeType: 
 async function handleExportGroups(format: "csv" | "xlsx") {
   exportLoading.value = true;
   try {
-    const exportFormat = format === "xlsx"
-      ? export_pb.ExportFormat.XLSX
-      : export_pb.ExportFormat.CSV;
+    const exportFormat =
+      format === "xlsx"
+        ? export_pb.ExportFormat.XLSX
+        : export_pb.ExportFormat.CSV;
     const res = await userControlClient.exportAllGroup(exportFormat);
-    const mimeType = format === "xlsx"
-      ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-      : "text/csv";
+    const mimeType =
+      format === "xlsx"
+        ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        : "text/csv";
     const fallbackName = `groups_export.${format}`;
     downloadBlob(res.content, res.fileName || fallbackName, mimeType);
     notifySuccess(`Groups exported as ${format.toUpperCase()}`);

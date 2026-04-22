@@ -256,7 +256,7 @@ export default {
     getSites() {
       this.$q.loading.show();
       this.$axios
-        .get("/clients/sites/")
+        .get("/clients/sites/?leaf=true")
         .then((r) => {
           this.siteOptions = r.data.map((site) => ({
             label: site.ancestors ? `${site.ancestors} / ${site.name}` : site.name,

@@ -149,7 +149,7 @@
       "
       :loading="applyCollectionLoading"
       :applying="applyCollectionApplying"
-      :options="applyCollectionOptions"
+      :options="applyCollectionAvailableOptions"
       :model-selected-id="applyCollectionSelectedId"
       @show="loadCollectionsForApply"
       @update:selected-id="applyCollectionSelectedId = $event"
@@ -170,6 +170,44 @@
       @remove="confirmRemoveCollectionFromCategory"
     />
 
+    <q-dialog v-model="showDeleteWithMove" persistent>
+      <q-card style="min-width: 360px">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Delete Category</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+        <q-card-section v-if="deleteMoveToSiteOptions.length === 0">
+          There are no valid sites to move agents to. Add another site and try again.
+        </q-card-section>
+        <q-card-section v-else>
+          <q-select
+            v-model="deleteMoveToSiteId"
+            :options="deleteMoveToSiteOptions"
+            option-value="value"
+            option-label="label"
+            emit-value
+            map-options
+            label="Site to move agents to"
+            outlined
+            dense
+            clearable
+            hint="The category you are deleting has agents assigned to it. Select a site below to move the agents to."
+          />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn
+            color="negative"
+            label="Delete"
+            :loading="deleteLoading"
+            :disable="deleteMoveToSiteOptions.length === 0 || deleteMoveToSiteId == null"
+            @click="doDeleteCategory(deleteMoveToSiteId)"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <TargetSelectionDialog
       v-model="showAddAgentPanel"
       @select="handleAddAgentSelect"
@@ -187,7 +225,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, reactive } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useQuasar } from "quasar";
 import export_pb from "@/generated/common/export_pb";
@@ -196,7 +234,6 @@ import {
   getSingleAgentIdFromTarget,
   policyAssignmentClient,
   collectionsClient,
-  agentServiceClientWrapper,
   policyStateClient,
   createAgentTarget,
 } from "@/gpo/api/grpc-client";
@@ -205,6 +242,7 @@ import type { TargetRef } from "@/gpo/composables/useTargetSelection";
 import { fetchAgentRowsForIds } from "@/gpo/composables/useUserActions";
 import TargetSelectionDialog from "@/gpo/components/shared/TargetSelectionDialog.vue";
 import { notifyError, notifySuccess } from "@/utils/notify";
+import axios from "axios";
 
 import CategoriesListPanel from "./CategoriesListPanel.vue";
 import CategoryDetailPanel from "./CategoryDetailPanel.vue";
@@ -236,7 +274,6 @@ interface AgentRow {
   last_boot?: string;
 }
 
-type AgentNameById = Record<string, string | undefined>;
 
 const props = withDefaults(
   defineProps<{ open?: boolean; standalonePage?: boolean }>(),
@@ -279,9 +316,6 @@ const detailLoading = ref(false);
 const categoryAgents = ref<AgentRow[]>([]);
 const categoryChildren = ref<CategoryRow[]>([]);
 
-const agentNameById = reactive<AgentNameById>({});
-const agentNameInflight = new Map<string, Promise<string>>();
-
 const categoryAgentsCache = new Map<number, Set<string>>();
 const agentCategoryLookupCache = new Map<string, number[]>();
 const complianceCache = new Map<string, { assignedAndApplied: number; assignedNotApplied: number; notAssigned: number; timestamp: number }>();
@@ -310,76 +344,7 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
-async function resolveAgentName(agentId: string): Promise<string> {
-  if (!agentId) return "";
-  const cached = agentNameById[agentId];
-  if (cached) return cached;
 
-  const inflight = agentNameInflight.get(agentId);
-  if (inflight) return inflight;
-
-  const p = (async () => {
-    try {
-      const agent = await agentServiceClientWrapper.getAgent(agentId);
-      const name =
-        (agent as { hostName?: string; host_name?: string }).hostName ??
-        (agent as { hostName?: string; host_name?: string }).host_name ??
-        agentId;
-      agentNameById[agentId] = name;
-      return name;
-    } catch {
-      agentNameById[agentId] = agentId;
-      return agentId;
-    } finally {
-      agentNameInflight.delete(agentId);
-    }
-  })();
-
-  agentNameInflight.set(agentId, p);
-  return p;
-}
-
-function formatCategoryLabel(categoryId: number): string {
-  const row = allCategoriesFlat.value.find((c) => c.categoryId === categoryId);
-  return row?.name || String(categoryId);
-}
-
-async function getAgentIdsForCategory(
-  categoryId: number,
-): Promise<Set<string>> {
-  const cached = categoryAgentsCache.get(categoryId);
-  if (cached) return cached;
-
-  const res = await agentCategoryClient.getCategoryAgents(categoryId);
-  const ids = new Set<string>(res.status === 0 ? (res.agentIdsList ?? []) : []);
-  categoryAgentsCache.set(categoryId, ids);
-  return ids;
-}
-
-async function findAgentCategories(agentId: string): Promise<number[]> {
-  const cached = agentCategoryLookupCache.get(agentId);
-  if (cached) return cached;
-
-  const categoryIds = (allCategoriesFlat.value ?? []).map((c) => c.categoryId);
-  if (categoryIds.length === 0) {
-    agentCategoryLookupCache.set(agentId, []);
-    return [];
-  }
-
-  const hits: number[] = [];
-  await mapWithConcurrency(categoryIds, 10, async (categoryId) => {
-    try {
-      const ids = await getAgentIdsForCategory(categoryId);
-      if (ids.has(agentId)) hits.push(categoryId);
-    } catch {
-      // игнор
-    }
-    return true;
-  });
-
-  agentCategoryLookupCache.set(agentId, hits);
-  return hits;
-}
 
 async function calculateCollectionCompliance(
   categoryId: number,
@@ -500,6 +465,10 @@ const deleteLoading = ref(false);
 const editLoading = ref(false);
 const moveLoading = ref(false);
 
+const showDeleteWithMove = ref(false);
+const deleteMoveToSiteId = ref<number | null>(null);
+const deleteMoveToSiteOptions = ref<{ label: string; value: number }[]>([]);
+
 const actionLoading = computed(
   () => deleteLoading.value || editLoading.value || moveLoading.value,
 );
@@ -611,6 +580,13 @@ const applyCollectionLoading = ref(false);
 const applyCollectionApplying = ref(false);
 const applyCollectionSelectedId = ref<number | null>(null);
 const applyCollectionOptions = ref<{ id: number; label: string }[]>([]);
+
+const applyCollectionAvailableOptions = computed(() => {
+  const applied = new Set(
+    (categoryAppliedCollections.value ?? []).map((c) => c.id),
+  );
+  return (applyCollectionOptions.value ?? []).filter((o) => !applied.has(o.id));
+});
 
 const categoryAppliedCollections = ref<
   {
@@ -1217,8 +1193,36 @@ async function loadCategoryDetails(categoryId: number) {
   }
 }
 
-function confirmDeleteCategory() {
+async function hasAgentsInSubtree(rootId: number): Promise<boolean> {
+  if (categoryAgents.value.length > 0) return true;
+
+  const descendantIds = new Set<number>();
+  collectCategoryIdAndDescendants(rootId, categoryTreeNodes.value, descendantIds);
+  descendantIds.delete(rootId);
+
+  for (const id of descendantIds) {
+    try {
+      const res = await agentCategoryClient.getCategoryAgents(id);
+      if (res.status === 0 && (res.agentIdsList ?? []).length > 0) return true;
+    } catch {
+      // ignore
+    }
+  }
+  return false;
+}
+
+async function confirmDeleteCategory() {
   if (selectedCategoryId.value == null) return;
+  const hasAgents = await hasAgentsInSubtree(selectedCategoryId.value);
+  if (hasAgents) {
+    const { data } = await axios.get("/clients/sites/?leaf=true");
+    deleteMoveToSiteOptions.value = (data as { id: number; master_id: number; name: string }[])
+      .filter((s) => s.id !== selectedCategoryId.value)
+      .map((s) => ({ label: s.name, value: s.master_id }));
+    deleteMoveToSiteId.value = null;
+    showDeleteWithMove.value = true;
+    return;
+  }
   $q.dialog({
     title: "Delete Category",
     message: `Are you sure you want to delete category "${selectedCategory.value?.name ?? selectedCategoryId.value}"?`,
@@ -1228,21 +1232,20 @@ function confirmDeleteCategory() {
   }).onOk(doDeleteCategory);
 }
 
-async function doDeleteCategory() {
+async function doDeleteCategory(moveToSiteId?: number | null) {
   const id = selectedCategoryId.value;
   if (id == null) return;
   deleteLoading.value = true;
+  showDeleteWithMove.value = false;
   try {
-    const res = await agentCategoryClient.deleteCategory(id);
-    if (res.status === 0) {
-      notifySuccess("Category deleted");
-      selectedCategoryId.value = null;
-      selectedCategoryIdKey.value = null;
-      selectedCategory.value = null;
-      await loadCategories();
-    } else {
-      notifyError(res.errorMessage ?? "Delete failed");
-    }
+    await axios.delete(`/clients/sites/${id}/`, {
+      params: moveToSiteId != null ? { move_to_site: moveToSiteId } : {},
+    });
+    notifySuccess("Category deleted");
+    selectedCategoryId.value = null;
+    selectedCategoryIdKey.value = null;
+    selectedCategory.value = null;
+    await loadCategories();
   } catch (err) {
     notifyError(err instanceof Error ? err.message : "Delete failed");
   } finally {
@@ -1296,24 +1299,22 @@ async function doUpdateCategory() {
   if (id == null) return;
   editLoading.value = true;
   try {
-    const res = await agentCategoryClient.updateCategory({
-      categoryId: id,
-      name: editCategoryForm.value.name.trim(),
-      description: editCategoryForm.value.description.trim() || undefined,
-      maxAgents: editCategoryForm.value.maxAgents ?? undefined,
+    await axios.put(`/clients/sites/${id}/`, {
+      site: {
+        name: editCategoryForm.value.name.trim(),
+        description: editCategoryForm.value.description.trim() || "",
+        max_agents: editCategoryForm.value.maxAgents ?? null,
+      },
+      custom_fields: [],
     });
-    if (res.status === 0) {
-      notifySuccess("Category updated");
-      showEditCategory.value = false;
-      selectedCategory.value = {
-        name: editCategoryForm.value.name,
-        description: editCategoryForm.value.description || undefined,
-      };
-      await loadCategories();
-      await loadCategoryDetails(id);
-    } else {
-      notifyError(res.errorMessage ?? "Update failed");
-    }
+    notifySuccess("Category updated");
+    showEditCategory.value = false;
+    selectedCategory.value = {
+      name: editCategoryForm.value.name,
+      description: editCategoryForm.value.description || undefined,
+    };
+    await loadCategories();
+    await loadCategoryDetails(id);
   } catch (err) {
     notifyError(err instanceof Error ? err.message : "Update failed");
   } finally {
@@ -1333,19 +1334,18 @@ async function doSetCategoryParent() {
   if (id == null) return;
   moveLoading.value = true;
   try {
-    const res = await agentCategoryClient.setCategoryParent({
-      categoryId: id,
-      parentId: moveCategoryForm.value.parentId ?? null,
+    await axios.put(`/clients/sites/${id}/`, {
+      site: {
+        name: selectedCategory.value?.name ?? "",
+        parent: moveCategoryForm.value.parentId ?? null,
+      },
+      custom_fields: [],
     });
-    if (res.status === 0) {
-      notifySuccess("Category moved");
-      showMoveCategory.value = false;
-      await loadCategories();
-      selectedCategoryIdKey.value = String(id);
-      await loadCategoryDetails(id);
-    } else {
-      notifyError(res.errorMessage ?? "Move failed");
-    }
+    notifySuccess("Category moved");
+    showMoveCategory.value = false;
+    await loadCategories();
+    selectedCategoryIdKey.value = String(id);
+    await loadCategoryDetails(id);
   } catch (err) {
     notifyError(err instanceof Error ? err.message : "Move failed");
   } finally {
@@ -1356,19 +1356,18 @@ async function doSetCategoryParent() {
 async function doCreateCategory() {
   createCategoryLoading.value = true;
   try {
-    const res = await agentCategoryClient.createCategory({
-      name: createCategoryForm.value.name.trim(),
-      description: createCategoryForm.value.description.trim() || undefined,
-      parentId: createCategoryForm.value.parentId ?? undefined,
-      maxAgents: createCategoryForm.value.maxAgents ?? undefined,
+    await axios.post("/clients/sites/", {
+      site: {
+        name: createCategoryForm.value.name.trim(),
+        description: createCategoryForm.value.description.trim() || "",
+        parent: createCategoryForm.value.parentId ?? null,
+        max_agents: createCategoryForm.value.maxAgents ?? null,
+      },
+      custom_fields: [],
     });
-    if (res.status === 0) {
-      notifySuccess(`Category "${createCategoryForm.value.name}" created`);
-      showCreateCategory.value = false;
-      await loadCategories();
-    } else {
-      notifyError(res.errorMessage ?? "Create failed");
-    }
+    notifySuccess(`Category "${createCategoryForm.value.name}" created`);
+    showCreateCategory.value = false;
+    await loadCategories();
   } catch (err) {
     notifyError(err instanceof Error ? err.message : "Create failed");
   } finally {
@@ -1386,67 +1385,12 @@ async function handleAddAgentSelect(ref: TargetRef) {
     return;
   }
 
-  const agentName = await resolveAgentName(agentId);
-  const agentLabel =
-    agentName && agentName !== agentId ? `${agentName} (${agentId})` : agentId;
-
-  const existingCategoryIds = (await findAgentCategories(agentId)).filter(
-    (id) => id !== categoryId,
-  );
-  if (existingCategoryIds.length > 0) {
-    const firstOtherId = existingCategoryIds[0];
-    const otherLabel = formatCategoryLabel(firstOtherId);
-    const targetLabel = selectedCategory.value?.name ?? String(categoryId);
-
-    $q.dialog({
-      title: "The agent is already in a different group",
-      message:
-        `Agent "${agentLabel}" is already a member of the "${otherLabel}" group. ` +
-        `If you add it to the "${targetLabel}" group, policy conflicts may occur.\n\n` +
-        "Continue adding?",
-      cancel: { label: "Reject", flat: true },
-      ok: { label: "Add", color: "primary" },
-      persistent: true,
-    }).onOk(() => {
-      void (async () => {
-        try {
-          const res = await agentCategoryClient.addAgentToCategory({
-            categoryId,
-            agentId,
-          });
-          if (res.status === 0) {
-            notifySuccess("Agent added to category");
-            agentCategoryLookupCache.delete(agentId);
-            categoryAgentsCache.delete(categoryId);
-            await loadCategoryDetails(categoryId);
-          } else {
-            notifyError(res.errorMessage ?? "Failed to add agent");
-          }
-        } catch (err) {
-          notifyError(
-            err instanceof Error
-              ? err.message
-              : "Failed to add agent to category",
-          );
-        }
-      })();
-    });
-    return;
-  }
-
   try {
-    const res = await agentCategoryClient.addAgentToCategory({
-      categoryId,
-      agentId,
-    });
-    if (res.status === 0) {
-      notifySuccess("Agent added to category");
-      agentCategoryLookupCache.delete(agentId);
-      categoryAgentsCache.delete(categoryId);
-      await loadCategoryDetails(categoryId);
-    } else {
-      notifyError(res.errorMessage ?? "Failed to add agent");
-    }
+    await axios.put(`/agents/${agentId}/`, { site: categoryId });
+    notifySuccess("Agent added to category");
+    agentCategoryLookupCache.delete(agentId);
+    categoryAgentsCache.delete(categoryId);
+    await loadCategoryDetails(categoryId);
   } catch (err) {
     notifyError(
       err instanceof Error ? err.message : "Failed to add agent to category",
@@ -1509,17 +1453,13 @@ async function doSetCategoryAgents() {
     .filter(Boolean);
   setAgentsLoading.value = true;
   try {
-    const res = await agentCategoryClient.setCategoryAgents({
-      categoryId,
-      agentIds,
+    await axios.post("/agents/site/bulk-move/", {
+      agent_ids: agentIds,
+      category_id: String(categoryId),
     });
-    if (res.status === 0) {
-      notifySuccess("Agents list updated");
-      showSetAgents.value = false;
-      await loadCategoryDetails(categoryId);
-    } else {
-      notifyError(res.errorMessage ?? "Failed to set agents");
-    }
+    notifySuccess("Agents list updated");
+    showSetAgents.value = false;
+    await loadCategoryDetails(categoryId);
   } catch (err) {
     notifyError(err instanceof Error ? err.message : "Failed to set agents");
   } finally {

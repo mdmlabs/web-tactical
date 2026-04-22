@@ -61,7 +61,7 @@
                     </div>
                     <q-scroll-area
                       v-else-if="filteredCategories.length > 0"
-                      :style="{ height: 'calc(100vh - 330px)' }"
+                      :style="{ height: 'calc(100vh - 375px)' }"
                     >
                       <q-tree
                         :nodes="filteredCategories"
@@ -788,7 +788,7 @@
         </q-tab-panels>
       </q-card-section>
 
-      <q-card-actions align="right" class="q-pa-md">
+      <q-card-actions align="right" class="q-pa-sm">
         <div class="row items-center q-gutter-sm">
           <q-btn
             flat
@@ -2317,6 +2317,8 @@ async function removePolicy() {
 <style scoped lang="sass">
 .apply-policy-dialog
   min-width: 1200px
+  :deep(.q-card__actions .q-btn--rectangle)
+    min-width: 0
 
 .category-tree
   overflow-y: auto

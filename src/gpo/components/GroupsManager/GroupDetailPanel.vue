@@ -12,15 +12,7 @@
     </div>
 
     <template v-else>
-      <div class="groups-detail-header q-px-lg q-py-md row items-center">
-        <div>
-          <div class="text-h6 text-weight-medium">
-            {{ group?.displayname || group?.name || selectedGroupSam }}
-          </div>
-          <div class="text-caption text-grey-6">
-            {{ group?.distinguishedname || selectedGroupSam }}
-          </div>
-        </div>
+      <div class="groups-detail-header q-px-sm q-py-sm row items-center">
         <q-space />
         <q-btn
           flat
@@ -42,13 +34,11 @@
         />
       </div>
 
-      <q-separator />
-
       <div class="groups-detail-main">
         <div v-if="detailLoading" class="flex flex-center q-pa-xl groups-detail-summary">
           <q-spinner color="primary" size="2em" />
         </div>
-        <div v-else class="groups-detail-summary q-px-lg q-py-md">
+        <div v-else class="groups-detail-summary q-px-sm q-py-sm">
           <div class="row q-col-gutter-md summary-row">
             <div class="col-12 col-md-6 summary-col">
               <div class="system-info-summary summary-card">
@@ -233,18 +223,20 @@
 
         <q-separator class="groups-detail-sep" />
 
-        <q-tab-panels :model-value="detailTab" class="groups-tab-panels">
+        <q-scroll-area class="groups-tab-scroll">
+          <q-tab-panels :model-value="detailTab" class="groups-tab-panels">
         <q-tab-panel name="children" class="q-pa-md">
           <div class="row items-center q-mb-md">
             <div class="text-subtitle2">Child groups</div>
             <q-space />
             <q-btn
+              flat
+              dense
               color="primary"
               icon="add_circle_outline"
               label=""
-              size="sm"
-              outline
-              dense
+              :disable="!selectedGroupId"
+              :title="!selectedGroupId ? 'Select a group first' : ''"
               @click="$emit('manage-child-groups')"
             />
           </div>
@@ -606,7 +598,8 @@
             Group identifier is not available for connectivity policies.
           </div>
         </q-tab-panel>
-      </q-tab-panels>
+          </q-tab-panels>
+        </q-scroll-area>
       </div>
     </template>
 
@@ -1271,6 +1264,7 @@ function exportCollections(format: "csv" | "xlsx") {
 <style scoped lang="sass">
 .groups-right-panel
   flex: 1
+  min-height: 0
   display: flex
   flex-direction: column
   overflow: hidden
@@ -1290,6 +1284,10 @@ function exportCollections(format: "csv" | "xlsx") {
 
 .groups-detail-sep
   flex-shrink: 0
+
+.groups-tab-scroll
+  flex: 1 1 0%
+  min-height: 0
 
 .groups-detail-tabs-wrap
   flex-shrink: 0

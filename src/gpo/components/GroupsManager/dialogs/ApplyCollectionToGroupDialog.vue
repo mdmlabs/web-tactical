@@ -16,33 +16,49 @@
         <div class="text-caption text-grey-7 q-mb-sm">
           Group: <strong>{{ groupSam }}</strong>
         </div>
-        <q-select
-          v-model="selectedId"
-          :options="options"
-          option-value="id"
-          option-label="label"
-          emit-value
-          map-options
-          label="Collection *"
+        <q-input
+          v-model="search"
           outlined
           dense
-          :loading="optionsLoading"
-          :disable="optionsLoading"
           clearable
-          options-dense
+          debounce="200"
+          placeholder="Search collections..."
+          class="q-mb-md"
+          :disable="optionsLoading"
+          @update:model-value="search = String($event ?? '')"
+          @clear="search = ''"
         >
-          <template v-slot:no-option>
-            <q-item>
-              <q-item-section class="text-grey">
-                {{
-                  optionsLoading
-                    ? "Loading..."
-                    : "No collections available"
-                }}
-              </q-item-section>
-            </q-item>
+          <template #prepend>
+            <q-icon name="search" />
           </template>
-        </q-select>
+        </q-input>
+
+        <q-table
+          flat
+          bordered
+          dense
+          :rows="filteredRows"
+          :columns="columns"
+          row-key="key"
+          selection="single"
+          v-model:selected="selectedRows"
+          hide-pagination
+          :rows-per-page-options="[0]"
+          :loading="optionsLoading"
+          @row-click="onRowClick"
+        >
+          <template #no-data>
+            <div class="full-width text-center text-grey-6 q-pa-md">
+              {{
+                optionsLoading
+                  ? "Loading..."
+                  : options.length === 0
+                    ? "No collections available"
+                    : "No collections found"
+              }}
+            </div>
+          </template>
+        </q-table>
       </q-card-section>
       <q-card-actions align="right">
         <q-btn flat label="Cancel" v-close-popup />
@@ -59,7 +75,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 
 const props = withDefaults(
   defineProps<{
@@ -78,14 +94,39 @@ const emit = defineEmits<{
 }>();
 
 const selectedId = ref<number | null>(null);
+const search = ref("");
+const selectedRows = ref<{ key: string; id: number; label: string }[]>([]);
+
+const columns = [
+  { name: "label", label: "Collection", field: "label", align: "left" as const },
+];
+
+const rows = computed(() =>
+  (props.options ?? []).map((o) => ({ key: String(o.id), id: o.id, label: o.label })),
+);
+
+const filteredRows = computed(() => {
+  const q = search.value.trim().toLowerCase();
+  if (!q) return rows.value;
+  return rows.value.filter((r) => (r.label ?? "").toLowerCase().includes(q));
+});
 
 watch(
   () => props.modelValue,
   (open) => {
-    if (open) selectedId.value = null;
+    if (open) {
+      selectedId.value = null;
+      search.value = "";
+      selectedRows.value = [];
+    }
   },
   { immediate: true },
 );
+
+function onRowClick(_evt: unknown, row: { key: string; id: number; label: string }) {
+  selectedRows.value = [row];
+  selectedId.value = row.id;
+}
 
 function submit() {
   if (selectedId.value != null) {

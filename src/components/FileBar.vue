@@ -63,18 +63,6 @@
                     <q-item
                       clickable
                       v-ripple
-                      @click="handleMenuAction('addClient')"
-                      class="filebar-popup-item"
-                      v-close-popup
-                    >
-                      <q-item-section avatar>
-                        <q-icon name="business" size="sm" />
-                      </q-item-section>
-                      <q-item-section>Client</q-item-section>
-                    </q-item>
-                    <q-item
-                      clickable
-                      v-ripple
                       @click="handleMenuAction('addSite')"
                       class="filebar-popup-item"
                       v-close-popup
@@ -129,17 +117,6 @@
                 class="filebar-menu-subsection"
               >
                 <q-list>
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('addClient')"
-                    class="filebar-menu-item"
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="business" />
-                    </q-item-section>
-                    <q-item-section>Client</q-item-section>
-                  </q-item>
                   <q-item
                     clickable
                     v-ripple
@@ -1449,6 +1426,21 @@
     <q-dialog v-model="showCodeSign">
       <CodeSign @close="showCodeSign = false" />
     </q-dialog>
+
+    <AddSiteDialog
+      v-model="showAddSiteDialog"
+      :loading="addSiteLoading"
+      :name="addSiteForm.name"
+      :description="addSiteForm.description"
+      :parent-id="addSiteForm.parentId"
+      :max-agents="addSiteForm.maxAgents"
+      :parent-options="addSiteParentOptions"
+      @update:name="addSiteForm.name = $event"
+      @update:description="addSiteForm.description = $event"
+      @update:parent-id="addSiteForm.parentId = $event"
+      @update:max-agents="addSiteForm.maxAgents = $event"
+      @create="doAddSite"
+    />
   </q-drawer>
 </template>
 
@@ -1459,7 +1451,7 @@ import DebugLog from "@/components/logs/DebugLog.vue";
 import PendingActions from "@/components/logs/PendingActions.vue";
 import ClientsManager from "@/components/clients/ClientsManager.vue";
 import ClientsForm from "@/components/clients/ClientsForm.vue";
-import SitesForm from "@/components/clients/SitesForm.vue";
+import AddSiteDialog from "@/components/clients/AddSiteDialog.vue";
 import ScriptManager from "@/components/scripts/ScriptManager.vue";
 import EditCoreSettings from "@/components/modals/coresettings/EditCoreSettings.vue";
 import AlertsManager from "@/components/AlertsManager.vue";
@@ -1484,6 +1476,7 @@ export default {
     AdminManager,
     ServerMaintenance,
     CodeSign,
+    AddSiteDialog,
   },
   data() {
     return {
@@ -1492,6 +1485,10 @@ export default {
       showAdminManager: false,
       showInstallAgent: false,
       showCodeSign: false,
+      showAddSiteDialog: false,
+      addSiteLoading: false,
+      addSiteForm: { name: "", description: "", parentId: null, maxAgents: 0 },
+      addSiteParentOptions: [],
     };
   },
   computed: {
@@ -1799,12 +1796,31 @@ export default {
         })
         .onOk(() => this.$store.dispatch("loadTree"));
     },
-    showAddSiteModal() {
-      this.$q
-        .dialog({
-          component: SitesForm,
-        })
-        .onOk(() => this.$store.dispatch("loadTree"));
+    async showAddSiteModal() {
+      const { data } = await this.$axios.get("/clients/sites/");
+      this.addSiteParentOptions = data.map((s) => ({ label: s.name, value: s.id }));
+      this.addSiteForm = { name: "", description: "", parentId: null, maxAgents: 0 };
+      this.showAddSiteDialog = true;
+    },
+    async doAddSite() {
+      this.addSiteLoading = true;
+      try {
+        await this.$axios.post("/clients/sites/", {
+          site: {
+            name: this.addSiteForm.name.trim(),
+            description: this.addSiteForm.description.trim() || "",
+            parent: this.addSiteForm.parentId ?? null,
+            max_agents: this.addSiteForm.maxAgents ?? 0,
+          },
+          custom_fields: [],
+        });
+        this.notifySuccess("Site created");
+        this.showAddSiteDialog = false;
+        this.$store.dispatch("loadTree");
+      } catch (e) {
+        console.error(e);
+      }
+      this.addSiteLoading = false;
     },
     showPermissionsManager() {
       this.$q.dialog({

@@ -28,6 +28,18 @@
                 <q-icon name="dashboard" />
               </q-item-section>
               <q-item-section>All Clients</q-item-section>
+              <q-item-section side>
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="add"
+                  size="sm"
+                  @click.stop="openCreateSiteDialog"
+                >
+                  <q-tooltip>Create Site</q-tooltip>
+                </q-btn>
+              </q-item-section>
             </q-item>
             <q-tree
               ref="tree"
@@ -493,6 +505,67 @@
     <q-dialog v-model="showInstallAgentModal" @hide="closeInstallAgent">
       <InstallAgent @close="closeInstallAgent" :sitepk="parseInt(sitePk)" />
     </q-dialog>
+
+    <!-- create site dialog -->
+    <q-dialog v-model="showCreateSiteDialog">
+      <q-card style="min-width: 360px">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Create Site</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+        <q-card-section>
+          <q-input
+            v-model="createSiteForm.name"
+            label="Site Name *"
+            outlined
+            dense
+            class="q-mb-sm"
+            autofocus
+          />
+          <q-select
+            v-model="createSiteForm.parent_id"
+            :options="siteParentOptions"
+            option-value="master_id"
+            option-label="name"
+            emit-value
+            map-options
+            label="Parent Site"
+            outlined
+            dense
+            clearable
+            class="q-mb-sm"
+          />
+          <q-input
+            v-model="createSiteForm.description"
+            label="Description"
+            outlined
+            dense
+            type="textarea"
+            rows="2"
+            class="q-mb-sm"
+          />
+          <q-input
+            v-model.number="createSiteForm.max_agents"
+            label="Max Agents"
+            type="number"
+            outlined
+            dense
+            :min="0"
+          />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn
+            color="primary"
+            label="Create"
+            :loading="createSiteLoading"
+            :disable="!createSiteForm.name.trim()"
+            @click="doCreateSite"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -530,6 +603,10 @@ export default {
     return {
       showInstallAgentModal: false,
       sitePk: null,
+      showCreateSiteDialog: false,
+      createSiteLoading: false,
+      createSiteForm: { name: "", description: "", parent_id: null, max_agents: 0 },
+      siteParentOptions: [],
       search: this.$route.query.search ? this.$route.query.search : "",
       filterTextLength: 0,
       filterAvailability: "all",
@@ -719,6 +796,32 @@ export default {
     },
   },
   methods: {
+    async openCreateSiteDialog() {
+      const { data } = await this.$axios.get("/clients/sites/");
+      this.siteParentOptions = data;
+      this.createSiteForm = { name: "", description: "", parent_id: null, max_agents: 0 };
+      this.showCreateSiteDialog = true;
+    },
+    async doCreateSite() {
+      this.createSiteLoading = true;
+      try {
+        await this.$axios.post("/clients/sites/", {
+          site: {
+            name: this.createSiteForm.name.trim(),
+            description: this.createSiteForm.description.trim() || "",
+            parent: this.createSiteForm.parent_id ?? null,
+            max_agents: this.createSiteForm.max_agents ?? 0,
+          },
+          custom_fields: [],
+        });
+        this.notifySuccess("Site created");
+        this.showCreateSiteDialog = false;
+        this.$store.dispatch("loadTree");
+      } catch (e) {
+        console.error(e);
+      }
+      this.createSiteLoading = false;
+    },
     onExpandedUpdate(expanded) {
       this.expandedNodes = [...expanded];
     },
@@ -769,13 +872,32 @@ export default {
         })
         .onOk(() => this.$store.dispatch("loadTree"));
     },
+    subtreeHasAgents(nodes) {
+      for (const n of nodes ?? []) {
+        if (n.site?.agent_count > 0) return true;
+        if (n.children?.length && this.subtreeHasAgents(n.children)) return true;
+      }
+      return false;
+    },
+    subtreeAgentCount(nodes) {
+      let count = 0;
+      for (const n of nodes ?? []) {
+        count += n.site?.agent_count ?? 0;
+        if (n.children?.length) count += this.subtreeAgentCount(n.children);
+      }
+      return count;
+    },
     showDeleteModal(node) {
-      if (node.site && node.site.agent_count > 0) {
+      const totalAgentCount =
+        (node.site?.agent_count ?? 0) + this.subtreeAgentCount(node.children);
+      const hasAgents = totalAgentCount > 0;
+      if (hasAgents) {
         this.$q
           .dialog({
             component: DeleteClient,
             componentProps: {
               object: node.site,
+              totalAgentCount,
             },
           })
           .onOk(this.clearTreeSelected);
@@ -790,7 +912,7 @@ export default {
           .onOk(async () => {
             this.$q.loading.show();
             try {
-              const result = await removeSite(node.id);
+              const result = await removeSite(node.master_id);
               this.notifySuccess(result);
               this.clearTreeSelected();
             } catch (e) {

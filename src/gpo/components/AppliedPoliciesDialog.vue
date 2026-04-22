@@ -232,6 +232,68 @@
                   </q-td>
                 </template>
 
+                <template v-slot:body-cell-state="props">
+                  <q-td :props="props">
+                    <span
+                      v-if="assignmentStateItems(props.row).length === 0"
+                      class="text-grey-5"
+                    >
+                      {{
+                        "No parameters"
+                      }}
+                    </span>
+                    <div v-else class="assignment-values-block">
+                      <q-expansion-item
+                        dense
+                        dense-toggle
+                        switch-toggle-side
+                        header-class="assignment-values-expansion-header effective-desc-toggle q-px-none"
+                        class="assignment-values-expansion q-mt-xs"
+                      >
+                        <template v-slot:header>
+                          <q-item-section
+                            side
+                            class="assignment-values-expansion__icon"
+                          >
+                            <q-icon name="subject" size="18px" class="text-grey-6" />
+                          </q-item-section>
+                          <q-item-section>
+                            <div class="row items-center no-wrap q-gutter-x-sm">
+                              <span
+                                class="assignment-values-expansion__label text-caption text-grey-6"
+                              >
+                                Parameters
+                              </span>
+                              <q-badge
+                                outline
+                                color="grey-6"
+                                :label="String(assignmentStateItems(props.row).length)"
+                              />
+                            </div>
+                            <div class="assignment-values-summary text-caption text-grey-8 q-mt-xs">
+                              {{ assignmentStateSummary(props.row) }}
+                            </div>
+                          </q-item-section>
+                        </template>
+                        <div class="assignment-values-panel">
+                          <div
+                            v-for="it in assignmentStateItems(props.row)"
+                            :key="it.idName"
+                            class="assignment-values-row"
+                          >
+                            <div class="assignment-values-key">
+                              {{ it.idName }}
+                            </div>
+                            <div class="assignment-values-val">
+                              {{ it.value || "—" }}
+                            </div>
+                          </div>
+                        </div>
+                      </q-expansion-item>
+                    </div>
+                  </q-td>
+                </template>
+
                 <template v-slot:body-cell-target="props">
                   <q-td :props="props">
                     <q-badge
@@ -493,7 +555,7 @@ interface DialogUser {
   sid: string;
   name?: string;
   displayName?: string;
-  samAccountName?: string;
+  // samAccountName?: string;
 }
 
 const props = defineProps<{
@@ -675,7 +737,7 @@ function assignmentUserName(row: Record<string, unknown>): string {
   const user = usersBySid.value.get(sid);
   if (!user) return "";
   return String(
-    user.displayName || user.name || user.samAccountName || user.sid || "",
+    user.displayName || user.name  || user.sid || "",
   ).trim();
 }
 
@@ -720,19 +782,21 @@ const assignmentColumns: QTableColumn[] = [
     sortable: true,
     style: "min-width: 260px",
   },
-  // {
-  //   name: "desired_state",
-  //   label: "State",
-  //   align: "center",
-  //   field: (row: Record<string, unknown>) =>
-  //     String(row["desiredState"] || row["desired_state"] || ""),
-  // },
+
   {
     name: "override",
     label: "Override",
     align: "center",
     field: (row: Record<string, unknown>) =>
       row["override"] ?? row["overridden"] ?? false,
+  },
+  {
+    name: "state",
+    label: "Values",
+    align: "left",
+    field: (row: Record<string, unknown>) => assignmentStateItems(row).length,
+    sortable: true,
+    style: "min-width: 240px",
   },
   {
     name: "target",
@@ -914,6 +978,68 @@ function targetLabel(row: Record<string, unknown>): string {
 
 function assignmentSid(row: Record<string, unknown>): string {
   return String(row["sid"] ?? row["userSid"] ?? row["user_sid"] ?? "").trim();
+}
+
+function assignmentStateItems(
+  row: Record<string, unknown>,
+): Array<{ idName: string; value: string }> {
+  function normalizeStateValue(raw: unknown): string {
+    if (raw === null || raw === undefined) return "";
+    if (typeof raw === "string") return raw.trim();
+    if (typeof raw === "number" || typeof raw === "boolean") return String(raw);
+    if (typeof raw !== "object") return String(raw);
+
+    const obj = raw as Record<string, unknown>;
+    const keysPrefer = [
+      "value",
+      "stringValue",
+      "string_value",
+      "dword",
+      "int32",
+      "int64",
+      "numberValue",
+      "number_value",
+      "boolValue",
+      "bool_value",
+    ];
+    for (const k of keysPrefer) {
+      const v = obj[k];
+      if (v === null || v === undefined) continue;
+      if (typeof v === "string") return v.trim();
+      if (typeof v === "number" || typeof v === "boolean") return String(v);
+    }
+    return "";
+  }
+
+  const raw =
+    row["state"] ??
+    row["stateList"] ??
+    row["state_list"] ??
+    row["states"] ??
+    null;
+
+  const list = Array.isArray(raw) ? raw : [];
+
+  return list
+    .map((it) => {
+      if (!it || typeof it !== "object") return null;
+      const obj = it as Record<string, unknown>;
+      const idName = String(obj["idName"] ?? obj["id_name"] ?? "").trim();
+      const value = normalizeStateValue(obj["value"]);
+      if (!idName) return null;
+      return { idName, value };
+    })
+    .filter((v): v is { idName: string; value: string } => v !== null);
+}
+
+function assignmentStateSummary(row: Record<string, unknown>): string {
+  const items = assignmentStateItems(row);
+  const n = items.length;
+  if (n === 0) return "No parameters";
+  const first = items[0];
+  const firstText = first.value ? `${first.idName}: ${first.value}` : first.idName;
+  if (n === 1) return firstText;
+  return `${firstText} +${n - 1}`;
 }
 
 function policyScopeEnumLabel(scope: unknown): string | null {
@@ -1114,4 +1240,67 @@ function desiredStateLabel(row: Record<string, unknown>): string {
   min-height: 28px !important
   padding-top: 0
   padding-bottom: 0
+
+.assignment-values-block
+  border-left: 2px solid rgba(0, 0, 0, 0.1)
+  padding-left: 12px
+  margin-left: 2px
+
+.assignment-values-expansion
+  background: transparent
+
+.assignment-values-expansion-header
+  align-items: flex-start !important
+
+.assignment-values-expansion__icon
+  min-width: 32px
+  padding-right: 4px
+
+.assignment-values-expansion__label
+  font-weight: 600
+  letter-spacing: 0.06em
+  text-transform: uppercase
+  font-size: 10px
+
+.assignment-values-summary
+  max-width: 320px
+  line-height: 1.35
+  display: -webkit-box
+  -webkit-line-clamp: 2
+  -webkit-box-orient: vertical
+  overflow: hidden
+  word-break: break-word
+
+.assignment-values-panel
+  padding: 6px 0 4px
+  margin-top: 2px
+  border-top: 1px solid rgba(0, 0, 0, 0.06)
+
+.assignment-values-row
+  padding: 10px 0
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05)
+  &:last-child
+    border-bottom: none
+    padding-bottom: 2px
+
+.assignment-values-key
+  font-size: 11px
+  font-weight: 600
+  letter-spacing: 0.04em
+  text-transform: uppercase
+  color: var(--q-grey-6)
+  margin-bottom: 6px
+  word-break: break-word
+
+.assignment-values-val
+  font-size: 13px
+  line-height: 1.45
+  color: var(--q-grey-9)
+  padding: 7px 10px
+  background: rgba(0, 0, 0, 0.02)
+  border: 1px solid rgba(0, 0, 0, 0.09)
+  border-radius: 4px
+  font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace
+  white-space: pre-wrap
+  word-break: break-word
 </style>

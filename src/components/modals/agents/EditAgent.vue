@@ -424,6 +424,11 @@ export default {
       this.$axios.get(`/agents/${this.agent_id}/`).then((r) => {
         this.agent = r.data;
         this.allTimezones = Object.freeze(r.data.all_timezones);
+        // normalize agent.site from id to master_id if siteOptions already loaded
+        if (this.siteOptions.length > 0) {
+          const match = this.siteOptions.find((o) => o.siteId === this.agent.site);
+          if (match) this.agent.site = match.value;
+        }
 
         // r.data.time_zone is the actual db column from the agent
         // r.data.timezone is a computed property based on the db time_zone field
@@ -457,14 +462,29 @@ export default {
       });
     },
     getSiteOptions() {
-      this.$axios.get("/clients/sites/").then((r) => {
+      this.$axios.get("/clients/sites/?leaf=true").then((r) => {
+        const grouped = {};
         r.data.forEach((site) => {
-          this.siteOptions.push({
-            label: site.name,
-            value: site.id,
-            category: site.ancestors,
+          const group = site.ancestors || "";
+          if (!grouped[group]) grouped[group] = [];
+          grouped[group].push(site);
+        });
+        const entries = Object.entries(grouped).sort(([a], [b]) => {
+          if (!a) return -1;
+          if (!b) return 1;
+          return 0;
+        });
+        entries.forEach(([group, sites]) => {
+          if (group) this.siteOptions.push({ category: group });
+          sites.forEach((site) => {
+            this.siteOptions.push({ label: site.name, value: site.master_id, siteId: site.id });
           });
         });
+        // normalize agent.site from id to master_id once options are ready
+        if (this.agent.site != null) {
+          const match = this.siteOptions.find((o) => o.siteId === this.agent.site);
+          if (match) this.agent.site = match.value;
+        }
       });
     },
     editAgent() {
@@ -520,9 +540,14 @@ export default {
         this.agent.time_zone = this.timezone;
       }
 
+      const siteOption =
+        this.siteOptions.find((o) => o.value === this.agent.site) ||
+        this.siteOptions.find((o) => o.siteId === this.agent.site);
+
       this.$axios
         .put(`/agents/${this.agent_id}/`, {
           ...this.agent,
+          site: siteOption?.value ?? this.agent.site,
           custom_fields: this.formatCustomFields(
             this.customFields,
             this.custom_fields,

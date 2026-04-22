@@ -129,23 +129,10 @@
             :agents="categoryAgents"
             :loading="detailLoading"
             :has-target="selectedCategoryId != null"
+            hide-remove
             @add-agent="$emit('add-agent')"
-            @remove-agent="$emit('remove-agent', $event)"
             @open-agent-dashboard="$emit('open-agent-dashboard', $event)"
           >
-            <template #toolbar-extra>
-              <q-btn
-                flat
-                dense
-                color="secondary"
-                icon="open_in_new"
-                label=""
-                class="q-mr-sm"
-                :disable="selectedCategoryId == null"
-                title="Replace the entire list of agents"
-                @click="$emit('set-agents')"
-              />
-            </template>
           </UserAgentsTab>
         </q-tab-panel>
 
@@ -539,7 +526,6 @@ defineEmits<{
   delete: [];
   "update:detailTab": [value: string];
   "add-agent": [];
-  "set-agents": [];
   "remove-agent": [agentId: string];
   "open-agent-dashboard": [agentId: string];
   "navigate-to-category": [row: unknown];

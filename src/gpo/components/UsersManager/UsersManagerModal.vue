@@ -118,64 +118,17 @@
       @set="handleSetAccountExpiration"
     />
 
-    <q-dialog
+    <UserPickerDialog
       v-model="showAddToGroupDialog"
-      position="standard"
-      @show="loadAddToGroupOptions"
-    >
-      <q-card style="min-width: 360px">
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Add user to group</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
-        </q-card-section>
-        <q-card-section>
-          <div
-            v-if="userDetail?.info?.samaccountname"
-            class="text-caption text-grey-7 q-mb-sm"
-          >
-            User: <strong>{{ userDetail.info.samaccountname }}</strong>
-          </div>
-          <q-select
-            v-model="addToGroupSelectedSam"
-            :options="addToGroupOptions"
-            option-value="sam"
-            option-label="label"
-            emit-value
-            map-options
-            label="Group *"
-            outlined
-            dense
-            :loading="addToGroupOptionsLoading"
-            :disable="addToGroupOptionsLoading"
-            clearable
-            options-dense
-          >
-            <template v-slot:no-option>
-              <q-item>
-                <q-item-section class="text-grey">
-                  {{
-                    addToGroupOptionsLoading
-                      ? "Loading…"
-                      : "No groups available or user already in all"
-                  }}
-                </q-item-section>
-              </q-item>
-            </template>
-          </q-select>
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn
-            color="primary"
-            label="Add"
-            :loading="addToGroupLoading"
-            :disable="!addToGroupSelectedSam"
-            @click="doAddUserToGroup"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+      title="Add user to group"
+      :subtitle="`User: ${userDetail?.info?.samaccountname ?? selectedUserId ?? ''}`"
+      confirm-label="Add"
+      item-icon="groups"
+      :options="addToGroupPickerOptions"
+      :options-loading="addToGroupOptionsLoading"
+      :loading="addToGroupLoading"
+      @select="handleAddUserToGroupSelect"
+    />
 
     <q-dialog
       v-model="showApplyCollectionDialog"
@@ -196,33 +149,52 @@
               userDetail?.info?.samaccountname ?? selectedUserId
             }}</strong>
           </div>
-          <q-select
-            v-model="applyCollectionSelectedId"
-            :options="applyCollectionOptions"
-            option-value="id"
-            option-label="label"
-            emit-value
-            map-options
-            label="Collection *"
+
+          <q-input
+            v-model="applyCollectionSearch"
             outlined
             dense
-            :loading="applyCollectionLoading"
-            :disable="applyCollectionLoading"
             clearable
-            options-dense
+            debounce="200"
+            placeholder="Search collections..."
+            class="q-mb-md"
+            :disable="applyCollectionLoading"
+            @update:model-value="applyCollectionSearch = String($event ?? '')"
+            @clear="applyCollectionSearch = ''"
           >
-            <template v-slot:no-option>
-              <q-item>
-                <q-item-section class="text-grey">
-                  {{
-                    applyCollectionLoading
-                      ? "Loading..."
-                      : "No collections available"
-                  }}
-                </q-item-section>
-              </q-item>
+            <template #prepend>
+              <q-icon name="search" />
             </template>
-          </q-select>
+          </q-input>
+
+          <q-table
+            flat
+            bordered
+            dense
+            :rows="applyCollectionFilteredRows"
+            :columns="applyCollectionColumns"
+            row-key="key"
+            selection="single"
+            v-model:selected="applyCollectionSelectedRows"
+            hide-pagination
+            :rows-per-page-options="[0]"
+            :loading="applyCollectionLoading"
+            @row-click="onApplyCollectionRowClick"
+          >
+            <template #no-data>
+              <div class="full-width text-center text-grey-6 q-pa-md">
+                {{
+                  applyCollectionLoading
+                    ? "Loading..."
+                    : applyCollectionOptions.length === 0
+                      ? "No collections available"
+                      : !applyCollectionHasAvailable
+                        ? "All collections already applied"
+                        : "No collections found"
+                }}
+              </div>
+            </template>
+          </q-table>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancel" v-close-popup />
@@ -230,7 +202,7 @@
             color="primary"
             label="Apply"
             :loading="applyCollectionApplying"
-            :disable="!applyCollectionSelectedId"
+            :disable="applyCollectionSelectedId == null"
             @click="confirmApplyCollectionToUser"
           />
         </q-card-actions>
@@ -336,6 +308,7 @@ import SetAccountExpirationDialog from "./dialogs/SetAccountExpirationDialog.vue
 import SetUserAgentOptionsDialog from "./dialogs/SetUserAgentOptionsDialog.vue";
 import type { SetUserAgentOptions } from "./dialogs/SetUserAgentOptionsDialog.vue";
 import TargetSelectionDialog from "@/gpo/components/shared/TargetSelectionDialog.vue";
+import UserPickerDialog from "@/gpo/components/shared/UserPickerDialog.vue";
 
 const props = withDefaults(
   defineProps<{ open?: boolean; standalonePage?: boolean }>(),
@@ -381,21 +354,59 @@ const applyCollectionLoading = ref(false);
 const applyCollectionApplying = ref(false);
 const applyCollectionSelectedId = ref<number | null>(null);
 const applyCollectionOptions = ref<{ id: number; label: string }[]>([]);
+const applyCollectionSearch = ref("");
+const applyCollectionSelectedRows = ref<{ key: string; id: number; label: string }[]>([]);
 
-const userAppliedCollections = ref<{
-  id: number;
-  name: string;
-  explainText?: string;
-  policies?: { id: number; name: string }[];
-  compliance?: {
+const applyCollectionColumns = [
+  { name: "label", label: "Collection", field: "label", align: "left" as const },
+];
+
+const appliedCollectionIds = computed(
+  () => new Set((userAppliedCollections.value ?? []).map((c) => c.id)),
+);
+
+const applyCollectionRows = computed(() =>
+  (applyCollectionOptions.value ?? [])
+    .filter((c) => !appliedCollectionIds.value.has(c.id))
+    .map((c) => ({ key: String(c.id), id: c.id, label: c.label })),
+);
+
+const applyCollectionHasAvailable = computed(
+  () => applyCollectionRows.value.length > 0,
+);
+
+const applyCollectionFilteredRows = computed(() => {
+  const q = applyCollectionSearch.value.trim().toLowerCase();
+  if (!q) return applyCollectionRows.value;
+  return applyCollectionRows.value.filter((r) =>
+    (r.label ?? "").toLowerCase().includes(q),
+  );
+});
+
+const userAppliedCollections = ref<
+  {
+    id: number;
+    name: string;
+    explainText?: string;
+    policies?: { id: number; name: string }[];
+    compliance?: {
+      assignedAndApplied: number;
+      assignedNotApplied: number;
+      notAssigned: number;
+      loading: boolean;
+    };
+  }[]
+>([]);
+const userAppliedCollectionsLoading = ref(false);
+const complianceCache = new Map<
+  string,
+  {
     assignedAndApplied: number;
     assignedNotApplied: number;
     notAssigned: number;
-    loading: boolean;
-  };
-}[]>([]);
-const userAppliedCollectionsLoading = ref(false);
-const complianceCache = new Map<string, { assignedAndApplied: number; assignedNotApplied: number; notAssigned: number; timestamp: number }>();
+    timestamp: number;
+  }
+>();
 const COMPLIANCE_CACHE_TTL = 5 * 60 * 1000;
 
 const canApplyCollection = computed(
@@ -417,6 +428,14 @@ const removeCollectionRemoving = ref(false);
 const addToGroupSelectedSam = ref<string | null>(null);
 const addToGroupOptionsLoading = ref(false);
 const addToGroupLoading = ref(false);
+
+const addToGroupPickerOptions = computed(() =>
+  addToGroupOptions.value.map((g) => ({
+    id: g.sam,
+    label: g.label,
+    samAccountName: g.sam,
+  })),
+);
 
 const {
   usersLoading,
@@ -446,10 +465,15 @@ const {
   loadUserAgents,
 } = useUserActions();
 
-function downloadBlob(content: Uint8Array | string, fileName: string, mimeType: string) {
-  const bytes = typeof content === "string"
-    ? new Uint8Array(Array.from(atob(content), (c) => c.codePointAt(0) ?? 0))
-    : new Uint8Array(content);
+function downloadBlob(
+  content: Uint8Array | string,
+  fileName: string,
+  mimeType: string,
+) {
+  const bytes =
+    typeof content === "string"
+      ? new Uint8Array(Array.from(atob(content), (c) => c.codePointAt(0) ?? 0))
+      : new Uint8Array(content);
   const blob = new Blob([bytes.buffer], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -464,13 +488,15 @@ function downloadBlob(content: Uint8Array | string, fileName: string, mimeType: 
 async function handleExportUsers(format: "csv" | "xlsx") {
   exportLoading.value = true;
   try {
-    const exportFormat = format === "xlsx"
-      ? export_pb.ExportFormat.XLSX
-      : export_pb.ExportFormat.CSV;
+    const exportFormat =
+      format === "xlsx"
+        ? export_pb.ExportFormat.XLSX
+        : export_pb.ExportFormat.CSV;
     const res = await userControlClient.exportAllUsers(exportFormat);
-    const mimeType = format === "xlsx"
-      ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-      : "text/csv";
+    const mimeType =
+      format === "xlsx"
+        ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        : "text/csv";
     const fallbackName = `users_export.${format}`;
     downloadBlob(res.content, res.fileName || fallbackName, mimeType);
     notifySuccess(`Users exported as ${format.toUpperCase()}`);
@@ -520,6 +546,7 @@ async function handleSetAccountExpiration(value: string | undefined) {
 function openAddToGroupDialog() {
   addToGroupSelectedSam.value = null;
   showAddToGroupDialog.value = true;
+  void loadAddToGroupOptions();
 }
 
 async function loadAddToGroupOptions() {
@@ -577,6 +604,11 @@ async function doAddUserToGroup() {
   } finally {
     addToGroupLoading.value = false;
   }
+}
+
+function handleAddUserToGroupSelect(sam: string) {
+  addToGroupSelectedSam.value = sam;
+  void doAddUserToGroup();
 }
 
 function handleAddAgentTargetSelect(ref: TargetRef) {
@@ -687,6 +719,8 @@ async function loadCollectionsForApply() {
   applyCollectionLoading.value = true;
   applyCollectionSelectedId.value = null;
   applyCollectionOptions.value = [];
+  applyCollectionSearch.value = "";
+  applyCollectionSelectedRows.value = [];
   try {
     const response = await collectionsClient.getAllCollections("en-US");
     const list =
@@ -737,6 +771,14 @@ async function loadCollectionsForApply() {
   } finally {
     applyCollectionLoading.value = false;
   }
+}
+
+function onApplyCollectionRowClick(
+  _evt: unknown,
+  row: { key: string; id: number; label: string },
+) {
+  applyCollectionSelectedRows.value = [row];
+  applyCollectionSelectedId.value = row.id;
 }
 
 function confirmApplyCollectionToUser() {
@@ -900,13 +942,21 @@ async function calculateCollectionCompliance(
   userId: string,
   collectionPolicies: { id: number; name: string }[],
   agentsForUser: { id: string; name: string }[],
-): Promise<{ assignedAndApplied: number; assignedNotApplied: number; notAssigned: number }> {
+): Promise<{
+  assignedAndApplied: number;
+  assignedNotApplied: number;
+  notAssigned: number;
+}> {
   if (!collectionPolicies || collectionPolicies.length === 0) {
     return { assignedAndApplied: 0, assignedNotApplied: 0, notAssigned: 0 };
   }
 
   if (!agentsForUser || agentsForUser.length === 0) {
-    return { assignedAndApplied: 0, assignedNotApplied: 0, notAssigned: collectionPolicies.length };
+    return {
+      assignedAndApplied: 0,
+      assignedNotApplied: 0,
+      notAssigned: collectionPolicies.length,
+    };
   }
 
   const cacheKey = `${userId}_${collectionPolicies.map((p) => p.id).join(",")}_${agentsForUser.length}`;
@@ -915,7 +965,7 @@ async function calculateCollectionCompliance(
     return {
       assignedAndApplied: cached.assignedAndApplied,
       assignedNotApplied: cached.assignedNotApplied,
-      notAssigned: cached.notAssigned
+      notAssigned: cached.notAssigned,
     };
   }
 
@@ -933,10 +983,15 @@ async function calculateCollectionCompliance(
             };
           }
 
-          const [assignmentsResponse, effectivePoliciesResponse] = await Promise.all([
-            policyStateClient.getAssignments(target, "en-US").catch(() => ({ assignmentsList: [] })),
-            policyStateClient.getEffectivePolicies(target, "en-US").catch(() => ({ policiesList: [] })),
-          ]);
+          const [assignmentsResponse, effectivePoliciesResponse] =
+            await Promise.all([
+              policyStateClient
+                .getAssignments(target, "en-US")
+                .catch(() => ({ assignmentsList: [] })),
+              policyStateClient
+                .getEffectivePolicies(target, "en-US")
+                .catch(() => ({ policiesList: [] })),
+            ]);
 
           return {
             assignments: assignmentsResponse.assignmentsList || [],
@@ -986,10 +1041,12 @@ async function calculateCollectionCompliance(
       const policyIdStr = String(policy.id);
       const policyHash = `policy_${policyIdStr}`;
 
-      const isAssigned = assignedPolicyHashes.has(policyIdStr) ||
-                        assignedPolicyHashes.has(policyHash);
-      const isApplied = effectivePolicyHashes.has(policyIdStr) ||
-                       effectivePolicyHashes.has(policyHash);
+      const isAssigned =
+        assignedPolicyHashes.has(policyIdStr) ||
+        assignedPolicyHashes.has(policyHash);
+      const isApplied =
+        effectivePolicyHashes.has(policyIdStr) ||
+        effectivePolicyHashes.has(policyHash);
 
       if (isAssigned && isApplied) {
         assignedAndApplied++;
@@ -1000,12 +1057,23 @@ async function calculateCollectionCompliance(
       }
     }
 
-    const complianceResult = { assignedAndApplied, assignedNotApplied, notAssigned };
-    complianceCache.set(cacheKey, { ...complianceResult, timestamp: Date.now() });
+    const complianceResult = {
+      assignedAndApplied,
+      assignedNotApplied,
+      notAssigned,
+    };
+    complianceCache.set(cacheKey, {
+      ...complianceResult,
+      timestamp: Date.now(),
+    });
     return complianceResult;
   } catch (err) {
     console.error("Error calculating collection compliance:", err);
-    return { assignedAndApplied: 0, assignedNotApplied: 0, notAssigned: collectionPolicies.length };
+    return {
+      assignedAndApplied: 0,
+      assignedNotApplied: 0,
+      notAssigned: collectionPolicies.length,
+    };
   }
 }
 
@@ -1067,29 +1135,25 @@ async function loadUserAppliedCollections() {
     userAppliedCollections.value = mappedCollections;
 
     if (userAgents.value && userAgents.value.length > 0) {
-      await mapWithConcurrency(
-        mappedCollections,
-        3,
-        async (collection) => {
-          try {
-            const result = await calculateCollectionCompliance(
-              userId,
-              collection.policies || [],
-              userAgents.value,
-            );
-            collection.compliance = {
-              assignedAndApplied: result.assignedAndApplied,
-              assignedNotApplied: result.assignedNotApplied,
-              notAssigned: result.notAssigned,
-              loading: false,
-            };
-          } catch {
-            if (collection.compliance) {
-              collection.compliance.loading = false;
-            }
+      await mapWithConcurrency(mappedCollections, 3, async (collection) => {
+        try {
+          const result = await calculateCollectionCompliance(
+            userId,
+            collection.policies || [],
+            userAgents.value,
+          );
+          collection.compliance = {
+            assignedAndApplied: result.assignedAndApplied,
+            assignedNotApplied: result.assignedNotApplied,
+            notAssigned: result.notAssigned,
+            loading: false,
+          };
+        } catch {
+          if (collection.compliance) {
+            collection.compliance.loading = false;
           }
-        },
-      );
+        }
+      });
     } else {
       for (const collection of mappedCollections) {
         if (collection.compliance) {
@@ -1123,7 +1187,7 @@ watch(
       const agentNames = agents.map((a) => a.name);
       currentTarget.value = createUserGroupTargetForAgents(agentIds);
       targetLabel.value = agentNames.join(", ");
-      
+
       if (userAppliedCollections.value.length > 0) {
         loadUserAppliedCollections();
       }
@@ -1150,6 +1214,9 @@ onMounted(() => {
 <style scoped lang="sass">
 .users-manager-layout
   height: 100%
+  flex: 1 1 0%
+  min-height: 0
+  overflow: hidden
   background: #fff
   display: flex
   flex-direction: column
@@ -1168,6 +1235,7 @@ onMounted(() => {
 .users-manager-body
   display: flex
   height: 100%
+  min-height: 0
   overflow: hidden
 
 .body--dark .users-manager-layout

@@ -53,6 +53,7 @@ import type * as agent_category_service_pb_types from "@/generated/agent_categor
 import { AlertQueryServiceClient } from "@/generated/operator/Alerts_serviceServiceClientPb";
 import * as operator_alerts_service_pb from "@/generated/operator/alerts_service_pb";
 import type * as operator_alerts_service_pb_types from "@/generated/operator/alerts_service_pb";
+import { guidToDotNetBytes } from "@/utils/guid-bytes";
 import { useAuthStore } from "@/stores/auth";
 import {
   GroupInfo,
@@ -131,6 +132,20 @@ const agentCategoryServiceClient = createClient(
 );
 const alertQueryServiceClient = createClient(AlertQueryServiceClient);
 
+const ALERT_GUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function toAlertListBytesField(
+  value: Uint8Array | string,
+): string | Uint8Array {
+  if (value instanceof Uint8Array) return value;
+  const s = String(value).trim();
+  if (s !== "" && ALERT_GUID_RE.test(s)) {
+    return guidToDotNetBytes(s);
+  }
+  return s;
+}
+
 export const alertsClient = {
   AlertStatus: operator_alerts_service_pb.AlertStatus,
 
@@ -139,7 +154,10 @@ export const alertsClient = {
   ): Promise<operator_alerts_service_pb_types.AlertItem.AsObject> {
     const req = new operator_alerts_service_pb.GetAlertRequest();
     req.setId(Math.floor(Number(id)));
-    const resp = await alertQueryServiceClient.getAlert(req, createGrpcMetadata());
+    const resp = await alertQueryServiceClient.getAlert(
+      req,
+      createGrpcMetadata(),
+    );
     return resp.toObject();
   },
 
@@ -154,15 +172,24 @@ export const alertsClient = {
   }): Promise<operator_alerts_service_pb_types.ListAlertsResponse.AsObject> {
     const req = new operator_alerts_service_pb.ListAlertsRequest();
     if (params.agentId) req.setAgentId(params.agentId);
-    if (params.userId != null) req.setUserId(params.userId);
-    if (params.groupId != null) req.setGroupId(params.groupId);
+    if (params.userId != null) {
+      const raw = toAlertListBytesField(params.userId);
+      req.setUserId(raw as string);
+    }
+    if (params.groupId != null) {
+      const raw = toAlertListBytesField(params.groupId);
+      req.setGroupId(raw as string);
+    }
     if (params.agentCategoryId != null)
       req.setAgentCategoryId(Math.floor(Number(params.agentCategoryId)));
     if (params.type) req.setType(params.type);
     if (params.status != null) req.setStatus(params.status);
     if (params.openOnly != null) req.setOpenOnly(params.openOnly);
 
-    const resp = await alertQueryServiceClient.listAlerts(req, createGrpcMetadata());
+    const resp = await alertQueryServiceClient.listAlerts(
+      req,
+      createGrpcMetadata(),
+    );
     return resp.toObject();
   },
 
@@ -2493,6 +2520,25 @@ export const collectionsClient = {
 
     const response =
       await collectionsControlServiceClient.getPoliciesInCollection(
+        request,
+        createGrpcMetadata(),
+      );
+
+    return response.toObject();
+  },
+
+  async exportCollectionPolicies(
+    langCode: string = "en-US",
+    scope: operator_pb.PolicyScope = operator_pb.PolicyScope.POLICY_SCOPE_NONE,
+    exportFormat: export_pb_types.ExportFormat = export_pb.ExportFormat.CSV,
+  ): Promise<export_pb_types.ExportResponse.AsObject> {
+    const request = new operator_pb.ExportCollectionPoliciesRequest();
+    request.setLangCode(langCode);
+    request.setScope(scope);
+    request.setExportFormat(exportFormat);
+
+    const response =
+      await collectionsControlServiceClient.exportCollectionPolicies(
         request,
         createGrpcMetadata(),
       );
