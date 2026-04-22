@@ -52,7 +52,6 @@ import { ref, onMounted } from "vue";
 import { useQuasar, useDialogPluginComponent } from "quasar";
 import { notifySuccess } from "@/utils/notify";
 import { fetchSitesFlat, removeSite } from "@/api/clients";
-import { formatSiteOptions } from "@/utils/format";
 
 // ui imports
 import TacticalDropdown from "@/components/ui/TacticalDropdown.vue";
@@ -65,6 +64,7 @@ export default {
   },
   props: {
     object: !Object,
+    totalAgentCount: { type: Number, default: null },
   },
   setup(props) {
     // setup quasar dialog
@@ -79,7 +79,7 @@ export default {
     function submit() {
       $q.dialog({
         title: "Are you sure?",
-        message: `Deleting site ${props.object.name}. ${props.object.agent_count} agents will be moved to the selected site`,
+        message: `Deleting site ${props.object.name}. ${props.totalAgentCount ?? props.object.agent_count} agents will be moved to the selected site`,
         cancel: true,
         ok: { label: "Delete", color: "negative" },
       }).onOk(async () => {
@@ -102,9 +102,12 @@ export default {
       const sites = await fetchSitesFlat();
       $q.loading.hide();
 
-      // filter out site that is being deleted
-      const filtered = sites.filter((s) => s.id !== props.object.id);
-      siteOptions.value = Object.freeze(formatSiteOptions(filtered));
+      siteOptions.value = Object.freeze(
+        sites
+          .filter((s) => s.id !== props.object.id)
+          .map((s) => ({ label: s.name, value: s.master_id }))
+          .sort((a, b) => a.label.localeCompare(b.label))
+      );
     }
 
     onMounted(getSiteOptions);

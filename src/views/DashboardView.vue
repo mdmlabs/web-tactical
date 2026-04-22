@@ -879,16 +879,25 @@ export default {
       }
       return false;
     },
+    subtreeAgentCount(nodes) {
+      let count = 0;
+      for (const n of nodes ?? []) {
+        count += n.site?.agent_count ?? 0;
+        if (n.children?.length) count += this.subtreeAgentCount(n.children);
+      }
+      return count;
+    },
     showDeleteModal(node) {
-      const hasAgents =
-        (node.site?.agent_count > 0) ||
-        this.subtreeHasAgents(node.children);
+      const totalAgentCount =
+        (node.site?.agent_count ?? 0) + this.subtreeAgentCount(node.children);
+      const hasAgents = totalAgentCount > 0;
       if (hasAgents) {
         this.$q
           .dialog({
             component: DeleteClient,
             componentProps: {
               object: node.site,
+              totalAgentCount,
             },
           })
           .onOk(this.clearTreeSelected);

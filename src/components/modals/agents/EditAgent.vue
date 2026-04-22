@@ -424,6 +424,11 @@ export default {
       this.$axios.get(`/agents/${this.agent_id}/`).then((r) => {
         this.agent = r.data;
         this.allTimezones = Object.freeze(r.data.all_timezones);
+        // normalize agent.site from id to master_id if siteOptions already loaded
+        if (this.siteOptions.length > 0) {
+          const match = this.siteOptions.find((o) => o.siteId === this.agent.site);
+          if (match) this.agent.site = match.value;
+        }
 
         // r.data.time_zone is the actual db column from the agent
         // r.data.timezone is a computed property based on the db time_zone field
@@ -475,6 +480,11 @@ export default {
             this.siteOptions.push({ label: site.name, value: site.master_id, siteId: site.id });
           });
         });
+        // normalize agent.site from id to master_id once options are ready
+        if (this.agent.site != null) {
+          const match = this.siteOptions.find((o) => o.siteId === this.agent.site);
+          if (match) this.agent.site = match.value;
+        }
       });
     },
     editAgent() {
