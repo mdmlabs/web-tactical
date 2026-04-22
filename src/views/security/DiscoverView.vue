@@ -52,6 +52,16 @@
       >
         <q-tooltip>Refresh</q-tooltip>
       </q-btn>
+      <q-btn
+        flat
+        dense
+        no-caps
+        icon="add_alert"
+        label="Create Alert"
+        @click="createAlertFromSearch"
+      >
+        <q-tooltip>Create alert rule from this search</q-tooltip>
+      </q-btn>
     </div>
 
     <!-- Histogram -->
@@ -92,12 +102,16 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { useDiscoverStore } from "@/stores/discover";
+import { useAlertingStore } from "@/stores/alerting";
 import DiscoverHistogram from "@/components/security/DiscoverHistogram.vue";
 import DiscoverFieldsSidebar from "@/components/security/DiscoverFieldsSidebar.vue";
 import DiscoverEventsTable from "@/components/security/DiscoverEventsTable.vue";
 
 const discoverStore = useDiscoverStore();
+const alertingStore = useAlertingStore();
+const router = useRouter();
 
 const indexPatternOptions = [
   { label: "ossec-alerts-*", value: "ossec-alerts-*" },
@@ -125,6 +139,12 @@ const intervalLabel = computed(() => {
 
 function loadData() {
   discoverStore.search();
+}
+
+function createAlertFromSearch() {
+  router.push({ name: "SecurityAlerts" }).then(() => {
+    alertingStore.openCreateMonitor();
+  });
 }
 
 defineExpose({ loadData });

@@ -621,6 +621,40 @@
             <q-item-section>Policies</q-item-section>
           </q-item>
 
+          <!-- Self-Service Portal -->
+          <template v-if="isMiniMode && !isMobile">
+            <q-item
+              clickable
+              class="filebar-menu-section-mini"
+              @click="navigateToSelfService"
+            >
+              <q-item-section avatar>
+                <q-icon name="self_improvement" size="24px">
+                  <q-tooltip
+                    anchor="center right"
+                    self="center left"
+                    :offset="[10, 0]"
+                  >
+                    Self-Service Portal
+                  </q-tooltip>
+                </q-icon>
+              </q-item-section>
+            </q-item>
+          </template>
+
+          <q-item
+            v-else
+            clickable
+            v-ripple
+            @click="navigateToSelfService"
+            :class="['filebar-menu-section', { 'active-menu-item': isSelfServiceActive }]"
+          >
+            <q-item-section avatar>
+              <q-icon name="self_improvement" />
+            </q-item-section>
+            <q-item-section>Self-Service Portal</q-item-section>
+          </q-item>
+
           <!-- Security (SIEM / Wazuh) -->
           <template v-if="isMiniMode && !isMobile">
             <q-item clickable class="filebar-menu-section-mini">
@@ -677,6 +711,11 @@
                     <q-item-section avatar><q-icon name="policy" size="sm" /></q-item-section>
                     <q-item-section>Compliance</q-item-section>
                   </q-item>
+                  <q-separator spaced />
+                  <q-item clickable v-ripple @click="navigateToSecurity('vulnerability-detection')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="bug_report" size="sm" /></q-item-section>
+                    <q-item-section>Vulnerability Detection</q-item-section>
+                  </q-item>
                 </q-list>
               </q-menu>
             </q-item>
@@ -719,6 +758,10 @@
               <q-item clickable v-ripple @click="navigateToSecurity('compliance')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('compliance') }]">
                 <q-item-section avatar><q-icon name="policy" /></q-item-section>
                 <q-item-section>Compliance</q-item-section>
+              </q-item>
+              <q-item clickable v-ripple @click="navigateToSecurity('vulnerability-detection')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('vulnerability-detection') }]">
+                <q-item-section avatar><q-icon name="bug_report" /></q-item-section>
+                <q-item-section>Vulnerability Detection</q-item-section>
               </q-item>
             </q-list>
           </q-expansion-item>
@@ -1503,6 +1546,9 @@ export default {
     isPoliciesActive() {
       return this.currentPath.startsWith("/policies");
     },
+    isSelfServiceActive() {
+      return this.currentPath.startsWith("/self-service");
+    },
     closeDrawer() {
       if (this.isMobile) {
         this.$store.commit("SET_FILEBAR_DRAWER", false);
@@ -1644,6 +1690,12 @@ export default {
       }
       this.$router.push({ name: "Policies" });
     },
+    navigateToSelfService() {
+      if (this.isMobile) {
+        this.closeDrawer();
+      }
+      this.$router.push({ name: "SelfServicePortal" });
+    },
     navigateToSecurity(tab = "dashboard") {
       if (this.isMobile) {
         this.closeDrawer();
@@ -1661,6 +1713,7 @@ export default {
         discover: "SecurityDiscover",
         fim: "SecurityFIM",
         "threat-hunting": "ThreatHunting",
+        "vulnerability-detection": "VulnerabilityDetection",
       };
       this.$router.push({ name: routeMap[tab] || "SecurityAgents" });
     },
@@ -1677,6 +1730,7 @@ export default {
       if (tab === "discover") return path === "/security/discover";
       if (tab === "fim") return path.startsWith("/security/fim");
       if (tab === "threat-hunting") return path.startsWith("/security/threat-hunting");
+      if (tab === "vulnerability-detection") return path.startsWith("/security/vulnerability-detection");
       return false;
     },
     clearCache() {

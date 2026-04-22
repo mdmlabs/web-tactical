@@ -32,7 +32,7 @@ const labelMap: Record<string, string> = {
   AgentSecurityDetail: "Agents",
   AgentEndpointDetail: "Agent Detail",
   ITHygiene: "IT Hygiene",
-  SecurityAlerts: "Alerts / Rules",
+  SecurityAlerts: "Alerting",
   SecurityGroups: "Groups",
   SecurityGroupDetail: "Groups",
   SecurityDiscover: "Discover",
@@ -40,6 +40,7 @@ const labelMap: Record<string, string> = {
   ThreatHunting: "Threat Hunting",
   SecuritySCA: "Configuration Assessment",
   ComplianceHub: "Compliance",
+  VulnerabilityDetection: "Vulnerability Detection",
 };
 
 const currentPageLabel = computed(() => {

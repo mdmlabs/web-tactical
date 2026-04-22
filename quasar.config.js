@@ -116,6 +116,13 @@ module.exports = configure(function (/* ctx */) {
           const grpcUrl =
             process.env.DEV_GRPC_URL || "https://mesh-stage.rmadm.org:5000";
 
+          const wazuhDashboardUrl =
+            process.env.DEV_WAZUH_DASHBOARD_URL || "";
+          const wazuhDashboardUser =
+            process.env.DEV_WAZUH_DASHBOARD_USER || "admin";
+          const wazuhDashboardPass =
+            process.env.DEV_WAZUH_DASHBOARD_PASS || "";
+
           viteConf.server.proxy = {
             "/api/grpc": {
               target: grpcUrl,
@@ -150,6 +157,37 @@ module.exports = configure(function (/* ctx */) {
                 });
               },
             },
+
+            // Proxy to Wazuh Dashboard (OpenSearch Dashboards) for Alerting API.
+            // Injects Basic Auth so OSD accepts the requests.
+            ...(wazuhDashboardUrl
+              ? {
+                  "/wazuh-dashboard": {
+                    target: wazuhDashboardUrl,
+                    changeOrigin: true,
+                    secure: !insecure,
+                    agent: httpsAgent,
+                    rewrite: (path) => path.replace(/^\/wazuh-dashboard/, ""),
+                    configure: (proxy) => {
+                      proxy.on("proxyReq", (proxyReq) => {
+                        if (wazuhDashboardUser && wazuhDashboardPass) {
+                          const basicAuth = Buffer.from(
+                            `${wazuhDashboardUser}:${wazuhDashboardPass}`,
+                          ).toString("base64");
+                          proxyReq.setHeader(
+                            "Authorization",
+                            `Basic ${basicAuth}`,
+                          );
+                        }
+                        // OSD requires osd-xsrf header for non-GET requests
+                        if (!proxyReq.getHeader("osd-xsrf")) {
+                          proxyReq.setHeader("osd-xsrf", "true");
+                        }
+                      });
+                    },
+                  },
+                }
+              : {}),
 
             "/api": {
               target: apiUrl,
