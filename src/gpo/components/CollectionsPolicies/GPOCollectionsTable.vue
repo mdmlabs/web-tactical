@@ -17,10 +17,41 @@
         style="min-width: 140px"
       />
       <q-btn
+        flat
+        dense
+        color="secondary"
+        icon="download"
+        class="q-mr-sm"
+        :loading="exportCollectionsLoading"
+        :disable="loading"
+      >
+        <q-tooltip>Export collections</q-tooltip>
+        <q-menu>
+          <q-list dense>
+            <q-item
+              v-close-popup
+              clickable
+              :disable="exportCollectionsLoading"
+              @click="runExportCollectionPolicies('csv')"
+            >
+              <q-item-section>CSV</q-item-section>
+            </q-item>
+            <q-item
+              v-close-popup
+              clickable
+              :disable="exportCollectionsLoading"
+              @click="runExportCollectionPolicies('xlsx')"
+            >
+              <q-item-section>XLSX</q-item-section>
+            </q-item>
+          </q-list>
+        </q-menu>
+      </q-btn>
+      <q-btn
         unelevated
         color="primary"
         icon="add"
-        label="Create collection"
+        label=""
         class="q-mr-md"
         @click="openCreateCollection"
       />
@@ -413,6 +444,7 @@ import {
   // policyCatalogClient,
   operator_pb,
 } from "../../api/grpc-client";
+import export_pb from "@/generated/common/export_pb";
 import { notifyError, notifySuccess } from "@/utils/notify";
 import CollectionPolicyPickerDialog from "../CollectionsPolicies/CollectionPolicyPickerDialog.vue";
 import ApplyCollectionTargetDialog from "../CollectionsPolicies/ApplyCollectionTargetDialog.vue";
@@ -484,6 +516,7 @@ function scopeCellClass(scope: number): string {
 const $q = useQuasar();
 const collectionsList = ref<CollectionRow[]>([]);
 const loading = ref(false);
+const exportCollectionsLoading = ref(false);
 const detailsDialog = ref(false);
 const detailsLoading = ref(false);
 const detailsCollectionId = ref<number>(0);
@@ -525,6 +558,87 @@ const filteredCollectionsList = computed(() => {
   if (scope === SCOPE_FILTER_ALL || scope === undefined) return list;
   return list.filter((row) => row.scope === scope);
 });
+
+const exportLangCode = computed(
+  () => ($q.lang as { isoName?: string })?.isoName || "en-US",
+);
+
+function scopeFilterToPolicyScope(
+  filter: number | null | undefined,
+): number {
+  if (filter === SCOPE_FILTER_ALL || filter === undefined || filter === null) {
+    return operator_pb.PolicyScope.POLICY_SCOPE_NONE;
+  }
+  if (filter === operator_pb.PolicyScope.POLICY_SCOPE_USER) {
+    return operator_pb.PolicyScope.POLICY_SCOPE_USER;
+  }
+  if (filter === operator_pb.PolicyScope.POLICY_SCOPE_MACHINE) {
+    return operator_pb.PolicyScope.POLICY_SCOPE_MACHINE;
+  }
+  return operator_pb.PolicyScope.POLICY_SCOPE_NONE;
+}
+
+function downloadCollectionExportBlob(
+  content: Uint8Array | string,
+  fileName: string,
+  mimeType: string,
+) {
+  const bytes =
+    typeof content === "string"
+      ? new Uint8Array(
+          Array.from(atob(content), (c) => c.codePointAt(0) ?? 0),
+        )
+      : new Uint8Array(content);
+  const blob = new Blob([bytes.buffer], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function runExportCollectionPolicies(format: "csv" | "xlsx") {
+  exportCollectionsLoading.value = true;
+  try {
+    const exportFormat =
+      format === "xlsx"
+        ? export_pb.ExportFormat.XLSX
+        : export_pb.ExportFormat.CSV;
+    const res = await collectionsClient.exportCollectionPolicies(
+      exportLangCode.value,
+      scopeFilterToPolicyScope(scopeFilter.value),
+      exportFormat,
+    );
+    const mimeType =
+      format === "xlsx"
+        ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        : "text/csv; charset=utf-8";
+    const fallbackName = `policy_collections.${
+      format === "xlsx" ? "xlsx" : "csv"
+    }`;
+    downloadCollectionExportBlob(
+      res.content,
+      res.fileName || fallbackName,
+      mimeType,
+    );
+    notifySuccess(
+      format === "xlsx"
+        ? "Collections exported (XLSX)"
+        : "Collections exported (CSV)",
+    );
+  } catch (err) {
+    notifyError(
+      err instanceof Error
+        ? err.message
+        : "Failed to export policy collections",
+    );
+  } finally {
+    exportCollectionsLoading.value = false;
+  }
+}
 
 function normalizeScope(raw: number | string | undefined | null): number {
   if (raw === undefined || raw === null) {

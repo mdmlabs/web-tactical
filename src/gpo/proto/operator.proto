@@ -103,6 +103,8 @@ service CollectionsControlService {
   rpc RemovePoliciesFromCollection(RemovePoliciesFromCollectionRequest)
       returns (DeleteCollectionResponse);
   // Получение коллекций, примененных к агенту, пользователю или группе
+  rpc ExportCollectionPolicies(ExportCollectionPoliciesRequest)
+      returns (laborato.common.export.ExportResponse);
   rpc GetAppliedCollectionsByAgent (GetAppliedCollectionsByAgentRequest)
       returns (GetAppliedCollectionsResponse);
   rpc GetAppliedCollectionsByUser (GetAppliedCollectionsByUserRequest)
@@ -112,7 +114,11 @@ service CollectionsControlService {
   rpc GetAppliedCollectionsByAgentCategory(GetAppliedCollectionsByAgentCategoryRequest)
      returns (GetAppliedCollectionsResponse);
 }
-
+message ExportCollectionPoliciesRequest {
+    string lang_code = 1;
+    PolicyScope scope = 2;
+    laborato.common.export.ExportFormat export_format = 3;
+}
 message GetAppliedCollectionsByAgentCategoryRequest {
     int64 category_id = 1;
     string lang_code = 2;
