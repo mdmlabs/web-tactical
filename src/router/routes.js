@@ -119,6 +119,14 @@ const routes = [
         },
       },
       {
+        path: "/self-service",
+        name: "SelfServicePortal",
+        component: () => import("@/views/selfservice/SelfServicePortalView.vue"),
+        meta: {
+          requireAuth: true,
+        },
+      },
+      {
         path: "/security",
         component: () => import("@/views/security/SecurityLayout.vue"),
         meta: { requireAuth: true },
@@ -157,7 +165,7 @@ const routes = [
             path: "alerts",
             name: "SecurityAlerts",
             component: () =>
-              import("@/views/security/SecurityAlerts.vue"),
+              import("@/views/security/AlertingView.vue"),
           },
           {
             path: "groups",
@@ -185,6 +193,18 @@ const routes = [
               import("@/views/security/FIMView.vue"),
           },
           {
+            path: "threat-hunting",
+            name: "ThreatHunting",
+            component: () =>
+              import("@/views/security/ThreatHuntingView.vue"),
+          },
+          // {
+          //   path: "alerting",
+          //   name: "SecurityAlerting",
+          //   component: () =>
+          //     import("@/views/security/AlertingView.vue"),
+          // },
+          {
             path: "sca",
             redirect: "/security/compliance/sca",
           },
@@ -193,6 +213,18 @@ const routes = [
             name: "ComplianceHub",
             component: () =>
               import("@/views/security/ComplianceHub.vue"),
+          },
+          {
+            path: "vulnerability-detection",
+            name: "VulnerabilityDetection",
+            component: () =>
+              import("@/views/security/VulnerabilityDetection.vue"),
+          },
+          {
+            path: "reports",
+            name: "SecurityReports",
+            component: () =>
+              import("@/views/security/reporting/ReportsListView.vue"),
           },
         ],
       },

@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance } from "axios";
+import axios, { type AxiosInstance, type AxiosRequestConfig } from "axios";
 import { getBaseUrl } from "@/boot/axios";
 import type { OpenSearchQueryBody, OpenSearchResponse } from "@/types/fim";
 
@@ -21,6 +21,42 @@ class WazuhIndexerClient {
       timeout: 30000,
       withCredentials: true,
     });
+  }
+
+  /**
+   * Generic GET request to any OpenSearch endpoint.
+   * Sends: GET /api/wazuh-indexer{path}
+   */
+  async get<T = unknown>(path: string, config?: AxiosRequestConfig): Promise<T> {
+    const { data } = await this.client.get<T>(path, config);
+    return data;
+  }
+
+  /**
+   * Generic POST request to any OpenSearch endpoint.
+   * Sends: POST /api/wazuh-indexer{path}
+   */
+  async post<T = unknown>(path: string, body?: unknown, config?: AxiosRequestConfig): Promise<T> {
+    const { data } = await this.client.post<T>(path, body, config);
+    return data;
+  }
+
+  /**
+   * Generic PUT request to any OpenSearch endpoint.
+   * Sends: PUT /api/wazuh-indexer{path}
+   */
+  async put<T = unknown>(path: string, body?: unknown, config?: AxiosRequestConfig): Promise<T> {
+    const { data } = await this.client.put<T>(path, body, config);
+    return data;
+  }
+
+  /**
+   * Generic DELETE request to any OpenSearch endpoint.
+   * Sends: DELETE /api/wazuh-indexer{path}
+   */
+  async delete<T = unknown>(path: string, config?: AxiosRequestConfig): Promise<T> {
+    const { data } = await this.client.delete<T>(path, config);
+    return data;
   }
 
   /**

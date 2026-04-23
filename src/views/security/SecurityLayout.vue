@@ -7,6 +7,7 @@
         <span class="sec-topbar__badge">{{ currentPageLabel }}</span>
       </div>
       <div class="sec-topbar__right">
+        <GenerateReportButton v-if="showReportBtn" />
         <q-btn v-if="showRefreshBtn" flat no-caps icon="refresh" label="Refresh" class="sec-refresh-btn" @click="onRefresh" />
       </div>
     </div>
@@ -22,6 +23,7 @@
 import { ref, computed, onMounted, watch, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import { useWazuhStore } from "@/stores/wazuh";
+import GenerateReportButton from "@/components/security/reporting/GenerateReportButton.vue";
 
 const route = useRoute();
 const childView = ref();
@@ -32,13 +34,16 @@ const labelMap: Record<string, string> = {
   AgentSecurityDetail: "Agents",
   AgentEndpointDetail: "Agent Detail",
   ITHygiene: "IT Hygiene",
-  SecurityAlerts: "Alerts / Rules",
+  SecurityAlerts: "Alerting",
   SecurityGroups: "Groups",
   SecurityGroupDetail: "Groups",
   SecurityDiscover: "Discover",
   SecurityFIM: "File Integrity Monitoring",
+  ThreatHunting: "Threat Hunting",
   SecuritySCA: "Configuration Assessment",
   ComplianceHub: "Compliance",
+  VulnerabilityDetection: "Vulnerability Detection",
+  SecurityReports: "My Reports",
 };
 
 const currentPageLabel = computed(() => {
@@ -56,6 +61,8 @@ function onRefresh() {
 }
 
 const showRefreshBtn = ref(false);
+
+const showReportBtn = computed(() => route.name !== "SecurityReports");
 
 watch(
   () => route.name,
@@ -116,6 +123,10 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.sec-topbar__right > :deep(.gen-report-btn) {
+  min-height: 32px;
 }
 
 .sec-refresh-btn {

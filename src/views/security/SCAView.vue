@@ -133,7 +133,25 @@ function loadData() {
   scaStore.refreshActiveTab();
 }
 
-defineExpose({ loadData });
+/** Called by SecurityLayout when user opens the Generate Report dropdown */
+function getReportContext() {
+  const agentId = scaStore.selectedAgentId;
+  const { from, to } = scaStore.dateRangeQuery;
+  return {
+    scope: "sca",
+    name: agentId
+      ? `SCA report – agent ${agentId}`
+      : "SCA report",
+    sourceType: "HEALTH" as const,
+    filters: {
+      agent_ids: agentId ? [agentId] : [],
+      date_from: from ? from.slice(0, 10) : undefined,
+      date_to: to ? to.slice(0, 10) : undefined,
+    },
+  };
+}
+
+defineExpose({ loadData, getReportContext });
 
 onMounted(async () => {
   if (!wazuhStore.wazuhAgents.length) {
