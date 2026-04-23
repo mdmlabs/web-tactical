@@ -7,6 +7,10 @@
         <span class="sec-topbar__badge">{{ currentPageLabel }}</span>
       </div>
       <div class="sec-topbar__right">
+        <GenerateReportButton
+          v-if="hasReportContext"
+          :context-provider="getCurrentContext"
+        />
         <q-btn v-if="showRefreshBtn" flat no-caps icon="refresh" label="Refresh" class="sec-refresh-btn" @click="onRefresh" />
       </div>
     </div>
@@ -22,6 +26,8 @@
 import { ref, computed, onMounted, watch, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import { useWazuhStore } from "@/stores/wazuh";
+import GenerateReportButton from "@/components/security/reporting/GenerateReportButton.vue";
+import type { ReportContext } from "@/components/security/reporting/GenerateReportButton.vue";
 
 const route = useRoute();
 const childView = ref();
@@ -56,13 +62,28 @@ function onRefresh() {
 }
 
 const showRefreshBtn = ref(false);
+const hasReportContext = ref(false);
+
+function getCurrentContext(): ReportContext | null {
+  const getter = childView.value?.getReportContext;
+  if (typeof getter !== "function") return null;
+  try {
+    return getter() ?? null;
+  } catch (e) {
+    console.error("[SecurityLayout] getReportContext failed", e);
+    return null;
+  }
+}
 
 watch(
   () => route.name,
   async () => {
     showRefreshBtn.value = false;
+    hasReportContext.value = false;
     await nextTick();
     showRefreshBtn.value = typeof childView.value?.loadData === "function";
+    hasReportContext.value =
+      typeof childView.value?.getReportContext === "function";
   },
   { immediate: true },
 );
@@ -116,6 +137,10 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.sec-topbar__right > :deep(.gen-report-btn) {
+  min-height: 32px;
 }
 
 .sec-refresh-btn {
