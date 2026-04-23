@@ -3732,20 +3732,54 @@ async function removeUserFromGroupFromGroupSubmit() {
   }
 }
 
+function describeLoadAppliedPoliciesError(reason: unknown): string {
+  if (reason === null || reason === undefined) return "Unknown error";
+  if (typeof reason === "string") return reason;
+  if (typeof reason === "object") {
+    const r = reason as Record<string, unknown>;
+    const msg =
+      (typeof r.message === "string" && r.message) ||
+      (typeof r["Message"] === "string" && r["Message"]) ||
+      "";
+    const code = r.code;
+    if (msg && code !== undefined && code !== null) {
+      return `${msg} (gRPC ${String(code)})`;
+    }
+    if (msg) return msg;
+  }
+  try {
+    return String(reason);
+  } catch {
+    return "Unknown error";
+  }
+}
+
 async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
-  const [assignmentsResp, effectiveResp] = await Promise.all([
+  const [assignmentsOutcome, effectiveOutcome] = await Promise.allSettled([
     policyStateClient.getAssignmentsFor("agent", { agentId }),
     policyStateClient.getEffectivePoliciesFor("agent", { agentId }),
   ]);
+
+  if (assignmentsOutcome.status === "rejected") {
+    throw assignmentsOutcome.reason;
+  }
+  const assignmentsResp = assignmentsOutcome.value;
+
+  let effectiveResp: Record<string, unknown> = { policiesList: [] };
+  if (effectiveOutcome.status === "fulfilled") {
+    effectiveResp = effectiveOutcome.value as unknown as Record<string, unknown>;
+  } else {
+    const msg = describeLoadAppliedPoliciesError(effectiveOutcome.reason);
+    notifyError(`Could not load effective policies: ${msg}`);
+  }
 
   const assignmentsObj = assignmentsResp as unknown as Record<string, unknown>;
   const assignments = ((assignmentsObj["assignmentsList"] as unknown) ||
     (assignmentsObj["assignments"] as unknown) ||
     []) as Array<Record<string, unknown>>;
 
-  const effectiveObj = effectiveResp as unknown as Record<string, unknown>;
-  const effectivePolicies = ((effectiveObj["policiesList"] as unknown) ||
-    (effectiveObj["policies"] as unknown) ||
+  const effectivePolicies = ((effectiveResp["policiesList"] as unknown) ||
+    (effectiveResp["policies"] as unknown) ||
     []) as Array<Record<string, unknown>>;
 
   appliedDialogAssignments.value = await Promise.all(
@@ -3805,6 +3839,9 @@ async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
 
   appliedDialogEffective.value = effectivePolicies.map((p) => {
     const policyHash = String(p["policyHash"] || p["policy_hash"] || "");
+    const userSid = String(
+      p["userSid"] ?? p["usersid"] ?? p["user_sid"] ?? "",
+    ).trim();
     const summary = p["summary"] as Record<string, unknown> | undefined;
     const displayName = String(
       summary
@@ -3826,6 +3863,7 @@ async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
       ...p,
       policyHash,
       id: policyHash,
+      userSid,
       displayName,
       summary,
       explainText: explainText || undefined,
@@ -3846,7 +3884,9 @@ const openAppliedPoliciesDialog = () => {
       await loadAppliedPoliciesDialogData(selectedAgent.value!.id);
       showAppliedPoliciesDialog.value = true;
     } catch (error) {
-      notifyError("Error loading applied policies");
+      notifyError(
+        `Error loading applied policies: ${describeLoadAppliedPoliciesError(error)}`,
+      );
     } finally {
       showAppliedPoliciesLoading.value = false;
     }
@@ -3859,7 +3899,9 @@ async function refreshAppliedPoliciesDialog() {
   try {
     await loadAppliedPoliciesDialogData(selectedAgent.value.id);
   } catch (error) {
-    notifyError("Error loading applied policies");
+    notifyError(
+      `Error loading applied policies: ${describeLoadAppliedPoliciesError(error)}`,
+    );
   } finally {
     showAppliedPoliciesLoading.value = false;
   }

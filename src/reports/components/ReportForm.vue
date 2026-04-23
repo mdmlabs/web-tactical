@@ -218,6 +218,9 @@ export default defineComponent({
   emits: [...useDialogPluginComponent.emits],
   props: {
     report: Object,
+    initialFilters: { type: Object, default: null },
+    initialSourceType: { type: String, default: null },
+    initialName: { type: String, default: "" },
   },
   setup(props) {
     const isEdit = computed(() => !!props.report?.id);
@@ -235,7 +238,9 @@ export default defineComponent({
       return agentsBySite.value.length === 0 ? "No agents found" : "Agents";
     });
 
-    const sourceTypeOption = ref(props.report?.source_type || "HEALTH");
+    const sourceTypeOption = ref(
+      props.report?.source_type || props.initialSourceType || "HEALTH",
+    );
     const accessModeOption = ref(props.report?.access_mode || "ALL_ADMINS");
 
     const reportFields = ref([]);
@@ -273,7 +278,7 @@ export default defineComponent({
     });
 
     const localReport = ref({
-      name: props.report?.name || "",
+      name: props.report?.name || props.initialName || "",
       report_type: props.report?.report_type || sourceTypeOption.value,
       source_type: props.report?.source_type || sourceTypeOption.value,
       selected_fields: props.report?.selected_fields || [],
@@ -494,6 +499,18 @@ export default defineComponent({
 
         filters.date_from = savedFilters.date_from || null;
         filters.date_to = savedFilters.date_to || null;
+      } else if (!isEdit.value && props.initialFilters) {
+        const initial = props.initialFilters;
+
+        if (initial.site_id) {
+          filters.site_id = initial.site_id;
+          await fetchAgentsBySiteId(initial.site_id);
+        }
+        if (Array.isArray(initial.agent_ids) && initial.agent_ids.length) {
+          filters.agent_ids = [...initial.agent_ids];
+        }
+        if (initial.date_from) filters.date_from = initial.date_from;
+        if (initial.date_to) filters.date_to = initial.date_to;
       }
       initializing.value = false;
     });
