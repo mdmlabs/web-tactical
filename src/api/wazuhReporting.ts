@@ -1,5 +1,30 @@
 import { wazuhDashboardApi } from "@/api/wazuhDashboard";
 
+interface WazuhApiHost {
+  id: string;
+  manager?: string;
+  cluster_info?: Record<string, unknown>;
+}
+
+let cachedApiId: string | null = null;
+
+async function resolveApiId(): Promise<string> {
+  if (cachedApiId) return cachedApiId;
+  try {
+    const hosts = await wazuhDashboardApi.get<WazuhApiHost[]>(
+      "/api/wazuh-api/hosts/apis",
+    );
+    const first = Array.isArray(hosts) ? hosts[0] : null;
+    if (first?.id) {
+      cachedApiId = first.id;
+      return first.id;
+    }
+  } catch {
+    // Fall back to the hardcoded id below.
+  }
+  return "default";
+}
+
 /**
  * Wrapper for the Wazuh Dashboard reporting API.
  *
@@ -83,12 +108,13 @@ function defaultTimeRange(): WazuhReportTimeRange {
   return { from: from.toISOString(), to: to.toISOString() };
 }
 
-function buildBody(
+async function buildBody(
   section: WazuhReportSection | null,
   agent: string | false,
   extra?: Partial<WazuhReportCommonBody>,
-): Record<string, unknown> {
+): Promise<Record<string, unknown>> {
   const s = section ?? "general";
+  const apiId = await resolveApiId();
   return {
     array: [],
     browserTimezone: browserTz(),
@@ -100,7 +126,7 @@ function buildBody(
     tab: s,
     agents: agent,
     indexPatternTitle: "wazuh-alerts-*",
-    apiId: "default",
+    apiId,
     ...extra,
   };
 }
@@ -121,7 +147,7 @@ export async function createModuleReport(
   agent: string | false = false,
   extra?: Partial<WazuhReportCommonBody>,
 ): Promise<WazuhReportCreateResponse> {
-  const body = buildBody(section, agent, extra);
+  const body = await buildBody(section, agent, extra);
   return wazuhDashboardApi.post<WazuhReportCreateResponse>(
     `${REPORTS_BASE}/modules/${encodeURIComponent(section)}`,
     body,
@@ -132,7 +158,7 @@ export async function createAgentReport(
   agentId: string,
   extra?: Partial<WazuhReportCommonBody>,
 ): Promise<WazuhReportCreateResponse> {
-  const body = buildBody(null, agentId, extra);
+  const body = await buildBody(null, agentId, extra);
   return wazuhDashboardApi.post<WazuhReportCreateResponse>(
     `${REPORTS_BASE}/agents/${encodeURIComponent(agentId)}`,
     body,
@@ -143,7 +169,7 @@ export async function createGroupReport(
   groupId: string,
   extra?: Partial<WazuhReportCommonBody>,
 ): Promise<WazuhReportCreateResponse> {
-  const body = buildBody(null, false, extra);
+  const body = await buildBody(null, false, extra);
   return wazuhDashboardApi.post<WazuhReportCreateResponse>(
     `${REPORTS_BASE}/groups/${encodeURIComponent(groupId)}`,
     body,
