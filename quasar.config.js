@@ -71,6 +71,7 @@ module.exports = configure(function (/* ctx */) {
         DOCKER_BUILD: process.env.DOCKER_BUILD,
         // используем проксю для обхода корсов (по умолчанию true в dev режиме)
         USE_PROXY: process.env.USE_PROXY !== "false",
+        WAZUH_API_ID: process.env.WAZUH_API_ID || "",
       },
       alias: {
         ["@"]: path.join(__dirname, "./src"),

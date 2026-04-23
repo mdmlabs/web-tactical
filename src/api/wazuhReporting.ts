@@ -6,22 +6,42 @@ interface WazuhApiHost {
   cluster_info?: Record<string, unknown>;
 }
 
+// Endpoints the Wazuh dashboard plugin has exposed across 4.x versions.
+// Order matters — try the most recent first.
+const API_HOSTS_ENDPOINTS = [
+  "/api/wazuh-api/hosts/apis",
+  "/api/wazuh-utilities/hosts/apis",
+  "/utils/api",
+];
+
 let cachedApiId: string | null = null;
 
 async function resolveApiId(): Promise<string> {
   if (cachedApiId) return cachedApiId;
-  try {
-    const hosts = await wazuhDashboardApi.get<WazuhApiHost[]>(
-      "/api/wazuh-api/hosts/apis",
-    );
-    const first = Array.isArray(hosts) ? hosts[0] : null;
-    if (first?.id) {
-      cachedApiId = first.id;
-      return first.id;
-    }
-  } catch {
-    // Fall back to the hardcoded id below.
+
+  const fromEnv =
+    (process.env.WAZUH_API_ID as string | undefined) ||
+    (typeof window !== "undefined"
+      ? (window._env_?.WAZUH_API_ID as string | undefined)
+      : undefined);
+  if (fromEnv) {
+    cachedApiId = fromEnv;
+    return fromEnv;
   }
+
+  for (const url of API_HOSTS_ENDPOINTS) {
+    try {
+      const hosts = await wazuhDashboardApi.get<WazuhApiHost[]>(url);
+      const first = Array.isArray(hosts) ? hosts[0] : null;
+      if (first?.id) {
+        cachedApiId = first.id;
+        return first.id;
+      }
+    } catch {
+      // try next endpoint
+    }
+  }
+
   return "default";
 }
 
