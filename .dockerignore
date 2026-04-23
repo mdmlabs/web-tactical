@@ -1,0 +1,60 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Node modules (will be installed in container)
+node_modules
+
+# Build outputs (will be generated in container)
+dist
+dist-ssr
+.quasar
+
+# Development files
+.env
+.env.local
+.env.*.local
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Generated files
+src/generated
+
+# Test files
+coverage
+.nyc_output
+test-results
+
+# Documentation
+*.md
+docs
+README.md
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# Docker files (except the ones we need)
+docker
+!docker/containers/mdmlabs-frontend
+
+# Misc
+*.tar.gz
+*.zip
+web-tactical.tar.gz
+web-tactical.zip
+
+# Quasar dev files
+.quasar/client-entry.js
