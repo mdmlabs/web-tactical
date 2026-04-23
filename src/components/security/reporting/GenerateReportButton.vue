@@ -16,7 +16,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRoute } from "vue-router";
 import { notifyError, notifySuccess } from "@/utils/notify";
 import {
   createAgentReport,
@@ -27,7 +27,6 @@ import {
 } from "@/api/wazuhReporting";
 
 const route = useRoute();
-const router = useRouter();
 const loading = ref(false);
 
 type Scope =
@@ -100,10 +99,9 @@ async function onGenerate() {
     const name = resp?.filename ?? resp?.name ?? null;
     notifySuccess(
       name
-        ? `Report generated: ${name}`
-        : "Report generated. Opening My Reports…",
+        ? `Report generated: ${name}. Open Security → Reports to download.`
+        : "Report generated. Open Security → Reports to download.",
     );
-    router.push({ name: "SecurityReports" });
   } catch (err) {
     notifyError(`Failed to generate report: ${extractWazuhError(err)}`);
   } finally {

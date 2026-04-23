@@ -693,6 +693,10 @@
                     <q-item-section avatar><q-icon name="bug_report" size="sm" /></q-item-section>
                     <q-item-section>Vulnerability Detection</q-item-section>
                   </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('reports')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="picture_as_pdf" size="sm" /></q-item-section>
+                    <q-item-section>Reports</q-item-section>
+                  </q-item>
                 </q-list>
               </q-menu>
             </q-item>
