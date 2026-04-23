@@ -83,7 +83,16 @@ function loadData() {
   onRefresh();
 }
 
-defineExpose({ loadData });
+function getReportContext() {
+  const childGetter = childComp.value?.getReportContext;
+  if (typeof childGetter === "function") {
+    const ctx = childGetter();
+    if (ctx) return ctx;
+  }
+  return { scope: activeFramework.value, filters: {} };
+}
+
+defineExpose({ loadData, getReportContext });
 </script>
 
 <style scoped>

@@ -220,6 +220,12 @@ const routes = [
             component: () =>
               import("@/views/security/VulnerabilityDetection.vue"),
           },
+          {
+            path: "reports",
+            name: "SecurityReports",
+            component: () =>
+              import("@/views/security/reporting/ReportsListView.vue"),
+          },
         ],
       },
     ],
