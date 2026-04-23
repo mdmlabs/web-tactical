@@ -1,52 +1,114 @@
 <template>
-  <q-btn-dropdown
+  <q-btn
     flat
     no-caps
-    icon="picture_as_pdf"
+    :icon="loading ? undefined : 'picture_as_pdf'"
+    :loading="loading"
     label="Generate Report"
     class="gen-report-btn"
-    split
     @click="onGenerate"
   >
-    <q-list>
-      <q-item clickable v-close-popup @click="onGenerate">
-        <q-item-section avatar>
-          <q-icon name="note_add" />
-        </q-item-section>
-        <q-item-section>
-          <q-item-label>Create report…</q-item-label>
-          <q-item-label caption>
-            Uses the current page (agent / group / module)
-          </q-item-label>
-        </q-item-section>
-      </q-item>
-      <q-item clickable v-close-popup @click="onViewReports">
-        <q-item-section avatar>
-          <q-icon name="folder_open" />
-        </q-item-section>
-        <q-item-section>
-          <q-item-label>My reports</q-item-label>
-          <q-item-label caption>Browse, download, delete</q-item-label>
-        </q-item-section>
-      </q-item>
-    </q-list>
-  </q-btn-dropdown>
+    <template #loading>
+      <q-spinner-dots />
+    </template>
+  </q-btn>
 </template>
 
 <script setup lang="ts">
-import { useQuasar } from "quasar";
-import { useRouter } from "vue-router";
-import GenerateReportDialog from "@/views/security/reporting/GenerateReportDialog.vue";
+import { ref, computed } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { notifyError, notifySuccess } from "@/utils/notify";
+import {
+  createAgentReport,
+  createGroupReport,
+  createModuleReport,
+  extractWazuhError,
+  type WazuhReportSection,
+} from "@/api/wazuhReporting";
 
-const $q = useQuasar();
+const route = useRoute();
 const router = useRouter();
+const loading = ref(false);
 
-function onGenerate() {
-  $q.dialog({ component: GenerateReportDialog });
-}
+type Scope =
+  | { kind: "module"; section: WazuhReportSection }
+  | { kind: "agent"; agentId: string }
+  | { kind: "group"; groupId: string };
 
-function onViewReports() {
-  router.push({ name: "SecurityReports" });
+const ROUTE_TO_SECTION: Record<string, WazuhReportSection> = {
+  SecurityAgents: "general",
+  SecurityAlerts: "general",
+  SecurityDiscover: "general",
+  ITHygiene: "general",
+  SecurityFIM: "fim",
+  ThreatHunting: "general",
+  VulnerabilityDetection: "vuls",
+  SecurityGroups: "general",
+};
+
+const COMPLIANCE_FRAMEWORKS: Record<string, WazuhReportSection> = {
+  pci: "pci",
+  "pci-dss": "pci",
+  gdpr: "gdpr",
+  hipaa: "hipaa",
+  nist: "nist",
+  nist80053: "nist",
+  tsc: "tsc",
+  sca: "sca",
+};
+
+const scope = computed<Scope>(() => {
+  const name = route.name as string;
+
+  if (name === "SecurityGroupDetail") {
+    const gid = String(route.params.groupName ?? "");
+    if (gid) return { kind: "group", groupId: gid };
+  }
+
+  if (name === "AgentEndpointDetail") {
+    const aid = String(route.params.agentId ?? "");
+    if (aid) return { kind: "agent", agentId: aid };
+  }
+  if (name === "AgentSecurityDetail") {
+    const hostname = String(route.params.hostname ?? "");
+    if (hostname) return { kind: "agent", agentId: hostname };
+  }
+
+  if (name === "ComplianceHub") {
+    const fw = String(route.params.framework ?? "").toLowerCase();
+    const section = COMPLIANCE_FRAMEWORKS[fw];
+    if (section) return { kind: "module", section };
+    return { kind: "module", section: "general" };
+  }
+
+  const section = ROUTE_TO_SECTION[name] ?? "general";
+  return { kind: "module", section };
+});
+
+async function onGenerate() {
+  loading.value = true;
+  try {
+    const s = scope.value;
+    let resp;
+    if (s.kind === "agent") {
+      resp = await createAgentReport(s.agentId);
+    } else if (s.kind === "group") {
+      resp = await createGroupReport(s.groupId);
+    } else {
+      resp = await createModuleReport(s.section);
+    }
+    const name = resp?.filename ?? resp?.name ?? null;
+    notifySuccess(
+      name
+        ? `Report generated: ${name}`
+        : "Report generated. Opening My Reports…",
+    );
+    router.push({ name: "SecurityReports" });
+  } catch (err) {
+    notifyError(`Failed to generate report: ${extractWazuhError(err)}`);
+  } finally {
+    loading.value = false;
+  }
 }
 </script>
 
@@ -57,6 +119,8 @@ function onViewReports() {
   font-weight: 500;
   border: 1px solid var(--mdm-border, #e5e5e5);
   border-radius: var(--mdm-radius, 6px);
+  min-height: 32px;
+  padding: 0 12px;
 }
 
 .body--dark .gen-report-btn {

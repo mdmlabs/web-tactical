@@ -740,6 +740,10 @@
                 <q-item-section avatar><q-icon name="bug_report" /></q-item-section>
                 <q-item-section>Vulnerability Detection</q-item-section>
               </q-item>
+              <q-item clickable v-ripple @click="navigateToSecurity('reports')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('reports') }]">
+                <q-item-section avatar><q-icon name="picture_as_pdf" /></q-item-section>
+                <q-item-section>Reports</q-item-section>
+              </q-item>
             </q-list>
           </q-expansion-item>
 
@@ -1709,6 +1713,7 @@ export default {
         "it-hygiene": "ITHygiene",
         discover: "SecurityDiscover",
         fim: "SecurityFIM",
+        reports: "SecurityReports",
         "threat-hunting": "ThreatHunting",
         "vulnerability-detection": "VulnerabilityDetection",
       };
@@ -1728,6 +1733,7 @@ export default {
       if (tab === "fim") return path.startsWith("/security/fim");
       if (tab === "threat-hunting") return path.startsWith("/security/threat-hunting");
       if (tab === "vulnerability-detection") return path.startsWith("/security/vulnerability-detection");
+      if (tab === "reports") return path === "/security/reports";
       return false;
     },
     clearCache() {

@@ -41,7 +41,6 @@ export interface WazuhReportTimeRange {
 
 export interface WazuhReportCommonBody {
   array?: unknown[];
-  serverSideConfig?: Record<string, unknown>;
   browserTimezone?: string;
   filters?: unknown[];
   time?: WazuhReportTimeRange;
@@ -92,7 +91,6 @@ function buildBody(
   const s = section ?? "general";
   return {
     array: [],
-    serverSideConfig: {},
     browserTimezone: browserTz(),
     filters: [],
     time: defaultTimeRange(),
