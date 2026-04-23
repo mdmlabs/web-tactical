@@ -126,9 +126,9 @@ const scope = computed<Scope>(() => {
 const scopeLabel = computed(() => scope.value.label);
 const scopeTooltip = computed(() => {
   const s = scope.value;
-  if (s.kind === "agent") return `Wazuh agent report for ${s.agentId}`;
-  if (s.kind === "group") return `Wazuh group report for ${s.groupId}`;
-  return `Wazuh module report: ${s.section}`;
+  if (s.kind === "agent") return `MDM-Lab agent report for ${s.agentId}`;
+  if (s.kind === "group") return `MDM-Lab group report for ${s.groupId}`;
+  return `MDM-Lab module report: ${s.section}`;
 });
 
 async function onGenerate() {

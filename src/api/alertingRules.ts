@@ -297,7 +297,7 @@ export async function fetchMonitors(): Promise<Monitor[]> {
   );
 
   if (!resp.ok) {
-    throw new Error("Wazuh Dashboard returned error for monitors list");
+    throw new Error("MDM-Lab Dashboard returned error for monitors list");
   }
 
   return (resp.monitors || []).map(monitorFromDashboard);
@@ -309,7 +309,7 @@ export async function fetchMonitor(id: string): Promise<Monitor> {
   );
 
   if (!resp.ok) {
-    throw new Error("Wazuh Dashboard returned error for monitor detail");
+    throw new Error("MDM-Lab Dashboard returned error for monitor detail");
   }
 
   const monitorData = typeof resp.resp === "string" ? JSON.parse(resp.resp) : resp.resp;
@@ -356,7 +356,7 @@ export async function createMonitor(payload: Partial<Monitor>): Promise<Monitor>
   );
 
   if (!resp.ok) {
-    throw new Error("Wazuh Dashboard returned error creating monitor");
+    throw new Error("MDM-Lab Dashboard returned error creating monitor");
   }
 
   const created = resp.resp;
@@ -388,7 +388,7 @@ export async function updateMonitor(id: string, payload: Partial<Monitor>): Prom
   );
 
   if (!resp.ok) {
-    throw new Error("Wazuh Dashboard returned error updating monitor");
+    throw new Error("MDM-Lab Dashboard returned error updating monitor");
   }
 
   return {
@@ -416,7 +416,7 @@ export async function deleteMonitor(id: string): Promise<void> {
     `/api/alerting/monitors/${encodeURIComponent(id)}`,
   );
   if (!resp.ok) {
-    throw new Error("Wazuh Dashboard returned error deleting monitor");
+    throw new Error("MDM-Lab Dashboard returned error deleting monitor");
   }
 }
 
@@ -507,7 +507,7 @@ export async function fetchAlerts(params?: {
   );
 
   if (!resp.ok) {
-    throw new Error("Wazuh Dashboard returned error for alerts");
+    throw new Error("MDM-Lab Dashboard returned error for alerts");
   }
 
   return (resp.alerts || []).map(alertFromDashboard);
