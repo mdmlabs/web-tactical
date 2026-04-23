@@ -175,13 +175,13 @@ export const useDiscoverStore = defineStore("discover", () => {
       indexerAvailable.value = false;
 
       if (isAxiosError(e) && e.response?.status === 401) {
-        errorMessage.value = "Authentication failed. Check Wazuh Indexer credentials.";
+        errorMessage.value = "Authentication failed. Check MDM-Lab Indexer credentials.";
       } else if (isAxiosError(e) && e.response?.status === 404) {
         errorMessage.value = `Index pattern "${indexPattern.value}" not found. Ensure OSSEC alerts are being indexed.`;
       } else if (isAxiosError(e) && !e.response) {
-        errorMessage.value = "Wazuh Indexer is unreachable. Check connection settings.";
+        errorMessage.value = "MDM-Lab Indexer is unreachable. Check connection settings.";
       } else {
-        errorMessage.value = "Failed to fetch events from Wazuh Indexer.";
+        errorMessage.value = "Failed to fetch events from MDM-Lab Indexer.";
       }
 
       console.error("[Discover] Fetch events error:", e);

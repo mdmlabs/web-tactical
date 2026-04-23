@@ -370,8 +370,8 @@ export interface WazuhManagerHourlyStat {
 
 // === Error mapping ===
 export const WAZUH_ERROR_MESSAGES: Record<number, string> = {
-  401: "Wazuh authentication error. Check server configuration.",
-  403: "Insufficient permissions for Wazuh API.",
-  404: "Resource not found in Wazuh.",
-  500: "Internal Wazuh Server error.",
+  401: "MDM-Lab authentication error. Check server configuration.",
+  403: "Insufficient permissions for MDM-Lab API.",
+  404: "Resource not found in MDM-Lab.",
+  500: "Internal MDM-Lab Server error.",
 };

@@ -213,7 +213,7 @@ export const useWazuhStore = defineStore("wazuh", {
           this.tokenExpiresAt = Date.now() + 900 * 1000; // 15 min
           this.isAvailable = true;
         } catch (e) {
-          this.error = "Failed to authenticate with Wazuh API";
+          this.error = "Failed to authenticate with MDM-Lab API";
           this.isAvailable = false;
           console.error("[Wazuh] Auth error:", e);
         } finally {
@@ -247,8 +247,8 @@ export const useWazuhStore = defineStore("wazuh", {
         const response = await wazuhApi.getAgents();
         this.wazuhAgents = response.data.affected_items;
       } catch (e) {
-        this.error = "Failed to fetch Wazuh agents";
-        this._notifyError("Failed to fetch Wazuh agents");
+        this.error = "Failed to fetch MDM-Lab agents";
+        this._notifyError("Failed to fetch MDM-Lab agents");
         console.error("[Wazuh] Fetch agents error:", e);
       } finally {
         this.agentsLoading = false;
@@ -296,7 +296,7 @@ export const useWazuhStore = defineStore("wazuh", {
         const response = await wazuhApi.getRules(params);
         this.rules = response.data.affected_items;
       } catch (e) {
-        this._notifyError("Failed to fetch Wazuh rules");
+        this._notifyError("Failed to fetch MDM-Lab rules");
         console.error("[Wazuh] Rules error:", e);
       } finally {
         this.rulesLoading = false;
@@ -387,7 +387,7 @@ export const useWazuhStore = defineStore("wazuh", {
         const response = await wazuhApi.getGroups();
         this.groups = response.data.affected_items;
       } catch (e) {
-        this._notifyError("Failed to fetch Wazuh groups");
+        this._notifyError("Failed to fetch MDM-Lab groups");
         console.error("[Wazuh] Groups error:", e);
       } finally {
         this.groupsLoading = false;

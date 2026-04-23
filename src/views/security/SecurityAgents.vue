@@ -9,7 +9,7 @@
       <template #avatar>
         <q-icon name="warning" color="dark" />
       </template>
-      Wazuh API is currently unavailable. Showing Tactical agents only.
+      MDM-Lab API is currently unavailable. Showing Tactical agents only.
       <template #action>
         <q-btn flat label="Retry" @click="loadData" />
       </template>

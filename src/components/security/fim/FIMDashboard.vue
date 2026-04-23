@@ -5,7 +5,7 @@
     <!-- Indexer unavailable banner -->
     <q-banner v-if="!fimStore.indexerAvailable" class="bg-warning text-dark q-mx-md q-mt-md" rounded>
       <template #avatar><q-icon name="warning" color="dark" /></template>
-      Wazuh Indexer is currently unavailable. Dashboard data cannot be loaded.
+      MDM-Lab Indexer is currently unavailable. Dashboard data cannot be loaded.
       <template #action>
         <q-btn flat label="Retry" @click="fimStore.fetchDashboardAggs()" />
       </template>

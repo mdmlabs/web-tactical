@@ -192,7 +192,7 @@
       </div>
 
       <!-- Footer -->
-      <div class="ih-footer">This dashboard contains live data from Wazuh API</div>
+      <div class="ih-footer">This dashboard contains live data from MDM-Lab API</div>
     </div>
 
     <!-- ===== SYSTEM TAB ===== -->

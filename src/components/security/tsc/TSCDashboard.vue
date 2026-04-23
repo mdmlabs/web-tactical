@@ -9,7 +9,7 @@
     <!-- No data -->
     <div v-else-if="!store.indexerAvailable" class="tsc-center">
       <q-icon name="cloud_off" size="48px" color="grey-5" />
-      <p class="q-mt-md text-grey-7">Wazuh Indexer is not available.</p>
+      <p class="q-mt-md text-grey-7">MDM-Lab Indexer is not available.</p>
     </div>
 
     <!-- Dashboard content -->

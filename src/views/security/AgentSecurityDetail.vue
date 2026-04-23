@@ -26,7 +26,7 @@
             <span v-else>—</span>
           </div>
           <div class="col-12 col-sm-6 col-md-3">
-            <div class="text-caption text-grey">Wazuh Status</div>
+            <div class="text-caption text-grey">MDM-Lab Status</div>
             <q-badge
               v-if="agent?.wazuh_status"
               :color="agent.wazuh_status === 'active' ? 'green' : 'red'"
@@ -35,7 +35,7 @@
             <span v-else>Not synced</span>
           </div>
           <div class="col-12 col-sm-6 col-md-3">
-            <div class="text-caption text-grey">Wazuh Agent ID</div>
+            <div class="text-caption text-grey">MDM-Lab Agent ID</div>
             <span>{{ agent?.wazuh_agent_id ?? "—" }}</span>
           </div>
           <div class="col-12 col-sm-6 col-md-3">
@@ -51,11 +51,11 @@
             <span>{{ agent?.client_name ?? "—" }}</span>
           </div>
           <div class="col-12 col-sm-6 col-md-3">
-            <div class="text-caption text-grey">Wazuh Version</div>
+            <div class="text-caption text-grey">MDM-Lab Version</div>
             <span>{{ agent?.wazuh_version ?? "—" }}</span>
           </div>
           <div class="col-12 col-sm-6 col-md-3">
-            <div class="text-caption text-grey">Wazuh Groups</div>
+            <div class="text-caption text-grey">MDM-Lab Groups</div>
             <template v-if="agent?.wazuh_groups?.length">
               <q-chip
                 v-for="g in agent.wazuh_groups"
@@ -159,7 +159,7 @@
       <template #avatar>
         <q-icon name="info" color="blue" />
       </template>
-      This agent is not synced with Wazuh. Security detail tabs require a Wazuh agent match.
+      This agent is not synced with MDM-Lab. Security detail tabs require an MDM-Lab agent match.
     </q-banner>
   </div>
 </template>

@@ -3,7 +3,7 @@
     <!-- Unavailable banner -->
     <q-banner v-if="!wazuhStore.isAvailable" class="bg-warning text-dark q-mb-md" rounded>
       <template #avatar><q-icon name="warning" color="dark" /></template>
-      Wazuh API is currently unavailable.
+      MDM-Lab API is currently unavailable.
       <template #action><q-btn flat label="Retry" @click="loadGroups" /></template>
     </q-banner>
 
