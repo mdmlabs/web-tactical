@@ -16,6 +16,31 @@ const API_HOSTS_ENDPOINTS = [
 
 let cachedApiId: string | null = null;
 
+// The Wazuh plugin's /reports/modules/* route resolves the Wazuh Manager
+// Bearer token from the `wz-token` cookie (server-api-client.js → asScoped).
+// That cookie is set by POST /api/login with {idHost}. Native OSD UI calls
+// this on user login; our proxy-based caller must do it explicitly, otherwise
+// report generation fails with "5029 - Reporting was aborted (status 401)".
+// The plugin endpoint is idempotent: it reuses a still-valid wz-token.
+const primePromises: Map<string, Promise<void>> = new Map();
+
+async function primeWazuhSession(apiId: string): Promise<void> {
+  let p = primePromises.get(apiId);
+  if (!p) {
+    p = wazuhDashboardApi
+      .post("/api/login", { idHost: apiId })
+      .then(
+        () => undefined,
+        (err) => {
+          primePromises.delete(apiId);
+          throw err;
+        },
+      );
+    primePromises.set(apiId, p);
+  }
+  await p;
+}
+
 async function resolveApiId(): Promise<string> {
   if (cachedApiId) return cachedApiId;
 
@@ -135,6 +160,7 @@ async function buildBody(
 ): Promise<Record<string, unknown>> {
   const s = section ?? "general";
   const apiId = await resolveApiId();
+  await primeWazuhSession(apiId);
   return {
     array: [],
     browserTimezone: browserTz(),
@@ -162,15 +188,37 @@ export async function listReports(): Promise<WazuhReportListItem[]> {
   return (data as { data: WazuhReportListItem[] }).data ?? [];
 }
 
+// The wz-token cookie expires (default Wazuh JWT ~15 min). If a report fires
+// after expiry, the Wazuh plugin wraps the Manager's 401 as
+// "5029 - Reporting was aborted (Request failed with status code 401)".
+// Detect that signature, drop the cached prime, re-login, retry once.
+function isExpiredWzTokenError(err: unknown): boolean {
+  const e = err as { response?: { data?: { message?: string } } };
+  const msg = e?.response?.data?.message;
+  return typeof msg === "string" && msg.includes("5029") && msg.includes("401");
+}
+
+async function postReport<T>(path: string, body: Record<string, unknown>, apiId: string): Promise<T> {
+  try {
+    return await wazuhDashboardApi.post<T>(path, body);
+  } catch (err) {
+    if (!isExpiredWzTokenError(err)) throw err;
+    primePromises.delete(apiId);
+    await primeWazuhSession(apiId);
+    return await wazuhDashboardApi.post<T>(path, body);
+  }
+}
+
 export async function createModuleReport(
   section: WazuhReportSection,
   agent: string | false = false,
   extra?: Partial<WazuhReportCommonBody>,
 ): Promise<WazuhReportCreateResponse> {
   const body = await buildBody(section, agent, extra);
-  return wazuhDashboardApi.post<WazuhReportCreateResponse>(
+  return postReport<WazuhReportCreateResponse>(
     `${REPORTS_BASE}/modules/${encodeURIComponent(section)}`,
     body,
+    body.apiId as string,
   );
 }
 
@@ -179,9 +227,10 @@ export async function createAgentReport(
   extra?: Partial<WazuhReportCommonBody>,
 ): Promise<WazuhReportCreateResponse> {
   const body = await buildBody(null, agentId, extra);
-  return wazuhDashboardApi.post<WazuhReportCreateResponse>(
+  return postReport<WazuhReportCreateResponse>(
     `${REPORTS_BASE}/agents/${encodeURIComponent(agentId)}`,
     body,
+    body.apiId as string,
   );
 }
 
@@ -190,9 +239,10 @@ export async function createGroupReport(
   extra?: Partial<WazuhReportCommonBody>,
 ): Promise<WazuhReportCreateResponse> {
   const body = await buildBody(null, false, extra);
-  return wazuhDashboardApi.post<WazuhReportCreateResponse>(
+  return postReport<WazuhReportCreateResponse>(
     `${REPORTS_BASE}/groups/${encodeURIComponent(groupId)}`,
     body,
+    body.apiId as string,
   );
 }
 
