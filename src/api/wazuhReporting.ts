@@ -109,10 +109,20 @@ export interface WazuhReportTimeRange {
   to: string;
 }
 
+export interface WazuhReportBoolQuery {
+  bool: {
+    must: unknown[];
+    must_not: unknown[];
+    filter: unknown[];
+    should: unknown[];
+  };
+}
+
 export interface WazuhReportCommonBody {
   array?: unknown[];
   browserTimezone?: string;
   filters?: unknown[];
+  serverSideQuery?: WazuhReportBoolQuery;
   time?: WazuhReportTimeRange;
   tables?: unknown[];
   searchBar?: string;
@@ -120,6 +130,10 @@ export interface WazuhReportCommonBody {
   apiId?: string;
   tab?: string;
   section?: string;
+}
+
+function emptyBoolQuery(): WazuhReportBoolQuery {
+  return { bool: { must: [], must_not: [], filter: [], should: [] } };
 }
 
 export interface WazuhReportListItem {
@@ -153,23 +167,38 @@ function defaultTimeRange(): WazuhReportTimeRange {
   return { from: from.toISOString(), to: to.toISOString() };
 }
 
+// Wazuh reporting body schema (verified against plugin source on 4.14.4):
+// - `section`: top-level key in summary-tables-definitions — only "overview"
+//   (module reports) or "agents" (agent reports) are valid. "general" throws
+//   "Cannot read properties of undefined (reading 'general')".
+// - `tab`: WAZUH_MODULES key — "general", "fim", "pci", "gdpr", etc. Drives
+//   the report title/header.
+// - `filters`: Kibana filter array (may be empty). Transformed by
+//   sanitizeKibanaFilters to a human-readable string for the PDF header.
+// - `serverSideQuery`: OpenSearch bool-query passed to base-query.js. Must
+//   have shape {bool: {must, must_not, filter, should}} or report generation
+//   throws "Cannot read properties of undefined (reading 'bool')".
+// - `array`, `tables`: pre-rendered visualizations / tables from OSD. The
+//   native UI fills these from Kibana's render engine; a headless caller
+//   produces a minimal text/table-only report.
 async function buildBody(
-  section: WazuhReportSection | null,
+  section: "overview" | "agents",
+  tab: WazuhReportSection | null,
   agent: string | false,
   extra?: Partial<WazuhReportCommonBody>,
 ): Promise<Record<string, unknown>> {
-  const s = section ?? "general";
   const apiId = await resolveApiId();
   await primeWazuhSession(apiId);
   return {
     array: [],
     browserTimezone: browserTz(),
     filters: [],
+    serverSideQuery: emptyBoolQuery(),
     time: defaultTimeRange(),
     tables: [],
     searchBar: "",
-    section: s,
-    tab: s,
+    section,
+    tab: tab ?? "general",
     agents: agent,
     indexPatternTitle: "wazuh-alerts-*",
     apiId,
@@ -210,13 +239,13 @@ async function postReport<T>(path: string, body: Record<string, unknown>, apiId:
 }
 
 export async function createModuleReport(
-  section: WazuhReportSection,
+  tab: WazuhReportSection,
   agent: string | false = false,
   extra?: Partial<WazuhReportCommonBody>,
 ): Promise<WazuhReportCreateResponse> {
-  const body = await buildBody(section, agent, extra);
+  const body = await buildBody("overview", tab, agent, extra);
   return postReport<WazuhReportCreateResponse>(
-    `${REPORTS_BASE}/modules/${encodeURIComponent(section)}`,
+    `${REPORTS_BASE}/modules/${encodeURIComponent(tab)}`,
     body,
     body.apiId as string,
   );
@@ -226,7 +255,7 @@ export async function createAgentReport(
   agentId: string,
   extra?: Partial<WazuhReportCommonBody>,
 ): Promise<WazuhReportCreateResponse> {
-  const body = await buildBody(null, agentId, extra);
+  const body = await buildBody("agents", null, agentId, extra);
   return postReport<WazuhReportCreateResponse>(
     `${REPORTS_BASE}/agents/${encodeURIComponent(agentId)}`,
     body,
@@ -238,7 +267,7 @@ export async function createGroupReport(
   groupId: string,
   extra?: Partial<WazuhReportCommonBody>,
 ): Promise<WazuhReportCreateResponse> {
-  const body = await buildBody(null, false, extra);
+  const body = await buildBody("agents", null, false, extra);
   return postReport<WazuhReportCreateResponse>(
     `${REPORTS_BASE}/groups/${encodeURIComponent(groupId)}`,
     body,
