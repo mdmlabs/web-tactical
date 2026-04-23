@@ -1,0 +1,315 @@
+/* ============================================================
+   UIKit Base Styles
+   Shared styles extracted from demo components to eliminate duplication.
+   Import alongside tokens.css.
+   ============================================================ */
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.uk-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--uk-space-2);
+    padding: var(--uk-space-2) var(--uk-space-4);
+    border-radius: var(--uk-radius-md);
+    font-size: var(--uk-text-sm);
+    font-weight: 500;
+    font-family: var(--uk-font-family);
+    cursor: pointer;
+    border: none;
+    transition: all var(--uk-transition-fast);
+    white-space: nowrap;
+}
+
+.uk-btn--primary {
+    background: var(--uk-primary);
+    color: #FFFFFF;
+}
+
+.uk-btn--primary:hover {
+    background: var(--uk-primary-hover);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.uk-btn--primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.uk-btn--secondary {
+    background: var(--uk-bg-elevated);
+    color: var(--uk-text-primary);
+    border: 1px solid var(--uk-border-default);
+}
+
+.uk-btn--secondary:hover {
+    background: var(--uk-bg-overlay);
+    border-color: var(--uk-border-strong);
+}
+
+.uk-btn--ghost {
+    background: transparent;
+    color: var(--uk-text-secondary);
+}
+
+.uk-btn--ghost:hover {
+    background: var(--uk-bg-hover);
+    color: var(--uk-text-primary);
+}
+
+.uk-btn--danger {
+    background: var(--uk-error);
+    color: #FFFFFF;
+}
+
+.uk-btn--danger:hover {
+    background: #DC2626;
+}
+
+.uk-btn--danger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.uk-btn--danger-ghost {
+    background: transparent;
+    color: var(--uk-error-text);
+}
+
+.uk-btn--danger-ghost:hover {
+    background: var(--uk-error-soft);
+}
+
+.uk-btn--sm {
+    padding: var(--uk-space-1) var(--uk-space-3);
+    font-size: var(--uk-text-xs);
+}
+
+/* ============================================================
+   CHECKBOX
+   ============================================================ */
+.uk-checkbox {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid var(--uk-border-strong);
+    border-radius: 3px;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+    transition: all var(--uk-transition-fast);
+    flex-shrink: 0;
+}
+
+.uk-checkbox:hover {
+    border-color: var(--uk-primary);
+}
+
+.uk-checkbox:checked {
+    background: var(--uk-primary);
+    border-color: var(--uk-primary);
+}
+
+.uk-checkbox:checked::after {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 5px;
+    height: 9px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.uk-checkbox:indeterminate {
+    background: var(--uk-primary);
+    border-color: var(--uk-primary);
+}
+
+.uk-checkbox:indeterminate::after {
+    content: "";
+    position: absolute;
+    left: 3px;
+    top: 6px;
+    width: 8px;
+    height: 2px;
+    background: #fff;
+}
+
+/* ============================================================
+   INPUTS
+   ============================================================ */
+.uk-input {
+    width: 100%;
+    height: 36px;
+    padding: 0 var(--uk-space-3);
+    border: 1px solid var(--uk-border-default);
+    border-radius: var(--uk-radius-md);
+    background: var(--uk-bg-elevated);
+    color: var(--uk-text-primary);
+    font-size: var(--uk-text-sm);
+    font-family: var(--uk-font-family);
+    outline: none;
+    transition: all var(--uk-transition-base);
+}
+
+.uk-input:focus {
+    border-color: var(--uk-border-focus);
+    box-shadow: 0 0 0 3px var(--uk-primary-soft);
+}
+
+.uk-input--danger:focus {
+    border-color: var(--uk-error);
+    box-shadow: 0 0 0 3px var(--uk-error-soft);
+}
+
+/* ============================================================
+   SELECT
+   ============================================================ */
+.uk-select {
+    width: 100%;
+    height: 36px;
+    padding: 0 var(--uk-space-3);
+    border: 1px solid var(--uk-border-default);
+    border-radius: var(--uk-radius-md);
+    background: var(--uk-bg-elevated);
+    color: var(--uk-text-primary);
+    font-size: var(--uk-text-sm);
+    font-family: var(--uk-font-family);
+    outline: none;
+    cursor: pointer;
+}
+
+.uk-select:focus {
+    border-color: var(--uk-border-focus);
+}
+
+/* ============================================================
+   FORM
+   ============================================================ */
+.uk-form-group {
+    margin-bottom: var(--uk-space-4);
+}
+
+.uk-form-label {
+    display: block;
+    font-size: var(--uk-text-sm);
+    font-weight: 500;
+    color: var(--uk-text-primary);
+    margin-bottom: var(--uk-space-2);
+}
+
+.uk-checkbox-group {
+    display: flex;
+    gap: var(--uk-space-4);
+}
+
+.uk-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: var(--uk-space-2);
+    font-size: var(--uk-text-sm);
+    color: var(--uk-text-secondary);
+    cursor: pointer;
+}
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+.uk-table-container {
+    overflow-x: auto;
+    border: 1px solid var(--uk-border-default);
+    border-radius: var(--uk-radius-lg);
+    background: var(--uk-bg-surface);
+}
+
+.uk-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--uk-text-sm);
+}
+
+.uk-table__th {
+    padding: var(--uk-space-2) var(--uk-space-3);
+    text-align: left;
+    font-size: var(--uk-text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--uk-text-tertiary);
+    background: var(--uk-table-header-bg);
+    border-bottom: 1px solid var(--uk-border-default);
+    white-space: nowrap;
+}
+
+.uk-table__row {
+    border-bottom: 1px solid var(--uk-border-subtle);
+    transition: background var(--uk-transition-fast);
+}
+
+.uk-table__row:hover {
+    background: var(--uk-table-row-hover);
+}
+
+.uk-table__td {
+    padding: var(--uk-space-2) var(--uk-space-3);
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* ============================================================
+   TEXT UTILITIES
+   ============================================================ */
+.uk-text-primary-val {
+    color: var(--uk-text-primary);
+    font-weight: 500;
+}
+
+.uk-text-secondary-val {
+    color: var(--uk-text-secondary);
+}
+
+.uk-text-tertiary-val {
+    color: var(--uk-text-tertiary);
+}
+
+.uk-text-mono {
+    font-family: var(--uk-font-mono);
+    font-size: var(--uk-text-xs);
+    color: var(--uk-text-link);
+}
+
+/* ============================================================
+   TRANSITIONS
+   ============================================================ */
+.uk-slide-down-enter-active,
+.uk-slide-down-leave-active {
+    transition: all 0.2s ease;
+}
+
+.uk-slide-down-enter-from,
+.uk-slide-down-leave-to {
+    opacity: 0;
+    transform: translateY(-8px);
+}
+
+.uk-fade-enter-active,
+.uk-fade-leave-active {
+    transition: opacity 0.15s ease;
+}
+
+.uk-fade-enter-from,
+.uk-fade-leave-to {
+    opacity: 0;
+}
+
+/* ============================================================
+   HIDDEN RADIO (for wizard option cards)
+   ============================================================ */
+.uk-radio-hidden {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
