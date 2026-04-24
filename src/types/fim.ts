@@ -120,6 +120,9 @@ export interface OpenSearchQueryBody {
   from?: number;
   sort?: Record<string, unknown>[];
   _source?: string[] | boolean;
+  /** Cursor for deep pagination beyond `index.max_result_window` (10k). */
+  search_after?: unknown[];
+  track_total_hits?: boolean | number;
 }
 
 export interface OpenSearchHitsTotal {

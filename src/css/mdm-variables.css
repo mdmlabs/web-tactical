@@ -1,0 +1,240 @@
+/* MDM-labs Dashboard Design Tokens */
+
+:root {
+  /* Primary colors */
+  --mdm-primary: #2563eb;
+  --mdm-primary-dark: #1d4ed8;
+  --mdm-primary-light: #3b82f6;
+
+  /* Header */
+  --mdm-header-bg: #1e3a5f;
+  --mdm-header-text: #ffffff;
+
+  /* Background */
+  --mdm-bg: #f5f5f5;
+  --mdm-bg-card: #ffffff;
+  --mdm-bg-sidebar: #fafafa;
+
+  /* Text */
+  --mdm-text-primary: #1a1a1a;
+  --mdm-text-secondary: #666666;
+  --mdm-text-muted: #999999;
+
+  /* Borders */
+  --mdm-border: #e5e5e5;
+  --mdm-border-light: #f0f0f0;
+
+  /* Status colors */
+  --mdm-success: #16a34a;
+  --mdm-danger: #dc2626;
+  --mdm-warning: #ca8a04;
+  --mdm-info: #2563eb;
+
+  /* Shadows */
+  --mdm-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --mdm-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --mdm-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+
+  /* Border radius */
+  --mdm-radius-sm: 4px;
+  --mdm-radius: 6px;
+  --mdm-radius-lg: 8px;
+}
+
+/* Dark mode overrides */
+.body--dark {
+  --mdm-header-bg: #0f2440;
+  --mdm-bg: #0b0e14;
+  --mdm-bg-card: #111827;
+  --mdm-bg-sidebar: #111827;
+  --mdm-text-primary: #e8ecf4;
+  --mdm-text-secondary: #8b95a9;
+  --mdm-text-muted: #5b6478;
+  --mdm-border: #1e293b;
+  --mdm-border-light: #1e293b;
+  --mdm-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+  --mdm-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.2);
+  --mdm-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+}
+
+/* MDM Cards */
+.mdm-card {
+  background-color: var(--mdm-bg-card);
+  border-radius: var(--mdm-radius-lg);
+  box-shadow: var(--mdm-shadow);
+  border: 1px solid var(--mdm-border-light);
+}
+
+.mdm-card__header {
+  padding: 16px;
+  border-bottom: 1px solid var(--mdm-border-light);
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--mdm-text-primary);
+}
+
+.mdm-card__content {
+  padding: 16px;
+}
+
+/* MDM Stats Card */
+.mdm-stat-card {
+  background-color: var(--mdm-bg-card);
+  border-radius: var(--mdm-radius-lg);
+  padding: 20px;
+  box-shadow: var(--mdm-shadow);
+  border: 1px solid var(--mdm-border-light);
+}
+
+.mdm-stat-card__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--mdm-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.mdm-stat-card__icon--primary {
+  background-color: rgba(37, 99, 235, 0.1);
+  color: var(--mdm-primary);
+}
+
+.mdm-stat-card__icon--success {
+  background-color: rgba(22, 163, 74, 0.1);
+  color: var(--mdm-success);
+}
+
+.mdm-stat-card__icon--danger {
+  background-color: rgba(220, 38, 38, 0.1);
+  color: var(--mdm-danger);
+}
+
+.mdm-stat-card__icon--warning {
+  background-color: rgba(202, 138, 4, 0.1);
+  color: var(--mdm-warning);
+}
+
+.mdm-stat-card__value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--mdm-text-primary);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.mdm-stat-card__label {
+  font-size: 13px;
+  color: var(--mdm-text-secondary);
+}
+
+/* MDM Table */
+.mdm-table {
+  background-color: var(--mdm-bg-card);
+  border-radius: var(--mdm-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--mdm-shadow);
+  border: 1px solid var(--mdm-border-light);
+}
+
+.mdm-table .q-table__top {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--mdm-border-light);
+}
+
+.mdm-table th {
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--mdm-text-secondary);
+  background-color: var(--mdm-bg-sidebar);
+}
+
+.mdm-table td {
+  font-size: 13px;
+}
+
+.mdm-table tbody tr:hover {
+  background-color: rgba(37, 99, 235, 0.02);
+}
+
+/* MDM Status Badge */
+.mdm-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.mdm-status--online {
+  background-color: rgba(22, 163, 74, 0.1);
+  color: var(--mdm-success);
+}
+
+.mdm-status--offline {
+  background-color: rgba(220, 38, 38, 0.1);
+  color: var(--mdm-danger);
+}
+
+.mdm-status--pending {
+  background-color: rgba(202, 138, 4, 0.1);
+  color: var(--mdm-warning);
+}
+
+.mdm-status__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.mdm-status--online .mdm-status__dot {
+  animation: mdm-pulse 2s infinite;
+}
+
+@keyframes mdm-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* MDM Charts */
+.mdm-chart {
+  background-color: var(--mdm-bg-card);
+  border-radius: var(--mdm-radius-lg);
+  padding: 16px;
+  box-shadow: var(--mdm-shadow);
+  border: 1px solid var(--mdm-border-light);
+}
+
+.mdm-chart__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--mdm-text-primary);
+  margin-bottom: 16px;
+}
+
+/* Scrollbar */
+.mdm-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.mdm-scrollbar::-webkit-scrollbar-track {
+  background: var(--mdm-bg);
+}
+
+.mdm-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--mdm-border);
+  border-radius: 4px;
+}
+
+.mdm-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--mdm-text-muted);
+}

@@ -48,9 +48,9 @@
         dense
         icon="refresh"
         :loading="discoverStore.loading"
-        @click="discoverStore.search()"
+        @click="onRefresh"
       >
-        <q-tooltip>Refresh</q-tooltip>
+        <q-tooltip>Refresh (clears saved search & filters)</q-tooltip>
       </q-btn>
       <q-btn
         flat
@@ -63,6 +63,25 @@
         <q-tooltip>Create alert rule from this search</q-tooltip>
       </q-btn>
     </div>
+
+    <!-- Saved Search + Export bar -->
+    <div class="saved-bar q-mb-md">
+      <DiscoverSavedSearchBar />
+      <q-space />
+      <q-btn
+        flat
+        dense
+        no-caps
+        icon="file_download"
+        label="Export"
+        class="export-btn"
+        @click="exportOpen = true"
+      >
+        <q-tooltip>Export as CSV / XLSX from a Saved Search or the current view</q-tooltip>
+      </q-btn>
+    </div>
+
+    <DiscoverExportModal v-model="exportOpen" />
 
     <!-- Histogram -->
     <DiscoverHistogram
@@ -101,17 +120,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useDiscoverStore } from "@/stores/discover";
+import { useSavedSearchesStore } from "@/stores/savedSearches";
 import { useAlertingStore } from "@/stores/alerting";
 import DiscoverHistogram from "@/components/security/DiscoverHistogram.vue";
 import DiscoverFieldsSidebar from "@/components/security/DiscoverFieldsSidebar.vue";
 import DiscoverEventsTable from "@/components/security/DiscoverEventsTable.vue";
+import DiscoverSavedSearchBar from "@/components/security/DiscoverSavedSearchBar.vue";
+import DiscoverExportModal from "@/components/security/reporting/DiscoverExportModal.vue";
 
 const discoverStore = useDiscoverStore();
+const savedSearchesStore = useSavedSearchesStore();
 const alertingStore = useAlertingStore();
 const router = useRouter();
+const exportOpen = ref(false);
 
 const indexPatternOptions = [
   { label: "ossec-alerts-*", value: "ossec-alerts-*" },
@@ -149,7 +173,21 @@ function createAlertFromSearch() {
 
 defineExpose({ loadData });
 
+function resetToCleanState() {
+  savedSearchesStore.setActive(null);
+  discoverStore.resetDefaults();
+}
+
+function onRefresh() {
+  resetToCleanState();
+  discoverStore.search();
+}
+
 onMounted(() => {
+  // Always enter Discover with a clean slate: no active Saved Search and
+  // default filters. Users opt into a saved query explicitly via "Open
+  // Search..." — we never silently re-apply one across navigations.
+  resetToCleanState();
   discoverStore.fetchEvents();
 });
 </script>
@@ -165,6 +203,27 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.saved-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.export-btn {
+  color: var(--mdm-text-primary, #1a1a1a);
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--mdm-border, #e5e5e5);
+  border-radius: var(--mdm-radius, 6px);
+  min-height: 32px;
+  padding: 0 12px;
+}
+
+.body--dark .export-btn {
+  color: var(--mdm-text-primary, #e8ecf4);
+  border-color: var(--mdm-border, #1e293b);
 }
 
 .index-select {
