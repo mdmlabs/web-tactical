@@ -259,6 +259,18 @@ export const useDiscoverStore = defineStore("discover", () => {
     search();
   }
 
+  /**
+   * Reset filters to defaults. Called on Discover view entry so a previously
+   * opened Saved Search from a prior navigation doesn't silently persist.
+   */
+  function resetDefaults() {
+    indexPattern.value = "ossec-alerts-*";
+    searchQuery.value = "";
+    timeRange.value = "24h";
+    selectedFields.value = ["rule.level", "rule.id", "rule.description", "@timestamp"];
+    pagination.value.page = 1;
+  }
+
   function toggleField(field: string) {
     const idx = selectedFields.value.indexOf(field);
     if (idx >= 0) {
@@ -295,6 +307,7 @@ export const useDiscoverStore = defineStore("discover", () => {
     setIndexPattern,
     toggleField,
     applySavedSearch,
+    resetDefaults,
   };
 });
 

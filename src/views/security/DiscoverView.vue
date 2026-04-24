@@ -123,6 +123,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useDiscoverStore } from "@/stores/discover";
+import { useSavedSearchesStore } from "@/stores/savedSearches";
 import { useAlertingStore } from "@/stores/alerting";
 import DiscoverHistogram from "@/components/security/DiscoverHistogram.vue";
 import DiscoverFieldsSidebar from "@/components/security/DiscoverFieldsSidebar.vue";
@@ -131,6 +132,7 @@ import DiscoverSavedSearchBar from "@/components/security/DiscoverSavedSearchBar
 import DiscoverExportModal from "@/components/security/reporting/DiscoverExportModal.vue";
 
 const discoverStore = useDiscoverStore();
+const savedSearchesStore = useSavedSearchesStore();
 const alertingStore = useAlertingStore();
 const router = useRouter();
 const exportOpen = ref(false);
@@ -172,6 +174,11 @@ function createAlertFromSearch() {
 defineExpose({ loadData });
 
 onMounted(() => {
+  // Always enter Discover with a clean slate: no active Saved Search and
+  // default filters. Users opt into a saved query explicitly via "Open
+  // Search..." — we never silently re-apply one across navigations.
+  savedSearchesStore.setActive(null);
+  discoverStore.resetDefaults();
   discoverStore.fetchEvents();
 });
 </script>
