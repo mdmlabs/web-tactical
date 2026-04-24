@@ -48,9 +48,9 @@
         dense
         icon="refresh"
         :loading="discoverStore.loading"
-        @click="discoverStore.search()"
+        @click="onRefresh"
       >
-        <q-tooltip>Refresh</q-tooltip>
+        <q-tooltip>Refresh (clears saved search & filters)</q-tooltip>
       </q-btn>
       <q-btn
         flat
@@ -173,12 +173,21 @@ function createAlertFromSearch() {
 
 defineExpose({ loadData });
 
+function resetToCleanState() {
+  savedSearchesStore.setActive(null);
+  discoverStore.resetDefaults();
+}
+
+function onRefresh() {
+  resetToCleanState();
+  discoverStore.search();
+}
+
 onMounted(() => {
   // Always enter Discover with a clean slate: no active Saved Search and
   // default filters. Users opt into a saved query explicitly via "Open
   // Search..." — we never silently re-apply one across navigations.
-  savedSearchesStore.setActive(null);
-  discoverStore.resetDefaults();
+  resetToCleanState();
   discoverStore.fetchEvents();
 });
 </script>
