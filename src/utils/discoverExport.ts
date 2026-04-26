@@ -12,10 +12,26 @@
  */
 import { exportFile, Notify } from "quasar";
 import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import type { jsPDF as JsPDFInstance } from "jspdf";
 import { wazuhIndexerApi } from "@/api/wazuhIndexer";
 import type { OpenSearchQueryBody } from "@/types/fim";
+
+/**
+ * jsPDF + jspdf-autotable weigh ~600 KB combined and most users never export
+ * PDF. Loading them lazily keeps them out of the main bundle, which also
+ * reduces peak memory during `vite build` (the deploy box has been hitting
+ * the Node 2 GB heap limit while bundling everything together).
+ */
+async function loadPdfDeps(): Promise<{
+  jsPDF: typeof import("jspdf").jsPDF;
+  autoTable: typeof import("jspdf-autotable").default;
+}> {
+  const [jsPdfMod, autoTableMod] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
+  return { jsPDF: jsPdfMod.jsPDF, autoTable: autoTableMod.default };
+}
 
 export type ExportFormat = "csv" | "xlsx" | "pdf";
 
@@ -233,7 +249,7 @@ function shortTime(iso: string, windowMs: number): string {
 
 /** Draw a simple bar chart into the PDF at the given region. */
 function drawHistogramChart(
-  doc: jsPDF,
+  doc: JsPDFInstance,
   buckets: HistogramBucket[],
   region: { x: number; y: number; width: number; height: number },
 ): void {
@@ -296,14 +312,15 @@ function drawHistogramChart(
   }
 }
 
-function downloadPdf(
+async function downloadPdf(
   hits: IndexerHit[],
   buckets: HistogramBucket[],
   fields: string[],
   totalHits: number,
   filename: string,
   meta: NonNullable<ExportOptions["pdfMeta"]>,
-): void {
+): Promise<void> {
+  const { jsPDF, autoTable } = await loadPdfDeps();
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -403,7 +420,7 @@ export async function exportDiscover(opts: ExportOptions): Promise<number> {
     } catch {
       // Ignore — we already have a reasonable estimate.
     }
-    downloadPdf(hits, buckets, opts.fields, total, filename, opts.pdfMeta);
+    await downloadPdf(hits, buckets, opts.fields, total, filename, opts.pdfMeta);
   } else {
     downloadCsv(hits, opts.fields, filename);
   }

@@ -16,37 +16,46 @@ jobs:
       - name: Deploy to server
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          set -euo pipefail
+
           export NVM_DIR="$HOME/.nvm"
           [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
           nvm use 20
-          
+
+          # Avoid the Node 2 GB heap OOM that broke the stage build on
+          # 2026-04-26 when bundling Vite + jsPDF together.
+          export NODE_OPTIONS="--max-old-space-size=4096"
+
           node -v
           npm -v
-          
+
           cd ~/mdmlabsrmm/web-tactical/
-          
+
           echo "🔀 Checking out preprod branch..."
           git fetch origin
           git checkout preprod
           git reset --hard origin/preprod
-          
+          git clean -fd
+
           # Проверяем что действительно на preprod
           CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
           echo "📍 Current branch: $CURRENT_BRANCH"
-          
+
           if [ "$CURRENT_BRANCH" != "preprod" ]; then
             echo "❌ Error: Failed to checkout preprod branch. Aborting deployment."
             exit 1
           fi
-          
-          echo "🌐 Pulling latest changes..."
-          git pull origin preprod
+
           echo "📦 Installing dependencies..."
           npm install --legacy-peer-deps
           echo "🔧 Generating proto files..."
           npm run proto:generate
           echo "🏗️ Building project..."
           npm run build
+
+          # Sanity check — bail loudly if Vite silently failed.
+          test -f dist/index.html
+          echo "✅ dist/ refreshed at $(stat -c %y dist/index.html)"
           
           cd ~/mdmlabsrmm/
           echo "🐳 Building Docker image..."

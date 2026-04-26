@@ -16,21 +16,34 @@ jobs:
       - name: Deploy to server
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_STAGE }}@${{ secrets.SSH_HOST_STAGE }} << 'EOF'
+          # Fail fast on any error so we never rebuild Docker over a stale dist/.
+          set -euo pipefail
+
           export NVM_DIR="$HOME/.nvm"
           [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
           nvm use 20
-          
+
+          # Vite + jsPDF can blow past Node's default 2 GB heap during the
+          # production bundle step. 4 GB has plenty of headroom on the box.
+          export NODE_OPTIONS="--max-old-space-size=4096"
+
           node -v
           npm -v
-          
+
           cd ~/mdmlabsrmm/web-tactical/
 
-          echo "🌐 Pulling latest changes..."
-          git pull
-          
+          echo "🌐 Resetting working tree to remote..."
+          # Hard reset prevents `git pull` from aborting on local lock-file
+          # drift (we hit this on 2026-04-26 and silently shipped a stale
+          # bundle).
+          BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+          git fetch origin "$BRANCH"
+          git reset --hard "origin/$BRANCH"
+          git clean -fd
+
           echo "Just in case"
           mkdir -p dist
-          
+
           echo "📦 Installing dependencies..."
           npm install --legacy-peer-deps
 
@@ -39,7 +52,11 @@ jobs:
 
           echo "🏗️ Building project..."
           npm run build
-          
+
+          # Sanity check — bail if the build silently failed.
+          test -f dist/index.html
+          echo "✅ dist/ refreshed at $(stat -c %y dist/index.html)"
+
           cd ~/mdmlabsrmm/
           echo "🐳 Building Docker image..."
           docker build --pull --no-cache -t "mdmlabs-frontend" -f "docker/containers/mdmlabs-frontend/dockerfile" .
@@ -50,5 +67,5 @@ jobs:
           echo "🚀 Starting new frontend container..."
           cd ~/mdmlabsrmm/docker/
           docker compose up -d mdmlabs-frontend
-          
+
           EOF
