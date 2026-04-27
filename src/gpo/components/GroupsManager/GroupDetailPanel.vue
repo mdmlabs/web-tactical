@@ -216,7 +216,22 @@
                 rounded
               />
             </q-tab>
-            <q-tab name="alerts" icon="warning" label="Alerts" />
+            <q-tab name="alerts" icon="warning" label="Alerts">
+              <q-badge
+                v-if="alertsCountLoading"
+                color="grey"
+                label="..."
+                floating
+                rounded
+              />
+              <q-badge
+                v-else-if="alertsCount > 0"
+                color="primary"
+                :label="alertsCount"
+                floating
+                rounded
+              />
+            </q-tab>
             <q-tab name="connectivity" icon="network_check" label="Connectivity" />
           </q-tabs>
         </div>
@@ -765,6 +780,7 @@ import UserAgentsTab from "@/gpo/components/UsersManager/UserAgentsTab.vue";
 import type { AgentRow } from "@/gpo/composables/useUserActions";
 import { exportPolicyCollections } from "@/utils/csv";
 import { policyStateClient, createAgentTarget } from "@/gpo/api/grpc-client";
+import { useAlertsCount } from "@/gpo/composables/useAlertsCount";
 
 export interface GroupRow {
   name?: string;
@@ -956,6 +972,9 @@ const props = defineProps<{
 }>();
 
 const membersSearch = ref("");
+const { count: alertsCount, loading: alertsCountLoading } = useAlertsCount(() =>
+  props.selectedGroupId ? { groupId: props.selectedGroupId } : null,
+);
 
 const filteredGroupUsersForCard = computed(() => {
   const list = props.groupUsers ?? [];

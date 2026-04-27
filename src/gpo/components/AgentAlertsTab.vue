@@ -205,6 +205,11 @@ const props = defineProps<{
   active: boolean;
 }>();
 
+const emit = defineEmits<{
+  "update:count": [count: number];
+  "update:loading": [loading: boolean];
+}>();
+
 type AlertRow = {
   // id: number;
   type: string;
@@ -494,6 +499,7 @@ async function reload() {
   const listKey = buildListKey();
   if (!listKey) return;
   loading.value = true;
+  emit("update:loading", true);
   try {
     const req: Parameters<typeof alertsClient.listAlerts>[0] = {};
     if (props.agentId) req.agentId = props.agentId;
@@ -545,14 +551,17 @@ async function reload() {
     });
 
     loadedForListKey.value = listKey;
+    emit("update:count", rows.value.length);
   } catch (e) {
     rows.value = [];
     loadedForListKey.value = null;
+    emit("update:count", 0);
     notifyError(
       e instanceof Error ? e.message : "Alerts could not be uploaded",
     );
   } finally {
     loading.value = false;
+    emit("update:loading", false);
   }
 }
 

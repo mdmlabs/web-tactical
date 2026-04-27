@@ -116,7 +116,22 @@
             rounded
           />
         </q-tab>
-        <q-tab name="alerts" icon="warning" label="Alerts" />
+        <q-tab name="alerts" icon="warning" label="Alerts">
+          <q-badge
+            v-if="alertsCountLoading"
+            color="grey"
+            label="..."
+            floating
+            rounded
+          />
+          <q-badge
+            v-else-if="alertsCount > 0"
+            color="primary"
+            :label="alertsCount"
+            floating
+            rounded
+          />
+        </q-tab>
         <q-tab name="connectivity" icon="network_check" label="Connectivity" />
       </q-tabs>
 
@@ -480,6 +495,7 @@ import ComplianceBar from "@/gpo/components/shared/ComplianceBar.vue";
 import UserAgentsTab from "@/gpo/components/UsersManager/UserAgentsTab.vue";
 import type { ConnectivityPolicyTarget } from "@/gpo/api/connectivity-policy";
 import { exportPolicyCollections } from "@/utils/csv";
+import { useAlertsCount } from "@/gpo/composables/useAlertsCount";
 
 interface PolicyCollection {
   id: number;
@@ -518,6 +534,12 @@ const connectivityCategoryTarget = computed<ConnectivityPolicyTarget | null>(
     props.selectedCategoryId == null
       ? null
       : { type: "agentCategory", categoryId: props.selectedCategoryId },
+);
+
+const { count: alertsCount, loading: alertsCountLoading } = useAlertsCount(() =>
+  props.selectedCategoryId == null
+    ? null
+    : { agentCategoryId: props.selectedCategoryId },
 );
 
 defineEmits<{

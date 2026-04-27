@@ -264,7 +264,22 @@
                   rounded
                 />
               </q-tab>
-              <q-tab name="alerts" icon="warning" label="Alerts" />
+              <q-tab name="alerts" icon="warning" label="Alerts">
+                <q-badge
+                  v-if="alertsCountLoading"
+                  color="grey"
+                  label="..."
+                  floating
+                  rounded
+                />
+                <q-badge
+                  v-else-if="alertsCount > 0"
+                  color="primary"
+                  :label="alertsCount"
+                  floating
+                  rounded
+                />
+              </q-tab>
               <q-tab
                 name="connectivity"
                 icon="network_check"
@@ -754,6 +769,7 @@ import ComplianceBar from "@/gpo/components/shared/ComplianceBar.vue";
 import type { ConnectivityPolicyTarget } from "@/gpo/api/connectivity-policy";
 import AgentAlertsTab from "@/gpo/components/AgentAlertsTab.vue";
 import ConnectivityPoliciesTab from "@/gpo/components/ConnectivityPolicy/ConnectivityPoliciesTab.vue";
+import { useAlertsCount } from "@/gpo/composables/useAlertsCount";
 import UserInfoTab from "./UserInfoTab.vue";
 import UserGroupsTab from "./UserGroupsTab.vue";
 import UserAgentsTab from "./UserAgentsTab.vue";
@@ -792,6 +808,10 @@ const alertsUserId = computed(() => {
   const id = props.user?.userid || props.selectedId;
   return id && id !== "" ? id : null;
 });
+
+const { count: alertsCount, loading: alertsCountLoading } = useAlertsCount(() =>
+  alertsUserId.value ? { userId: alertsUserId.value } : null,
+);
 
 const groupsSearch = ref("");
 const filteredGroupsForCard = computed(() => {
