@@ -359,7 +359,7 @@ export default {
         }
 
         // чекаем что полученные данные соответствуют выбранному агенту
-        if (agentData && agentData.id !== currentAgentId) {
+        if (agentData && agentData.agent_id !== currentAgentId) {
           loading.value = false;
           return;
         }
