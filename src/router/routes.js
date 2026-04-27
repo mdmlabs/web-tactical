@@ -226,6 +226,26 @@ const routes = [
             component: () =>
               import("@/views/security/reporting/ReportsListView.vue"),
           },
+          {
+            path: "reporting",
+            name: "SecurityReporting",
+            component: () =>
+              import("@/views/security/reporting/ReportingHubView.vue"),
+          },
+          {
+            path: "reporting/reports/:id",
+            name: "SecurityReportingInstanceDetails",
+            component: () =>
+              import("@/views/security/reporting/ReportDetailsView.vue"),
+            props: { kind: "report" },
+          },
+          {
+            path: "reporting/definitions/:id",
+            name: "SecurityReportingDefinitionDetails",
+            component: () =>
+              import("@/views/security/reporting/ReportDetailsView.vue"),
+            props: { kind: "definition" },
+          },
         ],
       },
     ],
