@@ -167,16 +167,32 @@
                 </div>
                 <div class="wz-form-group">
                   <label class="wz-label">Notification channel</label>
-                  <select v-model="action.channelId" class="wz-select wz-select--full">
+                  <select
+                    :value="action.channelId"
+                    class="wz-select wz-select--full"
+                    @change="onChannelChange(ti, ai, ($event.target as HTMLSelectElement).value)"
+                  >
                     <option value="">-- Select channel --</option>
                     <option v-for="ch in store.channels" :key="ch.config_id" :value="ch.config_id">
-                      {{ ch.name }} ({{ ch.config_type }})
+                      {{ ch.name }} ({{ channelTypeLabel(ch.config_type) }})
                     </option>
                   </select>
+                  <small v-if="actionChannelHint(action)" class="wz-hint">
+                    {{ actionChannelHint(action) }}
+                  </small>
                 </div>
                 <div class="wz-form-group">
-                  <label class="wz-label">Message template</label>
-                  <textarea v-model="action.messageTemplate" class="wz-textarea" rows="3" placeholder="Monitor {{ctx.monitor.name}} triggered..." />
+                  <label class="wz-label">
+                    Message template
+                    <span v-if="isJsonChannel(action.channelId)" class="wz-tag">JSON body</span>
+                  </label>
+                  <textarea v-model="action.messageTemplate" class="wz-textarea" rows="4" :placeholder="messageTemplatePlaceholder(action.channelId)" />
+                  <small class="wz-hint">
+                    Mustache. Use
+                    <code v-pre>{{ctx.monitor.name}}</code>,
+                    <code v-pre>{{ctx.trigger.name}}</code>,
+                    <code v-pre>{{ctx.trigger.severity}}</code>.
+                  </small>
                 </div>
                 <button class="wz-btn wz-btn--sm wz-btn--text-danger" @click="removeAction(ti, ai)">Remove action</button>
               </div>
@@ -206,8 +222,13 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from "vue";
 import { useAlertingStore } from "@/stores/alerting";
-import { MONITOR_TYPE_OPTIONS } from "@/types/alerting";
-import type { Monitor, MonitorType, ScheduleUnit, MonitorDefiningMethod } from "@/types/alerting";
+import {
+  MONITOR_TYPE_OPTIONS,
+  channelTypeLabel,
+  DEFAULT_TELEGRAM_MESSAGE_TEMPLATE,
+  DEFAULT_GENERIC_MESSAGE_TEMPLATE,
+} from "@/types/alerting";
+import type { Monitor, MonitorType, ScheduleUnit, MonitorDefiningMethod, NotificationChannel } from "@/types/alerting";
 
 const props = defineProps<{
   editing: Monitor | null;
@@ -283,7 +304,65 @@ function removeTrigger(index: number) {
 }
 
 function addAction(triggerIndex: number) {
-  form.triggers[triggerIndex].actions.push({ name: "", channelId: "", messageTemplate: "" });
+  form.triggers[triggerIndex].actions.push({
+    name: "",
+    channelId: "",
+    messageTemplate: DEFAULT_GENERIC_MESSAGE_TEMPLATE,
+  });
+}
+
+function findChannel(id: string): NotificationChannel | undefined {
+  return store.channels.find((c) => c.config_id === id);
+}
+
+function isJsonChannel(channelId: string): boolean {
+  const ch = findChannel(channelId);
+  return ch?.config_type === "telegram" || ch?.config_type === "webhook";
+}
+
+function defaultTemplateFor(channelId: string): string {
+  const ch = findChannel(channelId);
+  if (ch?.config_type === "telegram") return DEFAULT_TELEGRAM_MESSAGE_TEMPLATE;
+  return DEFAULT_GENERIC_MESSAGE_TEMPLATE;
+}
+
+function messageTemplatePlaceholder(channelId: string): string {
+  if (!channelId) return "Monitor {{ctx.monitor.name}} triggered...";
+  const ch = findChannel(channelId);
+  if (ch?.config_type === "telegram") {
+    return '{"text":"Monitor {{ctx.monitor.name}} triggered","parse_mode":"HTML"}';
+  }
+  return "Monitor {{ctx.monitor.name}} triggered...";
+}
+
+function actionChannelHint(action: ActionForm): string {
+  const ch = findChannel(action.channelId);
+  if (!ch) return "";
+  if (ch.config_type === "telegram") {
+    const chat = ch.config.telegram?.chat_id || "—";
+    return `Telegram chat ${chat}. Body must be valid JSON for Telegram Bot API.`;
+  }
+  if (ch.config_type === "webhook") {
+    return "Custom webhook — body is sent verbatim with the configured Content-Type.";
+  }
+  return "";
+}
+
+function isDefaultTemplate(value: string): boolean {
+  return (
+    value.trim() === "" ||
+    value.trim() === DEFAULT_GENERIC_MESSAGE_TEMPLATE.trim() ||
+    value.trim() === DEFAULT_TELEGRAM_MESSAGE_TEMPLATE.trim() ||
+    value.trim() === "Monitor {{ctx.monitor.name}} triggered!"
+  );
+}
+
+function onChannelChange(triggerIndex: number, actionIndex: number, channelId: string) {
+  const action = form.triggers[triggerIndex].actions[actionIndex];
+  action.channelId = channelId;
+  if (isDefaultTemplate(action.messageTemplate)) {
+    action.messageTemplate = defaultTemplateFor(channelId);
+  }
 }
 
 function removeAction(triggerIndex: number, actionIndex: number) {
@@ -592,6 +671,33 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 
+.wz-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #69707d;
+}
+
+.wz-hint code {
+  background: rgba(0, 107, 180, 0.08);
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.wz-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border-radius: 3px;
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
 /* Test result */
 .wz-test-result {
   margin-top: 8px;
@@ -671,6 +777,9 @@ onMounted(() => {
 .body--dark .wz-trigger-card__title { color: #dfe5ef; }
 .body--dark .wz-trigger-actions { border-color: #343741; }
 .body--dark .wz-action-item { background: #25262b; }
+.body--dark .wz-hint { color: #98a2b3; }
+.body--dark .wz-hint code { background: rgba(54, 162, 239, 0.16); color: #cbe2f3; }
+.body--dark .wz-tag { background: #082f49; color: #38bdf8; }
 .body--dark .wz-btn--outline { background: #25262b; border-color: #343741; color: #dfe5ef; }
 .body--dark .wz-wizard__footer { border-color: #343741; }
 </style>
