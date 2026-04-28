@@ -123,11 +123,13 @@
             flat
             no-caps
             dense
-            icon="download"
-            label="Export formatted"
+            icon="file_download"
+            label="Export"
             class="action-btn"
-            @click="exportCsv"
-          />
+            @click="exportOpen = true"
+          >
+            <q-tooltip>Export as CSV / XLSX / PDF</q-tooltip>
+          </q-btn>
           <q-btn-dropdown
             flat
             no-caps
@@ -274,6 +276,13 @@
         </template>
       </q-table>
     </q-card>
+
+    <AgentsExportModal
+      v-model="exportOpen"
+      :filtered-agents="wazuhAgentsFiltered"
+      :all-agents="wazuhAgentsNoManager"
+      :filter-text="filterText"
+    />
   </div>
 </template>
 
@@ -283,6 +292,7 @@ import { useRouter } from "vue-router";
 import { useWazuhStore } from "@/stores/wazuh";
 import VueApexCharts from "vue3-apexcharts";
 import type { WazuhAgent } from "@/types/wazuh";
+import AgentsExportModal from "@/components/security/reporting/AgentsExportModal.vue";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const apexchart = VueApexCharts;
@@ -292,6 +302,7 @@ const wazuhStore = useWazuhStore();
 
 const filterText = ref("");
 const pagination = ref({ rowsPerPage: 10 });
+const exportOpen = ref(false);
 
 // =====================
 // Table columns (Wazuh-style)
@@ -508,31 +519,6 @@ function viewAgent(agent: WazuhAgent) {
 
 function onRowClick(_: Event, row: WazuhAgent) {
   viewAgent(row);
-}
-
-function exportCsv() {
-  const rows = wazuhAgentsFiltered.value;
-  const header = "ID,Name,IP,Groups,OS,Cluster Node,Version,Status\n";
-  const csv = rows.map((a) =>
-    [
-      a.id,
-      a.name,
-      a.ip,
-      (a.group ?? []).join(";"),
-      a.os?.name ?? "",
-      a.node_name ?? "",
-      a.version ?? "",
-      a.status,
-    ].join(","),
-  ).join("\n");
-
-  const blob = new Blob([header + csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "wazuh-agents.csv";
-  link.click();
-  URL.revokeObjectURL(url);
 }
 
 async function loadData() {

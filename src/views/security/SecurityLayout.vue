@@ -44,6 +44,10 @@ const labelMap: Record<string, string> = {
   ComplianceHub: "Compliance",
   VulnerabilityDetection: "Vulnerability Detection",
   SecurityReports: "My Reports",
+  SecurityReporting: "Reporting",
+  Workshop: "Workshop",
+  DetectionCases: "Detection Cases",
+  AgentCompliance: "Agent Compliance",
 };
 
 const currentPageLabel = computed(() => {
@@ -62,7 +66,15 @@ function onRefresh() {
 
 const showRefreshBtn = ref(false);
 
-const showReportBtn = computed(() => route.name !== "SecurityReports");
+// Agents page provides its own Discover-style export dialog inside the page;
+// suppress the generic Wazuh PDF report button there to avoid duplicate entry
+// points.
+const showReportBtn = computed(
+  () =>
+    route.name !== "SecurityReports" &&
+    route.name !== "SecurityReporting" &&
+    route.name !== "SecurityAgents",
+);
 
 watch(
   () => route.name,
