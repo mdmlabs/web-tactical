@@ -40,11 +40,20 @@ service AgentService {
   rpc ListAgents (ListAgentsRequest)
       returns (ListAgentsResponse);
 
+  rpc ExportAgentStatus(ExportAgentStatusRequest)
+      returns (laborato.common.export.ExportResponse);
+
   rpc GetAgent (GetAgentRequest)
       returns (AgentDetails);
 
   rpc UpdateAgent(UpdateAgentRequest)
       returns(UpdateAgentResponse);
+}
+
+message ExportAgentStatusRequest {
+  laborato.common.target.Target target = 1;
+  string requested_by = 2;
+  string note = 3;
 }
 
 message UpdateAgentResponse {}

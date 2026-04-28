@@ -405,6 +405,32 @@ export const agentServiceClientWrapper = {
       throw err;
     }
   },
+
+  async exportAgentStatusFor(
+    targetType: PolicyTargetType,
+    targetParams: PolicyTargetParams = {},
+    opts?: {
+      requestedBy?: string;
+      note?: string;
+    },
+  ): Promise<export_pb_types.ExportResponse.AsObject> {
+    const target = createPolicyTargetFromParams(targetType, targetParams);
+    const req = new operator_pb.ExportAgentStatusRequest();
+    req.setTarget(target);
+
+    const auth = useAuthStore();
+    const requestedBy =
+      opts?.requestedBy ??
+      String(auth.displayName || auth.username || "").trim();
+    req.setRequestedBy(requestedBy);
+    req.setNote(opts?.note ?? "");
+
+    const resp = await agentServiceClient.exportAgentStatus(
+      req,
+      createGrpcMetadata(),
+    );
+    return resp.toObject();
+  },
 };
 
 export const agentCategoryClient = {

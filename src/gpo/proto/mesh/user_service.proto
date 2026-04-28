@@ -3,12 +3,19 @@
 import "common/user.proto";
 
 import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
 
 package laborato.mesh.service;
 
 // Stream policy assigment sync
 service UserControlService {
     rpc UserControlStream(stream UserControlAgentMessage) returns (stream UserControlMasterMessage);
+    rpc SetUserEnabled(FeedbackEnableUserRequest) returns (google.protobuf.Empty);
+}
+
+message FeedbackEnableUserRequest {
+    string sam_account_name = 1;
+    bool enable = 2;
 }
 
 message UserControlAgentMessage {
@@ -29,6 +36,7 @@ message UserControlMasterMessage {
     DeleteGroupCommand delete_group = 10;
     AddUserToGroupCommand add_user_to_group = 11;
     RemoveUserFromGroupCommand remove_user_from_group = 12;
+    UpdateGroupCommand update_group = 13;
   }
 }
 
@@ -71,6 +79,12 @@ message UserSetAccountExpirationCommand {
 message CreateGroupCommand {
     string sam_group_name = 1;
     google.protobuf.StringValue description = 2;
+}
+
+message UpdateGroupCommand {
+    string current_sam_group_name = 1;
+    string new_sam_group_name = 2;
+    google.protobuf.StringValue description = 3;
 }
 
 message DeleteGroupCommand {

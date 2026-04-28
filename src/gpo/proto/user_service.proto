@@ -4,7 +4,6 @@ import "common/user.proto";
 import "common/target.proto";
 import "common/export.proto";
 
-
 import "google/protobuf/wrappers.proto";
 import "google/protobuf/empty.proto";
 
