@@ -282,6 +282,7 @@
       :filtered-agents="wazuhAgentsFiltered"
       :all-agents="wazuhAgentsNoManager"
       :filter-text="filterText"
+      :charts="exportCharts"
     />
   </div>
 </template>
@@ -293,6 +294,7 @@ import { useWazuhStore } from "@/stores/wazuh";
 import VueApexCharts from "vue3-apexcharts";
 import type { WazuhAgent } from "@/types/wazuh";
 import AgentsExportModal from "@/components/security/reporting/AgentsExportModal.vue";
+import type { AgentsExportCharts } from "@/utils/agentsExport";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const apexchart = VueApexCharts;
@@ -496,6 +498,39 @@ const groupChartOptions = computed(() => ({
   },
   stroke: { width: 2, colors: ["#fff"] },
   tooltip: { enabled: true },
+}));
+
+// =====================
+// Donut data for the PDF exporter — mirror the on-screen donuts.
+// =====================
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace("#", "");
+  const n = parseInt(
+    h.length === 3
+      ? h.split("").map((c) => c + c).join("")
+      : h,
+    16,
+  );
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+const exportCharts = computed<AgentsExportCharts>(() => ({
+  status: [
+    { label: "Active", value: statusCounts.value.active, color: hexToRgb("#00a9e5") },
+    { label: "Disconnected", value: statusCounts.value.disconnected, color: hexToRgb("#ff645c") },
+    { label: "Pending", value: statusCounts.value.pending, color: hexToRgb("#fdbc40") },
+    { label: "Never connected", value: statusCounts.value.never_connected, color: hexToRgb("#a3a7b0") },
+  ],
+  os: osDistribution.value.map((d, i) => ({
+    label: d.name,
+    value: d.count,
+    color: hexToRgb(osColors[i % osColors.length]),
+  })),
+  groups: groupDistribution.value.map((d, i) => ({
+    label: d.name,
+    value: d.count,
+    color: hexToRgb(groupColors[i % groupColors.length]),
+  })),
 }));
 
 // =====================

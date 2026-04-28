@@ -1,0 +1,18 @@
+{
+  "id": "fim-etc-tamper",
+  "name": "FIM tamper in /etc → email + journal alert",
+  "description": "Raise a high-severity alert when files under /etc are modified, deleted or added outside expected change windows.",
+  "mitre": ["T1565.001"],
+  "files": [
+    {
+      "target": "manager",
+      "path": "etc/rules/100300-fim-etc-tamper.xml",
+      "content_ref": "rules/fim-etc-tamper.xml"
+    }
+  ],
+  "restart": ["manager"],
+  "verification": {
+    "rule_id": 100300,
+    "wait_timeout_sec": 90
+  }
+}

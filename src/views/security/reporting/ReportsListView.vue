@@ -5,7 +5,7 @@
       <div>
         <div class="rl-header__title">Reporting ({{ reports.length }})</div>
         <div class="rl-header__subtitle">
-          Generated reports are stored on the Wazuh Dashboard server
+          Generated reports are stored on the server
         </div>
       </div>
     </div>
@@ -55,11 +55,12 @@
           <q-td :props="props">
             <a
               :href="downloadUrl(props.row.name)"
+              :download="displayName(props.row.name)"
               target="_blank"
               rel="noopener"
               class="rl-name-link"
             >
-              {{ props.row.name }}
+              {{ displayName(props.row.name) }}
             </a>
           </q-td>
         </template>
@@ -89,6 +90,7 @@
               icon="download"
               color="primary"
               :href="downloadUrl(props.row.name)"
+              :download="displayName(props.row.name)"
               target="_blank"
               rel="noopener"
             >
@@ -115,7 +117,7 @@
       <q-card style="min-width: 350px">
         <q-card-section><div class="text-h6">Delete Report</div></q-card-section>
         <q-card-section class="q-pt-none">
-          Are you sure you want to delete <strong>"{{ reportToDelete }}"</strong>?
+          Are you sure you want to delete <strong>"{{ displayName(reportToDelete) }}"</strong>?
         </q-card-section>
         <q-card-actions align="right">
           <q-btn v-close-popup flat label="Cancel" />
@@ -184,11 +186,15 @@ const columns = [
 const filteredReports = computed(() => {
   if (!searchText.value) return reports.value;
   const q = searchText.value.toLowerCase();
-  return reports.value.filter((r) => r.name.toLowerCase().includes(q));
+  return reports.value.filter((r) => displayName(r.name).toLowerCase().includes(q));
 });
 
 function downloadUrl(name: string) {
   return reportDownloadUrl(name);
+}
+
+function displayName(name: string): string {
+  return name ? name.replace(/^wazuh-/i, "") : name;
 }
 
 function formatSize(bytes: number): string {
@@ -234,7 +240,7 @@ async function doDelete() {
   deleting.value = true;
   try {
     await deleteReport(reportToDelete.value);
-    notifySuccess(`Deleted ${reportToDelete.value}`);
+    notifySuccess(`Deleted ${displayName(reportToDelete.value)}`);
     reports.value = reports.value.filter((r) => r.name !== reportToDelete.value);
     showDeleteDialog.value = false;
     reportToDelete.value = "";

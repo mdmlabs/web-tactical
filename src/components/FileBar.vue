@@ -697,6 +697,23 @@
                     <q-item-section avatar><q-icon name="picture_as_pdf" size="sm" /></q-item-section>
                     <q-item-section>Reports</q-item-section>
                   </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('reporting')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="summarize" size="sm" /></q-item-section>
+                    <q-item-section>Reporting</q-item-section>
+                  </q-item>
+                  <q-separator spaced />
+                  <q-item clickable v-ripple @click="navigateToSecurity('workshop')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="construction" size="sm" /></q-item-section>
+                    <q-item-section>Workshop</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('use-cases')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="rocket_launch" size="sm" /></q-item-section>
+                    <q-item-section>Detection Cases</q-item-section>
+                  </q-item>
+                  <q-item clickable v-ripple @click="navigateToSecurity('agent-compliance')" class="filebar-popup-item" v-close-popup>
+                    <q-item-section avatar><q-icon name="verified" size="sm" /></q-item-section>
+                    <q-item-section>Agent SCA</q-item-section>
+                  </q-item>
                 </q-list>
               </q-menu>
             </q-item>
@@ -747,6 +764,23 @@
               <q-item clickable v-ripple @click="navigateToSecurity('reports')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('reports') }]">
                 <q-item-section avatar><q-icon name="picture_as_pdf" /></q-item-section>
                 <q-item-section>Reports</q-item-section>
+              </q-item>
+              <q-item clickable v-ripple @click="navigateToSecurity('reporting')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('reporting') }]">
+                <q-item-section avatar><q-icon name="summarize" /></q-item-section>
+                <q-item-section>Reporting</q-item-section>
+              </q-item>
+              <q-separator spaced />
+              <q-item clickable v-ripple @click="navigateToSecurity('workshop')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('workshop') }]">
+                <q-item-section avatar><q-icon name="construction" /></q-item-section>
+                <q-item-section>Workshop</q-item-section>
+              </q-item>
+              <q-item clickable v-ripple @click="navigateToSecurity('use-cases')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('use-cases') }]">
+                <q-item-section avatar><q-icon name="rocket_launch" /></q-item-section>
+                <q-item-section>Detection Cases</q-item-section>
+              </q-item>
+              <q-item clickable v-ripple @click="navigateToSecurity('agent-compliance')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('agent-compliance') }]">
+                <q-item-section avatar><q-icon name="verified" /></q-item-section>
+                <q-item-section>Agent SCA</q-item-section>
               </q-item>
             </q-list>
           </q-expansion-item>
@@ -1718,8 +1752,12 @@ export default {
         discover: "SecurityDiscover",
         fim: "SecurityFIM",
         reports: "SecurityReports",
+        reporting: "SecurityReporting",
         "threat-hunting": "ThreatHunting",
         "vulnerability-detection": "VulnerabilityDetection",
+        workshop: "Workshop",
+        "use-cases": "DetectionCases",
+        "agent-compliance": "AgentCompliance",
       };
       this.$router.push({ name: routeMap[tab] || "SecurityAgents" });
     },
@@ -1738,6 +1776,10 @@ export default {
       if (tab === "threat-hunting") return path.startsWith("/security/threat-hunting");
       if (tab === "vulnerability-detection") return path.startsWith("/security/vulnerability-detection");
       if (tab === "reports") return path === "/security/reports";
+      if (tab === "reporting") return path === "/security/reporting";
+      if (tab === "workshop") return path.startsWith("/security/workshop");
+      if (tab === "use-cases") return path.startsWith("/security/use-cases");
+      if (tab === "agent-compliance") return path.startsWith("/security/agent-compliance");
       return false;
     },
     clearCache() {

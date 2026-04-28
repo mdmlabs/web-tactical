@@ -1,0 +1,16 @@
+<!--
+  100100 — SSH brute-force detection.
+  Fires after 5 failed SSH logins from the same source within 120 seconds.
+  Pairs with the firewall-drop active response (see ar/firewall-drop.sh).
+-->
+<group name="local,sshd,authentication_failures,">
+  <rule id="100100" level="10" frequency="5" timeframe="120">
+    <if_matched_sid>5716</if_matched_sid>
+    <same_source_ip />
+    <description>SSH brute-force: 5+ failed logins from same source IP in 120s.</description>
+    <mitre>
+      <id>T1110.001</id>
+    </mitre>
+    <group>authentication_failures,attacks,</group>
+  </rule>
+</group>

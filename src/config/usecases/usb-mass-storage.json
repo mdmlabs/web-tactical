@@ -1,0 +1,27 @@
+{
+  "id": "usb-mass-storage",
+  "name": "USB mass-storage connect → block device",
+  "description": "Detect a USB mass-storage device being attached and block it via the disable-usb active response.",
+  "mitre": ["T1200"],
+  "files": [
+    {
+      "target": "manager",
+      "path": "etc/rules/100400-usb-mass-storage.xml",
+      "content_ref": "rules/usb-mass-storage.xml"
+    },
+    {
+      "target": "agent_group",
+      "group_id": "linux",
+      "path": "/var/ossec/active-response/bin/usb-block.sh",
+      "content_ref": "ar/usb-block.sh",
+      "mode": "0750",
+      "owner": "root:wazuh"
+    }
+  ],
+  "restart": ["manager"],
+  "verification": {
+    "rule_id": 100400,
+    "wait_timeout_sec": 60,
+    "expected_ar_command": "usb-block"
+  }
+}

@@ -66,14 +66,15 @@ function onRefresh() {
 
 const showRefreshBtn = ref(false);
 
-// Agents page provides its own Discover-style export dialog inside the page;
-// suppress the generic Wazuh PDF report button there to avoid duplicate entry
-// points.
+// Agents and Agent Detail pages provide their own Discover-style export dialog
+// inside the page; suppress the generic Wazuh PDF report button there to avoid
+// duplicate entry points.
 const showReportBtn = computed(
   () =>
     route.name !== "SecurityReports" &&
     route.name !== "SecurityReporting" &&
-    route.name !== "SecurityAgents",
+    route.name !== "SecurityAgents" &&
+    route.name !== "AgentEndpointDetail",
 );
 
 watch(

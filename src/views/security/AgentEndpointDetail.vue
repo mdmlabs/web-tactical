@@ -38,6 +38,18 @@
       <q-btn flat dense round icon="refresh" :loading="isLoading" class="q-ml-xs" @click="refreshAll">
         <q-tooltip>Refresh all data</q-tooltip>
       </q-btn>
+      <q-btn
+        flat
+        dense
+        no-caps
+        icon="file_download"
+        label="Export"
+        class="q-ml-xs aed-export-btn"
+        :disable="!agent"
+        @click="exportOpen = true"
+      >
+        <q-tooltip>Export as CSV / XLSX / PDF</q-tooltip>
+      </q-btn>
       <q-btn flat dense round icon="push_pin" class="q-ml-xs" />
       <q-btn flat dense no-caps label="Stats" class="q-ml-xs" />
       <q-btn flat dense no-caps label="Configuration" class="q-ml-xs" />
@@ -315,6 +327,12 @@
         </q-tab-panel>
       </q-tab-panels>
     </template>
+
+    <AgentDetailExportModal
+      v-if="agent"
+      v-model="exportOpen"
+      :data="exportData"
+    />
   </div>
 </template>
 
@@ -326,6 +344,8 @@ import { useAgentComplianceStore } from "@/stores/agentCompliance";
 import EventsEvolutionChart from "@/components/security/EventsEvolutionChart.vue";
 import ComplianceDonut from "@/components/security/ComplianceDonut.vue";
 import ScaTable from "@/components/security/ScaTable.vue";
+import AgentDetailExportModal from "@/components/security/reporting/AgentDetailExportModal.vue";
+import type { AgentDetailExportData } from "@/utils/agentDetailExport";
 
 const route = useRoute();
 const router = useRouter();
@@ -337,6 +357,7 @@ const selectedAgentId = ref("");
 const tab = ref("threat");
 const fimSearch = ref("");
 const complianceFramework = ref("pci_dss");
+const exportOpen = ref(false);
 
 const agentsLoading = computed(() => wazuhStore.agentsLoading);
 
@@ -515,6 +536,31 @@ const sortedFimEntries = computed(() =>
   }),
 );
 
+// Aggregated payload for the export dialog — mirrors what's on screen.
+const FRAMEWORK_LABELS: Record<string, string> = {
+  pci_dss: "PCI DSS",
+  gdpr: "GDPR",
+  hipaa: "HIPAA",
+  nist_800_53: "NIST 800-53",
+  tsc: "TSC",
+};
+
+const exportData = computed<AgentDetailExportData>(() => ({
+  agent: agent.value!,
+  hardware: wazuhStore.syscollectorHardware,
+  os: wazuhStore.syscollectorOS,
+  hourlyEvents: wazuhStore.managerHourlyStats,
+  topTactics: topTactics.value,
+  complianceFramework: complianceFramework.value,
+  complianceFrameworkLabel:
+    FRAMEWORK_LABELS[complianceFramework.value] ?? complianceFramework.value,
+  complianceItems: complianceDonutData.value,
+  vulnerabilities: wazuhStore.vulnerabilities,
+  topVulnPackages: topVulnPackages.value,
+  scaPolicies: wazuhStore.scaPolicies,
+  fimEntries: sortedFimEntries.value,
+}));
+
 // Filtered FIM for FIM tab
 const filteredFimEntries = computed(() => {
   let entries = sortedFimEntries.value;
@@ -574,6 +620,16 @@ onMounted(async () => {
 
 .aed-back {
   color: var(--mdm-text-secondary, #69707d);
+}
+
+.aed-export-btn {
+  color: var(--mdm-primary, #2563eb);
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--mdm-border, #e5e5e5);
+  border-radius: var(--mdm-radius, 6px);
+  min-height: 30px;
+  padding: 0 10px;
 }
 
 .aed-tabs {

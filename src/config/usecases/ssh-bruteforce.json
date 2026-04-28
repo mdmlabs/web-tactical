@@ -1,0 +1,27 @@
+{
+  "id": "ssh-bruteforce",
+  "name": "SSH brute-force → firewall block",
+  "description": "Detect repeated failed SSH logins and auto-drop the source IP via the firewall-drop active response.",
+  "mitre": ["T1110.001"],
+  "files": [
+    {
+      "target": "manager",
+      "path": "etc/rules/100100-ssh-bruteforce.xml",
+      "content_ref": "rules/ssh-bruteforce.xml"
+    },
+    {
+      "target": "agent_group",
+      "group_id": "linux",
+      "path": "/var/ossec/active-response/bin/firewall-drop.sh",
+      "content_ref": "ar/firewall-drop.sh",
+      "mode": "0750",
+      "owner": "root:wazuh"
+    }
+  ],
+  "restart": ["manager"],
+  "verification": {
+    "rule_id": 100100,
+    "wait_timeout_sec": 60,
+    "expected_ar_command": "firewall-drop"
+  }
+}

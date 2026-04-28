@@ -10,8 +10,15 @@
  */
 import { exportFile, Notify } from "quasar";
 import type { WazuhAgent } from "@/types/wazuh";
+import { drawDonut, type DonutSegment } from "@/utils/pdfCharts";
 
 export type AgentsExportFormat = "csv" | "xlsx" | "pdf";
+
+export interface AgentsExportCharts {
+  status: DonutSegment[];
+  os: DonutSegment[];
+  groups: DonutSegment[];
+}
 
 export interface AgentsExportOptions {
   agents: WazuhAgent[];
@@ -25,6 +32,8 @@ export interface AgentsExportOptions {
     totalAgents: number;
     exportedAgents: number;
   };
+  /** Donut chart data drawn above the table (ignored for CSV/XLSX). */
+  pdfCharts?: AgentsExportCharts;
 }
 
 interface AgentRow {
@@ -131,14 +140,17 @@ async function downloadPdf(
   rows: AgentRow[],
   filename: string,
   meta: NonNullable<AgentsExportOptions["pdfMeta"]>,
+  charts: AgentsExportCharts | undefined,
 ): Promise<void> {
   const { jsPDF, autoTable } = await loadPdfDeps();
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 40;
+  const contentWidth = pageWidth - margin * 2;
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
-  doc.text("Agents Report", 40, 40);
+  doc.text("Agents Report", margin, 40);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
@@ -150,25 +162,55 @@ async function downloadPdf(
     `Generated: ${new Date().toLocaleString()}`,
   ];
   metaLines.forEach((line, i) => {
-    doc.text(line, 40, 62 + i * 13);
+    doc.text(line, margin, 62 + i * 13);
   });
+
+  let cursorY = 62 + metaLines.length * 13 + 14;
+
+  if (charts) {
+    const cardGap = 12;
+    const cardW = (contentWidth - cardGap * 2) / 3;
+    const cardH = 130;
+
+    const drawCard = (title: string, x: number, segments: DonutSegment[]) => {
+      doc.setDrawColor(220);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(x, cursorY, cardW, cardH, 4, 4, "S");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(110);
+      doc.text(title.toUpperCase(), x + 8, cursorY + 14);
+      drawDonut(doc, segments, {
+        x: x + 8,
+        y: cursorY + 22,
+        width: cardW - 16,
+        height: cardH - 30,
+      });
+    };
+
+    drawCard("Agents by status", margin, charts.status);
+    drawCard("Top 5 OS", margin + cardW + cardGap, charts.os);
+    drawCard("Top 5 Groups", margin + (cardW + cardGap) * 2, charts.groups);
+
+    cursorY += cardH + 14;
+  }
 
   const body = rows.map((r) => COLUMNS.map((c) => String(r[c] ?? "")));
   autoTable(doc, {
-    startY: 62 + metaLines.length * 13 + 10,
+    startY: cursorY,
     head: [COLUMNS as string[]],
     body,
     styles: { fontSize: 7, cellPadding: 3, overflow: "linebreak" },
     headStyles: { fillColor: [33, 150, 243], textColor: 255 },
     theme: "striped",
-    margin: { left: 40, right: 40 },
+    margin: { left: margin, right: margin },
     didDrawPage: (data) => {
       const pageCount = doc.getNumberOfPages();
       doc.setFontSize(8);
       doc.setTextColor(120);
       doc.text(
         `Page ${data.pageNumber} of ${pageCount}`,
-        pageWidth - 40,
+        pageWidth - margin,
         doc.internal.pageSize.getHeight() - 20,
         { align: "right" },
       );
@@ -192,7 +234,7 @@ export async function exportAgents(
     if (!opts.pdfMeta) {
       throw new Error("PDF export requires pdfMeta");
     }
-    await downloadPdf(rows, filename, opts.pdfMeta);
+    await downloadPdf(rows, filename, opts.pdfMeta, opts.pdfCharts);
   }
   return rows.length;
 }

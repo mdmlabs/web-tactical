@@ -1,0 +1,19 @@
+{
+  "id": "suspicious-powershell",
+  "name": "Suspicious PowerShell → kill process",
+  "description": "Match encoded / obfuscated PowerShell command lines on Windows agents and kill the offending process.",
+  "mitre": ["T1059.001"],
+  "files": [
+    {
+      "target": "manager",
+      "path": "etc/rules/100200-suspicious-powershell.xml",
+      "content_ref": "rules/suspicious-powershell.xml"
+    }
+  ],
+  "restart": ["manager"],
+  "verification": {
+    "rule_id": 100200,
+    "wait_timeout_sec": 60,
+    "expected_ar_command": "win_kill_process"
+  }
+}

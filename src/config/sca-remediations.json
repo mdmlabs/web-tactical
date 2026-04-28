@@ -1,0 +1,26 @@
+{
+  "_comment": "SCA remediation registry. Keys are SCA policy_ids (e.g. cis_centos8_linux). Inner keys are SCA check ids as strings. Each entry maps to a fix action: trmm_script (run a script), use_case (deploy a manifest), or file_delivery (push a templated file). Operators populate this file as they validate fixes — see TASK_WAZUH_OPS.md §7.2.",
+  "cis_centos8_linux": {
+    "1.1.1.1": {
+      "type": "trmm_script",
+      "comment": "Disable cramfs filesystem"
+    },
+    "1.1.1.2": {
+      "type": "use_case",
+      "use_case_id": "harden-fs-modules",
+      "comment": "Disable freevxfs filesystem"
+    }
+  },
+  "cis_ubuntu22-04": {
+    "1.1.1.1": {
+      "type": "trmm_script",
+      "comment": "Disable cramfs filesystem"
+    }
+  },
+  "cis_win10_enterprise": {
+    "1.1.1": {
+      "type": "trmm_script",
+      "comment": "Set password history length"
+    }
+  }
+}
