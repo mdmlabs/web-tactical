@@ -79,6 +79,7 @@ message PolicyStateItem {
     string policy_hash = 1;
     string user_sid = 2;
     repeated PolicyStateItem childs = 3;
+    laborato.common.policy.PolicySelection selection = 4;
 }
 
 service MeshService {

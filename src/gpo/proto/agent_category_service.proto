@@ -23,6 +23,7 @@ service OperatorAgentCategoryService {
     // READ
 
     rpc GetCategory(AgentCategoryIdRequest) returns (AgentCategoryResponse);
+    rpc GetAgentCategory(GetAgentCategoryRequest) returns (GetAgentCategoryResponse);
     rpc GetAllCategories(google.protobuf.Empty) returns (AgentCategoriesResponse);
     rpc ExportAllCategories(ExportCategoriesRequest) returns (laborato.common.export.ExportResponse);
     rpc GetCategoryTree(google.protobuf.Empty) returns (AgentCategoryTreeResponse);
@@ -40,6 +41,14 @@ message ExportCategoriesRequest{
 }
 
 message AgentCategoryIdRequest {
+    int64 category_id = 1;
+}
+
+message GetAgentCategoryRequest {
+    string agent_id = 1;
+}
+
+message GetAgentCategoryResponse {
     int64 category_id = 1;
 }
 
