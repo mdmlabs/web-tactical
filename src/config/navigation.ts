@@ -56,6 +56,26 @@ export const navigation: NavItem[] = [
     route: "/resources",
   },
   {
+    id: "cywm",
+    label: "CYWM",
+    icon: "cloud_upload",
+    dividerBefore: true,
+    children: [
+      {
+        id: "cywm-files",
+        label: "Files & Deploy",
+        icon: "upload_file",
+        route: "/cywm/files",
+      },
+      {
+        id: "cywm-history",
+        label: "Deploy History",
+        icon: "history",
+        route: "/cywm/history",
+      },
+    ],
+  },
+  {
     id: "operations",
     label: "Operations",
     icon: "bolt",

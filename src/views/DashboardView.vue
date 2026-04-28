@@ -2,6 +2,8 @@
   <q-page class="dashboard-page">
     <q-splitter
       v-model="clientTreeSplitter"
+      unit="%"
+      :limits="[15, 40]"
       :style="{ height: `${$q.screen.height - 50 - 40}px` }"
     >
       <template v-slot:before>
@@ -1108,6 +1110,12 @@ export default {
 
     const tableHeight = this.$q.screen.height - 50 - 40 - 80;
     this.$store.commit("setTableHeight", `${tableHeight}px`);
+
+    // Force q-layout / q-splitter to recompute container offsets after the
+    // view mounts. Without this, returning to the dashboard after a viewport
+    // change (e.g. opening/closing DevTools) can leave the splitter "before"
+    // panel clipped under the FileBar drawer.
+    this.$nextTick(() => window.dispatchEvent(new Event("resize")));
   },
 };
 </script>
