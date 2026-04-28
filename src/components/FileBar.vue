@@ -8,7 +8,6 @@
     bordered
     show-if-above
     class="filebar-drawer"
-    :overlay="overlayMode"
   >
     <div class="filebar-drawer-content">
       <div class="filebar-drawer-header" v-if="isMobile">
@@ -1539,15 +1538,12 @@ export default {
     },
     drawerOpen: {
       get() {
-        if (this.isMobile) {
-          return this.$store.state.fileBarDrawerOpen;
-        }
-        return true;
+        return this.isMobile ? this.$store.state.fileBarDrawerOpen : true;
       },
       set(val) {
-        if (this.isMobile) {
-          this.$store.commit("SET_FILEBAR_DRAWER", val);
-        }
+        // commit always so q-drawer's internal model stays in sync
+        // with the store on breakpoint crossings (e.g. opening/closing F12)
+        this.$store.commit("SET_FILEBAR_DRAWER", val);
       },
     },
     isMiniMode() {
@@ -1555,9 +1551,6 @@ export default {
     },
     isMobile() {
       return this.$q.screen.width < 1024;
-    },
-    overlayMode() {
-      return this.isMobile;
     },
     sidebarWidth() {
       if (this.isMobile) {
