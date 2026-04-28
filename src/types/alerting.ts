@@ -92,7 +92,53 @@ export interface AlertEntry {
 
 // --- Notification Channels ---
 
-export type ChannelType = "slack" | "email" | "webhook" | "chime" | "sns" | "ses" | "pagerduty";
+// "telegram" — UI-only alias for a custom_webhook destination targeting api.telegram.org.
+// Persisted on the OpenSearch side as `custom_webhook`; detected on read by URL pattern.
+export type ChannelType =
+  | "slack"
+  | "email"
+  | "webhook"
+  | "telegram"
+  | "chime"
+  | "sns"
+  | "ses"
+  | "pagerduty";
+
+export interface SlackConfig {
+  url: string;
+}
+
+export interface ChimeConfig {
+  url: string;
+}
+
+export interface WebhookConfig {
+  url: string;
+  method?: string;
+  header_params?: Record<string, string>;
+  query_params?: Record<string, string>;
+}
+
+export interface EmailDestinationConfig {
+  email_account_id?: string;
+  recipients?: string[];
+  // Form-only:
+  sender_id?: string;
+}
+
+export interface TelegramConfig {
+  bot_token: string;
+  chat_id: string;
+}
+
+export interface NotificationChannelConfig {
+  slack?: SlackConfig;
+  chime?: ChimeConfig;
+  webhook?: WebhookConfig;
+  email?: EmailDestinationConfig;
+  telegram?: TelegramConfig;
+  [key: string]: unknown;
+}
 
 export interface NotificationChannel {
   config_id: string;
@@ -100,10 +146,36 @@ export interface NotificationChannel {
   description: string;
   config_type: ChannelType;
   is_enabled: boolean;
-  config: Record<string, unknown>;
+  config: NotificationChannelConfig;
   created_time_ms: number;
   last_updated_time_ms: number;
 }
+
+export const CHANNEL_TYPE_LABELS: Record<ChannelType, string> = {
+  slack: "Slack",
+  email: "Email",
+  webhook: "Custom webhook",
+  telegram: "Telegram",
+  chime: "Amazon Chime",
+  sns: "Amazon SNS",
+  ses: "Amazon SES",
+  pagerduty: "PagerDuty",
+};
+
+export function channelTypeLabel(type: ChannelType | string): string {
+  return CHANNEL_TYPE_LABELS[type as ChannelType] || String(type);
+}
+
+// Default Telegram message template (mustache, rendered into POST body).
+// chat_id sits in URL query params, so the body only needs `text`.
+export const DEFAULT_TELEGRAM_MESSAGE_TEMPLATE =
+  '{"text":"<b>{{ctx.monitor.name}}</b>\\n' +
+  "Trigger: {{ctx.trigger.name}}\\n" +
+  "Severity: {{ctx.trigger.severity}}\\n" +
+  'Period: {{ctx.periodStart}} – {{ctx.periodEnd}}","parse_mode":"HTML"}';
+
+export const DEFAULT_GENERIC_MESSAGE_TEMPLATE =
+  "Monitor {{ctx.monitor.name}} triggered alert {{ctx.trigger.name}} (severity {{ctx.trigger.severity}}).";
 
 // --- Email Senders ---
 

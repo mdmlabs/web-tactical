@@ -41,15 +41,26 @@
           <tr v-for="ch in filtered" :key="ch.config_id" v-else>
             <td>{{ ch.name }}</td>
             <td>
-              <span class="wz-type-badge">{{ ch.config_type }}</span>
+              <span
+                class="wz-type-badge"
+                :class="`wz-type-badge--${ch.config_type}`"
+              >
+                <q-icon
+                  v-if="ch.config_type === 'telegram'"
+                  name="send"
+                  size="12px"
+                  class="q-mr-xs"
+                />
+                {{ channelTypeLabel(ch.config_type) }}
+              </span>
             </td>
-            <td>{{ ch.description || '-' }}</td>
+            <td>{{ ch.description || channelHint(ch) }}</td>
             <td>{{ formatDate(ch.last_updated_time_ms) }}</td>
             <td>
               <button class="wz-btn-icon" title="Send test message" @click="store.sendTestMessage(ch.config_id)">
                 <q-icon name="send" size="16px" />
               </button>
-              <button class="wz-btn-icon wz-btn-icon--danger" title="Delete" @click="store.removeChannel(ch.config_id)">
+              <button class="wz-btn-icon wz-btn-icon--danger" title="Delete" @click="confirmRemove(ch.config_id, ch.name)">
                 <q-icon name="delete_outline" size="16px" />
               </button>
             </td>
@@ -66,6 +77,8 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useAlertingStore } from "@/stores/alerting";
+import { channelTypeLabel } from "@/types/alerting";
+import type { NotificationChannel } from "@/types/alerting";
 import CreateChannelModal from "./CreateChannelModal.vue";
 
 const store = useAlertingStore();
@@ -83,6 +96,25 @@ const filtered = computed(() => {
 function formatDate(ms?: number): string {
   if (!ms) return "-";
   try { return new Date(ms).toLocaleString(); } catch { return "-"; }
+}
+
+function channelHint(ch: NotificationChannel): string {
+  if (ch.config_type === "telegram" && ch.config.telegram?.chat_id) {
+    return `chat_id: ${ch.config.telegram.chat_id}`;
+  }
+  if (ch.config_type === "webhook" && ch.config.webhook?.url) {
+    return ch.config.webhook.url;
+  }
+  if (ch.config_type === "slack" && ch.config.slack?.url) {
+    return ch.config.slack.url.replace(/\/services\/.*$/, "/services/…");
+  }
+  return "-";
+}
+
+function confirmRemove(id: string, name: string) {
+  if (window.confirm(`Delete channel "${name}"? Linked monitors will lose this destination.`)) {
+    store.removeChannel(id);
+  }
 }
 
 function onCreated() {
@@ -171,15 +203,21 @@ function onCreated() {
 .wz-table__loading { text-align: center; padding: 40px !important; }
 
 .wz-type-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   padding: 2px 8px;
   border-radius: 3px;
   font-size: 12px;
   font-weight: 500;
   background: #e6f2fb;
   color: #006bb4;
-  text-transform: capitalize;
 }
+
+.wz-type-badge--telegram { background: #e0f2fe; color: #0284c7; }
+.wz-type-badge--slack { background: #f3e8ff; color: #7e22ce; }
+.wz-type-badge--email { background: #fef3c7; color: #92400e; }
+.wz-type-badge--webhook { background: #dcfce7; color: #15803d; }
+.wz-type-badge--chime { background: #fce7f3; color: #be185d; }
 
 .wz-btn {
   padding: 8px 16px;
@@ -217,5 +255,10 @@ function onCreated() {
 .body--dark .wz-table th { background: #25262b; color: #98a2b3; border-color: #343741; }
 .body--dark .wz-table td { color: #dfe5ef; border-color: #2a2b32; }
 .body--dark .wz-type-badge { background: #0a2d4d; color: #36a2ef; }
+.body--dark .wz-type-badge--telegram { background: #082f49; color: #38bdf8; }
+.body--dark .wz-type-badge--slack { background: #3b0764; color: #c084fc; }
+.body--dark .wz-type-badge--email { background: #451a03; color: #fbbf24; }
+.body--dark .wz-type-badge--webhook { background: #052e16; color: #4ade80; }
+.body--dark .wz-type-badge--chime { background: #500724; color: #f472b6; }
 .body--dark .wz-btn-icon { color: #98a2b3; }
 </style>

@@ -142,6 +142,17 @@ interface DashboardAlertsResp {
   totalAlerts: number;
 }
 
+interface DashboardCustomWebhook {
+  url?: string;
+  scheme?: string;
+  host?: string;
+  port?: number;
+  path?: string;
+  method?: string;
+  header_params?: Record<string, string>;
+  query_params?: Record<string, string>;
+}
+
 interface DashboardDestination {
   id: string;
   type: string;
@@ -152,7 +163,7 @@ interface DashboardDestination {
   last_update_time: number;
   slack?: { url: string };
   chime?: { url: string };
-  custom_webhook?: { url: string; method?: string; header_params?: Record<string, string> };
+  custom_webhook?: DashboardCustomWebhook;
   email?: { email_account_id: string; recipients: string[] };
 }
 
@@ -260,20 +271,86 @@ function alertFromDashboard(raw: DashboardAlert): AlertEntry {
   };
 }
 
+function buildWebhookUrl(w: DashboardCustomWebhook): string {
+  if (w.url) return w.url;
+  if (w.host) {
+    const scheme = (w.scheme || "https").toLowerCase();
+    const port = w.port ? `:${w.port}` : "";
+    const path = w.path || "";
+    return `${scheme}://${w.host}${port}${path}`;
+  }
+  return "";
+}
+
+function isTelegramWebhook(url: string): boolean {
+  return /^https?:\/\/api\.telegram\.org\/bot[^/]+\/sendMessage/i.test(url);
+}
+
+function parseTelegramWebhook(w: DashboardCustomWebhook): { bot_token: string; chat_id: string } | null {
+  const url = buildWebhookUrl(w);
+  if (!isTelegramWebhook(url)) return null;
+  const match = url.match(/\/bot([^/]+)\/sendMessage/i);
+  const bot_token = match ? match[1] : "";
+  const chat_id =
+    w.query_params?.chat_id ||
+    (() => {
+      try {
+        const u = new URL(url);
+        return u.searchParams.get("chat_id") || "";
+      } catch {
+        return "";
+      }
+    })();
+  return { bot_token, chat_id };
+}
+
 function destinationToChannel(d: DashboardDestination): NotificationChannel {
+  // Detect Telegram (UI alias) before generic webhook.
+  let configType: NotificationChannel["config_type"] = d.type as NotificationChannel["config_type"];
+  let config: NotificationChannel["config"] = {};
+
+  if (d.slack) {
+    configType = "slack";
+    config = { slack: d.slack };
+  } else if (d.chime) {
+    configType = "chime";
+    config = { chime: d.chime };
+  } else if (d.custom_webhook) {
+    const tg = parseTelegramWebhook(d.custom_webhook);
+    if (tg) {
+      configType = "telegram";
+      config = {
+        telegram: tg,
+        webhook: {
+          url: buildWebhookUrl(d.custom_webhook),
+          method: d.custom_webhook.method || "POST",
+          header_params: d.custom_webhook.header_params,
+          query_params: d.custom_webhook.query_params,
+        },
+      };
+    } else {
+      configType = "webhook";
+      config = {
+        webhook: {
+          url: buildWebhookUrl(d.custom_webhook),
+          method: d.custom_webhook.method || "POST",
+          header_params: d.custom_webhook.header_params,
+          query_params: d.custom_webhook.query_params,
+        },
+      };
+    }
+  } else if (d.email) {
+    configType = "email";
+    config = { email: d.email };
+  }
+
   return {
     config_id: d.id,
     name: d.name,
     description: "",
-    config_type: d.type as NotificationChannel["config_type"],
+    config_type: configType,
     is_enabled: true,
-    config: (() => {
-      if (d.slack) return { slack: d.slack };
-      if (d.chime) return { chime: d.chime };
-      if (d.custom_webhook) return { webhook: d.custom_webhook };
-      if (d.email) return { email: d.email };
-      return {};
-    })(),
+    config,
     created_time_ms: d.last_update_time || 0,
     last_updated_time_ms: d.last_update_time || 0,
   };
@@ -569,21 +646,52 @@ export async function testChannel(id: string): Promise<{ success: boolean; messa
   }
 }
 
+function normalizeWebhook(w: NonNullable<NotificationChannel["config"]["webhook"]>): DashboardCustomWebhook {
+  const out: DashboardCustomWebhook = {};
+  if (w.url) out.url = w.url;
+  out.method = (w.method || "POST").toUpperCase();
+  if (w.header_params && Object.keys(w.header_params).length > 0) {
+    out.header_params = { ...w.header_params };
+  }
+  if (w.query_params && Object.keys(w.query_params).length > 0) {
+    out.query_params = { ...w.query_params };
+  }
+  return out;
+}
+
+function buildTelegramWebhook(tg: { bot_token: string; chat_id: string }): DashboardCustomWebhook {
+  const url = `https://api.telegram.org/bot${tg.bot_token}/sendMessage`;
+  const out: DashboardCustomWebhook = {
+    url,
+    method: "POST",
+    header_params: { "Content-Type": "application/json" },
+  };
+  if (tg.chat_id) {
+    out.query_params = { chat_id: tg.chat_id };
+  }
+  return out;
+}
+
 function buildDestinationPayload(ch: Partial<NotificationChannel>): Record<string, unknown> {
-  const type = ch.config_type || "slack";
+  const uiType = ch.config_type || "slack";
+  // Telegram is a UI alias persisted as custom_webhook on the OpenSearch side.
+  const dashboardType = uiType === "telegram" || uiType === "webhook" ? "custom_webhook" : uiType;
+
   const base: Record<string, unknown> = {
-    type,
+    type: dashboardType,
     name: ch.name || "Untitled Destination",
   };
 
   const config = ch.config || {};
-  if (type === "slack" && config.slack) {
+  if (uiType === "slack" && config.slack) {
     base.slack = config.slack;
-  } else if (type === "chime" && config.chime) {
+  } else if (uiType === "chime" && config.chime) {
     base.chime = config.chime;
-  } else if (type === "webhook" && config.webhook) {
-    base.custom_webhook = config.webhook;
-  } else if (type === "email" && config.email) {
+  } else if (uiType === "webhook" && config.webhook) {
+    base.custom_webhook = normalizeWebhook(config.webhook);
+  } else if (uiType === "telegram" && config.telegram) {
+    base.custom_webhook = buildTelegramWebhook(config.telegram);
+  } else if (uiType === "email" && config.email) {
     base.email = config.email;
   }
   return base;

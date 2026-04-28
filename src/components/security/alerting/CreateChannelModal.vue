@@ -22,6 +22,7 @@
         <div class="wz-form-group">
           <label class="wz-label">Channel type</label>
           <select v-model="form.configType" class="wz-select wz-select--full">
+            <option value="telegram">Telegram</option>
             <option value="slack">Slack</option>
             <option value="email">Email</option>
             <option value="webhook">Custom webhook</option>
@@ -31,6 +32,39 @@
             <option value="pagerduty">PagerDuty</option>
           </select>
         </div>
+
+        <!-- Telegram config -->
+        <template v-if="form.configType === 'telegram'">
+          <div class="wz-callout">
+            <div class="wz-callout__title">How to get Telegram credentials</div>
+            <ol class="wz-callout__list">
+              <li>Open <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a> → <code>/newbot</code> → copy the <strong>Bot token</strong>.</li>
+              <li>Add the bot to your group/channel (or DM the bot first).</li>
+              <li>Open <code>https://api.telegram.org/bot&lt;token&gt;/getUpdates</code> after sending a test message — copy <code>chat.id</code>.</li>
+            </ol>
+          </div>
+          <div class="wz-form-group">
+            <label class="wz-label">Bot token</label>
+            <input
+              v-model.trim="form.telegramBotToken"
+              class="wz-input"
+              placeholder="123456789:AAH..."
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+          <div class="wz-form-group">
+            <label class="wz-label">Chat ID</label>
+            <input
+              v-model.trim="form.telegramChatId"
+              class="wz-input"
+              placeholder="-1001234567890 or 123456789"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <small class="wz-hint">Negative for groups/channels, positive for private chats.</small>
+          </div>
+        </template>
 
         <!-- Slack config -->
         <template v-if="form.configType === 'slack'">
@@ -52,7 +86,34 @@
               <option value="POST">POST</option>
               <option value="PUT">PUT</option>
               <option value="PATCH">PATCH</option>
+              <option value="GET">GET</option>
             </select>
+          </div>
+          <div class="wz-form-group">
+            <div class="wz-form-group__header">
+              <label class="wz-label">Headers</label>
+              <button type="button" class="wz-btn wz-btn--sm wz-btn--outline" @click="addHeader">+ Add header</button>
+            </div>
+            <div v-for="(h, i) in form.webhookHeaders" :key="i" class="wz-kv-row">
+              <input v-model="h.key" class="wz-input wz-input--kv" placeholder="Header name (e.g. Content-Type)" />
+              <input v-model="h.value" class="wz-input wz-input--kv" placeholder="Value (e.g. application/json)" />
+              <button type="button" class="wz-btn-icon" @click="form.webhookHeaders.splice(i, 1)">
+                <q-icon name="delete_outline" size="16px" />
+              </button>
+            </div>
+          </div>
+          <div class="wz-form-group">
+            <div class="wz-form-group__header">
+              <label class="wz-label">Query parameters</label>
+              <button type="button" class="wz-btn wz-btn--sm wz-btn--outline" @click="addQuery">+ Add parameter</button>
+            </div>
+            <div v-for="(q, i) in form.webhookQuery" :key="i" class="wz-kv-row">
+              <input v-model="q.key" class="wz-input wz-input--kv" placeholder="Parameter name" />
+              <input v-model="q.value" class="wz-input wz-input--kv" placeholder="Value" />
+              <button type="button" class="wz-btn-icon" @click="form.webhookQuery.splice(i, 1)">
+                <q-icon name="delete_outline" size="16px" />
+              </button>
+            </div>
           </div>
         </template>
 
@@ -107,7 +168,7 @@
 
       <div class="wz-modal__footer">
         <button class="wz-btn wz-btn--outline" @click="$emit('close')">Cancel</button>
-        <button class="wz-btn wz-btn--primary" :disabled="saving || !form.name.trim()" @click="save">
+        <button class="wz-btn wz-btn--primary" :disabled="saveDisabled" @click="save">
           <q-spinner v-if="saving" size="14px" color="white" class="q-mr-sm" />
           Create
         </button>
@@ -117,7 +178,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from "vue";
+import { ref, reactive, computed } from "vue";
 import { useAlertingStore } from "@/stores/alerting";
 import type { ChannelType } from "@/types/alerting";
 
@@ -129,13 +190,22 @@ const emit = defineEmits<{
 const store = useAlertingStore();
 const saving = ref(false);
 
+interface KV {
+  key: string;
+  value: string;
+}
+
 const form = reactive({
   name: "",
   description: "",
-  configType: "slack" as ChannelType,
+  configType: "telegram" as ChannelType,
+  telegramBotToken: "",
+  telegramChatId: "",
   slackUrl: "",
   webhookUrl: "",
   webhookMethod: "POST",
+  webhookHeaders: [] as KV[],
+  webhookQuery: [] as KV[],
   emailSenderId: "",
   emailRecipients: "",
   pagerdutyKey: "",
@@ -144,12 +214,43 @@ const form = reactive({
   snsRoleArn: "",
 });
 
+function addHeader() {
+  form.webhookHeaders.push({ key: "", value: "" });
+}
+
+function addQuery() {
+  form.webhookQuery.push({ key: "", value: "" });
+}
+
+function kvToRecord(list: KV[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const { key, value } of list) {
+    const k = key.trim();
+    if (k) out[k] = value;
+  }
+  return out;
+}
+
 function buildConfig(): Record<string, unknown> {
   switch (form.configType) {
+    case "telegram":
+      return {
+        telegram: {
+          bot_token: form.telegramBotToken,
+          chat_id: form.telegramChatId,
+        },
+      };
     case "slack":
       return { slack: { url: form.slackUrl } };
     case "webhook":
-      return { webhook: { url: form.webhookUrl, method: form.webhookMethod } };
+      return {
+        webhook: {
+          url: form.webhookUrl,
+          method: form.webhookMethod,
+          header_params: kvToRecord(form.webhookHeaders),
+          query_params: kvToRecord(form.webhookQuery),
+        },
+      };
     case "email":
       return {
         email: {
@@ -167,6 +268,29 @@ function buildConfig(): Record<string, unknown> {
       return {};
   }
 }
+
+const saveDisabled = computed(() => {
+  if (saving.value) return true;
+  if (!form.name.trim()) return true;
+  switch (form.configType) {
+    case "telegram":
+      return !form.telegramBotToken.trim() || !form.telegramChatId.trim();
+    case "slack":
+      return !form.slackUrl.trim();
+    case "webhook":
+      return !form.webhookUrl.trim();
+    case "email":
+      return !form.emailSenderId || !form.emailRecipients.trim();
+    case "chime":
+      return !form.chimeUrl.trim();
+    case "pagerduty":
+      return !form.pagerdutyKey.trim();
+    case "sns":
+      return !form.snsTopicArn.trim();
+    default:
+      return false;
+  }
+});
 
 async function save() {
   saving.value = true;
@@ -242,6 +366,61 @@ async function save() {
 
 .wz-form-group { margin-bottom: 16px; }
 
+.wz-form-group__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.wz-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #69707d;
+}
+
+.wz-callout {
+  background: #f0f7ff;
+  border: 1px solid #c8def0;
+  border-radius: 4px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  color: #0a3d72;
+  font-size: 13px;
+}
+
+.wz-callout__title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.wz-callout__list {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.5;
+}
+
+.wz-callout__list code {
+  background: rgba(0, 107, 180, 0.08);
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.wz-callout a { color: #006bb4; text-decoration: underline; }
+
+.wz-kv-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 32px;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.wz-input--kv { font-size: 13px; padding: 6px 10px; }
+
+.wz-btn--sm { padding: 4px 10px; font-size: 12px; }
+
 .wz-label {
   display: block;
   font-size: 12px;
@@ -312,4 +491,8 @@ async function save() {
 .body--dark .wz-input { background: #25262b; border-color: #343741; color: #dfe5ef; }
 .body--dark .wz-select { background: #25262b; border-color: #343741; color: #dfe5ef; }
 .body--dark .wz-btn--outline { background: #25262b; border-color: #343741; color: #dfe5ef; }
+.body--dark .wz-callout { background: #0a2238; border-color: #163d61; color: #cbe2f3; }
+.body--dark .wz-callout a { color: #36a2ef; }
+.body--dark .wz-callout__list code { background: rgba(54, 162, 239, 0.16); }
+.body--dark .wz-hint { color: #98a2b3; }
 </style>
