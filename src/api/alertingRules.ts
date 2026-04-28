@@ -23,8 +23,15 @@ import type {
  *   DELETE /api/alerting/monitors/<id>    – delete monitor
  *   GET  /api/alerting/monitors/alerts    – list alerts
  *   POST /api/alerting/monitors/<id>/_acknowledge/alerts – acknowledge
- *   GET  /api/alerting/destinations       – list destinations (channels)
- *   POST /api/alerting/destinations       – create destination
+ *
+ * Notification channels are served by the Notifications plugin (the legacy
+ * /api/alerting/destinations endpoint is deprecated in OSD 2.x and returns
+ * 400/empty on this build):
+ *   GET    /api/notifications/get_configs
+ *   POST   /api/notifications/create_config
+ *   PUT    /api/notifications/update_config/<id>
+ *   DELETE /api/notifications/delete_configs?config_id_list=<id>
+ *   POST   /api/notifications/test_message/<id>
  */
 
 // ============================
@@ -142,25 +149,49 @@ interface DashboardAlertsResp {
   totalAlerts: number;
 }
 
-interface DashboardDestination {
-  id: string;
-  type: string;
+// OpenSearch Notifications plugin (channels) shapes
+interface NotificationsConfigBody {
   name: string;
-  schema_version: number;
-  seq_no: number;
-  primary_term: number;
-  last_update_time: number;
+  description?: string;
+  config_type: string;
+  is_enabled: boolean;
   slack?: { url: string };
   chime?: { url: string };
-  custom_webhook?: { url: string; method?: string; header_params?: Record<string, string> };
-  email?: { email_account_id: string; recipients: string[] };
+  webhook?: { url: string; method?: string; header_params?: Record<string, string> };
+  email?: {
+    email_account_id: string;
+    recipient_list?: { recipient: string }[];
+    email_group_id_list?: string[];
+  };
+  sns?: { topic_arn: string; role_arn?: string };
+  microsoft_teams?: { url: string };
 }
 
-interface DashboardDestinationsResp {
-  ok: boolean;
-  destinations: DashboardDestination[];
-  totalDestinations: number;
+interface NotificationsConfigItem {
+  config_id: string;
+  last_updated_time_ms: number;
+  created_time_ms: number;
+  config: NotificationsConfigBody;
 }
+
+interface NotificationsListResp {
+  total_hits: number;
+  config_list: NotificationsConfigItem[];
+}
+
+interface NotificationsCreateResp {
+  config_id: string;
+}
+
+const CHANNEL_CONFIG_TYPES = [
+  "slack",
+  "email",
+  "webhook",
+  "chime",
+  "sns",
+  "ses",
+  "microsoft_teams",
+] as const;
 
 // ============================
 // Transform helpers
@@ -260,23 +291,66 @@ function alertFromDashboard(raw: DashboardAlert): AlertEntry {
   };
 }
 
-function destinationToChannel(d: DashboardDestination): NotificationChannel {
+function notificationConfigToChannel(item: NotificationsConfigItem): NotificationChannel {
+  const cfg = item.config || ({} as NotificationsConfigBody);
+  const sub: Record<string, unknown> = {};
+  if (cfg.slack) sub.slack = cfg.slack;
+  if (cfg.chime) sub.chime = cfg.chime;
+  if (cfg.webhook) sub.webhook = cfg.webhook;
+  if (cfg.email) sub.email = cfg.email;
+  if (cfg.sns) sub.sns = cfg.sns;
+  if (cfg.microsoft_teams) sub.microsoft_teams = cfg.microsoft_teams;
   return {
-    config_id: d.id,
-    name: d.name,
-    description: "",
-    config_type: d.type as NotificationChannel["config_type"],
-    is_enabled: true,
-    config: (() => {
-      if (d.slack) return { slack: d.slack };
-      if (d.chime) return { chime: d.chime };
-      if (d.custom_webhook) return { webhook: d.custom_webhook };
-      if (d.email) return { email: d.email };
-      return {};
-    })(),
-    created_time_ms: d.last_update_time || 0,
-    last_updated_time_ms: d.last_update_time || 0,
+    config_id: item.config_id,
+    name: cfg.name || "",
+    description: cfg.description || "",
+    config_type: (cfg.config_type || "") as NotificationChannel["config_type"],
+    is_enabled: cfg.is_enabled !== false,
+    config: sub,
+    created_time_ms: item.created_time_ms || item.last_updated_time_ms || 0,
+    last_updated_time_ms: item.last_updated_time_ms || 0,
   };
+}
+
+function buildNotificationConfig(ch: Partial<NotificationChannel>): NotificationsConfigBody {
+  const type = ch.config_type || "slack";
+  const sub = (ch.config || {}) as Record<string, unknown>;
+  const body: NotificationsConfigBody = {
+    name: ch.name || "Untitled Channel",
+    description: ch.description || "",
+    config_type: type,
+    is_enabled: ch.is_enabled !== false,
+  };
+  if (type === "slack" && sub.slack) {
+    body.slack = sub.slack as { url: string };
+  } else if (type === "chime" && sub.chime) {
+    body.chime = sub.chime as { url: string };
+  } else if (type === "webhook" && sub.webhook) {
+    const w = sub.webhook as { url: string; method?: string; header_params?: Record<string, string> };
+    body.webhook = {
+      url: w.url,
+      ...(w.method ? { method: w.method } : {}),
+      ...(w.header_params ? { header_params: w.header_params } : {}),
+    };
+  } else if (type === "email" && sub.email) {
+    const e = sub.email as {
+      email_account_id?: string;
+      sender_id?: string;
+      recipients?: string[];
+      recipient_list?: { recipient: string }[];
+      email_group_id_list?: string[];
+    };
+    body.email = {
+      email_account_id: e.email_account_id || e.sender_id || "",
+      recipient_list:
+        e.recipient_list ?? (e.recipients || []).map((r) => ({ recipient: r })),
+      email_group_id_list: e.email_group_id_list || [],
+    };
+  } else if (type === "sns" && sub.sns) {
+    const s = sub.sns as { topic_arn: string; role_arn?: string };
+    body.sns = { topic_arn: s.topic_arn, ...(s.role_arn ? { role_arn: s.role_arn } : {}) };
+  }
+  return body;
 }
 
 // ============================
@@ -521,72 +595,81 @@ export async function acknowledgeAlerts(alertIds: string[], monitorId: string): 
 }
 
 // ============================
-// Destinations API (notification channels)
+// Notification channels API (Notifications plugin)
 // ============================
+
+function getConfigsPath(): string {
+  const params = new URLSearchParams();
+  params.set("from_index", "0");
+  params.set("max_items", "200");
+  params.set("sort_field", "name");
+  params.set("sort_order", "asc");
+  for (const t of CHANNEL_CONFIG_TYPES) params.append("config_type", t);
+  return `/api/notifications/get_configs?${params.toString()}`;
+}
 
 export async function fetchChannels(): Promise<NotificationChannel[]> {
   try {
-    const resp = await wazuhDashboardApi.get<DashboardDestinationsResp>(
-      "/api/alerting/destinations",
-      { from: 0, size: 200 },
-    );
-    if (!resp.ok) return [];
-    return (resp.destinations || []).map(destinationToChannel);
-  } catch {
+    const resp = await wazuhDashboardApi.get<NotificationsListResp>(getConfigsPath());
+    return (resp.config_list || []).map(notificationConfigToChannel);
+  } catch (e) {
+    console.error("[Alerting] Failed to load channels:", e);
     return [];
   }
 }
 
 export async function createChannel(payload: Partial<NotificationChannel>): Promise<NotificationChannel> {
-  const body = buildDestinationPayload(payload);
-  const resp = await wazuhDashboardApi.post<{ ok: boolean; resp: DashboardDestination }>(
-    "/api/alerting/destinations",
-    body,
+  const config = buildNotificationConfig(payload);
+  const resp = await wazuhDashboardApi.post<NotificationsCreateResp>(
+    "/api/notifications/create_config",
+    { config },
   );
-  return destinationToChannel(resp.resp || { ...body, id: "new" } as unknown as DashboardDestination);
+  const now = Date.now();
+  return notificationConfigToChannel({
+    config_id: resp.config_id,
+    config,
+    created_time_ms: now,
+    last_updated_time_ms: now,
+  });
 }
 
-export async function updateChannel(id: string, payload: Partial<NotificationChannel>): Promise<NotificationChannel> {
-  const body = buildDestinationPayload(payload);
-  const resp = await wazuhDashboardApi.put<{ ok: boolean; resp: DashboardDestination }>(
-    `/api/alerting/destinations/${encodeURIComponent(id)}`,
-    body,
+export async function updateChannel(
+  id: string,
+  payload: Partial<NotificationChannel>,
+): Promise<NotificationChannel> {
+  const config = buildNotificationConfig(payload);
+  await wazuhDashboardApi.put<NotificationsCreateResp>(
+    `/api/notifications/update_config/${encodeURIComponent(id)}`,
+    { config },
   );
-  return destinationToChannel(resp.resp || { ...body, id } as unknown as DashboardDestination);
+  const now = Date.now();
+  return notificationConfigToChannel({
+    config_id: id,
+    config,
+    created_time_ms: now,
+    last_updated_time_ms: now,
+  });
 }
 
 export async function deleteChannel(id: string): Promise<void> {
-  await wazuhDashboardApi.delete(`/api/alerting/destinations/${encodeURIComponent(id)}`);
+  await wazuhDashboardApi.delete(
+    `/api/notifications/delete_configs?config_id_list=${encodeURIComponent(id)}`,
+  );
 }
 
 export async function testChannel(id: string): Promise<{ success: boolean; message: string }> {
   try {
-    await wazuhDashboardApi.post(`/api/alerting/destinations/${encodeURIComponent(id)}/test`);
-    return { success: true, message: "Test message sent" };
+    const resp = await wazuhDashboardApi.post<{
+      status_list?: { delivery_status?: { status_code?: string; status_text?: string } }[];
+    }>(`/api/notifications/test_message/${encodeURIComponent(id)}`);
+    const status = resp.status_list?.[0]?.delivery_status;
+    const code = status?.status_code ?? "200";
+    const ok = String(code).startsWith("2");
+    return { success: ok, message: status?.status_text || (ok ? "Test message sent" : "Test failed") };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Test failed";
     return { success: false, message: msg };
   }
-}
-
-function buildDestinationPayload(ch: Partial<NotificationChannel>): Record<string, unknown> {
-  const type = ch.config_type || "slack";
-  const base: Record<string, unknown> = {
-    type,
-    name: ch.name || "Untitled Destination",
-  };
-
-  const config = ch.config || {};
-  if (type === "slack" && config.slack) {
-    base.slack = config.slack;
-  } else if (type === "chime" && config.chime) {
-    base.chime = config.chime;
-  } else if (type === "webhook" && config.webhook) {
-    base.custom_webhook = config.webhook;
-  } else if (type === "email" && config.email) {
-    base.email = config.email;
-  }
-  return base;
 }
 
 // ============================
