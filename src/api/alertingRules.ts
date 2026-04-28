@@ -23,8 +23,20 @@ import type {
  *   DELETE /api/alerting/monitors/<id>    – delete monitor
  *   GET  /api/alerting/monitors/alerts    – list alerts
  *   POST /api/alerting/monitors/<id>/_acknowledge/alerts – acknowledge
- *   GET  /api/alerting/destinations       – list destinations (channels)
- *   POST /api/alerting/destinations       – create destination
+ *
+ * Notification channels are served by the Notifications plugin (the legacy
+ * /api/alerting/destinations endpoint is deprecated in OSD 2.x — list returns
+ * 400 and create echoes only _id metadata, so channels showed up as
+ * "undefined" and disappeared on reload):
+ *   GET    /api/notifications/get_configs
+ *   POST   /api/notifications/create_config
+ *   PUT    /api/notifications/update_config/<id>
+ *   DELETE /api/notifications/delete_configs?config_id_list=<id>
+ *   POST   /api/notifications/test_message/<id>
+ *
+ * Telegram remains a UI-only alias persisted as a custom webhook
+ * (URL https://api.telegram.org/bot<token>/sendMessage?chat_id=<id>,
+ * Content-Type: application/json), detected on read by URL pattern.
  */
 
 // ============================
@@ -142,36 +154,55 @@ interface DashboardAlertsResp {
   totalAlerts: number;
 }
 
-interface DashboardCustomWebhook {
-  url?: string;
-  scheme?: string;
-  host?: string;
-  port?: number;
-  path?: string;
+// OpenSearch Notifications plugin (channels) shapes
+interface NotificationsWebhook {
+  url: string;
   method?: string;
   header_params?: Record<string, string>;
-  query_params?: Record<string, string>;
 }
 
-interface DashboardDestination {
-  id: string;
-  type: string;
+interface NotificationsConfigBody {
   name: string;
-  schema_version: number;
-  seq_no: number;
-  primary_term: number;
-  last_update_time: number;
+  description?: string;
+  config_type: string;
+  is_enabled: boolean;
   slack?: { url: string };
   chime?: { url: string };
-  custom_webhook?: DashboardCustomWebhook;
-  email?: { email_account_id: string; recipients: string[] };
+  webhook?: NotificationsWebhook;
+  email?: {
+    email_account_id: string;
+    recipient_list?: { recipient: string }[];
+    email_group_id_list?: string[];
+  };
+  sns?: { topic_arn: string; role_arn?: string };
+  microsoft_teams?: { url: string };
 }
 
-interface DashboardDestinationsResp {
-  ok: boolean;
-  destinations: DashboardDestination[];
-  totalDestinations: number;
+interface NotificationsConfigItem {
+  config_id: string;
+  last_updated_time_ms: number;
+  created_time_ms: number;
+  config: NotificationsConfigBody;
 }
+
+interface NotificationsListResp {
+  total_hits: number;
+  config_list: NotificationsConfigItem[];
+}
+
+interface NotificationsCreateResp {
+  config_id: string;
+}
+
+const CHANNEL_CONFIG_TYPES = [
+  "slack",
+  "email",
+  "webhook",
+  "chime",
+  "sns",
+  "ses",
+  "microsoft_teams",
+] as const;
 
 // ============================
 // Transform helpers
@@ -271,88 +302,114 @@ function alertFromDashboard(raw: DashboardAlert): AlertEntry {
   };
 }
 
-function buildWebhookUrl(w: DashboardCustomWebhook): string {
-  if (w.url) return w.url;
-  if (w.host) {
-    const scheme = (w.scheme || "https").toLowerCase();
-    const port = w.port ? `:${w.port}` : "";
-    const path = w.path || "";
-    return `${scheme}://${w.host}${port}${path}`;
-  }
-  return "";
-}
-
 function isTelegramWebhook(url: string): boolean {
   return /^https?:\/\/api\.telegram\.org\/bot[^/]+\/sendMessage/i.test(url);
 }
 
-function parseTelegramWebhook(w: DashboardCustomWebhook): { bot_token: string; chat_id: string } | null {
-  const url = buildWebhookUrl(w);
+function parseTelegramFromUrl(url: string): { bot_token: string; chat_id: string } | null {
   if (!isTelegramWebhook(url)) return null;
   const match = url.match(/\/bot([^/]+)\/sendMessage/i);
   const bot_token = match ? match[1] : "";
-  const chat_id =
-    w.query_params?.chat_id ||
-    (() => {
-      try {
-        const u = new URL(url);
-        return u.searchParams.get("chat_id") || "";
-      } catch {
-        return "";
-      }
-    })();
+  let chat_id = "";
+  try {
+    chat_id = new URL(url).searchParams.get("chat_id") || "";
+  } catch {
+    /* fall through */
+  }
   return { bot_token, chat_id };
 }
 
-function destinationToChannel(d: DashboardDestination): NotificationChannel {
-  // Detect Telegram (UI alias) before generic webhook.
-  let configType: NotificationChannel["config_type"] = d.type as NotificationChannel["config_type"];
+function splitUrlAndQuery(url: string): { base: string; query_params: Record<string, string> } {
+  if (!url) return { base: "", query_params: {} };
+  try {
+    const u = new URL(url);
+    const query_params: Record<string, string> = {};
+    u.searchParams.forEach((v, k) => {
+      query_params[k] = v;
+    });
+    u.search = "";
+    const base = u.toString().replace(/\?$/, "");
+    return { base, query_params };
+  } catch {
+    return { base: url, query_params: {} };
+  }
+}
+
+function appendQueryToUrl(url: string, params?: Record<string, string>): string {
+  if (!url) return "";
+  if (!params || Object.keys(params).length === 0) return url;
+  try {
+    const u = new URL(url);
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null && v !== "") u.searchParams.set(k, v);
+    }
+    return u.toString();
+  } catch {
+    const qs = Object.entries(params)
+      .filter(([, v]) => v !== undefined && v !== null && v !== "")
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+      .join("&");
+    return qs ? `${url}${url.includes("?") ? "&" : "?"}${qs}` : url;
+  }
+}
+
+function notificationConfigToChannel(item: NotificationsConfigItem): NotificationChannel {
+  const cfg = item.config || ({} as NotificationsConfigBody);
+  let configType: NotificationChannel["config_type"] = (cfg.config_type || "") as NotificationChannel["config_type"];
   let config: NotificationChannel["config"] = {};
 
-  if (d.slack) {
+  if (cfg.slack) {
     configType = "slack";
-    config = { slack: d.slack };
-  } else if (d.chime) {
+    config = { slack: cfg.slack };
+  } else if (cfg.chime) {
     configType = "chime";
-    config = { chime: d.chime };
-  } else if (d.custom_webhook) {
-    const tg = parseTelegramWebhook(d.custom_webhook);
+    config = { chime: cfg.chime };
+  } else if (cfg.webhook) {
+    const tg = parseTelegramFromUrl(cfg.webhook.url || "");
     if (tg) {
       configType = "telegram";
       config = {
         telegram: tg,
         webhook: {
-          url: buildWebhookUrl(d.custom_webhook),
-          method: d.custom_webhook.method || "POST",
-          header_params: d.custom_webhook.header_params,
-          query_params: d.custom_webhook.query_params,
+          url: cfg.webhook.url,
+          method: cfg.webhook.method || "POST",
+          header_params: cfg.webhook.header_params,
         },
       };
     } else {
+      const { base, query_params } = splitUrlAndQuery(cfg.webhook.url || "");
       configType = "webhook";
       config = {
         webhook: {
-          url: buildWebhookUrl(d.custom_webhook),
-          method: d.custom_webhook.method || "POST",
-          header_params: d.custom_webhook.header_params,
-          query_params: d.custom_webhook.query_params,
+          url: base,
+          method: cfg.webhook.method || "POST",
+          header_params: cfg.webhook.header_params,
+          ...(Object.keys(query_params).length > 0 ? { query_params } : {}),
         },
       };
     }
-  } else if (d.email) {
+  } else if (cfg.email) {
     configType = "email";
-    config = { email: d.email };
+    config = {
+      email: {
+        email_account_id: cfg.email.email_account_id,
+        recipients: (cfg.email.recipient_list || []).map((r) => r.recipient),
+      },
+    };
+  } else if (cfg.sns) {
+    configType = "sns";
+    config = { sns: cfg.sns };
   }
 
   return {
-    config_id: d.id,
-    name: d.name,
-    description: "",
+    config_id: item.config_id,
+    name: cfg.name || "",
+    description: cfg.description || "",
     config_type: configType,
-    is_enabled: true,
+    is_enabled: cfg.is_enabled !== false,
     config,
-    created_time_ms: d.last_update_time || 0,
-    last_updated_time_ms: d.last_update_time || 0,
+    created_time_ms: item.created_time_ms || item.last_updated_time_ms || 0,
+    last_updated_time_ms: item.last_updated_time_ms || 0,
   };
 }
 
@@ -598,103 +655,145 @@ export async function acknowledgeAlerts(alertIds: string[], monitorId: string): 
 }
 
 // ============================
-// Destinations API (notification channels)
+// Notification channels API (Notifications plugin)
 // ============================
+
+function getConfigsPath(): string {
+  const params = new URLSearchParams();
+  params.set("from_index", "0");
+  params.set("max_items", "200");
+  params.set("sort_field", "name");
+  params.set("sort_order", "asc");
+  for (const t of CHANNEL_CONFIG_TYPES) params.append("config_type", t);
+  return `/api/notifications/get_configs?${params.toString()}`;
+}
 
 export async function fetchChannels(): Promise<NotificationChannel[]> {
   try {
-    const resp = await wazuhDashboardApi.get<DashboardDestinationsResp>(
-      "/api/alerting/destinations",
-      { from: 0, size: 200 },
-    );
-    if (!resp.ok) return [];
-    return (resp.destinations || []).map(destinationToChannel);
-  } catch {
+    const resp = await wazuhDashboardApi.get<NotificationsListResp>(getConfigsPath());
+    return (resp.config_list || []).map(notificationConfigToChannel);
+  } catch (e) {
+    console.error("[Alerting] Failed to load channels:", e);
     return [];
   }
 }
 
 export async function createChannel(payload: Partial<NotificationChannel>): Promise<NotificationChannel> {
-  const body = buildDestinationPayload(payload);
-  const resp = await wazuhDashboardApi.post<{ ok: boolean; resp: DashboardDestination }>(
-    "/api/alerting/destinations",
-    body,
+  const config = buildNotificationConfig(payload);
+  const resp = await wazuhDashboardApi.post<NotificationsCreateResp>(
+    "/api/notifications/create_config",
+    { config },
   );
-  return destinationToChannel(resp.resp || { ...body, id: "new" } as unknown as DashboardDestination);
+  const now = Date.now();
+  return notificationConfigToChannel({
+    config_id: resp.config_id,
+    config,
+    created_time_ms: now,
+    last_updated_time_ms: now,
+  });
 }
 
-export async function updateChannel(id: string, payload: Partial<NotificationChannel>): Promise<NotificationChannel> {
-  const body = buildDestinationPayload(payload);
-  const resp = await wazuhDashboardApi.put<{ ok: boolean; resp: DashboardDestination }>(
-    `/api/alerting/destinations/${encodeURIComponent(id)}`,
-    body,
+export async function updateChannel(
+  id: string,
+  payload: Partial<NotificationChannel>,
+): Promise<NotificationChannel> {
+  const config = buildNotificationConfig(payload);
+  await wazuhDashboardApi.put<NotificationsCreateResp>(
+    `/api/notifications/update_config/${encodeURIComponent(id)}`,
+    { config },
   );
-  return destinationToChannel(resp.resp || { ...body, id } as unknown as DashboardDestination);
+  const now = Date.now();
+  return notificationConfigToChannel({
+    config_id: id,
+    config,
+    created_time_ms: now,
+    last_updated_time_ms: now,
+  });
 }
 
 export async function deleteChannel(id: string): Promise<void> {
-  await wazuhDashboardApi.delete(`/api/alerting/destinations/${encodeURIComponent(id)}`);
+  await wazuhDashboardApi.delete(
+    `/api/notifications/delete_configs?config_id_list=${encodeURIComponent(id)}`,
+  );
 }
 
 export async function testChannel(id: string): Promise<{ success: boolean; message: string }> {
   try {
-    await wazuhDashboardApi.post(`/api/alerting/destinations/${encodeURIComponent(id)}/test`);
-    return { success: true, message: "Test message sent" };
+    const resp = await wazuhDashboardApi.post<{
+      status_list?: { delivery_status?: { status_code?: string; status_text?: string } }[];
+    }>(`/api/notifications/test_message/${encodeURIComponent(id)}`);
+    const status = resp.status_list?.[0]?.delivery_status;
+    const code = status?.status_code ?? "200";
+    const ok = String(code).startsWith("2");
+    return { success: ok, message: status?.status_text || (ok ? "Test message sent" : "Test failed") };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Test failed";
     return { success: false, message: msg };
   }
 }
 
-function normalizeWebhook(w: NonNullable<NotificationChannel["config"]["webhook"]>): DashboardCustomWebhook {
-  const out: DashboardCustomWebhook = {};
-  if (w.url) out.url = w.url;
-  out.method = (w.method || "POST").toUpperCase();
-  if (w.header_params && Object.keys(w.header_params).length > 0) {
-    out.header_params = { ...w.header_params };
-  }
-  if (w.query_params && Object.keys(w.query_params).length > 0) {
-    out.query_params = { ...w.query_params };
-  }
-  return out;
+function buildWebhookFromUi(
+  w: NonNullable<NotificationChannel["config"]["webhook"]>,
+): NotificationsWebhook {
+  return {
+    url: appendQueryToUrl(w.url || "", w.query_params),
+    method: (w.method || "POST").toUpperCase(),
+    ...(w.header_params && Object.keys(w.header_params).length > 0
+      ? { header_params: { ...w.header_params } }
+      : {}),
+  };
 }
 
-function buildTelegramWebhook(tg: { bot_token: string; chat_id: string }): DashboardCustomWebhook {
-  const url = `https://api.telegram.org/bot${tg.bot_token}/sendMessage`;
-  const out: DashboardCustomWebhook = {
+function buildTelegramWebhook(tg: { bot_token: string; chat_id: string }): NotificationsWebhook {
+  const baseUrl = `https://api.telegram.org/bot${tg.bot_token}/sendMessage`;
+  const url = tg.chat_id ? appendQueryToUrl(baseUrl, { chat_id: tg.chat_id }) : baseUrl;
+  return {
     url,
     method: "POST",
     header_params: { "Content-Type": "application/json" },
   };
-  if (tg.chat_id) {
-    out.query_params = { chat_id: tg.chat_id };
-  }
-  return out;
 }
 
-function buildDestinationPayload(ch: Partial<NotificationChannel>): Record<string, unknown> {
+function buildNotificationConfig(ch: Partial<NotificationChannel>): NotificationsConfigBody {
   const uiType = ch.config_type || "slack";
-  // Telegram is a UI alias persisted as custom_webhook on the OpenSearch side.
-  const dashboardType = uiType === "telegram" || uiType === "webhook" ? "custom_webhook" : uiType;
+  // Telegram is a UI alias persisted as a webhook config on the OpenSearch side.
+  const backendType = uiType === "telegram" ? "webhook" : uiType;
 
-  const base: Record<string, unknown> = {
-    type: dashboardType,
-    name: ch.name || "Untitled Destination",
+  const body: NotificationsConfigBody = {
+    name: ch.name || "Untitled Channel",
+    description: ch.description || "",
+    config_type: backendType,
+    is_enabled: ch.is_enabled !== false,
   };
 
-  const config = ch.config || {};
+  const config = (ch.config || {}) as NotificationChannel["config"];
   if (uiType === "slack" && config.slack) {
-    base.slack = config.slack;
+    body.slack = config.slack;
   } else if (uiType === "chime" && config.chime) {
-    base.chime = config.chime;
+    body.chime = config.chime;
   } else if (uiType === "webhook" && config.webhook) {
-    base.custom_webhook = normalizeWebhook(config.webhook);
+    body.webhook = buildWebhookFromUi(config.webhook);
   } else if (uiType === "telegram" && config.telegram) {
-    base.custom_webhook = buildTelegramWebhook(config.telegram);
+    body.webhook = buildTelegramWebhook(config.telegram);
   } else if (uiType === "email" && config.email) {
-    base.email = config.email;
+    const e = config.email as {
+      email_account_id?: string;
+      sender_id?: string;
+      recipients?: string[];
+      recipient_list?: { recipient: string }[];
+      email_group_id_list?: string[];
+    };
+    body.email = {
+      email_account_id: e.email_account_id || e.sender_id || "",
+      recipient_list:
+        e.recipient_list ?? (e.recipients || []).map((r) => ({ recipient: r })),
+      email_group_id_list: e.email_group_id_list || [],
+    };
+  } else if (uiType === "sns" && config.sns) {
+    const s = config.sns as { topic_arn: string; role_arn?: string };
+    body.sns = { topic_arn: s.topic_arn, ...(s.role_arn ? { role_arn: s.role_arn } : {}) };
   }
-  return base;
+  return body;
 }
 
 // ============================
