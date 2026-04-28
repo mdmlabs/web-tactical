@@ -1,0 +1,31 @@
+// CYWM scope — Wazuh-style design tokens.
+// Применяется ТОЛЬКО внутри элементов с классом .cywm-scope, чтобы не утекать
+// в остальную часть приложения, которая использует --uk-* токены.
+.cywm-scope {
+  --cywm-bg-page: #f5f7fa;
+  --cywm-bg-card: #ffffff;
+  --cywm-bg-hover: #f0f4f8;
+  --cywm-bg-table-header: #fafbfc;
+  --cywm-bg-input: #ffffff;
+  --cywm-bg-code: #fbfcfd;
+
+  --cywm-text-primary: #1a1c21;
+  --cywm-text-secondary: #69707d;
+  --cywm-text-muted: #98a2b3;
+
+  --cywm-accent: #006bb4;
+  --cywm-accent-hover: #0078cc;
+  --cywm-accent-light: #e6f1f8;
+
+  --cywm-success: #00a65a;
+  --cywm-warning: #d29922;
+  --cywm-danger: #bd271e;
+
+  --cywm-border: #e5e8ec;
+  --cywm-border-input: #d0d4d9;
+  --cywm-border-strong: #c4c9d0;
+
+  --cywm-mono: "Menlo", "Monaco", "Consolas", "Courier New", monospace;
+  --cywm-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    "Helvetica Neue", sans-serif;
+}

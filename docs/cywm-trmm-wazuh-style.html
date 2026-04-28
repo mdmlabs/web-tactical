@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>CYWM Console — TRMM with Wazuh-styled content</title>
+<style>
+/* ================================================================
+   ROOT VARIABLES
+   - TRMM-обёртка (sidebar + topbar) — тёмная как у TRMM
+   - CYWM рабочая область — светлая в стиле Wazuh Dashboard
+   ================================================================ */
+:root {
+  /* TRMM shell (тёмная обёртка) */
+  --trmm-bg: #1c2128;
+  --trmm-border: #2d333b;
+  --trmm-text: #d0d4d9;
+  --trmm-text-muted: #8b949e;
+  --trmm-accent: #2f81f7;
+  --trmm-active-bg: #22272e;
+
+  /* Wazuh content (светлая рабочая область) */
+  --bg-page:           #f5f7fa;
+  --bg-card:           #ffffff;
+  --bg-hover:          #f0f4f8;
+  --bg-table-header:   #fafbfc;
+  --bg-input:          #ffffff;
+  --bg-code:           #fbfcfd;
+
+  --text-primary:      #1a1c21;
+  --text-secondary:    #69707d;
+  --text-muted:        #98a2b3;
+
+  --accent:            #006bb4;
+  --accent-hover:      #0078cc;
+  --accent-light:      #e6f1f8;
+  --link:              #006bb4;
+
+  --success:           #00a65a;
+  --warning:           #d29922;
+  --danger:            #bd271e;
+
+  --border:            #e5e8ec;
+  --border-input:      #d0d4d9;
+  --border-strong:     #c4c9d0;
+
+  --code-tag:          #006bb4;
+  --code-attr:         #b8860b;
+  --code-string:       #2e7d32;
+  --code-comment:      #98a2b3;
+
+  --mono: 'Menlo', 'Monaco', 'Consolas', 'Courier New', monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-page);
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ================================================================
+   TRMM SHELL — внешняя обёртка (тёмная, как у TRMM)
+   ================================================================ */
+.trmm-shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: 48px 1fr;
+  grid-template-areas:
+    "topbar topbar"
+    "sidebar main";
+  height: 100vh;
+}
+
+.trmm-topbar {
+  grid-area: topbar;
+  background: var(--trmm-bg);
+  border-bottom: 1px solid var(--trmm-border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 16px;
+  color: var(--trmm-text);
+}
+.trmm-logo { font-weight: 700; color: var(--trmm-accent); font-size: 15px; letter-spacing: 0.3px; }
+.trmm-mock { background: #d29922; color: #000; font-size: 10px; padding: 2px 8px; border-radius: 3px; font-weight: 700; }
+.trmm-spacer { flex: 1; }
+.trmm-user { font-size: 12px; color: var(--trmm-text-muted); }
+
+.trmm-sidebar {
+  grid-area: sidebar;
+  background: var(--trmm-bg);
+  border-right: 1px solid var(--trmm-border);
+  overflow-y: auto;
+  padding: 8px 0;
+  color: var(--trmm-text);
+}
+.trmm-section {
+  padding: 8px 16px 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--trmm-text-muted);
+  font-weight: 600;
+}
+.trmm-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px;
+  color: var(--trmm-text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  border-left: 2px solid transparent;
+  transition: all 0.15s;
+}
+.trmm-item:hover { background: var(--trmm-active-bg); color: var(--trmm-text); }
+.trmm-item.active { background: var(--trmm-active-bg); color: var(--trmm-accent); border-left-color: var(--trmm-accent); }
+.trmm-divider { height: 1px; background: var(--trmm-border); margin: 8px 12px; }
+
+.trmm-main {
+  grid-area: main;
+  overflow: auto;
+  background: var(--bg-page);
+}
+
+/* ================================================================
+   WAZUH-STYLED INNER HEADER (внутри TRMM main)
+   ================================================================ */
+.wazuh-topbar {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+}
+.wazuh-topbar .breadcrumb {
+  display: flex; align-items: center; gap: 6px;
+  color: var(--text-secondary);
+}
+.wazuh-topbar .breadcrumb a { color: var(--accent); text-decoration: none; }
+.wazuh-topbar .breadcrumb a:hover { text-decoration: underline; }
+.wazuh-topbar-spacer { flex: 1; }
+.wazuh-topbar .index-pattern {
+  font-size: 12px; color: var(--text-secondary);
+}
+.wazuh-topbar .index-pattern strong { color: var(--text-primary); margin-left: 6px; }
+.wazuh-topbar .api-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
+.wazuh-topbar .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+
+/* ================================================================
+   PAGE LAYOUT (Wazuh-style, light)
+   ================================================================ */
+.page { display: none; padding: 24px 32px; }
+.page.active { display: block; }
+
+/* Page header — стиль Wazuh "Title (count)" */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+.page-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+.page-title .count { color: var(--text-secondary); font-weight: 500; }
+.page-subtitle {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-top: 4px;
+}
+.page-actions { display: flex; gap: 8px; }
+
+/* Wazuh-style "Add new" link button (синяя ссылка с иконкой +) */
+.wz-link-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  padding: 4px 8px;
+}
+.wz-link-btn:hover { color: var(--accent-hover); text-decoration: underline; }
+
+/* ================================================================
+   BUTTONS (Wazuh-style)
+   ================================================================ */
+.btn {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  transition: all 0.1s;
+}
+.btn:hover { background: var(--bg-hover); border-color: var(--accent); color: var(--accent); }
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: white;
+}
+.btn-danger { color: var(--danger); border-color: var(--border-strong); }
+.btn-danger:hover { background: #fef0ee; border-color: var(--danger); color: var(--danger); }
+.btn-sm { padding: 3px 8px; font-size: 12px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:disabled:hover { background: var(--bg-card); border-color: var(--border-strong); color: var(--text-primary); }
+
+/* ================================================================
+   SEARCH BAR (как у Wazuh — широкая с лупой)
+   ================================================================ */
+.wz-search {
+  background: var(--bg-input);
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  padding: 8px 12px 8px 36px;
+  font-size: 13px;
+  width: 100%;
+  font-family: inherit;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2369707d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><path d='m21 21-4.35-4.35'/></svg>");
+  background-repeat: no-repeat;
+  background-position: 12px center;
+}
+.wz-search:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.wz-search::placeholder { color: var(--text-muted); }
+
+/* ================================================================
+   TABLES (Wazuh-style — flat, тонкие разделители)
+   ================================================================ */
+.wz-table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.wz-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.wz-table thead th {
+  text-align: left;
+  padding: 10px 16px;
+  background: var(--bg-table-header);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.wz-table thead th .sort-arrow {
+  display: inline-block;
+  margin-left: 4px;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+.wz-table tbody td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+.wz-table tbody tr:hover td { background: var(--bg-hover); }
+.wz-table tbody tr:last-child td { border-bottom: none; }
+
+/* Иконки действий в стиле Wazuh — простые иконки без фона */
+.wz-actions { display: inline-flex; gap: 12px; }
+.wz-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: var(--accent);
+  font-size: 14px;
+  line-height: 1;
+}
+.wz-icon-btn:hover { color: var(--accent-hover); }
+.wz-icon-btn.danger { color: var(--danger); }
+.wz-icon-btn.danger:hover { color: #8a1d16; }
+.wz-icon-btn:disabled { color: var(--text-muted); cursor: not-allowed; }
+
+/* Status indicator (зелёная/красная точка как у Wazuh) */
+.wz-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px;
+}
+.wz-status::before {
+  content: '';
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.wz-status.success::before { background: var(--success); }
+.wz-status.success { color: var(--text-primary); }
+.wz-status.danger::before { background: var(--danger); }
+.wz-status.danger { color: var(--text-primary); }
+.wz-status.warning::before { background: var(--warning); }
+.wz-status.muted::before { background: var(--text-muted); }
+.wz-status.muted { color: var(--text-secondary); }
+
+/* Pagination — стиль Wazuh */
+.wz-pagination {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.wz-pagination select {
+  background: var(--bg-input);
+  border: 1px solid var(--border-input);
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 13px;
+  font-family: inherit;
+  margin-left: 6px;
+}
+.wz-pagination .pages { display: flex; gap: 4px; align-items: center; }
+.wz-pagination .pages a {
+  color: var(--accent);
+  text-decoration: none;
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+.wz-pagination .pages a.active {
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* ================================================================
+   BREADCRUMB (стиль Wazuh редактора файла)
+   ================================================================ */
+.wz-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+.wz-breadcrumb .back-arrow {
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 16px;
+}
+.wz-breadcrumb .filename { color: var(--text-primary); }
+.wz-breadcrumb .preposition { color: var(--text-secondary); font-weight: 400; font-size: 14px; }
+.wz-breadcrumb .group-name { color: var(--text-primary); }
+
+/* ================================================================
+   FILE LIST + EDITOR LAYOUT
+   ================================================================ */
+.file-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  height: calc(100vh - 48px - 48px - 100px);
+}
+
+.file-list-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.file-list-header {
+  padding: 10px 16px;
+  background: var(--bg-table-header);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.file-list-search {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.file-list-search input {
+  width: 100%;
+  padding: 5px 10px 5px 28px;
+  border: 1px solid var(--border-input);
+  border-radius: 3px;
+  font-size: 12px;
+  font-family: inherit;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2369707d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><path d='m21 21-4.35-4.35'/></svg>");
+  background-repeat: no-repeat;
+  background-position: 8px center;
+}
+.file-list-body { overflow-y: auto; flex: 1; }
+
+.file-cat-header {
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  background: var(--bg-page);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.file-cat-header .add-icon {
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+.file-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.file-row:hover { background: var(--bg-hover); }
+.file-row.active {
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: 600;
+  border-left: 3px solid var(--accent);
+  padding-left: 13px;
+}
+.file-row.modified::before {
+  content: '●';
+  color: var(--warning);
+  margin-right: 6px;
+  font-size: 10px;
+}
+.file-row .file-icon {
+  margin-right: 8px;
+  color: var(--text-muted);
+}
+.file-row.active .file-icon { color: var(--accent); }
+
+/* Editor card (right side) */
+.editor-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.editor-toolbar {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: var(--bg-table-header);
+}
+.editor-path {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.editor-path .target {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.editor-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.editor-content {
+  flex: 1;
+  background: var(--bg-code);
+  display: flex;
+  overflow: hidden;
+}
+/* Stylized "Monaco-like" editor (текстовое поле с номерами строк) */
+.code-wrap {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow: auto;
+}
+.code-line-numbers {
+  background: var(--bg-code);
+  padding: 14px 8px 14px 16px;
+  text-align: right;
+  color: var(--text-muted);
+  user-select: none;
+  white-space: pre;
+  border-right: 1px solid var(--border);
+  font-size: 12px;
+}
+.code-area {
+  flex: 1;
+  padding: 14px 16px;
+  background: var(--bg-code);
+  border: none;
+  resize: none;
+  outline: none;
+  white-space: pre;
+  color: var(--text-primary);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.6;
+  tab-size: 2;
+  overflow: auto;
+}
+
+/* Empty state for editor */
+.editor-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  background: var(--bg-code);
+}
+.editor-empty .icon { font-size: 32px; margin-bottom: 12px; opacity: 0.5; }
+
+/* ================================================================
+   MODALS
+   ================================================================ */
+.modal-bd { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+.modal-bd.show { display: flex; }
+.modal {
+  background: var(--bg-card);
+  border-radius: 6px;
+  width: 560px;
+  max-width: 90vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+}
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+.modal-close { cursor: pointer; color: var(--text-secondary); font-size: 22px; line-height: 1; background: none; border: none; padding: 0 4px; }
+.modal-close:hover { color: var(--text-primary); }
+.modal-body { padding: 20px; overflow-y: auto; }
+.modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  background: var(--bg-table-header);
+}
+
+.form-group { margin-bottom: 16px; }
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-input);
+  padding: 7px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.form-textarea { font-family: var(--mono); resize: vertical; min-height: 80px; }
+.form-helper { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+/* Deploy log code block */
+.deploy-log {
+  background: #2c3038;
+  color: #e6edf3;
+  padding: 14px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+  max-height: 360px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.deploy-log .log-success { color: #56d364; }
+.deploy-log .log-error { color: #ff7b72; }
+.deploy-log .log-warn { color: #e3b341; }
+.deploy-log .log-info { color: #79c0ff; }
+
+/* Toast */
+.toast-container {
+  position: fixed; bottom: 20px; right: 20px; z-index: 200;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.toast {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  border-left: 3px solid var(--accent);
+  padding: 12px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  min-width: 280px;
+  max-width: 420px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  animation: slideIn 0.25s ease-out;
+}
+.toast.success { border-left-color: var(--success); }
+.toast.error   { border-left-color: var(--danger); }
+.toast.warning { border-left-color: var(--warning); }
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+/* Status badges (для таблицы deploy history) */
+.wz-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.wz-badge.success { color: var(--success); }
+.wz-badge.danger  { color: var(--danger); }
+.wz-badge.warning { color: var(--warning); }
+.wz-badge.info    { color: var(--accent); }
+.wz-badge.muted   { color: var(--text-secondary); }
+
+.mono { font-family: var(--mono); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div class="trmm-shell">
+
+  <!-- ======== TRMM TOPBAR (тёмный, как был) ======== -->
+  <div class="trmm-topbar">
+    <div class="trmm-logo">⚡ Tactical RMM</div>
+    <div class="trmm-mock">UI MOCKUP — НЕ ПРОДАКШН</div>
+    <div class="trmm-spacer"></div>
+    <div class="trmm-user">admin@cywm.local</div>
+  </div>
+
+  <!-- ======== TRMM SIDEBAR (тёмный, как был) ======== -->
+  <div class="trmm-sidebar">
+    <div class="trmm-section">TRMM (existing)</div>
+    <div class="trmm-item"><span>▤</span> Dashboard</div>
+    <div class="trmm-item"><span>●</span> Agents</div>
+    <div class="trmm-item"><span>▶</span> Scripts</div>
+    <div class="trmm-item"><span>!</span> Alerts</div>
+
+    <div class="trmm-divider"></div>
+    <div class="trmm-section">CYWM (NEW)</div>
+    <div class="trmm-item active" data-page="files"><span>📂</span> Files & Deploy</div>
+    <div class="trmm-item" data-page="history"><span>↑</span> Deploy History</div>
+  </div>
+
+  <!-- ======== MAIN AREA — CYWM-контент в стиле Wazuh ======== -->
+  <div class="trmm-main">
+
+    <!-- Wazuh-style inner topbar (имитирует Wazuh Dashboard навигацию) -->
+    <div class="wazuh-topbar">
+      <div class="breadcrumb">
+        <a href="#">CYWM</a>
+        <span>/</span>
+        <span id="page-breadcrumb">Files & Deploy</span>
+      </div>
+      <div class="wazuh-topbar-spacer"></div>
+      <div class="index-pattern">Wazuh manager:<strong>v4.14.4</strong></div>
+      <div class="api-status"><span class="dot"></span> API connected</div>
+    </div>
+
+    <!-- =================================================
+         PAGE: FILES & DEPLOY
+         ================================================= -->
+    <div class="page active" id="page-files">
+
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Files <span class="count">(8)</span></h1>
+          <div class="page-subtitle">Manage Wazuh manager and Windows agent configuration files. Deploy without SSH/RDP.</div>
+        </div>
+        <div class="page-actions">
+          <button class="wz-link-btn" onclick="openModal('upload-modal')">⊕ Upload file</button>
+          <button class="wz-link-btn" onclick="openModal('create-modal')">⊕ New file</button>
+        </div>
+      </div>
+
+      <div class="file-layout">
+
+        <!-- File list (left) -->
+        <div class="file-list-card">
+          <div class="file-list-header">
+            <span>Configuration files</span>
+            <span style="font-size: 11px; color: var(--text-secondary); font-weight: 400;">8 items</span>
+          </div>
+          <div class="file-list-search">
+            <input type="text" placeholder="Filter files...">
+          </div>
+          <div class="file-list-body" id="file-list">
+
+            <div class="file-cat-header">
+              Manager / rules
+              <span class="add-icon" onclick="quickCreate('manager','rules')">+</span>
+            </div>
+            <div class="file-row active" onclick="loadFile('local_rules')">
+              <span class="file-icon">📄</span> local_rules.xml
+            </div>
+
+            <div class="file-cat-header">
+              Manager / decoders
+              <span class="add-icon" onclick="quickCreate('manager','decoders')">+</span>
+            </div>
+            <div class="file-row" onclick="loadFile('local_decoder')">
+              <span class="file-icon">📄</span> local_decoder.xml
+            </div>
+
+            <div class="file-cat-header">
+              Manager / ossec-snippets
+              <span class="add-icon" onclick="quickCreate('manager','ossec-snippets')">+</span>
+            </div>
+            <div class="file-row" onclick="loadFile('vulnerability')">
+              <span class="file-icon">📄</span> 10-vulnerability.xml
+            </div>
+            <div class="file-row modified" onclick="loadFile('active-response-snippet')">
+              <span class="file-icon">📄</span> 20-active-response.xml
+            </div>
+
+            <div class="file-cat-header">
+              Manager / shared
+              <span class="add-icon" onclick="quickCreate('manager','shared')">+</span>
+            </div>
+            <div class="file-row" onclick="loadFile('hr-agent-conf')">
+              <span class="file-icon">📄</span> cywm-high-risk/agent.conf
+            </div>
+
+            <div class="file-cat-header">
+              Windows agent / active-response
+              <span class="add-icon" onclick="quickCreate('windows-agent','active-response')">+</span>
+            </div>
+            <div class="file-row" onclick="loadFile('winget-cmd')">
+              <span class="file-icon">📄</span> winget-upgrade.cmd
+            </div>
+            <div class="file-row" onclick="loadFile('winget-ps1')">
+              <span class="file-icon">📄</span> winget-upgrade.ps1
+            </div>
+            <div class="file-row" onclick="loadFile('block-net')">
+              <span class="file-icon">📄</span> block-network.cmd
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Editor (right) — стиль Wazuh редактора -->
+        <div class="editor-card">
+          <div class="editor-toolbar">
+            <div class="editor-path">
+              <span class="target" id="editor-target">Manager</span>
+              <span> / rules / </span>
+              <span id="editor-filename">local_rules.xml</span>
+            </div>
+            <div class="editor-actions">
+              <button class="btn btn-sm" onclick="reloadFile()" id="btn-reload">↻ Reload</button>
+              <button class="btn btn-sm btn-danger" onclick="confirmDelete()" id="btn-delete">🗑 Delete</button>
+              <button class="btn btn-sm" onclick="saveFile()" id="btn-save">💾 Save</button>
+              <button class="btn btn-sm btn-primary" onclick="deployFile()" id="btn-deploy">↑ Save & Deploy</button>
+            </div>
+          </div>
+          <div class="editor-content">
+            <div class="code-wrap" id="code-wrap">
+              <div class="code-line-numbers" id="line-numbers">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30</div>
+              <textarea class="code-area" id="code-editor" spellcheck="false">&lt;group name="vulnerability-detector,cywm,"&gt;
+
+  &lt;!-- HIGH: CVSS 7.0-8.9 → auto-fix --&gt;
+  &lt;rule id="100200" level="10"&gt;
+    &lt;if_group&gt;vulnerability-detector&lt;/if_group&gt;
+    &lt;field name="data.vulnerability.cvss3.base_score"&gt;^[78]\.&lt;/field&gt;
+    &lt;description&gt;CYWM HIGH: CVSS $(data.vulnerability.cvss3.base_score) — TRIGGER auto-fix&lt;/description&gt;
+    &lt;group&gt;cywm_high,auto_fix_required,&lt;/group&gt;
+  &lt;/rule&gt;
+
+  &lt;!-- CRITICAL: CVSS 9.0+ → auto-fix + restrict --&gt;
+  &lt;rule id="100201" level="12"&gt;
+    &lt;if_group&gt;vulnerability-detector&lt;/if_group&gt;
+    &lt;field name="data.vulnerability.cvss3.base_score"&gt;^9\.&lt;/field&gt;
+    &lt;description&gt;CYWM CRITICAL: CVSS $(data.vulnerability.cvss3.base_score)&lt;/description&gt;
+    &lt;group&gt;cywm_critical,auto_fix_required,&lt;/group&gt;
+  &lt;/rule&gt;
+
+  &lt;!-- THRESHOLD: 5+ critical CVE/h → restrict access --&gt;
+  &lt;rule id="100202" level="13" frequency="5" timeframe="3600"&gt;
+    &lt;if_matched_sid&gt;100201&lt;/if_matched_sid&gt;
+    &lt;same_source_ip /&gt;
+    &lt;description&gt;CYWM THRESHOLD: RESTRICT ACCESS&lt;/description&gt;
+    &lt;group&gt;cywm_threshold,restrict_access,&lt;/group&gt;
+  &lt;/rule&gt;
+
+&lt;/group&gt;</textarea>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- =================================================
+         PAGE: DEPLOY HISTORY
+         ================================================= -->
+    <div class="page" id="page-history">
+
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Deploy History <span class="count">(8)</span></h1>
+          <div class="page-subtitle">From here you can list and check all configuration deployments performed via CYWM Console.</div>
+        </div>
+      </div>
+
+      <input type="text" class="wz-search" placeholder="Search by file, target, user...">
+
+      <div class="wz-table-card">
+        <table class="wz-table">
+          <thead>
+            <tr>
+              <th>Time <span class="sort-arrow">↓</span></th>
+              <th>Target</th>
+              <th>File</th>
+              <th>Category</th>
+              <th>By</th>
+              <th>Status</th>
+              <th>Duration</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">04/28/26 14:23</td>
+              <td>Wazuh manager</td>
+              <td class="mono">local_rules.xml</td>
+              <td>rules</td>
+              <td>admin</td>
+              <td><span class="wz-badge success">● Success</span></td>
+              <td class="mono">3.4s</td>
+              <td>
+                <div class="wz-actions">
+                  <button class="wz-icon-btn" title="View log" onclick="openLogModal('success')">👁</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="mono">04/28/26 14:18</td>
+              <td>WIN11-DEMO (009)</td>
+              <td class="mono">winget-upgrade.ps1</td>
+              <td>active-response</td>
+              <td>admin</td>
+              <td><span class="wz-badge success">● Success</span></td>
+              <td class="mono">2.1s</td>
+              <td>
+                <div class="wz-actions">
+                  <button class="wz-icon-btn" title="View log" onclick="openLogModal('success')">👁</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="mono">04/28/26 14:18</td>
+              <td>WIN11-DEMO (009)</td>
+              <td class="mono">winget-upgrade.cmd</td>
+              <td>active-response</td>
+              <td>admin</td>
+              <td><span class="wz-badge success">● Success</span></td>
+              <td class="mono">1.8s</td>
+              <td>
+                <div class="wz-actions">
+                  <button class="wz-icon-btn" title="View log" onclick="openLogModal('success')">👁</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="mono">04/28/26 13:55</td>
+              <td>Wazuh manager</td>
+              <td class="mono">20-active-response.xml</td>
+              <td>ossec-snippets</td>
+              <td>admin</td>
+              <td><span class="wz-badge danger">● Failed</span></td>
+              <td class="mono">1.2s</td>
+              <td>
+                <div class="wz-actions">
+                  <button class="wz-icon-btn" title="View log" onclick="openLogModal('error')">👁</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="mono">04/28/26 13:45</td>
+              <td>cywm-high-risk group</td>
+              <td class="mono">agent.conf</td>
+              <td>shared</td>
+              <td>admin</td>
+              <td><span class="wz-badge success">● Success</span></td>
+              <td class="mono">0.8s</td>
+              <td>
+                <div class="wz-actions">
+                  <button class="wz-icon-btn" title="View log" onclick="openLogModal('success')">👁</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="mono">04/28/26 12:30</td>
+              <td>Wazuh manager</td>
+              <td class="mono">10-vulnerability.xml</td>
+              <td>ossec-snippets</td>
+              <td>alex</td>
+              <td><span class="wz-badge success">● Success</span></td>
+              <td class="mono">4.2s</td>
+              <td>
+                <div class="wz-actions">
+                  <button class="wz-icon-btn" title="View log" onclick="openLogModal('success')">👁</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="mono">04/28/26 11:42</td>
+              <td>Wazuh manager</td>
+              <td class="mono">local_decoder.xml</td>
+              <td>decoders</td>
+              <td>alex</td>
+              <td><span class="wz-badge success">● Success</span></td>
+              <td class="mono">3.1s</td>
+              <td>
+                <div class="wz-actions">
+                  <button class="wz-icon-btn" title="View log" onclick="openLogModal('success')">👁</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="mono">04/28/26 10:15</td>
+              <td>Wazuh manager</td>
+              <td class="mono">local_rules.xml</td>
+              <td>rules</td>
+              <td>admin</td>
+              <td><span class="wz-badge danger">● Failed</span></td>
+              <td class="mono">0.9s</td>
+              <td>
+                <div class="wz-actions">
+                  <button class="wz-icon-btn" title="View log" onclick="openLogModal('error')">👁</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="wz-pagination">
+          <span>Rows per page:
+            <select>
+              <option>10</option>
+              <option>25</option>
+              <option>50</option>
+            </select>
+          </span>
+          <div class="pages">
+            <a href="#"><</a>
+            <a href="#" class="active">1</a>
+            <a href="#">></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============== MODALS ============== -->
+
+<!-- Upload modal -->
+<div class="modal-bd" id="upload-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Upload configuration file</div>
+      <button class="modal-close" onclick="closeModal('upload-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Target</label>
+        <select class="form-select">
+          <option>Wazuh manager</option>
+          <option>Windows agent</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-select">
+          <option>rules</option>
+          <option>decoders</option>
+          <option>ossec-snippets</option>
+          <option>integrations</option>
+          <option>shared (group/agent.conf)</option>
+          <option>active-response (Windows)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">File</label>
+        <div style="border: 2px dashed var(--border-input); border-radius: 4px; padding: 24px; text-align: center; color: var(--text-secondary); cursor: pointer;">
+          <div style="font-size: 28px; margin-bottom: 8px;">📤</div>
+          <div>Click or drag file here to upload</div>
+          <div class="form-helper">Max size: 1MB · XML, CMD, PS1, PY</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('upload-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('upload-modal'); toast('success','File uploaded successfully')">Upload</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create file modal -->
+<div class="modal-bd" id="create-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Create new configuration file</div>
+      <button class="modal-close" onclick="closeModal('create-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Target</label>
+        <select class="form-select" id="create-target">
+          <option value="manager">Wazuh manager</option>
+          <option value="windows-agent">Windows agent</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-select" id="create-category">
+          <option>rules</option>
+          <option>decoders</option>
+          <option>ossec-snippets</option>
+          <option>shared</option>
+          <option>active-response</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">File name</label>
+        <input class="form-input mono" placeholder="e.g. custom_rules.xml">
+        <div class="form-helper">For shared: use <code>groupname/agent.conf</code></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Template</label>
+        <select class="form-select">
+          <option>Empty</option>
+          <option>Custom Wazuh rule</option>
+          <option>vulnerability-detection snippet</option>
+          <option>active-response snippet</option>
+          <option>agent.conf for group</option>
+          <option>winget-upgrade.cmd</option>
+          <option>winget-upgrade.ps1</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('create-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('create-modal'); toast('success','File created from template')">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete modal -->
+<div class="modal-bd" id="delete-modal">
+  <div class="modal" style="width: 440px;">
+    <div class="modal-header">
+      <div class="modal-title">Delete configuration file?</div>
+      <button class="modal-close" onclick="closeModal('delete-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom: 12px;">Are you sure you want to delete <strong id="delete-filename">local_rules.xml</strong>?</p>
+      <p class="form-helper">A backup is kept for 30 days. To restore — copy contents from history into a new file.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('delete-modal')">Cancel</button>
+      <button class="btn btn-primary" style="background: var(--danger); border-color: var(--danger);" onclick="closeModal('delete-modal'); toast('warning','File moved to backup (30d retention)')">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Deploy log modal -->
+<div class="modal-bd" id="log-modal">
+  <div class="modal" style="width: 720px;">
+    <div class="modal-header">
+      <div class="modal-title" id="log-title">Deployment log</div>
+      <button class="modal-close" onclick="closeModal('log-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="deploy-log" id="log-content"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('log-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+const FILE_DATA = {
+  'local_rules': { target: 'Manager', cat: 'rules', name: 'local_rules.xml', content: document.getElementById('code-editor').value },
+  'local_decoder': { target: 'Manager', cat: 'decoders', name: 'local_decoder.xml', content: `<decoder name="custom-app">
+  <prematch>^MyApp:</prematch>
+</decoder>` },
+  'vulnerability': { target: 'Manager', cat: 'ossec-snippets', name: '10-vulnerability.xml', content: `<vulnerability-detection>
+  <enabled>yes</enabled>
+  <index-status>yes</index-status>
+  <feed-update-interval>2h</feed-update-interval>
+</vulnerability-detection>` },
+  'active-response-snippet': { target: 'Manager', cat: 'ossec-snippets', name: '20-active-response.xml', content: `<command>
+  <name>winget-upgrade</name>
+  <executable>winget-upgrade.cmd</executable>
+  <timeout_allowed>yes</timeout_allowed>
+</command>
+
+<active-response>
+  <command>winget-upgrade</command>
+  <location>local</location>
+  <rules_id>100200,100201</rules_id>
+  <timeout>600</timeout>
+</active-response>` },
+  'hr-agent-conf': { target: 'Manager', cat: 'shared', name: 'cywm-high-risk/agent.conf', content: `<agent_config>
+  <wodle name="syscollector">
+    <disabled>no</disabled>
+    <interval>30m</interval>
+    <packages>yes</packages>
+  </wodle>
+  <syscheck>
+    <disabled>no</disabled>
+    <directories realtime="yes" check_all="yes">C:\\Windows\\System32\\drivers</directories>
+  </syscheck>
+</agent_config>` },
+  'winget-cmd': { target: 'Windows agent', cat: 'active-response', name: 'winget-upgrade.cmd', content: `@echo off
+setlocal EnableDelayedExpansion
+set LOG=C:\\Program Files (x86)\\ossec-agent\\active-response\\active-responses.log
+set /p INPUT=
+echo [%date% %time%] CYWM auto-fix: %INPUT% >> "%LOG%"
+powershell.exe -ExecutionPolicy Bypass -File "winget-upgrade.ps1" "%INPUT%"
+endlocal & exit /b 0` },
+  'winget-ps1': { target: 'Windows agent', cat: 'active-response', name: 'winget-upgrade.ps1', content: `param([string]$Payload)
+$LogFile = "C:\\Program Files (x86)\\ossec-agent\\active-response\\active-responses.log"
+
+function Write-Log($Message) {
+  $ts = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+  Add-Content -Path $LogFile -Value "[$ts] [winget] $Message"
+}
+
+try {
+  if (-not $Payload) { $Payload = $Input | Out-String }
+  $alert = $Payload | ConvertFrom-Json -ErrorAction SilentlyContinue
+  $cve = $alert.parameters.alert.data.vulnerability.cve
+  $pkg = $alert.parameters.alert.data.vulnerability.package.name
+  Write-Log "CVE=$cve Package=$pkg"
+  & winget upgrade --id $pkg --silent
+} catch { Write-Log "ERROR: $_"; exit 1 }
+exit 0` },
+  'block-net': { target: 'Windows agent', cat: 'active-response', name: 'block-network.cmd', content: `@echo off
+powershell.exe -Command "New-NetFirewallRule -DisplayName 'CYWM-Quarantine' -Direction Outbound -Action Block"` }
+};
+
+function loadFile(key) {
+  const f = FILE_DATA[key];
+  if (!f) return;
+  document.querySelectorAll('.file-row').forEach(r => r.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('editor-target').textContent = f.target;
+  document.getElementById('editor-filename').textContent = f.name;
+  document.querySelector('.editor-path').innerHTML =
+    `<span class="target">${f.target}</span> / ${f.cat} / <span>${f.name}</span>`;
+  const ed = document.getElementById('code-editor');
+  ed.value = f.content;
+  updateLineNumbers();
+}
+
+function updateLineNumbers() {
+  const ed = document.getElementById('code-editor');
+  const lines = ed.value.split('\n').length;
+  const ln = [];
+  for (let i = 1; i <= Math.max(lines, 30); i++) ln.push(i);
+  document.getElementById('line-numbers').textContent = ln.join('\n');
+}
+document.getElementById('code-editor').addEventListener('input', () => {
+  updateLineNumbers();
+  const active = document.querySelector('.file-row.active');
+  if (active) active.classList.add('modified');
+});
+
+// Page navigation
+document.querySelectorAll('.trmm-item[data-page]').forEach(item => {
+  item.addEventListener('click', () => {
+    const page = item.getAttribute('data-page');
+    document.querySelectorAll('.trmm-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    document.getElementById('page-breadcrumb').textContent =
+      page === 'files' ? 'Files & Deploy' : 'Deploy History';
+  });
+});
+
+// Modal helpers
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+function quickCreate(target, category) {
+  document.getElementById('create-target').value = target;
+  document.getElementById('create-category').value = category;
+  openModal('create-modal');
+}
+
+function reloadFile() { toast('info', 'File reloaded from server'); }
+function saveFile() {
+  document.querySelectorAll('.file-row.modified').forEach(r => r.classList.remove('modified'));
+  toast('success', 'Saved locally');
+}
+function confirmDelete() {
+  const active = document.querySelector('.file-row.active');
+  if (active) {
+    document.getElementById('delete-filename').textContent = active.textContent.trim();
+    openModal('delete-modal');
+  }
+}
+
+function deployFile() {
+  saveFile();
+  toast('info', 'Deploying...');
+  setTimeout(() => {
+    document.getElementById('log-title').textContent = 'Deployment log — Wazuh manager';
+    document.getElementById('log-content').innerHTML =
+`<span class="log-info">[14:23:08]</span> Deploy started
+<span class="log-info">[14:23:08]</span> Connecting to wazuh.manager:22 via SSH... <span class="log-success">OK</span>
+<span class="log-info">[14:23:09]</span> Validating config: /var/ossec/bin/wazuh-control configtest
+<span class="log-success">[14:23:10]</span> wazuh-config valid: rules and decoders OK
+<span class="log-info">[14:23:10]</span> Creating backup at /var/ossec/backup/20260428-142308/
+<span class="log-info">[14:23:10]</span> Uploading file via SFTP
+<span class="log-info">[14:23:11]</span> Setting ownership wazuh:wazuh, mode 0660
+<span class="log-info">[14:23:11]</span> Restarting wazuh-manager via systemctl
+<span class="log-info">[14:23:14]</span> Waiting for service start...
+<span class="log-success">[14:23:16]</span> systemctl is-active wazuh-manager: <span class="log-success">active</span>
+<span class="log-success">[14:23:17]</span> ✓ Deploy completed successfully in 3.4s`;
+    openModal('log-modal');
+    toast('success', 'Deploy succeeded');
+  }, 1200);
+}
+
+function openLogModal(type) {
+  if (type === 'success') {
+    document.getElementById('log-title').textContent = 'Deployment log — 04/28/26 14:23';
+    document.getElementById('log-content').innerHTML =
+`<span class="log-info">[14:23:08]</span> Deploy started: local_rules.xml → Wazuh manager
+<span class="log-info">[14:23:08]</span> Connecting via SSH... <span class="log-success">OK</span>
+<span class="log-info">[14:23:09]</span> Validating: /var/ossec/bin/wazuh-control configtest
+<span class="log-success">[14:23:10]</span> Config valid
+<span class="log-info">[14:23:10]</span> Backup → /var/ossec/backup/20260428-142308/
+<span class="log-info">[14:23:11]</span> Uploading via SFTP
+<span class="log-info">[14:23:11]</span> chown wazuh:wazuh, chmod 0660
+<span class="log-info">[14:23:11]</span> systemctl restart wazuh-manager
+<span class="log-success">[14:23:16]</span> Service active
+<span class="log-success">[14:23:17]</span> ✓ Completed in 3.4s`;
+  } else {
+    document.getElementById('log-title').textContent = 'Deployment log — 04/28/26 13:55 (FAILED)';
+    document.getElementById('log-content').innerHTML =
+`<span class="log-info">[13:55:17]</span> Deploy started: 20-active-response.xml → Wazuh manager
+<span class="log-info">[13:55:17]</span> Connecting via SSH... <span class="log-success">OK</span>
+<span class="log-info">[13:55:18]</span> Injecting snippet into ossec.conf
+<span class="log-info">[13:55:18]</span> Validating: /var/ossec/bin/wazuh-control configtest
+<span class="log-error">[13:55:19]</span> ✗ configtest FAILED:
+<span class="log-error">  ERROR: (1230): Invalid element in the configuration: 'commnd'.</span>
+<span class="log-error">  ERROR: (1202): Configuration error at '/var/ossec/etc/ossec.conf'.</span>
+<span class="log-warn">[13:55:19]</span> Configuration NOT applied — manager untouched
+<span class="log-warn">[13:55:19]</span> Original config preserved
+<span class="log-error">[13:55:19]</span> ✗ Deploy failed in 1.2s`;
+  }
+  openModal('log-modal');
+}
+
+function toast(type, message) {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = message;
+  c.appendChild(t);
+  setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transition = 'opacity 0.3s';
+    setTimeout(() => t.remove(), 300);
+  }, 3000);
+}
+
+// Close modals on backdrop
+document.querySelectorAll('.modal-bd').forEach(b => {
+  b.addEventListener('click', e => { if (e.target === b) b.classList.remove('show'); });
+});
+
+// Init
+updateLineNumbers();
+</script>
+</body>
+</html>

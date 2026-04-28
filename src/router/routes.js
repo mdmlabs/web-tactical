@@ -55,6 +55,22 @@ const routes = [
         },
       },
       {
+        path: "/cywm/files",
+        name: "CywmFiles",
+        component: () => import("@/cywm/views/CywmFilesView.vue"),
+        meta: {
+          requireAuth: true,
+        },
+      },
+      {
+        path: "/cywm/history",
+        name: "CywmHistory",
+        component: () => import("@/cywm/views/CywmHistoryView.vue"),
+        meta: {
+          requireAuth: true,
+        },
+      },
+      {
         path: "/resources",
         name: "Resources",
         component: () => import("@/resources/views/ResourcesView.vue"),
@@ -121,7 +137,8 @@ const routes = [
       {
         path: "/self-service",
         name: "SelfServicePortal",
-        component: () => import("@/views/selfservice/SelfServicePortalView.vue"),
+        component: () =>
+          import("@/views/selfservice/SelfServicePortalView.vue"),
         meta: {
           requireAuth: true,
         },
@@ -138,65 +155,55 @@ const routes = [
           {
             path: "agents",
             name: "SecurityAgents",
-            component: () =>
-              import("@/views/security/SecurityAgents.vue"),
+            component: () => import("@/views/security/SecurityAgents.vue"),
           },
           {
             path: "agents/:hostname",
             name: "AgentSecurityDetail",
-            component: () =>
-              import("@/views/security/AgentSecurityDetail.vue"),
+            component: () => import("@/views/security/AgentSecurityDetail.vue"),
             props: true,
           },
           {
             path: "agents/:agentId/detail",
             name: "AgentEndpointDetail",
-            component: () =>
-              import("@/views/security/AgentEndpointDetail.vue"),
+            component: () => import("@/views/security/AgentEndpointDetail.vue"),
             props: true,
           },
           {
             path: "discover",
             name: "SecurityDiscover",
-            component: () =>
-              import("@/views/security/DiscoverView.vue"),
+            component: () => import("@/views/security/DiscoverView.vue"),
           },
           {
             path: "alerts",
             name: "SecurityAlerts",
-            component: () =>
-              import("@/views/security/AlertingView.vue"),
+            component: () => import("@/views/security/AlertingView.vue"),
           },
           {
             path: "groups",
             name: "SecurityGroups",
-            component: () =>
-              import("@/views/security/SecurityGroups.vue"),
+            component: () => import("@/views/security/SecurityGroups.vue"),
           },
           {
             path: "groups/:groupName",
             name: "SecurityGroupDetail",
-            component: () =>
-              import("@/views/security/SecurityGroupDetail.vue"),
+            component: () => import("@/views/security/SecurityGroupDetail.vue"),
             props: true,
           },
           {
             path: "it-hygiene",
             name: "ITHygiene",
-            component: () =>
-              import("@/views/security/ITHygieneView.vue"),
+            component: () => import("@/views/security/ITHygieneView.vue"),
           },
           {
             path: "fim",
             name: "SecurityFIM",
-            component: () =>
-              import("@/views/security/FIMView.vue"),
+            component: () => import("@/views/security/FIMView.vue"),
           },
           {
             path: "threat-hunting",
             name: "ThreatHunting",
-            component: () =>
-              import("@/views/security/ThreatHuntingView.vue"),
+            component: () => import("@/views/security/ThreatHuntingView.vue"),
           },
           // {
           //   path: "alerting",
@@ -211,8 +218,7 @@ const routes = [
           {
             path: "compliance/:framework?",
             name: "ComplianceHub",
-            component: () =>
-              import("@/views/security/ComplianceHub.vue"),
+            component: () => import("@/views/security/ComplianceHub.vue"),
           },
           {
             path: "vulnerability-detection",
@@ -262,8 +268,7 @@ const routes = [
             // framework-driven). Path picked to avoid collision.
             path: "agent-compliance",
             name: "AgentCompliance",
-            component: () =>
-              import("@/views/security/WazuhComplianceView.vue"),
+            component: () => import("@/views/security/WazuhComplianceView.vue"),
           },
         ],
       },
