@@ -144,9 +144,10 @@ async function onGenerate() {
       resp = await createModuleReport(s.section);
     }
     const name = resp?.filename ?? resp?.name ?? null;
+    const shown = name ? name.replace(/^wazuh-/i, "") : null;
     notifySuccess(
-      name
-        ? `${s.label} report generated: ${name}. Open Security → Reports to download.`
+      shown
+        ? `${s.label} report generated: ${shown}. Open Security → Reports to download.`
         : `${s.label} report generated. Open Security → Reports to download.`,
     );
   } catch (err) {

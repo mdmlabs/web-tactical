@@ -62,10 +62,11 @@
           Report generated:
           <a
             :href="downloadUrl(lastReport)"
+            :download="displayName(lastReport)"
             target="_blank"
             rel="noopener"
             class="text-primary"
-            >{{ lastReport }}</a
+            >{{ displayName(lastReport) }}</a
           >
           <template #action>
             <q-btn
@@ -186,6 +187,10 @@ function downloadUrl(name: string) {
   return reportDownloadUrl(name);
 }
 
+function displayName(name: string | null): string {
+  return name ? name.replace(/^wazuh-/i, "") : "";
+}
+
 function toIso(v: string): string {
   // Accept either ISO-8601 or simple now/now-<n><unit> date-math.
   const s = v.trim();
@@ -226,7 +231,7 @@ async function submit() {
     }
     const name = resp?.filename ?? resp?.name ?? null;
     lastReport.value = name;
-    notifySuccess(name ? `Report generated: ${name}` : "Report generated");
+    notifySuccess(name ? `Report generated: ${displayName(name)}` : "Report generated");
   } catch (err) {
     notifyError(`Failed to generate report: ${extractWazuhError(err)}`);
   } finally {

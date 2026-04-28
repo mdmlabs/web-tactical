@@ -89,6 +89,7 @@ import { ref, computed, watch } from "vue";
 import {
   exportAgents,
   AGENTS_EXPORT_COLUMNS,
+  type AgentsExportCharts,
   type AgentsExportFormat,
 } from "@/utils/agentsExport";
 import { notifyError, notifySuccess } from "@/utils/notify";
@@ -102,6 +103,8 @@ const props = defineProps<{
   allAgents: WazuhAgent[];
   /** Free-text filter currently in the toolbar — surfaced in the summary. */
   filterText: string;
+  /** Donut data drawn into the PDF — same series as the on-screen charts. */
+  charts: AgentsExportCharts;
 }>();
 const emit = defineEmits<{ (e: "update:modelValue", v: boolean): void }>();
 
@@ -180,6 +183,7 @@ async function onGenerate() {
               exportedAgents: slice.length,
             }
           : undefined,
+      pdfCharts: format.value === "pdf" ? props.charts : undefined,
     });
     notifySuccess(`Exported ${rows.toLocaleString()} agents`);
     open.value = false;
