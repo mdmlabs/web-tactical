@@ -5,6 +5,17 @@
       <q-btn
         flat
         dense
+        color="secondary"
+        icon="download"
+        label=""
+        :disable="loading || agents.length === 0"
+        :loading="exportAgentStatusLoading"
+        title="Export agents status"
+        @click="handleExportAgentStatus"
+      />
+      <q-btn
+        flat
+        dense
         color="primary"
         icon="add_circle_outline"
         label=""
@@ -110,6 +121,9 @@
 import { computed, ref } from "vue";
 import type { QTableColumn } from "quasar";
 import { formatDate } from "@/utils/format";
+import { agentServiceClientWrapper } from "@/gpo/api/grpc-client";
+import export_pb from "@/generated/common/export_pb";
+import { notifyError, notifySuccess } from "@/utils/notify";
 
 export interface AgentRow {
   id: string;
@@ -138,6 +152,66 @@ defineEmits<{
   "remove-agent": [agentId: string];
   "open-agent-dashboard": [agentId: string];
 }>();
+
+const exportAgentStatusLoading = ref(false);
+
+function exportMimeType(format: export_pb.ExportFormat | number | undefined): string {
+  if (format === export_pb.ExportFormat.XLSX) {
+    return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  }
+  return "text/csv";
+}
+
+function exportExtension(format: export_pb.ExportFormat | number | undefined): string {
+  if (format === export_pb.ExportFormat.XLSX) return "xlsx";
+  return "csv";
+}
+
+function downloadBlob(content: Uint8Array | string, fileName: string, mimeType: string) {
+  const bytes =
+    typeof content === "string"
+      ? new Uint8Array(Array.from(atob(content), (c) => c.codePointAt(0) ?? 0))
+      : new Uint8Array(content);
+  const blob = new Blob([bytes.buffer], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function handleExportAgentStatus() {
+  const agentIds = (props.agents ?? []).map((a) => String(a.id || "").trim()).filter(Boolean);
+  if (agentIds.length === 0) return;
+
+  exportAgentStatusLoading.value = true;
+  try {
+    const res = await agentServiceClientWrapper.exportAgentStatusFor("agents", {
+      agentIds,
+    });
+    const ext = exportExtension(res.exportFormat);
+    const fallbackName = `agent_status_${agentIds.length}_agents.${ext}`;
+    downloadBlob(
+      res.content,
+      res.fileName || fallbackName,
+      exportMimeType(res.exportFormat),
+    );
+    notifySuccess(
+      res.exportFormat === export_pb.ExportFormat.XLSX
+        ? "Agents status exported as XLSX"
+        : "Agents status exported as CSV",
+    );
+  } catch (err) {
+    notifyError(
+      err instanceof Error ? err.message : "Failed to export agents status",
+    );
+  } finally {
+    exportAgentStatusLoading.value = false;
+  }
+}
 
 function getStatusColor(status: string): string {
   const s = (status ?? "").toLowerCase().trim();
