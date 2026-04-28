@@ -17,6 +17,19 @@
           </div>
           <q-space />
           <q-btn
+            v-if="agent"
+            flat
+            round
+            dense
+            icon="download"
+            color="secondary"
+            :loading="exportAgentStatusLoading"
+            :disable="exportAgentStatusLoading"
+            @click="handleExportAgentStatus"
+          >
+            <q-tooltip>Export agent status</q-tooltip>
+          </q-btn>
+          <q-btn
             flat
             round
             dense
@@ -622,6 +635,7 @@ import { ref, computed, watch } from "vue";
 import { QTableColumn } from "quasar";
 
 import {
+  agentServiceClientWrapper,
   policyAssignmentClient,
   policyStateClient,
   policySelectionToParamItems,
@@ -672,6 +686,7 @@ const effectiveSearch = ref("");
 const removingPolicyHash = ref<string | null>(null);
 const exportAssignmentsLoading = ref(false);
 const exportEffectiveLoading = ref(false);
+const exportAgentStatusLoading = ref(false);
 
 function downloadBlob(
   content: Uint8Array | string,
@@ -703,6 +718,50 @@ function exportFileBaseName(kind: "assignments" | "effective"): string {
       )
     : "agent";
   return `policy_${kind}_${host}`;
+}
+
+function exportMimeType(format: export_pb.ExportFormat | number | undefined): string {
+  if (format === export_pb.ExportFormat.XLSX) {
+    return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  }
+  return "text/csv";
+}
+
+function exportExtension(format: export_pb.ExportFormat | number | undefined): string {
+  if (format === export_pb.ExportFormat.XLSX) {
+    return "xlsx";
+  }
+  return "csv";
+}
+
+async function handleExportAgentStatus() {
+  if (!props.agent) return;
+  exportAgentStatusLoading.value = true;
+  try {
+    const res = await agentServiceClientWrapper.exportAgentStatusFor("agent", {
+      agentId: props.agent.id,
+    });
+    const ext = exportExtension(res.exportFormat);
+    const fallbackName = `agent_status_${String(
+      props.agent.hostname || props.agent.id,
+    ).replaceAll(/[^a-zA-Z0-9._-]+/g, "_")}.${ext}`;
+    downloadBlob(
+      res.content,
+      res.fileName || fallbackName,
+      exportMimeType(res.exportFormat),
+    );
+    notifySuccess(
+      res.exportFormat === export_pb.ExportFormat.XLSX
+        ? "Agent status exported as XLSX"
+        : "Agent status exported as CSV",
+    );
+  } catch (err) {
+    notifyError(
+      err instanceof Error ? err.message : "Failed to export agent status",
+    );
+  } finally {
+    exportAgentStatusLoading.value = false;
+  }
 }
 
 async function handleExportAssignments(format: "csv" | "xlsx") {
