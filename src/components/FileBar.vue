@@ -27,471 +27,473 @@
 
       <div class="filebar-menu-scroll-wrap">
         <q-scroll-area class="filebar-menu-scroll">
-        <q-list class="filebar-menu-list">
-          <!-- файл часть-->
-          <template v-if="isMiniMode && !isMobile">
-            <q-item clickable class="filebar-menu-section-mini">
-              <q-item-section avatar>
-                <q-icon name="folder" size="24px">
-                  <q-tooltip
-                    anchor="center right"
-                    self="center left"
-                    :offset="[10, 0]"
-                  >
-                    File
-                  </q-tooltip>
-                </q-icon>
-              </q-item-section>
-              <q-menu
-                anchor="top end"
-                self="top start"
-                :offset="[8, 0]"
-                class="sidebar-popup-menu"
-              >
-                <q-list class="filebar-popup-list">
-                  <q-item-label header class="text-weight-bold"
-                    >File</q-item-label
-                  >
+          <q-list class="filebar-menu-list">
+            <!-- файл часть-->
+            <template v-if="isMiniMode && !isMobile">
+              <q-item clickable class="filebar-menu-section-mini">
+                <q-item-section avatar>
+                  <q-icon name="folder" size="24px">
+                    <q-tooltip
+                      anchor="center right"
+                      self="center left"
+                      :offset="[10, 0]"
+                    >
+                      File
+                    </q-tooltip>
+                  </q-icon>
+                </q-item-section>
+                <q-menu
+                  anchor="top end"
+                  self="top start"
+                  :offset="[8, 0]"
+                  class="sidebar-popup-menu"
+                >
+                  <q-list class="filebar-popup-list">
+                    <q-item-label header class="text-weight-bold"
+                      >File</q-item-label
+                    >
 
-                  <q-expansion-item
-                    icon="add_circle_outline"
-                    label="Add"
-                    dense
-                    class="filebar-popup-expansion"
-                  >
+                    <q-expansion-item
+                      icon="add_circle_outline"
+                      label="Add"
+                      dense
+                      class="filebar-popup-expansion"
+                    >
+                      <q-item
+                        clickable
+                        v-ripple
+                        @click="handleMenuAction('addSite')"
+                        class="filebar-popup-item"
+                        v-close-popup
+                      >
+                        <q-item-section avatar>
+                          <q-icon name="business_center" size="sm" />
+                        </q-item-section>
+                        <q-item-section>Site</q-item-section>
+                      </q-item>
+                    </q-expansion-item>
+
                     <q-item
                       clickable
                       v-ripple
-                      @click="handleMenuAction('addSite')"
+                      @click="handleMenuAction('auditLog')"
                       class="filebar-popup-item"
                       v-close-popup
                     >
                       <q-item-section avatar>
-                        <q-icon name="business_center" size="sm" />
+                        <q-icon name="history" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Audit Log</q-item-section>
+                    </q-item>
+
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('debugLog')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="bug_report" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Debug Log</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
+              </q-item>
+            </template>
+
+            <q-expansion-item
+              v-else
+              icon="folder"
+              label="File"
+              class="filebar-menu-section"
+            >
+              <q-list>
+                <q-expansion-item
+                  icon="add_circle_outline"
+                  label="Add"
+                  class="filebar-menu-subsection"
+                >
+                  <q-list>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('addSite')"
+                      class="filebar-menu-item"
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="business_center" />
                       </q-item-section>
                       <q-item-section>Site</q-item-section>
                     </q-item>
-                  </q-expansion-item>
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('auditLog')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="history" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Audit Log</q-item-section>
-                  </q-item>
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('debugLog')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="bug_report" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Debug Log</q-item-section>
-                  </q-item>
-                </q-list>
-              </q-menu>
-            </q-item>
-          </template>
-
-          <q-expansion-item
-            v-else
-            icon="folder"
-            label="File"
-            class="filebar-menu-section"
-          >
-            <q-list>
-              <q-expansion-item
-                icon="add_circle_outline"
-                label="Add"
-                class="filebar-menu-subsection"
-              >
-                <q-list>
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('addSite')"
-                    class="filebar-menu-item"
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="business_center" />
-                    </q-item-section>
-                    <q-item-section>Site</q-item-section>
-                  </q-item>
-                </q-list>
-              </q-expansion-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('auditLog')"
-                class="filebar-menu-item"
-              >
+                  </q-list>
+                </q-expansion-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('auditLog')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="history" />
+                  </q-item-section>
+                  <q-item-section>Audit Log</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('debugLog')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="bug_report" />
+                  </q-item-section>
+                  <q-item-section>Debug Log</q-item-section>
+                </q-item>
+              </q-list>
+            </q-expansion-item>
+            <!--полиси манаджер часть -->
+            <template v-if="isMiniMode && !isMobile">
+              <q-item clickable class="filebar-menu-section-mini">
                 <q-item-section avatar>
-                  <q-icon name="history" />
+                  <q-icon name="policy" size="24px">
+                    <q-tooltip
+                      anchor="center right"
+                      self="center left"
+                      :offset="[10, 0]"
+                    >
+                      Policy Manager
+                    </q-tooltip>
+                  </q-icon>
                 </q-item-section>
-                <q-item-section>Audit Log</q-item-section>
+                <q-menu
+                  anchor="top end"
+                  self="top start"
+                  :offset="[8, 0]"
+                  class="sidebar-popup-menu"
+                >
+                  <q-list class="filebar-popup-list">
+                    <q-item-label header class="text-weight-bold"
+                      >Policy Manager</q-item-label
+                    >
+
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToGPO('dashboard')"
+                      :class="[
+                        'filebar-popup-item',
+                        { 'active-menu-item': isActiveGPOTab('dashboard') },
+                      ]"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="dashboard" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Dashboard</q-item-section>
+                    </q-item>
+
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToGPO('collections')"
+                      :class="[
+                        'filebar-popup-item',
+                        { 'active-menu-item': isActiveGPOTab('collections') },
+                      ]"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="collections" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Collections</q-item-section>
+                    </q-item>
+
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToGPO('library')"
+                      :class="[
+                        'filebar-popup-item',
+                        { 'active-menu-item': isActiveGPOTab('library') },
+                      ]"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="library_books" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Policy Library</q-item-section>
+                    </q-item>
+
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToGPO('windows')"
+                      :class="[
+                        'filebar-popup-item',
+                        { 'active-menu-item': isActiveGPOTab('windows') },
+                      ]"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="dns" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Windows Policies</q-item-section>
+                    </q-item>
+
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('users')"
+                      :class="[
+                        'filebar-popup-item',
+                        { 'active-menu-item': isActiveGPOTab('users') },
+                      ]"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="person" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Users</q-item-section>
+                    </q-item>
+
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('groups')"
+                      :class="[
+                        'filebar-popup-item',
+                        { 'active-menu-item': isActiveGPOTab('groups') },
+                      ]"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="group" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Users Groups</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('groupsMachines')"
+                      :class="[
+                        'filebar-popup-item',
+                        {
+                          'active-menu-item': isActiveGPOTab('groupsMachines'),
+                        },
+                      ]"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="laptop_windows" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Groups of Machines</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
               </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('debugLog')"
-                class="filebar-menu-item"
-              >
+            </template>
+
+            <q-expansion-item
+              v-else
+              icon="policy"
+              label="Policy Manager"
+              class="filebar-menu-section"
+            >
+              <q-list>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="navigateToGPO('dashboard')"
+                  :class="[
+                    'filebar-menu-item',
+                    { 'active-menu-item': isActiveGPOTab('dashboard') },
+                  ]"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="dashboard" />
+                  </q-item-section>
+                  <q-item-section>Dashboard</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="navigateToGPO('collections')"
+                  :class="[
+                    'filebar-menu-item',
+                    { 'active-menu-item': isActiveGPOTab('collections') },
+                  ]"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="collections" />
+                  </q-item-section>
+                  <q-item-section>Collections</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="navigateToGPO('library')"
+                  :class="[
+                    'filebar-menu-item',
+                    { 'active-menu-item': isActiveGPOTab('library') },
+                  ]"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="library_books" />
+                  </q-item-section>
+                  <q-item-section>Policy Library</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="navigateToGPO('windows')"
+                  :class="[
+                    'filebar-menu-item',
+                    { 'active-menu-item': isActiveGPOTab('windows') },
+                  ]"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="laptop_windows" />
+                  </q-item-section>
+                  <q-item-section>Windows Policies</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('users')"
+                  :class="[
+                    'filebar-menu-item',
+                    { 'active-menu-item': isActiveGPOTab('users') },
+                  ]"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="person" />
+                  </q-item-section>
+                  <q-item-section>Users</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('groups')"
+                  :class="[
+                    'filebar-menu-item',
+                    { 'active-menu-item': isActiveGPOTab('groups') },
+                  ]"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="group" />
+                  </q-item-section>
+                  <q-item-section>Users Groups</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('groupsMachines')"
+                  :class="[
+                    'filebar-menu-item',
+                    { 'active-menu-item': isActiveGPOTab('groupsMachines') },
+                  ]"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="dns" />
+                  </q-item-section>
+                  <q-item-section>Groups of Machines</q-item-section>
+                </q-item>
+              </q-list>
+            </q-expansion-item>
+
+            <!-- вью часть -->
+            <template v-if="isMiniMode && !isMobile">
+              <q-item clickable class="filebar-menu-section-mini">
                 <q-item-section avatar>
-                  <q-icon name="bug_report" />
+                  <q-icon name="visibility" size="24px">
+                    <q-tooltip
+                      anchor="center right"
+                      self="center left"
+                      :offset="[10, 0]"
+                    >
+                      View
+                    </q-tooltip>
+                  </q-icon>
                 </q-item-section>
-                <q-item-section>Debug Log</q-item-section>
+                <q-menu
+                  anchor="top end"
+                  self="top start"
+                  :offset="[8, 0]"
+                  class="sidebar-popup-menu"
+                >
+                  <q-list class="filebar-popup-list">
+                    <q-item-label header class="text-weight-bold"
+                      >View</q-item-label
+                    >
+
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('pendingActions')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="pending_actions" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Pending Actions</q-item-section>
+                    </q-item>
+
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('agentMap')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="mdi-map-marker" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Agent Map</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
               </q-item>
-            </q-list>
-          </q-expansion-item>
-          <!--полиси манаджер часть -->
-          <template v-if="isMiniMode && !isMobile">
-            <q-item clickable class="filebar-menu-section-mini">
-              <q-item-section avatar>
-                <q-icon name="policy" size="24px">
-                  <q-tooltip
-                    anchor="center right"
-                    self="center left"
-                    :offset="[10, 0]"
-                  >
-                    Policy Manager
-                  </q-tooltip>
-                </q-icon>
-              </q-item-section>
-              <q-menu
-                anchor="top end"
-                self="top start"
-                :offset="[8, 0]"
-                class="sidebar-popup-menu"
-              >
-                <q-list class="filebar-popup-list">
-                  <q-item-label header class="text-weight-bold"
-                    >Policy Manager</q-item-label
-                  >
+            </template>
 
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="navigateToGPO('dashboard')"
-                    :class="[
-                      'filebar-popup-item',
-                      { 'active-menu-item': isActiveGPOTab('dashboard') },
-                    ]"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="dashboard" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Dashboard</q-item-section>
-                  </q-item>
+            <q-expansion-item
+              v-else
+              icon="visibility"
+              label="View"
+              class="filebar-menu-section"
+            >
+              <q-list>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('pendingActions')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="pending_actions" />
+                  </q-item-section>
+                  <q-item-section>Pending Actions</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('agentMap')"
+                  :class="[
+                    'filebar-menu-item',
+                    { 'active-menu-item': currentPath === '/agents/map' },
+                  ]"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="mdi-map-marker" />
+                  </q-item-section>
+                  <q-item-section>Agent Map</q-item-section>
+                </q-item>
+              </q-list>
+            </q-expansion-item>
 
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="navigateToGPO('collections')"
-                    :class="[
-                      'filebar-popup-item',
-                      { 'active-menu-item': isActiveGPOTab('collections') },
-                    ]"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="collections" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Collections</q-item-section>
-                  </q-item>
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="navigateToGPO('library')"
-                    :class="[
-                      'filebar-popup-item',
-                      { 'active-menu-item': isActiveGPOTab('library') },
-                    ]"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="library_books" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Policy Library</q-item-section>
-                  </q-item>
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="navigateToGPO('windows')"
-                    :class="[
-                      'filebar-popup-item',
-                      { 'active-menu-item': isActiveGPOTab('windows') },
-                    ]"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="dns" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Windows Policies</q-item-section>
-                  </q-item>
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('users')"
-                    :class="[
-                      'filebar-popup-item',
-                      { 'active-menu-item': isActiveGPOTab('users') },
-                    ]"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="person" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Users</q-item-section>
-                  </q-item>
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('groups')"
-                    :class="[
-                      'filebar-popup-item',
-                      { 'active-menu-item': isActiveGPOTab('groups') },
-                    ]"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="group" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Users Groups</q-item-section>
-                  </q-item>
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('groupsMachines')"
-                    :class="[
-                      'filebar-popup-item',
-                      { 'active-menu-item': isActiveGPOTab('groupsMachines') },
-                    ]"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="laptop_windows" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Groups of Machines</q-item-section>
-                  </q-item>
-                </q-list>
-              </q-menu>
-            </q-item>
-          </template>
-
-          <q-expansion-item
-            v-else
-            icon="policy"
-            label="Policy Manager"
-            class="filebar-menu-section"
-          >
-            <q-list>
-              <q-item
-                clickable
-                v-ripple
-                @click="navigateToGPO('dashboard')"
-                :class="[
-                  'filebar-menu-item',
-                  { 'active-menu-item': isActiveGPOTab('dashboard') },
-                ]"
-              >
-                <q-item-section avatar>
-                  <q-icon name="dashboard" />
-                </q-item-section>
-                <q-item-section>Dashboard</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="navigateToGPO('collections')"
-                :class="[
-                  'filebar-menu-item',
-                  { 'active-menu-item': isActiveGPOTab('collections') },
-                ]"
-              >
-                <q-item-section avatar>
-                  <q-icon name="collections" />
-                </q-item-section>
-                <q-item-section>Collections</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="navigateToGPO('library')"
-                :class="[
-                  'filebar-menu-item',
-                  { 'active-menu-item': isActiveGPOTab('library') },
-                ]"
-              >
-                <q-item-section avatar>
-                  <q-icon name="library_books" />
-                </q-item-section>
-                <q-item-section>Policy Library</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="navigateToGPO('windows')"
-                :class="[
-                  'filebar-menu-item',
-                  { 'active-menu-item': isActiveGPOTab('windows') },
-                ]"
-              >
-                <q-item-section avatar>
-                  <q-icon name="laptop_windows" />
-                </q-item-section>
-                <q-item-section>Windows Policies</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('users')"
-                :class="[
-                  'filebar-menu-item',
-                  { 'active-menu-item': isActiveGPOTab('users') },
-                ]"
-              >
-                <q-item-section avatar>
-                  <q-icon name="person" />
-                </q-item-section>
-                <q-item-section>Users</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('groups')"
-                :class="[
-                  'filebar-menu-item',
-                  { 'active-menu-item': isActiveGPOTab('groups') },
-                ]"
-              >
-                <q-item-section avatar>
-                  <q-icon name="group" />
-                </q-item-section>
-                <q-item-section>Users Groups</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('groupsMachines')"
-                :class="[
-                  'filebar-menu-item',
-                  { 'active-menu-item': isActiveGPOTab('groupsMachines') },
-                ]"
-              >
-                <q-item-section avatar>
-                  <q-icon name="dns" />
-                </q-item-section>
-                <q-item-section>Groups of Machines</q-item-section>
-              </q-item>
-            </q-list>
-          </q-expansion-item>
-
-          <!-- вью часть -->
-          <template v-if="isMiniMode && !isMobile">
-            <q-item clickable class="filebar-menu-section-mini">
-              <q-item-section avatar>
-                <q-icon name="visibility" size="24px">
-                  <q-tooltip
-                    anchor="center right"
-                    self="center left"
-                    :offset="[10, 0]"
-                  >
-                    View
-                  </q-tooltip>
-                </q-icon>
-              </q-item-section>
-              <q-menu
-                anchor="top end"
-                self="top start"
-                :offset="[8, 0]"
-                class="sidebar-popup-menu"
-              >
-                <q-list class="filebar-popup-list">
-                  <q-item-label header class="text-weight-bold"
-                    >View</q-item-label
-                  >
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('pendingActions')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="pending_actions" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Pending Actions</q-item-section>
-                  </q-item>
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('agentMap')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="mdi-map-marker" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Agent Map</q-item-section>
-                  </q-item>
-                </q-list>
-              </q-menu>
-            </q-item>
-          </template>
-
-          <q-expansion-item
-            v-else
-            icon="visibility"
-            label="View"
-            class="filebar-menu-section"
-          >
-            <q-list>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('pendingActions')"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="pending_actions" />
-                </q-item-section>
-                <q-item-section>Pending Actions</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('agentMap')"
-                :class="[
-                  'filebar-menu-item',
-                  { 'active-menu-item': currentPath === '/agents/map' },
-                ]"
-              >
-                <q-item-section avatar>
-                  <q-icon name="mdi-map-marker" />
-                </q-item-section>
-                <q-item-section>Agent Map</q-item-section>
-              </q-item>
-            </q-list>
-          </q-expansion-item>
-
-          <!-- File Management - commented out temporarily
+            <!-- File Management - commented out temporarily
           <template v-if="isMiniMode && !isMobile">
             <q-item
               clickable
@@ -526,864 +528,1216 @@
           </q-item>
           -->
 
-          <!-- Resources -->
-          <template v-if="isMiniMode && !isMobile">
+            <!-- Resources -->
+            <template v-if="isMiniMode && !isMobile">
+              <q-item
+                clickable
+                class="filebar-menu-section-mini"
+                @click="navigateToResources"
+              >
+                <q-item-section avatar>
+                  <q-icon name="folder_open" size="24px">
+                    <q-tooltip
+                      anchor="center right"
+                      self="center left"
+                      :offset="[10, 0]"
+                    >
+                      Resources
+                    </q-tooltip>
+                  </q-icon>
+                </q-item-section>
+              </q-item>
+            </template>
+
             <q-item
+              v-else
               clickable
-              class="filebar-menu-section-mini"
+              v-ripple
               @click="navigateToResources"
+              :class="[
+                'filebar-menu-section',
+                { 'active-menu-item': isResourcesActive },
+              ]"
             >
               <q-item-section avatar>
-                <q-icon name="folder_open" size="24px">
-                  <q-tooltip
-                    anchor="center right"
-                    self="center left"
-                    :offset="[10, 0]"
-                  >
-                    Resources
-                  </q-tooltip>
-                </q-icon>
+                <q-icon name="folder_open" />
               </q-item-section>
+              <q-item-section>Resources</q-item-section>
             </q-item>
-          </template>
 
-          <q-item
-            v-else
-            clickable
-            v-ripple
-            @click="navigateToResources"
-            :class="[
-              'filebar-menu-section',
-              { 'active-menu-item': isResourcesActive },
-            ]"
-          >
-            <q-item-section avatar>
-              <q-icon name="folder_open" />
-            </q-item-section>
-            <q-item-section>Resources</q-item-section>
-          </q-item>
+            <!-- Policies -->
+            <template v-if="isMiniMode && !isMobile">
+              <q-item
+                clickable
+                class="filebar-menu-section-mini"
+                @click="navigateToPolicies"
+              >
+                <q-item-section avatar>
+                  <q-icon name="security" size="24px">
+                    <q-tooltip
+                      anchor="center right"
+                      self="center left"
+                      :offset="[10, 0]"
+                    >
+                      Policies
+                    </q-tooltip>
+                  </q-icon>
+                </q-item-section>
+              </q-item>
+            </template>
 
-          <!-- Policies -->
-          <template v-if="isMiniMode && !isMobile">
             <q-item
+              v-else
               clickable
-              class="filebar-menu-section-mini"
+              v-ripple
               @click="navigateToPolicies"
+              :class="[
+                'filebar-menu-section',
+                { 'active-menu-item': isPoliciesActive },
+              ]"
             >
               <q-item-section avatar>
-                <q-icon name="security" size="24px">
-                  <q-tooltip
-                    anchor="center right"
-                    self="center left"
-                    :offset="[10, 0]"
-                  >
-                    Policies
-                  </q-tooltip>
-                </q-icon>
+                <q-icon name="security" />
               </q-item-section>
+              <q-item-section>Policies</q-item-section>
             </q-item>
-          </template>
 
-          <q-item
-            v-else
-            clickable
-            v-ripple
-            @click="navigateToPolicies"
-            :class="['filebar-menu-section', { 'active-menu-item': isPoliciesActive }]"
-          >
-            <q-item-section avatar>
-              <q-icon name="security" />
-            </q-item-section>
-            <q-item-section>Policies</q-item-section>
-          </q-item>
+            <!-- Self-Service Portal -->
+            <template v-if="isMiniMode && !isMobile">
+              <q-item
+                clickable
+                class="filebar-menu-section-mini"
+                @click="navigateToSelfService"
+              >
+                <q-item-section avatar>
+                  <q-icon name="self_improvement" size="24px">
+                    <q-tooltip
+                      anchor="center right"
+                      self="center left"
+                      :offset="[10, 0]"
+                    >
+                      Self-Service Portal
+                    </q-tooltip>
+                  </q-icon>
+                </q-item-section>
+              </q-item>
+            </template>
 
-          <!-- Self-Service Portal -->
-          <template v-if="isMiniMode && !isMobile">
             <q-item
+              v-else
               clickable
-              class="filebar-menu-section-mini"
+              v-ripple
               @click="navigateToSelfService"
+              :class="[
+                'filebar-menu-section',
+                { 'active-menu-item': isSelfServiceActive },
+              ]"
             >
               <q-item-section avatar>
-                <q-icon name="self_improvement" size="24px">
-                  <q-tooltip
-                    anchor="center right"
-                    self="center left"
-                    :offset="[10, 0]"
-                  >
-                    Self-Service Portal
-                  </q-tooltip>
-                </q-icon>
+                <q-icon name="self_improvement" />
               </q-item-section>
+              <q-item-section>Self-Service Portal</q-item-section>
             </q-item>
-          </template>
 
-          <q-item
-            v-else
-            clickable
-            v-ripple
-            @click="navigateToSelfService"
-            :class="['filebar-menu-section', { 'active-menu-item': isSelfServiceActive }]"
-          >
-            <q-item-section avatar>
-              <q-icon name="self_improvement" />
-            </q-item-section>
-            <q-item-section>Self-Service Portal</q-item-section>
-          </q-item>
-
-          <!-- Security (SIEM / Wazuh) -->
-          <template v-if="isMiniMode && !isMobile">
-            <q-item clickable class="filebar-menu-section-mini">
-              <q-item-section avatar>
-                <q-icon name="shield" size="24px">
-                  <q-tooltip
-                    anchor="center right"
-                    self="center left"
-                    :offset="[10, 0]"
-                  >
-                    Security
-                  </q-tooltip>
-                </q-icon>
-              </q-item-section>
-              <q-menu
-                anchor="top end"
-                self="top start"
-                :offset="[8, 0]"
-                class="sidebar-popup-menu"
-              >
-                <q-list class="filebar-popup-list">
-                  <q-item-label header class="text-weight-bold">Security</q-item-label>
-                  <q-item clickable v-ripple @click="navigateToSecurity('agents')" class="filebar-popup-item" v-close-popup>
-                    <q-item-section avatar><q-icon name="dns" size="sm" /></q-item-section>
-                    <q-item-section>Agents</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('alerts')" class="filebar-popup-item" v-close-popup>
-                    <q-item-section avatar><q-icon name="notification_important" size="sm" /></q-item-section>
-                    <q-item-section>Alerts / Rules</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('groups')" class="filebar-popup-item" v-close-popup>
-                    <q-item-section avatar><q-icon name="folder" size="sm" /></q-item-section>
-                    <q-item-section>Groups</q-item-section>
-                  </q-item>
-                  <q-separator spaced />
-                  <q-item clickable v-ripple @click="navigateToSecurity('it-hygiene')" class="filebar-popup-item" v-close-popup>
-                    <q-item-section avatar><q-icon name="health_and_safety" size="sm" /></q-item-section>
-                    <q-item-section>IT Hygiene</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('discover')" class="filebar-popup-item" v-close-popup>
-                    <q-item-section avatar><q-icon name="explore" size="sm" /></q-item-section>
-                    <q-item-section>Discover</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('fim')" class="filebar-popup-item" v-close-popup>
-                    <q-item-section avatar><q-icon name="fingerprint" size="sm" /></q-item-section>
-                    <q-item-section>FIM</q-item-section>
-                  </q-item>
-                  <q-separator spaced />
-                  <q-item clickable v-ripple @click="navigateToSecurity('threat-hunting')" class="filebar-popup-item" v-close-popup>
-                    <q-item-section avatar><q-icon name="track_changes" size="sm" /></q-item-section>
-                    <q-item-section>Threat Hunting</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('compliance')" class="filebar-popup-item" v-close-popup>
-                    <q-item-section avatar><q-icon name="policy" size="sm" /></q-item-section>
-                    <q-item-section>Compliance</q-item-section>
-                  </q-item>
-                  <q-separator spaced />
-                  <q-item clickable v-ripple @click="navigateToSecurity('vulnerability-detection')" class="filebar-popup-item" v-close-popup>
-                    <q-item-section avatar><q-icon name="bug_report" size="sm" /></q-item-section>
-                    <q-item-section>Vulnerability Detection</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('reports')" class="filebar-popup-item" v-close-popup>
-                    <q-item-section avatar><q-icon name="picture_as_pdf" size="sm" /></q-item-section>
-                    <q-item-section>Reports</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('reporting')" class="filebar-popup-item" v-close-popup>
-                    <q-item-section avatar><q-icon name="summarize" size="sm" /></q-item-section>
-                    <q-item-section>Reporting</q-item-section>
-                  </q-item>
-                  <q-separator spaced />
-                  <q-item clickable v-ripple @click="navigateToSecurity('workshop')" class="filebar-popup-item" v-close-popup>
-                    <q-item-section avatar><q-icon name="construction" size="sm" /></q-item-section>
-                    <q-item-section>Workshop</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('use-cases')" class="filebar-popup-item" v-close-popup>
-                    <q-item-section avatar><q-icon name="rocket_launch" size="sm" /></q-item-section>
-                    <q-item-section>Detection Cases</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('agent-compliance')" class="filebar-popup-item" v-close-popup>
-                    <q-item-section avatar><q-icon name="verified" size="sm" /></q-item-section>
-                    <q-item-section>Agent SCA</q-item-section>
-                  </q-item>
-                </q-list>
-              </q-menu>
-            </q-item>
-          </template>
-
-          <q-expansion-item v-else icon="shield" label="Security" class="filebar-menu-section">
-            <q-list>
-              <q-item clickable v-ripple @click="navigateToSecurity('agents')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('agents') }]">
-                <q-item-section avatar><q-icon name="dns" /></q-item-section>
-                <q-item-section>Agents</q-item-section>
-              </q-item>
-              <q-item clickable v-ripple @click="navigateToSecurity('alerts')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('alerts') }]">
-                <q-item-section avatar><q-icon name="notification_important" /></q-item-section>
-                <q-item-section>Alerts / Rules</q-item-section>
-              </q-item>
-              <q-item clickable v-ripple @click="navigateToSecurity('groups')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('groups') }]">
-                <q-item-section avatar><q-icon name="folder" /></q-item-section>
-                <q-item-section>Groups</q-item-section>
-              </q-item>
-              <q-expansion-item icon="health_and_safety" label="IT Hygiene" dense :default-opened="isActiveSecurityTab('it-hygiene') || isActiveSecurityTab('discover') || isActiveSecurityTab('fim')" class="filebar-submenu">
-                <q-list>
-                  <q-item clickable v-ripple @click="navigateToSecurity('it-hygiene')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('it-hygiene') }]">
-                    <q-item-section avatar><q-icon name="health_and_safety" /></q-item-section>
-                    <q-item-section>Overview</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('discover')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('discover') }]">
-                    <q-item-section avatar><q-icon name="explore" /></q-item-section>
-                    <q-item-section>Discover</q-item-section>
-                  </q-item>
-                  <q-item clickable v-ripple @click="navigateToSecurity('fim')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('fim') }]">
-                    <q-item-section avatar><q-icon name="fingerprint" /></q-item-section>
-                    <q-item-section>FIM</q-item-section>
-                  </q-item>
-                </q-list>
-              </q-expansion-item>
-              <q-item clickable v-ripple @click="navigateToSecurity('threat-hunting')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('threat-hunting') }]">
-                <q-item-section avatar><q-icon name="track_changes" /></q-item-section>
-                <q-item-section>Threat Hunting</q-item-section>
-              </q-item>
-              <q-item clickable v-ripple @click="navigateToSecurity('compliance')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('compliance') }]">
-                <q-item-section avatar><q-icon name="policy" /></q-item-section>
-                <q-item-section>Compliance</q-item-section>
-              </q-item>
-              <q-item clickable v-ripple @click="navigateToSecurity('vulnerability-detection')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('vulnerability-detection') }]">
-                <q-item-section avatar><q-icon name="bug_report" /></q-item-section>
-                <q-item-section>Vulnerability Detection</q-item-section>
-              </q-item>
-              <q-item clickable v-ripple @click="navigateToSecurity('reports')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('reports') }]">
-                <q-item-section avatar><q-icon name="picture_as_pdf" /></q-item-section>
-                <q-item-section>Reports</q-item-section>
-              </q-item>
-              <q-item clickable v-ripple @click="navigateToSecurity('reporting')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('reporting') }]">
-                <q-item-section avatar><q-icon name="summarize" /></q-item-section>
-                <q-item-section>Reporting</q-item-section>
-              </q-item>
-              <q-separator spaced />
-              <q-item clickable v-ripple @click="navigateToSecurity('workshop')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('workshop') }]">
-                <q-item-section avatar><q-icon name="construction" /></q-item-section>
-                <q-item-section>Workshop</q-item-section>
-              </q-item>
-              <q-item clickable v-ripple @click="navigateToSecurity('use-cases')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('use-cases') }]">
-                <q-item-section avatar><q-icon name="rocket_launch" /></q-item-section>
-                <q-item-section>Detection Cases</q-item-section>
-              </q-item>
-              <q-item clickable v-ripple @click="navigateToSecurity('agent-compliance')" :class="['filebar-menu-item', { 'active-menu-item': isActiveSecurityTab('agent-compliance') }]">
-                <q-item-section avatar><q-icon name="verified" /></q-item-section>
-                <q-item-section>Agent SCA</q-item-section>
-              </q-item>
-            </q-list>
-          </q-expansion-item>
-
-          <!-- агент часть -->
-          <template v-if="isMiniMode && !isMobile">
-            <q-item clickable class="filebar-menu-section-mini">
-              <q-item-section avatar>
-                <q-icon name="dns" size="24px">
-                  <q-tooltip
-                    anchor="center right"
-                    self="center left"
-                    :offset="[10, 0]"
-                  >
-                    Agents
-                  </q-tooltip>
-                </q-icon>
-              </q-item-section>
-              <q-menu
-                anchor="top end"
-                self="top start"
-                :offset="[8, 0]"
-                class="sidebar-popup-menu"
-              >
-                <q-list class="filebar-popup-list">
-                  <q-item-label header class="text-weight-bold"
-                    >Agents</q-item-label
-                  >
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('installAgent')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="download" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Install Agent</q-item-section>
-                  </q-item>
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('deployments')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="cloud_download" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Manage Deployments</q-item-section>
-                  </q-item>
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('updateAgents')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="system_update" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Update Agents</q-item-section>
-                  </q-item>
-                </q-list>
-              </q-menu>
-            </q-item>
-          </template>
-
-          <q-expansion-item
-            v-else
-            icon="dns"
-            label="Agents"
-            class="filebar-menu-section"
-          >
-            <q-list>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('installAgent')"
-                class="filebar-menu-item"
-              >
+            <!-- Security (SIEM / Wazuh) -->
+            <template v-if="isMiniMode && !isMobile">
+              <q-item clickable class="filebar-menu-section-mini">
                 <q-item-section avatar>
-                  <q-icon name="download" />
+                  <q-icon name="shield" size="24px">
+                    <q-tooltip
+                      anchor="center right"
+                      self="center left"
+                      :offset="[10, 0]"
+                    >
+                      Security
+                    </q-tooltip>
+                  </q-icon>
                 </q-item-section>
-                <q-item-section>Install Agent</q-item-section>
+                <q-menu
+                  anchor="top end"
+                  self="top start"
+                  :offset="[8, 0]"
+                  class="sidebar-popup-menu"
+                >
+                  <q-list class="filebar-popup-list">
+                    <q-item-label header class="text-weight-bold"
+                      >Security</q-item-label
+                    >
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToSecurity('agents')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="dns" size="sm"
+                      /></q-item-section>
+                      <q-item-section>Agents</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToSecurity('alerts')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="notification_important" size="sm"
+                      /></q-item-section>
+                      <q-item-section>Alerts / Rules</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToSecurity('groups')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="folder" size="sm"
+                      /></q-item-section>
+                      <q-item-section>Groups</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToCywm('files')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="tune" size="sm"
+                      /></q-item-section>
+                      <q-item-section
+                        >Configuration — Files &amp; Deploy</q-item-section
+                      >
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToCywm('history')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="history" size="sm"
+                      /></q-item-section>
+                      <q-item-section
+                        >Configuration — Deploy History</q-item-section
+                      >
+                    </q-item>
+                    <q-separator spaced />
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToSecurity('it-hygiene')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="health_and_safety" size="sm"
+                      /></q-item-section>
+                      <q-item-section>IT Hygiene</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToSecurity('discover')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="explore" size="sm"
+                      /></q-item-section>
+                      <q-item-section>Discover</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToSecurity('fim')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="fingerprint" size="sm"
+                      /></q-item-section>
+                      <q-item-section>FIM</q-item-section>
+                    </q-item>
+                    <q-separator spaced />
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToSecurity('threat-hunting')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="track_changes" size="sm"
+                      /></q-item-section>
+                      <q-item-section>Threat Hunting</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToSecurity('compliance')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="policy" size="sm"
+                      /></q-item-section>
+                      <q-item-section>Compliance</q-item-section>
+                    </q-item>
+                    <q-separator spaced />
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToSecurity('vulnerability-detection')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="bug_report" size="sm"
+                      /></q-item-section>
+                      <q-item-section>Vulnerability Detection</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToSecurity('reports')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="picture_as_pdf" size="sm"
+                      /></q-item-section>
+                      <q-item-section>Reports</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToSecurity('reporting')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="summarize" size="sm"
+                      /></q-item-section>
+                      <q-item-section>Reporting</q-item-section>
+                    </q-item>
+                    <q-separator spaced />
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToSecurity('workshop')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="construction" size="sm"
+                      /></q-item-section>
+                      <q-item-section>Workshop</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToSecurity('use-cases')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="rocket_launch" size="sm"
+                      /></q-item-section>
+                      <q-item-section>Detection Cases</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToSecurity('agent-compliance')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="verified" size="sm"
+                      /></q-item-section>
+                      <q-item-section>Agent SCA</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
               </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('deployments')"
-                class="filebar-menu-item"
-              >
+            </template>
+
+            <q-expansion-item
+              v-else
+              icon="shield"
+              label="Security"
+              class="filebar-menu-section"
+            >
+              <q-list>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="navigateToSecurity('agents')"
+                  :class="[
+                    'filebar-menu-item',
+                    { 'active-menu-item': isActiveSecurityTab('agents') },
+                  ]"
+                >
+                  <q-item-section avatar><q-icon name="dns" /></q-item-section>
+                  <q-item-section>Agents</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="navigateToSecurity('alerts')"
+                  :class="[
+                    'filebar-menu-item',
+                    { 'active-menu-item': isActiveSecurityTab('alerts') },
+                  ]"
+                >
+                  <q-item-section avatar
+                    ><q-icon name="notification_important"
+                  /></q-item-section>
+                  <q-item-section>Alerts / Rules</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="navigateToSecurity('groups')"
+                  :class="[
+                    'filebar-menu-item',
+                    { 'active-menu-item': isActiveSecurityTab('groups') },
+                  ]"
+                >
+                  <q-item-section avatar
+                    ><q-icon name="folder"
+                  /></q-item-section>
+                  <q-item-section>Groups</q-item-section>
+                </q-item>
+                <q-expansion-item
+                  icon="tune"
+                  label="Configuration"
+                  dense
+                  :default-opened="
+                    isActiveCywmTab('files') || isActiveCywmTab('history')
+                  "
+                  class="filebar-submenu"
+                >
+                  <q-list>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToCywm('files')"
+                      :class="[
+                        'filebar-menu-item',
+                        { 'active-menu-item': isActiveCywmTab('files') },
+                      ]"
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="upload_file"
+                      /></q-item-section>
+                      <q-item-section>Files &amp; Deploy</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToCywm('history')"
+                      :class="[
+                        'filebar-menu-item',
+                        { 'active-menu-item': isActiveCywmTab('history') },
+                      ]"
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="history"
+                      /></q-item-section>
+                      <q-item-section>Deploy History</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-expansion-item>
+                <q-expansion-item
+                  icon="health_and_safety"
+                  label="IT Hygiene"
+                  dense
+                  :default-opened="
+                    isActiveSecurityTab('it-hygiene') ||
+                    isActiveSecurityTab('discover') ||
+                    isActiveSecurityTab('fim')
+                  "
+                  class="filebar-submenu"
+                >
+                  <q-list>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToSecurity('it-hygiene')"
+                      :class="[
+                        'filebar-menu-item',
+                        {
+                          'active-menu-item': isActiveSecurityTab('it-hygiene'),
+                        },
+                      ]"
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="health_and_safety"
+                      /></q-item-section>
+                      <q-item-section>Overview</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToSecurity('discover')"
+                      :class="[
+                        'filebar-menu-item',
+                        { 'active-menu-item': isActiveSecurityTab('discover') },
+                      ]"
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="explore"
+                      /></q-item-section>
+                      <q-item-section>Discover</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToSecurity('fim')"
+                      :class="[
+                        'filebar-menu-item',
+                        { 'active-menu-item': isActiveSecurityTab('fim') },
+                      ]"
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="fingerprint"
+                      /></q-item-section>
+                      <q-item-section>FIM</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-expansion-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="navigateToSecurity('threat-hunting')"
+                  :class="[
+                    'filebar-menu-item',
+                    {
+                      'active-menu-item': isActiveSecurityTab('threat-hunting'),
+                    },
+                  ]"
+                >
+                  <q-item-section avatar
+                    ><q-icon name="track_changes"
+                  /></q-item-section>
+                  <q-item-section>Threat Hunting</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="navigateToSecurity('compliance')"
+                  :class="[
+                    'filebar-menu-item',
+                    { 'active-menu-item': isActiveSecurityTab('compliance') },
+                  ]"
+                >
+                  <q-item-section avatar
+                    ><q-icon name="policy"
+                  /></q-item-section>
+                  <q-item-section>Compliance</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="navigateToSecurity('vulnerability-detection')"
+                  :class="[
+                    'filebar-menu-item',
+                    {
+                      'active-menu-item': isActiveSecurityTab(
+                        'vulnerability-detection',
+                      ),
+                    },
+                  ]"
+                >
+                  <q-item-section avatar
+                    ><q-icon name="bug_report"
+                  /></q-item-section>
+                  <q-item-section>Vulnerability Detection</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="navigateToSecurity('reports')"
+                  :class="[
+                    'filebar-menu-item',
+                    { 'active-menu-item': isActiveSecurityTab('reports') },
+                  ]"
+                >
+                  <q-item-section avatar
+                    ><q-icon name="picture_as_pdf"
+                  /></q-item-section>
+                  <q-item-section>Reports</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="navigateToSecurity('reporting')"
+                  :class="[
+                    'filebar-menu-item',
+                    { 'active-menu-item': isActiveSecurityTab('reporting') },
+                  ]"
+                >
+                  <q-item-section avatar
+                    ><q-icon name="summarize"
+                  /></q-item-section>
+                  <q-item-section>Reporting</q-item-section>
+                </q-item>
+                <q-separator spaced />
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="navigateToSecurity('workshop')"
+                  :class="[
+                    'filebar-menu-item',
+                    { 'active-menu-item': isActiveSecurityTab('workshop') },
+                  ]"
+                >
+                  <q-item-section avatar
+                    ><q-icon name="construction"
+                  /></q-item-section>
+                  <q-item-section>Workshop</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="navigateToSecurity('use-cases')"
+                  :class="[
+                    'filebar-menu-item',
+                    { 'active-menu-item': isActiveSecurityTab('use-cases') },
+                  ]"
+                >
+                  <q-item-section avatar
+                    ><q-icon name="rocket_launch"
+                  /></q-item-section>
+                  <q-item-section>Detection Cases</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="navigateToSecurity('agent-compliance')"
+                  :class="[
+                    'filebar-menu-item',
+                    {
+                      'active-menu-item':
+                        isActiveSecurityTab('agent-compliance'),
+                    },
+                  ]"
+                >
+                  <q-item-section avatar
+                    ><q-icon name="verified"
+                  /></q-item-section>
+                  <q-item-section>Agent SCA</q-item-section>
+                </q-item>
+              </q-list>
+            </q-expansion-item>
+
+            <!-- агент часть -->
+            <template v-if="isMiniMode && !isMobile">
+              <q-item clickable class="filebar-menu-section-mini">
                 <q-item-section avatar>
-                  <q-icon name="cloud_download" />
+                  <q-icon name="dns" size="24px">
+                    <q-tooltip
+                      anchor="center right"
+                      self="center left"
+                      :offset="[10, 0]"
+                    >
+                      Agents
+                    </q-tooltip>
+                  </q-icon>
                 </q-item-section>
-                <q-item-section>Manage Deployments</q-item-section>
+                <q-menu
+                  anchor="top end"
+                  self="top start"
+                  :offset="[8, 0]"
+                  class="sidebar-popup-menu"
+                >
+                  <q-list class="filebar-popup-list">
+                    <q-item-label header class="text-weight-bold"
+                      >Agents</q-item-label
+                    >
+
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('installAgent')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="download" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Install Agent</q-item-section>
+                    </q-item>
+
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('deployments')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="cloud_download" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Manage Deployments</q-item-section>
+                    </q-item>
+
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('updateAgents')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="system_update" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Update Agents</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
               </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('updateAgents')"
-                class="filebar-menu-item"
-              >
+            </template>
+
+            <q-expansion-item
+              v-else
+              icon="dns"
+              label="Agents"
+              class="filebar-menu-section"
+            >
+              <q-list>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('installAgent')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="download" />
+                  </q-item-section>
+                  <q-item-section>Install Agent</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('deployments')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="cloud_download" />
+                  </q-item-section>
+                  <q-item-section>Manage Deployments</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('updateAgents')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="system_update" />
+                  </q-item-section>
+                  <q-item-section>Update Agents</q-item-section>
+                </q-item>
+              </q-list>
+            </q-expansion-item>
+
+            <!-- сетинг часть-->
+            <template v-if="isMiniMode && !isMobile">
+              <q-item clickable class="filebar-menu-section-mini">
                 <q-item-section avatar>
-                  <q-icon name="system_update" />
+                  <q-icon name="settings" size="24px">
+                    <q-tooltip
+                      anchor="center right"
+                      self="center left"
+                      :offset="[10, 0]"
+                    >
+                      Settings
+                    </q-tooltip>
+                  </q-icon>
                 </q-item-section>
-                <q-item-section>Update Agents</q-item-section>
+                <q-menu
+                  anchor="top end"
+                  self="top start"
+                  :offset="[8, 0]"
+                  class="sidebar-popup-menu"
+                >
+                  <q-list class="filebar-popup-list">
+                    <q-item-label header class="text-weight-bold"
+                      >Settings</q-item-label
+                    >
+
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('clientsManager')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="people" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Clients Manager</q-item-section>
+                    </q-item>
+
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('scriptManager')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="code" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Script Manager</q-item-section>
+                    </q-item>
+
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('automationManager')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="auto_awesome" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Automation Manager</q-item-section>
+                    </q-item>
+
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('alertsManager')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="notifications" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Alerts Manager</q-item-section>
+                    </q-item>
+
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('permissionsManager')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="admin_panel_settings" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Permissions Manager</q-item-section>
+                    </q-item>
+
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('adminManager')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="manage_accounts" size="sm" />
+                      </q-item-section>
+                      <q-item-section>User Administration</q-item-section>
+                    </q-item>
+
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('globalSettings')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="tune" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Global Settings</q-item-section>
+                    </q-item>
+
+                    <q-item
+                      v-if="!hosted"
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('codeSign')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="verified" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Code Signing</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
               </q-item>
-            </q-list>
-          </q-expansion-item>
+            </template>
 
-          <!-- сетинг часть-->
-          <template v-if="isMiniMode && !isMobile">
-            <q-item clickable class="filebar-menu-section-mini">
-              <q-item-section avatar>
-                <q-icon name="settings" size="24px">
-                  <q-tooltip
-                    anchor="center right"
-                    self="center left"
-                    :offset="[10, 0]"
-                  >
-                    Settings
-                  </q-tooltip>
-                </q-icon>
-              </q-item-section>
-              <q-menu
-                anchor="top end"
-                self="top start"
-                :offset="[8, 0]"
-                class="sidebar-popup-menu"
-              >
-                <q-list class="filebar-popup-list">
-                  <q-item-label header class="text-weight-bold"
-                    >Settings</q-item-label
-                  >
+            <q-expansion-item
+              v-else
+              icon="settings"
+              label="Settings"
+              class="filebar-menu-section"
+            >
+              <q-list>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('clientsManager')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="people" />
+                  </q-item-section>
+                  <q-item-section>Clients Manager</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('scriptManager')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="code" />
+                  </q-item-section>
+                  <q-item-section>Script Manager</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('automationManager')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="auto_awesome" />
+                  </q-item-section>
+                  <q-item-section>Automation Manager</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('alertsManager')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="notifications" />
+                  </q-item-section>
+                  <q-item-section>Alerts Manager</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('permissionsManager')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="admin_panel_settings" />
+                  </q-item-section>
+                  <q-item-section>Permissions Manager</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('adminManager')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="manage_accounts" />
+                  </q-item-section>
+                  <q-item-section>User Administration</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('globalSettings')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="tune" />
+                  </q-item-section>
+                  <q-item-section>Global Settings</q-item-section>
+                </q-item>
+                <q-item
+                  v-if="!hosted"
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('codeSign')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="verified" />
+                  </q-item-section>
+                  <q-item-section>Code Signing</q-item-section>
+                </q-item>
+              </q-list>
+            </q-expansion-item>
 
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('clientsManager')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="people" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Clients Manager</q-item-section>
-                  </q-item>
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('scriptManager')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="code" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Script Manager</q-item-section>
-                  </q-item>
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('automationManager')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="auto_awesome" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Automation Manager</q-item-section>
-                  </q-item>
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('alertsManager')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="notifications" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Alerts Manager</q-item-section>
-                  </q-item>
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('permissionsManager')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="admin_panel_settings" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Permissions Manager</q-item-section>
-                  </q-item>
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('adminManager')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="manage_accounts" size="sm" />
-                    </q-item-section>
-                    <q-item-section>User Administration</q-item-section>
-                  </q-item>
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('globalSettings')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="tune" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Global Settings</q-item-section>
-                  </q-item>
-
-                  <q-item
-                    v-if="!hosted"
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('codeSign')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="verified" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Code Signing</q-item-section>
-                  </q-item>
-                </q-list>
-              </q-menu>
-            </q-item>
-          </template>
-
-          <q-expansion-item
-            v-else
-            icon="settings"
-            label="Settings"
-            class="filebar-menu-section"
-          >
-            <q-list>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('clientsManager')"
-                class="filebar-menu-item"
-              >
+            <!-- тулз часть -->
+            <template v-if="isMiniMode && !isMobile">
+              <q-item clickable class="filebar-menu-section-mini">
                 <q-item-section avatar>
-                  <q-icon name="people" />
+                  <q-icon name="build" size="24px">
+                    <q-tooltip
+                      anchor="center right"
+                      self="center left"
+                      :offset="[10, 0]"
+                    >
+                      Tools
+                    </q-tooltip>
+                  </q-icon>
                 </q-item-section>
-                <q-item-section>Clients Manager</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('scriptManager')"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="code" />
-                </q-item-section>
-                <q-item-section>Script Manager</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('automationManager')"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="auto_awesome" />
-                </q-item-section>
-                <q-item-section>Automation Manager</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('alertsManager')"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="notifications" />
-                </q-item-section>
-                <q-item-section>Alerts Manager</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('permissionsManager')"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="admin_panel_settings" />
-                </q-item-section>
-                <q-item-section>Permissions Manager</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('adminManager')"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="manage_accounts" />
-                </q-item-section>
-                <q-item-section>User Administration</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('globalSettings')"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="tune" />
-                </q-item-section>
-                <q-item-section>Global Settings</q-item-section>
-              </q-item>
-              <q-item
-                v-if="!hosted"
-                clickable
-                v-ripple
-                @click="handleMenuAction('codeSign')"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="verified" />
-                </q-item-section>
-                <q-item-section>Code Signing</q-item-section>
-              </q-item>
-            </q-list>
-          </q-expansion-item>
+                <q-menu
+                  anchor="top end"
+                  self="top start"
+                  :offset="[8, 0]"
+                  class="sidebar-popup-menu"
+                >
+                  <q-list class="filebar-popup-list">
+                    <q-item-label header class="text-weight-bold"
+                      >Tools</q-item-label
+                    >
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('bulkCommand')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="terminal" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Bulk Command</q-item-section>
+                    </q-item>
 
-          <!-- тулз часть -->
-          <template v-if="isMiniMode && !isMobile">
-            <q-item clickable class="filebar-menu-section-mini">
-              <q-item-section avatar>
-                <q-icon name="build" size="24px">
-                  <q-tooltip
-                    anchor="center right"
-                    self="center left"
-                    :offset="[10, 0]"
-                  >
-                    Tools
-                  </q-tooltip>
-                </q-icon>
-              </q-item-section>
-              <q-menu
-                anchor="top end"
-                self="top start"
-                :offset="[8, 0]"
-                class="sidebar-popup-menu"
-              >
-                <q-list class="filebar-popup-list">
-                  <q-item-label header class="text-weight-bold"
-                    >Tools</q-item-label
-                  >
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('bulkCommand')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="terminal" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Bulk Command</q-item-section>
-                  </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('bulkScript')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="article" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Bulk Script</q-item-section>
+                    </q-item>
 
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('bulkScript')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="article" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Bulk Script</q-item-section>
-                  </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('bulkPatch')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="update" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Bulk Patch Management</q-item-section>
+                    </q-item>
 
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('bulkPatch')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="update" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Bulk Patch Management</q-item-section>
-                  </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('bulkSoftware')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="apps" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Bulk Software</q-item-section>
+                    </q-item>
 
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('bulkSoftware')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="apps" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Bulk Software</q-item-section>
-                  </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('templatesManager')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="folder_special" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Templates Manager</q-item-section>
+                    </q-item>
 
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('templatesManager')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="folder_special" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Templates Manager</q-item-section>
-                  </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('serverMaintenance')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="construction" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Server Maintenance</q-item-section>
+                    </q-item>
 
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('serverMaintenance')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="construction" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Server Maintenance</q-item-section>
-                  </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('clearCache')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="cleaning_services" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Clear Cache</q-item-section>
+                    </q-item>
 
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('clearCache')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="cleaning_services" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Clear Cache</q-item-section>
-                  </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('recoverAgents')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="restart_alt" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Recover All Agents</q-item-section>
+                    </q-item>
 
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('recoverAgents')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="restart_alt" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Recover All Agents</q-item-section>
-                  </q-item>
-
-                  <q-item
-                    clickable
-                    v-ripple
-                    @click="handleMenuAction('reportsManager')"
-                    class="filebar-popup-item"
-                    v-close-popup
-                  >
-                    <q-item-section avatar>
-                      <q-icon name="report" size="sm" />
-                    </q-item-section>
-                    <q-item-section>Reports Manager</q-item-section>
-                  </q-item>
-                </q-list>
-              </q-menu>
-            </q-item>
-          </template>
-
-          <q-expansion-item
-            v-else
-            icon="build"
-            label="Tools"
-            class="filebar-menu-section"
-          >
-            <q-list>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('bulkCommand')"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="terminal" />
-                </q-item-section>
-                <q-item-section>Bulk Command</q-item-section>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('reportsManager')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="report" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Reports Manager</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
               </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('bulkScript')"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="article" />
-                </q-item-section>
-                <q-item-section>Bulk Script</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('bulkPatch')"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="update" />
-                </q-item-section>
-                <q-item-section>Bulk Patch Management</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('bulkSoftware')"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="apps" />
-                </q-item-section>
-                <q-item-section>Bulk Software</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('templatesManager')"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="folder_special" />
-                </q-item-section>
-                <q-item-section>Templates Manager</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('serverMaintenance')"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="construction" />
-                </q-item-section>
-                <q-item-section>Server Maintenance</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('clearCache')"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="cleaning_services" />
-                </q-item-section>
-                <q-item-section>Clear Cache</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('recoverAgents')"
-                class="filebar-menu-item"
-              >
-                <q-item-section avatar>
-                  <q-icon name="restart_alt" />
-                </q-item-section>
-                <q-item-section>Recover All Agents</q-item-section>
-              </q-item>
-              <q-item
-                clickable
-                v-ripple
-                @click="handleMenuAction('reportsManager')"
-                class="filebar-menu-item"
-                v-close-popup
-              >
-                <q-item-section avatar>
-                  <q-icon name="report" />
-                </q-item-section>
-                <q-item-section>Reports Manager</q-item-section>
-              </q-item>
-            </q-list>
-          </q-expansion-item>
+            </template>
 
-          <!-- <q-expansion-item
+            <q-expansion-item
+              v-else
+              icon="build"
+              label="Tools"
+              class="filebar-menu-section"
+            >
+              <q-list>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('bulkCommand')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="terminal" />
+                  </q-item-section>
+                  <q-item-section>Bulk Command</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('bulkScript')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="article" />
+                  </q-item-section>
+                  <q-item-section>Bulk Script</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('bulkPatch')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="update" />
+                  </q-item-section>
+                  <q-item-section>Bulk Patch Management</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('bulkSoftware')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="apps" />
+                  </q-item-section>
+                  <q-item-section>Bulk Software</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('templatesManager')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="folder_special" />
+                  </q-item-section>
+                  <q-item-section>Templates Manager</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('serverMaintenance')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="construction" />
+                  </q-item-section>
+                  <q-item-section>Server Maintenance</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('clearCache')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="cleaning_services" />
+                  </q-item-section>
+                  <q-item-section>Clear Cache</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('recoverAgents')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="restart_alt" />
+                  </q-item-section>
+                  <q-item-section>Recover All Agents</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('reportsManager')"
+                  class="filebar-menu-item"
+                  v-close-popup
+                >
+                  <q-item-section avatar>
+                    <q-icon name="report" />
+                  </q-item-section>
+                  <q-item-section>Reports Manager</q-item-section>
+                </q-item>
+              </q-list>
+            </q-expansion-item>
+
+            <!-- <q-expansion-item
             v-if="!hosted"
             icon="help"
             label="Help"
@@ -1447,7 +1801,7 @@
               </q-item>
             </q-list>
           </q-expansion-item> -->
-        </q-list>
+          </q-list>
         </q-scroll-area>
       </div>
     </div>
@@ -1754,25 +2108,50 @@ export default {
       };
       this.$router.push({ name: routeMap[tab] || "SecurityAgents" });
     },
+    navigateToCywm(tab = "files") {
+      if (this.isMobile) {
+        this.closeDrawer();
+      }
+      const routeMap = {
+        files: "CywmFiles",
+        history: "CywmHistory",
+      };
+      this.$router.push({ name: routeMap[tab] || "CywmFiles" });
+    },
+    isActiveCywmTab(tab) {
+      const pathMap = {
+        files: "/cywm/files",
+        history: "/cywm/history",
+      };
+      return this.currentPath === pathMap[tab];
+    },
     isActiveComplianceFramework(framework) {
       return this.currentPath === "/security/compliance/" + framework;
     },
     isActiveSecurityTab(tab) {
       const path = this.currentPath;
-      if (tab === "agents") return path.startsWith("/security/agents") || path === "/security";
+      if (tab === "agents")
+        return path.startsWith("/security/agents") || path === "/security";
       if (tab === "alerts") return path === "/security/alerts";
       if (tab === "groups") return path === "/security/groups";
-      if (tab === "compliance") return path.startsWith("/security/compliance") || path.startsWith("/security/sca");
+      if (tab === "compliance")
+        return (
+          path.startsWith("/security/compliance") ||
+          path.startsWith("/security/sca")
+        );
       if (tab === "it-hygiene") return path === "/security/it-hygiene";
       if (tab === "discover") return path === "/security/discover";
       if (tab === "fim") return path.startsWith("/security/fim");
-      if (tab === "threat-hunting") return path.startsWith("/security/threat-hunting");
-      if (tab === "vulnerability-detection") return path.startsWith("/security/vulnerability-detection");
+      if (tab === "threat-hunting")
+        return path.startsWith("/security/threat-hunting");
+      if (tab === "vulnerability-detection")
+        return path.startsWith("/security/vulnerability-detection");
       if (tab === "reports") return path === "/security/reports";
       if (tab === "reporting") return path === "/security/reporting";
       if (tab === "workshop") return path.startsWith("/security/workshop");
       if (tab === "use-cases") return path.startsWith("/security/use-cases");
-      if (tab === "agent-compliance") return path.startsWith("/security/agent-compliance");
+      if (tab === "agent-compliance")
+        return path.startsWith("/security/agent-compliance");
       return false;
     },
     clearCache() {
@@ -1843,8 +2222,16 @@ export default {
     },
     async showAddSiteModal() {
       const { data } = await this.$axios.get("/clients/sites/");
-      this.addSiteParentOptions = data.map((s) => ({ label: s.name, value: s.id }));
-      this.addSiteForm = { name: "", description: "", parentId: null, maxAgents: 0 };
+      this.addSiteParentOptions = data.map((s) => ({
+        label: s.name,
+        value: s.id,
+      }));
+      this.addSiteForm = {
+        name: "",
+        description: "",
+        parentId: null,
+        maxAgents: 0,
+      };
       this.showAddSiteDialog = true;
     },
     async doAddSite() {
