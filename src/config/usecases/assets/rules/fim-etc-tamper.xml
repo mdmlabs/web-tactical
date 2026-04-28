@@ -1,0 +1,16 @@
+<!--
+  100300 — FIM tamper in /etc.
+  Elevates baseline FIM rule 550/553/554 to high severity for any change
+  under /etc that touches a sensitive subset (passwd, shadow, ssh, sudoers).
+-->
+<group name="local,syscheck,">
+  <rule id="100300" level="13">
+    <if_group>syscheck</if_group>
+    <field name="file" type="pcre2">^/etc/(passwd|shadow|sudoers(\.d/.+)?|ssh/.+)$</field>
+    <description>Sensitive /etc file tampered: $(file)</description>
+    <mitre>
+      <id>T1565.001</id>
+    </mitre>
+    <group>integrity_checksum_changed,attack,</group>
+  </rule>
+</group>

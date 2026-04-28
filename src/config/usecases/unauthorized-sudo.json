@@ -1,0 +1,27 @@
+{
+  "id": "unauthorized-sudo",
+  "name": "Unauthorized sudo → AR notify + escalation",
+  "description": "Catch sudo invocations from accounts not on the approved list and run the notify-and-escalate active response.",
+  "mitre": ["T1548.003"],
+  "files": [
+    {
+      "target": "manager",
+      "path": "etc/rules/100500-unauthorized-sudo.xml",
+      "content_ref": "rules/unauthorized-sudo.xml"
+    },
+    {
+      "target": "agent_group",
+      "group_id": "linux",
+      "path": "/var/ossec/active-response/bin/notify-escalate.sh",
+      "content_ref": "ar/notify-escalate.sh",
+      "mode": "0750",
+      "owner": "root:wazuh"
+    }
+  ],
+  "restart": ["manager"],
+  "verification": {
+    "rule_id": 100500,
+    "wait_timeout_sec": 60,
+    "expected_ar_command": "notify-escalate"
+  }
+}

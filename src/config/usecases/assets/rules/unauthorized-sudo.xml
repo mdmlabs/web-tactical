@@ -1,0 +1,16 @@
+<!--
+  100500 — Unauthorized sudo invocation.
+  Matches sudo lines and excludes a CDB list of approved usernames
+  (etc/lists/sudoers-approved). Maintain that list in Workshop.
+-->
+<group name="local,sudo,">
+  <rule id="100500" level="12">
+    <if_sid>5402</if_sid>
+    <list field="srcuser" lookup="not_match_key">etc/lists/sudoers-approved</list>
+    <description>Unauthorized sudo invocation by $(srcuser): $(command)</description>
+    <mitre>
+      <id>T1548.003</id>
+    </mitre>
+    <group>privilege_escalation,</group>
+  </rule>
+</group>

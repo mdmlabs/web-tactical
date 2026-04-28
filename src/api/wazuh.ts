@@ -20,6 +20,7 @@ import type {
   WazuhSyscollectorNetaddr,
   WazuhSyscollectorPort,
 } from "@/types/wazuh";
+import type { LogtestResult } from "@/types/wazuhOps";
 
 class WazuhApiClient {
   private client: AxiosInstance;
@@ -336,6 +337,160 @@ class WazuhApiClient {
   async getManagerStatsHourly() {
     const { data } = await this.client.get("/manager/stats/hourly");
     return data;
+  }
+
+  // === Manager files (Workshop: rules / decoders / cdb-lists / etc) ===
+  async getManagerFile(path: string): Promise<string> {
+    const { data } = await this.client.get("/manager/files", {
+      params: { path, raw: true },
+      responseType: "text",
+      transformResponse: [(d: string) => d],
+    });
+    if (typeof data === "string") {
+      // Some versions still wrap raw text in JSON envelope
+      const trimmed = data.trimStart();
+      if (trimmed.startsWith("{")) {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed?.data?.affected_items?.[0] !== undefined) {
+            const item = parsed.data.affected_items[0];
+            return typeof item === "string"
+              ? item
+              : JSON.stringify(item, null, 2);
+          }
+          if (typeof parsed?.data === "string") return parsed.data;
+        } catch {
+          // raw text starting with { — leave as-is
+        }
+      }
+      return data;
+    }
+    return JSON.stringify(data, null, 2);
+  }
+
+  async putManagerFile(
+    path: string,
+    content: string,
+    options?: { overwrite?: boolean; contentType?: string },
+  ): Promise<void> {
+    const overwrite = options?.overwrite ?? true;
+    await this.client.put("/manager/files", content, {
+      params: { path, overwrite },
+      headers: {
+        "Content-Type": options?.contentType ?? "application/octet-stream",
+      },
+      transformRequest: [(d: string) => d],
+    });
+  }
+
+  async deleteManagerFile(path: string): Promise<void> {
+    await this.client.delete("/manager/files", { params: { path } });
+  }
+
+  // === Group files ===
+  async getGroupFile(groupId: string, filename: string): Promise<string> {
+    return this.getGroupFileContent(groupId, filename);
+  }
+
+  async putGroupFile(
+    groupId: string,
+    filename: string,
+    content: string,
+    options?: { contentType?: string },
+  ): Promise<void> {
+    // Default to XML for agent.conf-style files, octet-stream otherwise.
+    const contentType =
+      options?.contentType ??
+      (filename.toLowerCase().endsWith(".xml")
+        ? "application/xml"
+        : "application/octet-stream");
+    await this.client.put(
+      `/groups/${groupId}/files/${filename}`,
+      content,
+      {
+        headers: { "Content-Type": contentType },
+        transformRequest: [(d: string) => d],
+      },
+    );
+  }
+
+  // === Restart ===
+  async restartManager(): Promise<void> {
+    await this.client.put("/manager/restart");
+  }
+
+  async restartAgent(agentId: string): Promise<void> {
+    await this.client.put(`/agents/${agentId}/restart`);
+  }
+
+  async restartAgentsByGroup(groupId: string): Promise<void> {
+    await this.client.put(`/agents/group/${groupId}/restart`);
+  }
+
+  // === Logtest (Wazuh ruleset testing) ===
+  async runLogtest(
+    log: string,
+    location: string,
+    logFormat: string,
+    token?: string,
+  ): Promise<LogtestResult> {
+    const body: Record<string, unknown> = {
+      log,
+      location,
+      log_format: logFormat,
+    };
+    if (token) body.token = token;
+    const { data } = await this.client.put<{ data: LogtestResult }>(
+      "/logtest",
+      body,
+      { headers: { "Content-Type": "application/json" } },
+    );
+    // Wazuh wraps response in { data: { token, output, messages, ... } }
+    return data?.data ?? (data as unknown as LogtestResult);
+  }
+
+  // === Active Response manual trigger ===
+  async runActiveResponse(
+    agentIds: string[],
+    command: string,
+    args: string[] = [],
+    alert?: Record<string, unknown>,
+  ): Promise<void> {
+    const body: Record<string, unknown> = { command, arguments: args };
+    if (alert) body.alert = alert;
+    await this.client.put("/active-response", body, {
+      params: { agents_list: agentIds.join(",") },
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  /**
+   * Reads /var/ossec/logs/active-responses.log via /manager/files and
+   * returns the last `lines` lines. The Wazuh /manager/files endpoint
+   * does not support tailing, so we trim client-side.
+   */
+  async getActiveResponseLog(
+    _agentId: string,
+    lines = 100,
+  ): Promise<string> {
+    // _agentId is reserved for future per-agent log tailing once a
+    // matching backend endpoint exists; today the file lives on the
+    // manager and is shared.
+    const raw = await this.getManagerFile("logs/active-responses.log");
+    if (!raw) return "";
+    const all = raw.split(/\r?\n/);
+    return all.slice(-lines).join("\n");
+  }
+
+  // === SCA on-demand ===
+  /**
+   * Wazuh 4.x has no native force-scan SCA endpoint; restarting the
+   * agent triggers a fresh scan within ~60-120s. Callers that need a
+   * faster path should run a TRMM script invoking
+   * `wazuh-control reload` and bypass this method.
+   */
+  async requestSCAScan(agentId: string): Promise<void> {
+    await this.restartAgent(agentId);
   }
 }
 

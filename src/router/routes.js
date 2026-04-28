@@ -246,6 +246,25 @@ const routes = [
               import("@/views/security/reporting/ReportDetailsView.vue"),
             props: { kind: "definition" },
           },
+          {
+            path: "workshop",
+            name: "Workshop",
+            component: () => import("@/views/security/WazuhWorkshop.vue"),
+          },
+          {
+            path: "use-cases",
+            name: "DetectionCases",
+            component: () => import("@/views/security/UseCaseRunner.vue"),
+          },
+          {
+            // SCA-per-agent compliance view (different from
+            // compliance/:framework? → ComplianceHub which is
+            // framework-driven). Path picked to avoid collision.
+            path: "agent-compliance",
+            name: "AgentCompliance",
+            component: () =>
+              import("@/views/security/WazuhComplianceView.vue"),
+          },
         ],
       },
     ],

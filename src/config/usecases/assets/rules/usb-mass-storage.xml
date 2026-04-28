@@ -1,0 +1,15 @@
+<!--
+  100400 — USB mass-storage device attached.
+  Triggers on udev / kernel events for usb-storage modules being loaded.
+-->
+<group name="local,usb,">
+  <rule id="100400" level="10">
+    <decoded_as>kernel</decoded_as>
+    <match type="pcre2">usb-storage|usb_storage|new USB device|Mass Storage</match>
+    <description>USB mass-storage device attached: $(srcuser)</description>
+    <mitre>
+      <id>T1200</id>
+    </mitre>
+    <group>peripheral,</group>
+  </rule>
+</group>

@@ -1,0 +1,15 @@
+<!--
+  100200 — Suspicious PowerShell command line.
+  Matches base64-encoded, hidden-window, or download-cradle invocations.
+-->
+<group name="local,windows,powershell,">
+  <rule id="100200" level="12">
+    <if_sid>91802</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(-enc(odedcommand)?\s|FromBase64String|IEX\s*\(|DownloadString|-WindowStyle\s+Hidden)</field>
+    <description>Suspicious PowerShell invocation: $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+    <group>execution,windows,</group>
+  </rule>
+</group>
