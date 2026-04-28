@@ -1,5 +1,7 @@
 <template>
   <q-drawer
+    :key="drawerKey"
+    :behavior="drawerBehavior"
     v-model="drawerOpen"
     :width="sidebarWidth"
     :breakpoint="1024"
@@ -1904,8 +1906,16 @@ export default {
       return this.$store.state.sidebarCollapsed;
     },
     isMobile() {
-      return this.$q.screen.width < 1024;
+      return this.$q.screen.lt.md;
     },
+    drawerKey() {
+      return this.isMobile ? "filebar-mobile" : "filebar-desktop";
+    },
+
+    drawerBehavior() {
+      return this.isMobile ? "mobile" : "desktop";
+    },
+    
     sidebarWidth() {
       if (this.isMobile) {
         return 280;
