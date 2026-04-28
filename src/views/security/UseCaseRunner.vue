@@ -45,7 +45,7 @@
             </q-item>
             <q-item v-if="!manifests.length">
               <q-item-section class="text-grey">
-                No manifests in src/config/usecases/.
+                No manifests in public/usecases/.
               </q-item-section>
             </q-item>
           </q-list>
@@ -191,7 +191,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, onMounted } from "vue";
 
 import { useUseCaseRunner } from "@/composables/useUseCaseRunner";
 import { notifyError, notifySuccess } from "@/utils/notify";
@@ -202,43 +202,44 @@ import type {
   UseCaseRunStepStatus,
 } from "@/types/wazuhOps";
 
-// Vite's import.meta.glob does not resolve the `@/` alias inside the
-// pattern string; use relative paths.
-const manifestModules = import.meta.glob("../../config/usecases/*.json", {
-  eager: true,
-  import: "default",
-}) as Record<string, UseCaseManifest>;
-
-const assetModules = import.meta.glob("../../config/usecases/assets/**/*", {
-  eager: true,
-  query: "?raw",
-  import: "default",
-}) as Record<string, string>;
-
-const manifests = Object.values(manifestModules).sort((a, b) =>
-  a.name.localeCompare(b.name),
-);
-
-const selectedId = ref<string | null>(manifests[0]?.id ?? null);
+const manifests = ref<UseCaseManifest[]>([]);
+const selectedId = ref<string | null>(null);
 
 const selected = computed<UseCaseManifest | undefined>(() =>
-  manifests.find((m) => m.id === selectedId.value),
+  manifests.value.find((m) => m.id === selectedId.value),
 );
+
+onMounted(async () => {
+  const indexRes = await fetch("/usecases/index.json");
+  if (!indexRes.ok) {
+    notifyError(`Failed to load usecases index (HTTP ${indexRes.status})`);
+    return;
+  }
+  const index = (await indexRes.json()) as { manifests: string[] };
+  const loaded = await Promise.all(
+    index.manifests.map(async (file) => {
+      const res = await fetch(`/usecases/${file}`);
+      if (!res.ok) {
+        throw new Error(`Failed to load ${file} (HTTP ${res.status})`);
+      }
+      return (await res.json()) as UseCaseManifest;
+    }),
+  );
+  manifests.value = loaded.sort((a, b) => a.name.localeCompare(b.name));
+  selectedId.value = manifests.value[0]?.id ?? null;
+});
 
 const currentMode = ref<UseCaseRunMode | null>(null);
 
 const { steps, running, succeeded, execute } = useUseCaseRunner({
   resolveAsset: async (contentRef: string) => {
-    // Glob keys are relative to this file; build the same relative path
-    // the glob produces.
-    const key = `../../config/usecases/assets/${contentRef}`;
-    const raw = assetModules[key];
-    if (raw === undefined) {
+    const res = await fetch(`/usecases/assets/${contentRef}`);
+    if (!res.ok) {
       throw new Error(
-        `Asset ${contentRef} not found in src/config/usecases/assets`,
+        `Asset ${contentRef} not found (HTTP ${res.status})`,
       );
     }
-    return raw;
+    return await res.text();
   },
 });
 

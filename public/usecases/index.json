@@ -1,0 +1,9 @@
+{
+  "manifests": [
+    "fim-etc-tamper.json",
+    "ssh-bruteforce.json",
+    "suspicious-powershell.json",
+    "unauthorized-sudo.json",
+    "usb-mass-storage.json"
+  ]
+}
