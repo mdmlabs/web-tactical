@@ -11,7 +11,7 @@
         Wazuh manager:&nbsp;<strong>v4.14.4</strong>
       </div>
       <div class="cywm-topbar__status">
-        <span class="cywm-dot cywm-dot--ok"></span> API connected (mock)
+        <span class="cywm-dot cywm-dot--ok"></span> API connected
       </div>
     </div>
 
@@ -94,8 +94,14 @@ import ConfigEditor from "@/cywm/components/ConfigEditor.vue";
 import UploadFileModal from "@/cywm/components/UploadFileModal.vue";
 import CreateFileModal from "@/cywm/components/CreateFileModal.vue";
 import DeployLogModal from "@/cywm/components/DeployLogModal.vue";
+import AgentSelectionDialog from "@/cywm/components/AgentSelectionDialog.vue";
 import { notifySuccess, notifyError, notifyInfo } from "@/utils/notify";
-import type { ConfigFile, FileCategory, FileTarget } from "@/cywm/types";
+import type {
+  ConfigFile,
+  DeployRequest,
+  FileCategory,
+  FileTarget,
+} from "@/cywm/types";
 
 const $q = useQuasar();
 const store = useCywmStore();
@@ -141,6 +147,22 @@ async function onSave() {
 function onDeploy() {
   const file = store.selectedFile;
   if (!file) return;
+
+  // For windows-agent active-response files, show agent selection dialog first
+  if (file.target === "windows-agent" && file.category === "active-response") {
+    $q.dialog({
+      component: AgentSelectionDialog,
+      componentProps: { filename: file.filename },
+    }).onOk((body: DeployRequest) => {
+      $q.dialog({
+        component: DeployLogModal,
+        componentProps: { file, deployBody: body },
+      });
+    });
+    return;
+  }
+
+  // For manager files, deploy immediately
   $q.dialog({
     component: DeployLogModal,
     componentProps: { file },

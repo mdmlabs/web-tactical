@@ -1,84 +1,13 @@
-import { ref } from "vue";
+import { ref, onUnmounted } from "vue";
+import {
+  deployFile,
+  getDeployStatus,
+  saveFileContent,
+} from "@/cywm/api/cywm";
 import { useCywmStore } from "@/stores/cywm";
-import type { ConfigFile, DeployRecord, DeployStatus } from "@/cywm/types";
+import type { ConfigFile, DeployRecord, DeployRequest } from "@/cywm/types";
 
-interface DeployStep {
-  ts: string;
-  text: string;
-}
-
-function nowHHMMSS(): string {
-  const d = new Date();
-  return `${String(d.getHours()).padStart(2, "0")}:${String(
-    d.getMinutes(),
-  ).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
-}
-
-function buildSteps(file: ConfigFile, willFail: boolean): DeployStep[] {
-  const isManager = file.target === "manager";
-  const isShared = file.category === "shared";
-  const steps: DeployStep[] = [];
-
-  steps.push({ ts: nowHHMMSS(), text: "Validating syntax..." });
-
-  if (willFail) {
-    steps.push({
-      ts: nowHHMMSS(),
-      text:
-        isManager && file.category !== "active-response"
-          ? `FAILED: /var/ossec/bin/wazuh-control configtest reported error in ${file.filename}.`
-          : `FAILED: file ${file.filename} could not be processed.`,
-    });
-    steps.push({
-      ts: nowHHMMSS(),
-      text: "Aborting deploy. Configuration NOT changed.",
-    });
-    return steps;
-  }
-
-  steps.push({ ts: nowHHMMSS(), text: "ok" });
-
-  if (isManager) {
-    steps.push({ ts: nowHHMMSS(), text: "Backing up current version... ok" });
-    const dest = isShared
-      ? `/var/ossec/etc/shared/${file.filename}`
-      : file.category === "rules"
-        ? `/var/ossec/etc/rules/${file.filename}`
-        : file.category === "decoders"
-          ? `/var/ossec/etc/decoders/${file.filename}`
-          : `/var/ossec/etc/${file.filename}`;
-    steps.push({ ts: nowHHMMSS(), text: `Uploading to ${dest}... ok` });
-    steps.push({
-      ts: nowHHMMSS(),
-      text: "Setting permissions (ossec:ossec, 0640)... ok",
-    });
-    if (isShared) {
-      steps.push({
-        ts: nowHHMMSS(),
-        text: "Group config will auto-sync to agents (no restart needed).",
-      });
-    } else {
-      steps.push({ ts: nowHHMMSS(), text: "Restarting wazuh-manager... ok" });
-    }
-  } else {
-    steps.push({
-      ts: nowHHMMSS(),
-      text: "Connecting to agent WIN11-DEMO... ok",
-    });
-    steps.push({
-      ts: nowHHMMSS(),
-      text: `Transferring file ${file.filename} (${file.content.length} bytes)... ok`,
-    });
-    steps.push({ ts: nowHHMMSS(), text: "Setting ACL via icacls... ok" });
-  }
-
-  steps.push({ ts: nowHHMMSS(), text: "Deploy completed successfully." });
-  return steps;
-}
-
-function formatLog(steps: DeployStep[]): string {
-  return steps.map((s) => `[${s.ts}] ${s.text}`).join("\n");
-}
+const POLL_INTERVAL_MS = 1500;
 
 export function useDeploy() {
   const store = useCywmStore();
@@ -86,34 +15,65 @@ export function useDeploy() {
   const liveLog = ref<string>("");
   const finalRecord = ref<DeployRecord | null>(null);
 
-  async function runDeploy(file: ConfigFile): Promise<DeployRecord> {
+  let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+  function stopPolling(): void {
+    if (pollTimer !== null) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+  }
+
+  async function runDeploy(
+    file: ConfigFile,
+    body?: DeployRequest,
+  ): Promise<DeployRecord> {
     isDeploying.value = true;
     liveLog.value = "";
     finalRecord.value = null;
 
-    // 10% шанс ошибки, чтобы продемонстрировать failure-флоу
-    const willFail = Math.random() < 0.1;
-    const steps = buildSteps(file, willFail);
-    const startedAt = Date.now();
-
-    for (const step of steps) {
-      await new Promise((r) => setTimeout(r, 250 + Math.random() * 350));
-      liveLog.value += `[${step.ts}] ${step.text}\n`;
+    // Save first if content has been modified
+    if (store.isModified && store.selectedFile?.id === file.id) {
+      const saved = await saveFileContent(file.id, store.editorContent);
+      // Update the store with the saved version
+      const idx = store.files.findIndex((f) => f.id === file.id);
+      if (idx !== -1) store.files[idx] = saved;
+      store.editorContent = saved.content;
     }
 
-    const status: DeployStatus = willFail ? "failed" : "success";
-    const durationMs = Date.now() - startedAt;
-    const record = store.recordDeployResult(
-      file,
-      status,
-      durationMs,
-      formatLog(steps),
-    );
+    // Initiate the deploy
+    const { deployId } = await deployFile(file.id, body);
+    liveLog.value = "Starting deploy...\n";
+
+    // Poll until status is no longer "running"
+    const record = await new Promise<DeployRecord>((resolve, reject) => {
+      pollTimer = setInterval(async () => {
+        try {
+          const status = await getDeployStatus(deployId);
+          if (status.log) {
+            liveLog.value = status.log;
+          }
+          if (status.status !== "running") {
+            stopPolling();
+            resolve(status);
+          }
+        } catch (err) {
+          stopPolling();
+          reject(err);
+        }
+      }, POLL_INTERVAL_MS);
+    });
 
     finalRecord.value = record;
     isDeploying.value = false;
+
+    // Refresh deploy history in store
+    await store.fetchHistory();
+
     return record;
   }
+
+  onUnmounted(stopPolling);
 
   return {
     isDeploying,

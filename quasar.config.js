@@ -190,6 +190,14 @@ module.exports = configure(function (/* ctx */) {
                 }
               : {}),
 
+            // CYWM backend — path preserved as-is (Django registers at /api/cywm/)
+            "/api/cywm": {
+              target: apiUrl,
+              changeOrigin: true,
+              secure: !insecure,
+              agent: httpsAgent,
+            },
+
             "/api": {
               target: apiUrl,
               changeOrigin: true,

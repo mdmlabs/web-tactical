@@ -11,7 +11,7 @@
         Wazuh manager:&nbsp;<strong>v4.14.4</strong>
       </div>
       <div class="cywm-topbar__status">
-        <span class="cywm-dot cywm-dot--ok"></span> API connected (mock)
+        <span class="cywm-dot cywm-dot--ok"></span> API connected
       </div>
     </div>
 

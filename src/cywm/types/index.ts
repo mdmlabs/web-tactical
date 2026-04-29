@@ -58,6 +58,10 @@ export interface CreateFilePayload {
   content: string;
 }
 
+export interface DeployRequest {
+  agent_ids?: string[];
+}
+
 export const CATEGORY_LABELS: Record<FileCategory, string> = {
   rules: "rules",
   decoders: "decoders",
