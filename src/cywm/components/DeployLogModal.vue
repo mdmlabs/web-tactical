@@ -64,20 +64,20 @@
 import { computed, onMounted } from "vue";
 import { useDialogPluginComponent } from "quasar";
 import { useDeploy } from "@/cywm/composables/useDeploy";
-import { useCywmStore } from "@/stores/cywm";
-import type { ConfigFile, DeployRecord } from "@/cywm/types";
+import type { ConfigFile, DeployRecord, DeployRequest } from "@/cywm/types";
 
 const props = defineProps<{
-  // Режим A: запускаем новый деплой текущего файла
+  // Mode A: start a new deploy for a file
   file?: ConfigFile;
-  // Режим B: показываем уже существующую запись (из истории)
+  // Optional deploy body (agent_ids for windows-agent targets)
+  deployBody?: DeployRequest;
+  // Mode B: view an existing record (from history)
   existingRecord?: DeployRecord;
 }>();
 
 defineEmits([...useDialogPluginComponent.emits]);
 
 const { dialogRef, onDialogHide, onDialogOK } = useDialogPluginComponent();
-const store = useCywmStore();
 const { isDeploying, liveLog, finalRecord, runDeploy } = useDeploy();
 
 const filename = computed(
@@ -93,11 +93,7 @@ const displayedLog = computed(() => {
 onMounted(async () => {
   if (props.file) {
     try {
-      // Save the file first if modified, then deploy
-      if (store.isModified && store.selectedFile?.id === props.file.id) {
-        await store.saveCurrentFile();
-      }
-      const record = await runDeploy(props.file);
+      const record = await runDeploy(props.file, props.deployBody);
       onDialogOK(record);
     } catch (e) {
       console.error("[cywm] deploy error:", e);

@@ -8,14 +8,11 @@ import {
   deleteFile as apiDeleteFile,
   listDeploys as apiListDeploys,
   getDeployLog as apiGetDeployLog,
-  appendDeployRecord,
-  makeDeployRecord,
 } from "@/cywm/api/cywm";
 import type {
   ConfigFile,
   CreateFilePayload,
   DeployRecord,
-  DeployStatus,
   ListDeploysParams,
 } from "@/cywm/types";
 
@@ -114,20 +111,6 @@ export const useCywmStore = defineStore("cywm", () => {
     editorContent.value = file.contentSaved;
   }
 
-  // === Actions: deploy ===
-  function recordDeployResult(
-    file: ConfigFile,
-    status: DeployStatus,
-    durationMs: number,
-    log: string,
-  ): DeployRecord {
-    const record = makeDeployRecord(file, status, durationMs, log);
-    appendDeployRecord(record);
-    deployHistory.value = [record, ...deployHistory.value];
-    historyTotal.value += 1;
-    return record;
-  }
-
   // === Actions: history ===
   async function fetchHistory(): Promise<void> {
     historyLoading.value = true;
@@ -176,7 +159,6 @@ export const useCywmStore = defineStore("cywm", () => {
     uploadFile,
     deleteCurrentFile,
     reloadEditor,
-    recordDeployResult,
     fetchHistory,
     setHistoryFilters,
     fetchDeployLog,
