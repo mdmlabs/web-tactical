@@ -21,7 +21,7 @@ import type {
  *   GET  /api/alerting/monitors/<id>      – get monitor
  *   PUT  /api/alerting/monitors/<id>      – update monitor
  *   DELETE /api/alerting/monitors/<id>    – delete monitor
- *   GET  /api/alerting/monitors/alerts    – list alerts
+ *   GET  /api/alerting/alerts              – list alerts
  *   POST /api/alerting/monitors/<id>/_acknowledge/alerts – acknowledge
  *
  * Notification channels are served by the Notifications plugin (the legacy
@@ -632,11 +632,11 @@ export async function fetchAlerts(params?: {
     sortDirection: "desc",
   };
   if (params?.monitor_id) {
-    queryParams.monitorId = params.monitor_id;
+    queryParams.monitorIds = params.monitor_id;
   }
 
   const resp = await wazuhDashboardApi.get<DashboardAlertsResp>(
-    "/api/alerting/monitors/alerts",
+    "/api/alerting/alerts",
     queryParams,
   );
 
