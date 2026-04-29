@@ -85,7 +85,7 @@
         :nodes="treeNodes"
         node-key="id"
         :selected="selectedId"
-        default-expand-all
+        :default-expand-all="groupLeavesCount <= 200"
         dense
         class="groups-tree"
         @update:selected="(id: string | null) => $emit('select', id)"

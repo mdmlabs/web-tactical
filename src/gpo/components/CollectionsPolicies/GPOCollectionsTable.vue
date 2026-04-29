@@ -65,6 +65,7 @@
           row-key="id"
           :loading="loading"
           :pagination="{ rowsPerPage: 20 }"
+          :rows-per-page-options="[20, 50, 100]"
           flat
           bordered
           dense
@@ -1094,7 +1095,7 @@ onBeforeUnmount(() => {
   display: flex
   flex-direction: column
   flex: 1 1 0
-  min-height:700px
+  min-height:600px
   overflow: hidden
   padding: 16px 20px
 

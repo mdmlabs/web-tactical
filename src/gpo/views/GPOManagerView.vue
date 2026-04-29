@@ -972,31 +972,53 @@
             class="gpo-devices-panel col-2"
           >
             <div class="gpo-devices-header">
-              <div class="row items-center justify-between">
-                <div class="text-subtitle2 text-weight-medium">
-                  Devices
-                  <q-badge
-                    v-if="agentsList.length > 0"
-                    color="primary"
-                    :label="agentsList.length"
-                    rounded
-                    class="q-ml-sm"
-                  />
+              <div class="gpo-devices-header-top">
+                <div class="row items-center justify-between">
+                  <div class="text-subtitle2 text-weight-medium">
+                    Devices
+                    <q-badge
+                      v-if="agentsList.length > 0"
+                      color="primary"
+                      :label="
+                        agentSearchTrimmed
+                          ? `${filteredAgentsList.length}/${agentsList.length}`
+                          : agentsList.length
+                      "
+                      rounded
+                      class="q-ml-sm"
+                    />
+                  </div>
+                  <q-btn
+                    round
+                    dense
+                    flat
+                    icon="refresh"
+                    :loading="agentsLoading"
+                    @click="loadAgents"
+                    size="sm"
+                  >
+                    <q-tooltip>Update the list of agents</q-tooltip>
+                  </q-btn>
                 </div>
-                <q-btn
-                  round
+              </div>
+              <div v-if="agentsList.length > 0" class="q-mt-sm">
+                <q-input
+                  v-model="agentSearch"
                   dense
-                  flat
-                  icon="refresh"
-                  :loading="agentsLoading"
-                  @click="loadAgents"
-                  size="sm"
+                  outlined
+                  :debounce="300"
+                  clearable
+                  placeholder="Search devices..."
+                  class="gpo-devices-search"
+                  :disable="agentsLoading"
                 >
-                  <q-tooltip>Update the list of agents</q-tooltip>
-                </q-btn>
+                  <template #prepend>
+                    <q-icon name="search" />
+                  </template>
+                </q-input>
               </div>
             </div>
-            <q-scroll-area class="gpo-devices-scroll">
+            <div class="gpo-devices-scroll">
               <div v-if="agentsLoading" class="text-center q-pa-md">
                 <q-spinner color="primary" size="2em" />
                 <div class="q-mt-sm text-caption">Loading devices...</div>
@@ -1026,54 +1048,66 @@
                 <div class="q-mt-sm text-caption">no agents</div>
               </div>
 
-              <q-list
-                v-else-if="!agentsLoading && agentsList.length > 0"
-                dense
+              <q-virtual-scroll
+                v-else-if="!agentsLoading && filteredAgentsList.length > 0"
                 class="gpo-agents-list-items"
+                :items="filteredAgentsList"
+                :virtual-scroll-item-size="56"
+                :virtual-scroll-slice-size="10"
               >
-                <q-item
-                  v-for="agent in agentsList"
-                  :key="agent.id"
-                  clickable
-                  v-ripple
-                  :active="selectedAgent?.id === agent.id"
-                  @click="selectAgent(agent)"
-                  class="gpo-agent-item"
-                >
-                  <q-item-section avatar>
-                    <q-icon
-                      name="computer"
-                      :color="getAgentStatusColor(agent.status)"
-                      size="24px"
-                    />
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label>{{ agent.hostname }}</q-item-label>
-                    <q-item-label caption>
-                      {{ formatDate(agent.last_seen) }}
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section side>
-                    <q-badge
-                      :color="getAgentStatusColor(agent.status)"
-                      :label="getAgentStatusLabel(agent.status)"
-                      rounded
-                    >
-                      <q-tooltip>
-                        {{ getAgentStatusTooltip(agent.status) }}
-                      </q-tooltip>
-                    </q-badge>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </q-scroll-area>
+                <template #default="{ item: agent }">
+                  <q-item
+                    :key="agent.id"
+                    clickable
+                    v-ripple
+                    dense
+                    :active="selectedAgent?.id === agent.id"
+                    @click="selectAgent(agent)"
+                    class="gpo-agent-item"
+                  >
+                    <q-item-section avatar>
+                      <q-icon
+                        name="computer"
+                        :color="getAgentStatusColor(agent.status)"
+                        size="24px"
+                      />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>{{ agent.hostname }}</q-item-label>
+                      <q-item-label caption>
+                        {{ formatDate(agent.last_seen) }}
+                      </q-item-label>
+                    </q-item-section>
+                    <q-item-section side>
+                      <q-badge
+                        :color="getAgentStatusColor(agent.status)"
+                        :label="getAgentStatusLabel(agent.status)"
+                        rounded
+                      >
+                        <q-tooltip>
+                          {{ getAgentStatusTooltip(agent.status) }}
+                        </q-tooltip>
+                      </q-badge>
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-virtual-scroll>
+
+              <div
+                v-else-if="!agentsLoading && agentsList.length > 0"
+                class="text-center q-pa-md text-grey-6"
+              >
+                <q-icon name="search_off" size="2em" />
+                <div class="q-mt-sm text-caption">No matches</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       <div
         v-if="mainTab === 'library'"
-        :key="`library-${libraryTab}`"
+        :key="`library-${libraryNav}`"
         class="gpo-content col-12 gpo-library-content"
       >
         <div class="gpo-content-header">
@@ -1081,7 +1115,7 @@
         </div>
         <div class="gpo-content-panels q-pa-md">
           <q-tabs
-            v-model="libraryTab"
+            v-model="libraryNav"
             dense
             inline-label
             class="text-grey q-mb-md"
@@ -1091,33 +1125,13 @@
             narrow-indicator
             no-caps
           >
-            <q-tab name="policies" icon="rule" label="Policies" />
+            <q-tab name="all" icon="list" label="All policies" />
+            <q-tab name="templates" icon="description" label="Templates" />
             <q-tab name="management" icon="settings" label="Management" />
           </q-tabs>
 
-          <q-tab-panels v-model="libraryTab" class="gpo-library-panels">
-            <q-tab-panel name="policies" class="q-pa-none">
-              <q-tabs
-                v-model="policiesSubTab"
-                dense
-                inline-label
-                class="text-grey q-mb-md"
-                active-color="primary"
-                indicator-color="primary"
-                align="left"
-                narrow-indicator
-                no-caps
-              >
-                <q-tab name="all" icon="list" label="All policies" />
-                <q-tab name="templates" icon="description" label="Templates" />
-                <q-tab name="archive" icon="archive" label="Archive" />
-              </q-tabs>
-
-              <q-tab-panels
-                v-model="policiesSubTab"
-                class="gpo-policies-sub-panels"
-              >
-                <q-tab-panel name="all" class="q-pa-none">
+          <q-tab-panels v-model="libraryNav" class="gpo-library-panels">
+            <q-tab-panel name="all" class="q-pa-none">
                   <div class="row q-mb-md items-center">
                     <q-input
                       v-model="policyFilter"
@@ -1358,129 +1372,6 @@
                     </q-table>
                   </div>
                 </q-tab-panel>
-
-                <q-tab-panel name="archive" class="q-pa-none">
-                  <div class="row q-mb-md items-center">
-                    <q-input
-                      v-model="policyFilter"
-                      placeholder="Search in the archive..."
-                      dense
-                      outlined
-                      class="col-4"
-                    >
-                      <template v-slot:append>
-                        <q-icon name="search" />
-                      </template>
-                    </q-input>
-                    <q-space />
-                    <q-btn
-                      flat
-                      dense
-                      color="secondary"
-                      icon="download"
-                      label=""
-                      :disable="!filteredPoliciesByCategory('archive').length"
-                    >
-                      <q-menu>
-                        <q-list dense style="min-width: 120px">
-                          <q-item clickable v-close-popup @click="exportPolicies('archive', 'csv')">
-                            <q-item-section avatar>
-                              <q-icon name="table_chart" color="primary" />
-                            </q-item-section>
-                            <q-item-section>CSV</q-item-section>
-                          </q-item>
-                          <q-item clickable v-close-popup @click="exportPolicies('archive', 'xlsx')">
-                            <q-item-section avatar>
-                              <q-icon name="description" color="green" />
-                            </q-item-section>
-                            <q-item-section>XLSX</q-item-section>
-                          </q-item>
-                        </q-list>
-                      </q-menu>
-                    </q-btn>
-                  </div>
-
-                  <div
-                    v-if="policiesStore.isLoading.value"
-                    class="text-center q-pa-lg"
-                  >
-                    <q-spinner color="primary" size="3em" />
-                    <div class="q-mt-md">Uploading the archive...</div>
-                  </div>
-                  <div
-                    v-else-if="policiesStore.isError.value"
-                    class="text-center q-pa-lg"
-                  >
-                    <q-icon name="error" color="negative" size="3em" />
-                    <div class="q-mt-md text-negative">
-                      Archive upload error
-                    </div>
-                    <div
-                      v-if="policiesStore.errorMessage.value"
-                      class="q-mt-sm text-caption"
-                    >
-                      {{ policiesStore.errorMessage.value }}
-                    </div>
-                    <q-btn
-                      flat
-                      color="primary"
-                      label="Repeat"
-                      @click="policiesStore.fetchPolicies()"
-                      class="q-mt-md"
-                    />
-                  </div>
-                  <div v-else class="table-container">
-                    <q-table
-                      :rows="filteredPoliciesByCategory('archive')"
-                      :columns="policyColumns"
-                      row-key="id"
-                      :pagination="{ rowsPerPage: 20 }"
-                      :loading="policiesStore.isLoading.value"
-                      flat
-                      bordered
-                    >
-                      <template v-slot:body-cell-description="props">
-                        <q-td :props="props">
-                          <q-tooltip v-if="props.row.description">
-                            {{ props.row.description }}
-                          </q-tooltip>
-                          <span>
-                            {{
-                              props.row.description &&
-                              props.row.description.length > 40
-                                ? props.row.description.slice(0, 40) + "..."
-                                : props.row.description || ""
-                            }}
-                          </span>
-                        </q-td>
-                      </template>
-                      <template v-slot:body-cell-actions="props">
-                        <q-td :props="props">
-                          <q-btn
-                            flat
-                            dense
-                            round
-                            icon="edit"
-                            size="sm"
-                            @click="onEditPolicy(props.row)"
-                            class="q-mr-xs"
-                          />
-                          <q-btn
-                            flat
-                            dense
-                            round
-                            icon="delete"
-                            size="sm"
-                            color="negative"
-                            @click="onDeletePolicy(props.row)"
-                          />
-                        </q-td>
-                      </template>
-                    </q-table>
-                  </div>
-                </q-tab-panel>
-              </q-tab-panels>
-            </q-tab-panel>
 
             <q-tab-panel name="management" class="q-pa-none">
               <AdmxManagementTab />
@@ -2265,6 +2156,23 @@ const contentTab = ref("overview");
 const libraryTab = ref("policies");
 const policiesSubTab = ref("all");
 
+type LibraryNav = "all" | "templates" | "management";
+
+const libraryNav = computed<LibraryNav>({
+  get() {
+    if (libraryTab.value === "management") return "management";
+    return policiesSubTab.value === "templates" ? "templates" : "all";
+  },
+  set(next) {
+    if (next === "management") {
+      libraryTab.value = "management";
+      return;
+    }
+    libraryTab.value = "policies";
+    policiesSubTab.value = next;
+  },
+});
+
 const selectedAgent = ref<Agent | null>(null);
 const usersLoading = ref(false);
 const policyFilter = ref("");
@@ -2379,9 +2287,22 @@ const policyForForm = computed(() => {
 const agentsLoading = ref(false);
 const agentsError = ref(false);
 const gpoAgents = ref<Agent[]>([]);
+const agentSearch = ref("");
 
 const agentsList = computed<Agent[]>(() => {
   return gpoAgents.value;
+});
+
+const agentSearchTrimmed = computed(() => (agentSearch.value ?? "").trim());
+
+const filteredAgentsList = computed<Agent[]>(() => {
+  const q = agentSearchTrimmed.value.toLowerCase();
+  if (!q) return agentsList.value;
+  return agentsList.value.filter((a) => {
+    const hostname = (a.hostname ?? "").toLowerCase();
+    const id = (a.id ?? "").toLowerCase();
+    return hostname.includes(q) || id.includes(q);
+  });
 });
 
 async function loadAgents() {
@@ -2389,6 +2310,7 @@ async function loadAgents() {
   agentsError.value = false;
 
   try {
+    agentSearch.value = "";
     const tacticalAgents = await fetchTacticalAgents({ detail: false });
 
     const allowedAgentIds = Array.isArray(tacticalAgents)
@@ -2622,9 +2544,7 @@ const policyColumns: QTableColumn[] = [
   },
 ];
 
-const filteredPoliciesByCategory = (
-  category: "all" | "templates" | "archive",
-) => {
+const filteredPoliciesByCategory = (category: "all" | "templates") => {
   const allPolicies = policiesStore.policies.value;
   const filter = policyFilter.value?.toLowerCase() ?? "";
 
@@ -2653,11 +2573,6 @@ const filteredPoliciesByCategory = (
         path.includes("template") ||
         displayName.includes("template")
       );
-    });
-  } else if (category === "archive") {
-    policies = policies.filter((policy) => {
-      const path = policy.path?.toLowerCase() ?? "";
-      return !policy.enabled || path.includes("archive");
     });
   }
 
@@ -3942,7 +3857,7 @@ watch(
 );
 
 function exportPolicies(
-  category: "all" | "templates" | "archive",
+  category: "all" | "templates",
   format: "csv" | "xlsx",
 ) {
   const policies = filteredPoliciesByCategory(category);
@@ -3998,9 +3913,16 @@ function exportPolicies(
 
 .gpo-devices-header
   background: rgba(255, 255, 255, 0.8)
-  border-bottom: 2px solid rgba(18, 177, 209, 0.2)
   flex-shrink: 0
-  padding: 12px 8px
+  padding: 12px 0px
+
+.gpo-devices-header-top
+  padding-bottom: 12px
+  border-bottom: 2px solid rgba(18, 177, 209, 0.2)
+
+.gpo-devices-search
+  :deep(.q-field__control)
+    background: rgba(255, 255, 255, 0.92)
 
 .gpo-devices-scroll
   flex: 1
@@ -4017,6 +3939,7 @@ function exportPolicies(
 
 .gpo-agents-list-items
   padding: 4px 0
+  height: 100%
 
 .gpo-agent-item
   border-radius: 6px
@@ -4129,6 +4052,8 @@ function exportPolicies(
 
 .body--dark .gpo-devices-header
   background: rgba(30, 30, 30, 0.8)
+
+.body--dark .gpo-devices-header-top
   border-bottom: 2px solid rgba(18, 177, 209, 0.3)
 
 .gpo-library-content
