@@ -82,7 +82,7 @@
         :nodes="nodes"
         node-key="id"
         :selected="selectedKey"
-        default-expand-all
+        :default-expand-all="categoryNodesCount <= 200"
         dense
         class="groups-tree"
         @update:selected="$emit('select', $event)"

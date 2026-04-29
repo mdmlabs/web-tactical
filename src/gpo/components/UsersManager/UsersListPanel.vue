@@ -75,13 +75,16 @@
       />
     </div>
 
-    <q-scroll-area
+    <q-virtual-scroll
       v-else-if="users.length > 0"
-      class="users-list-scroll"
+      class="users-list-virtual"
+      :items="users"
+      :virtual-scroll-item-size="56"
+      :virtual-scroll-slice-size="10"
+      separator
     >
-      <q-list class="users-list" separator>
+      <template #default="{ item: u }">
         <q-item
-          v-for="u in users"
           :key="u.userid"
           dense
           clickable
@@ -131,8 +134,8 @@
             </div>
           </q-item-section>
         </q-item>
-      </q-list>
-    </q-scroll-area>
+      </template>
+    </q-virtual-scroll>
 
     <div v-else class="column items-center justify-center q-pa-xl text-grey-6">
       <q-icon name="person_off" size="2rem" class="q-mb-sm" />
@@ -182,18 +185,17 @@ defineEmits<{
   padding: 2px 8px
   letter-spacing: 0.02em
 
-.users-list-scroll
+.users-list-virtual
   flex: 1 1 0
   min-height: 0
-
-.users-list
+  height: 100%
   padding: 4px 0
 
-.users-list :deep(.q-item)
+.users-list-virtual :deep(.q-item)
   border-left: 3px solid transparent
   transition: background-color 0.15s ease, border-left-color 0.15s ease
 
-.users-list :deep(.q-item:not(.users-list-item-active):hover)
+.users-list-virtual :deep(.q-item:not(.users-list-item-active):hover)
   background: rgba(0, 0, 0, 0.04)
 
 .users-list-item-active
@@ -238,7 +240,7 @@ defineEmits<{
 .body--dark .users-left-panel
   border-right-color: rgba(255, 255, 255, 0.12)
 
-.body--dark .users-list :deep(.q-item:not(.users-list-item-active):hover)
+.body--dark .users-list-virtual :deep(.q-item:not(.users-list-item-active):hover)
   background: rgba(255, 255, 255, 0.06)
 
 .body--dark .users-list-item-active
