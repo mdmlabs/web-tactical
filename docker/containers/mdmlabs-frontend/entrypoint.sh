@@ -73,10 +73,10 @@ if ! grep -q "config.js" "${INDEX_HTML}"; then
     echo "Injecting config.js reference into index.html..."
     # Create a backup
     cp "${INDEX_HTML}" "${INDEX_HTML}.bak"
-    
+
     # Inject script tag before closing head tag
     sed -i 's|</head>|  <script src="/config.js"></script>\n</head>|' "${INDEX_HTML}"
-    
+
     if [ $? -eq 0 ]; then
         echo "Successfully injected config.js reference"
         rm "${INDEX_HTML}.bak"

@@ -116,15 +116,12 @@ module.exports = configure(function (/* ctx */) {
             });
           }
 
-          const grpcUrl =
-            process.env.DEV_GRPC_URL;
+          const grpcUrl = process.env.DEV_GRPC_URL;
 
-          const wazuhDashboardUrl =
-            process.env.DEV_WAZUH_DASHBOARD_URL || "";
+          const wazuhDashboardUrl = process.env.DEV_WAZUH_DASHBOARD_URL || "";
           const wazuhDashboardUser =
             process.env.DEV_WAZUH_DASHBOARD_USER || "admin";
-          const wazuhDashboardPass =
-            process.env.DEV_WAZUH_DASHBOARD_PASS || "";
+          const wazuhDashboardPass = process.env.DEV_WAZUH_DASHBOARD_PASS || "";
 
           viteConf.server.proxy = {
             "/api/grpc": {
