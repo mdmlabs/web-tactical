@@ -81,7 +81,6 @@ export function getGrpcUrl(): string {
   const viteEnv = import.meta.env.VITE_GRPC_URL;
   const windowEnv = (globalThis.window as WindowWithEnv)?._env_?.GRPC_URL;
 
-
   const grpcUrl = viteEnv || windowEnv;
 
   return grpcUrl.replace(/\/$/, "");
@@ -2024,7 +2023,9 @@ function policyElementSelectionToParamItems(
   e: Record<string, unknown>,
 ): Array<{ idName: string; value: string }> {
   const idName = String(e["idName"] ?? e["id_name"] ?? "").trim();
-  const childs = (e["childsList"] ?? e["childs_list"] ?? e["childs"]) as unknown;
+  const childs = (e["childsList"] ??
+    e["childs_list"] ??
+    e["childs"]) as unknown;
 
   if (Array.isArray(childs) && childs.length > 0) {
     const allValuesOnly = childs.every((c) => {
@@ -2037,12 +2038,12 @@ function policyElementSelectionToParamItems(
     });
     if (allValuesOnly) {
       const values = childs
-        .map((c) => String((c as Record<string, unknown>)["value"] ?? "").trim())
+        .map((c) =>
+          String((c as Record<string, unknown>)["value"] ?? "").trim(),
+        )
         .filter(Boolean);
       if (values.length > 0) {
-        return [
-          { idName: idName || "items", value: values.join(", ") },
-        ];
+        return [{ idName: idName || "items", value: values.join(", ") }];
       }
       return [];
     }
@@ -2075,7 +2076,9 @@ function policyElementItemToParamItems(
   parentName: string,
 ): Array<{ idName: string; value: string }> {
   const id = String(it["idName"] ?? it["id_name"] ?? "").trim();
-  const childs = (it["childsList"] ?? it["childs_list"] ?? it["childs"]) as unknown;
+  const childs = (it["childsList"] ??
+    it["childs_list"] ??
+    it["childs"]) as unknown;
   let path: string;
   if (id) {
     path = parentName ? `${parentName} / ${id}` : id;
