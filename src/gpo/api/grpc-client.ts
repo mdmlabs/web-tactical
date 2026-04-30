@@ -85,8 +85,9 @@ export function getGrpcUrl(): string {
   const appConfigEnv = (globalThis.window as WindowWithEnv)?.APP_CONFIG
     ?.grpcUrl;
   const processEnv = process.env.DEV_GRPC_URL;
+  const fallback = "https://mesh-stage.rmadm.org:5000";
 
-  const grpcUrl = windowEnv || appConfigEnv || processEnv;
+  const grpcUrl = windowEnv || appConfigEnv || processEnv || fallback;
 
   if (!grpcUrl) {
     throw new Error("GRPC_URL is not configured");
