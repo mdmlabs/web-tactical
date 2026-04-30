@@ -7,7 +7,7 @@ export const getBackendUrl = () => {
   if (process.env.NODE_ENV === "production") {
     return window._env_.PROD_URL;
   } else {
-    return process.env.DEV_API || "https://api.rmadm.org";
+    return process.env.DEV_API;
   }
 };
 

@@ -650,11 +650,18 @@ function resetPassword() {
 }
 
 function openDocumentation() {
-  window.open(
-    "https://app.rmadm.org/docs/en/01-home/",
-    "_blank",
-    "noopener,noreferrer",
-  );
+  const docsUrl = process.env.DEV_DOCS_URL;
+
+  if (!docsUrl) {
+    $q.notify({
+      type: "negative",
+      message: "Documentation URL is not set",
+      timeout: 2500,
+    });
+    return;
+  }
+
+  window.open(docsUrl, "_blank", "noopener,noreferrer");
 }
 
 // async function openWebTerm() {

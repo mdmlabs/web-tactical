@@ -80,9 +80,9 @@ export function getGrpcUrl(): string {
 
   const viteEnv = import.meta.env.VITE_GRPC_URL;
   const windowEnv = (globalThis.window as WindowWithEnv)?._env_?.GRPC_URL;
-  const fallback = "https://mesh-stage.rmadm.org:5000";
 
-  const grpcUrl = viteEnv || windowEnv || fallback;
+
+  const grpcUrl = viteEnv || windowEnv;
 
   return grpcUrl.replace(/\/$/, "");
 }
