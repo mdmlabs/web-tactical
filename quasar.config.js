@@ -69,6 +69,7 @@ module.exports = configure(function (/* ctx */) {
         DEV_API: process.env.DEV_URL,
         PROD_API: process.env.PROD_URL,
         DOCKER_BUILD: process.env.DOCKER_BUILD,
+        DEV_DOCS_URL: process.env.DEV_DOCS_URL,
         // используем проксю для обхода корсов (по умолчанию true в dev режиме)
         USE_PROXY: process.env.USE_PROXY !== "false",
         WAZUH_API_ID: process.env.WAZUH_API_ID || "",
@@ -98,7 +99,7 @@ module.exports = configure(function (/* ctx */) {
 
         // настройка прокси для обхода CORS в режиме разработки
         if (!isServer && viteConf.server) {
-          const apiUrl = process.env.DEV_URL || "https://api-stage.rmadm.org";
+          const apiUrl = process.env.DEV_URL;
           // Если используется самоподписанный сертификат, установите USE_PROXY_INSECURE=true
           // Проверяем переменную из .env (dotenv уже загружен в начале )
           const insecure =
@@ -115,7 +116,7 @@ module.exports = configure(function (/* ctx */) {
           }
 
           const grpcUrl =
-            process.env.DEV_GRPC_URL || "https://mesh-stage.rmadm.org:5000";
+            process.env.DEV_GRPC_URL;
 
           const wazuhDashboardUrl =
             process.env.DEV_WAZUH_DASHBOARD_URL || "";
