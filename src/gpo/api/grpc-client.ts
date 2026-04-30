@@ -71,17 +71,26 @@ interface WindowWithEnv {
   _env_?: {
     GRPC_URL?: string;
   };
+  APP_CONFIG?: {
+    grpcUrl?: string;
+  };
 }
 
 export function getGrpcUrl(): string {
-  if (import.meta.env.DEV) {
+  if (process.env.NODE_ENV !== "production") {
     return "/api/grpc";
   }
 
-  const viteEnv = import.meta.env.VITE_GRPC_URL;
   const windowEnv = (globalThis.window as WindowWithEnv)?._env_?.GRPC_URL;
+  const appConfigEnv = (globalThis.window as WindowWithEnv)?.APP_CONFIG
+    ?.grpcUrl;
+  const processEnv = process.env.DEV_GRPC_URL;
 
-  const grpcUrl = viteEnv || windowEnv;
+  const grpcUrl = windowEnv || appConfigEnv || processEnv;
+
+  if (!grpcUrl) {
+    throw new Error("GRPC_URL is not configured");
+  }
 
   return grpcUrl.replace(/\/$/, "");
 }
