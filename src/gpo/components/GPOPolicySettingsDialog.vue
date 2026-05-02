@@ -78,6 +78,22 @@
                   <div class="text-subtitle2 col">Policies</div>
                 </div>
 
+                <q-select
+                  v-model="selectedSupportedOs"
+                  :options="supportedOsOptions"
+                  option-value="value"
+                  option-label="label"
+                  emit-value
+                  map-options
+                  dense
+                  outlined
+                  clearable
+                  label="Supported OS"
+                  placeholder="All operating systems"
+                  class="q-mb-sm"
+                  :loading="loadingSupportedOs"
+                />
+
                 <q-btn-toggle
                   v-model="policyViewMode"
                   no-caps
@@ -716,7 +732,11 @@ import {
 import { PolicySelection } from "@/generated/common/policy_pb";
 import { notifySuccess, notifyError } from "@/utils/notify";
 import type { GPOPolicy } from "../types/gpo";
-import { normalizePoliciesList } from "../api/policy-catalog-adapters";
+import {
+  normalizePoliciesList,
+  parsePolicyGroupScopeLabel,
+} from "../api/policy-catalog-adapters";
+import { fetchSupportedOsSelectOptions } from "../utils/supportedOsBuildSelect";
 import type { PolicyItem } from "../types/policy-catalog";
 import MultiTextBox from "@/components/ui/MultiTextBox.vue";
 
@@ -808,8 +828,10 @@ const allPoliciesList = ref<PolicyItem[]>([]);
 const allPoliciesSearch = ref("");
 const loadingAllPolicies = ref(false);
 const allPoliciesLoaded = ref(false);
-let allPoliciesSearchDebounce: ReturnType<typeof setTimeout> | null = null;
-let allPoliciesSearchRequestId = 0;
+const lastAllPoliciesOsKey = ref<string | null>(null);
+const selectedSupportedOs = ref<string | null>(null);
+const supportedOsOptions = ref<Array<{ label: string; value: string }>>([]);
+const loadingSupportedOs = ref(false);
 
 const policyToggleStates = ref<Record<string, boolean>>({});
 const policyIsSimple = ref<Record<string, boolean | null>>({});
@@ -879,27 +901,57 @@ const filteredCategories = computed(() =>
   filterCategoryTree(categories.value, categorySearch.value),
 );
 
+async function loadSupportedOsList() {
+  loadingSupportedOs.value = true;
+  try {
+    supportedOsOptions.value = await fetchSupportedOsSelectOptions();
+  } catch {
+    notifyError("Error loading supported OS list");
+    supportedOsOptions.value = [];
+  } finally {
+    loadingSupportedOs.value = false;
+  }
+}
+
 async function loadAllPolicies() {
-  const requestId = ++allPoliciesSearchRequestId;
+  const osKey = selectedSupportedOs.value ?? "";
+  if (allPoliciesLoaded.value && lastAllPoliciesOsKey.value === osKey) return;
   loadingAllPolicies.value = true;
   try {
-    const response = await policyCatalogClient.searchPolicyShort(
-      allPoliciesSearch.value.trim(),
-      "en-US",
-    );
-    if (requestId !== allPoliciesSearchRequestId) return;
-
-    const responseObj = response as { policiesList?: unknown[]; policies?: unknown[] };
-    const policiesList = responseObj.policiesList || responseObj.policies || [];
-    allPoliciesList.value = normalizePoliciesList({ policiesList });
+    let items: PolicyItem[] = [];
+    if (selectedSupportedOs.value) {
+      const response = await policyCatalogClient.getPoliciesBySupportedOs(
+        selectedSupportedOs.value,
+        "en-US",
+      );
+      items = normalizePoliciesList(response);
+    } else {
+      const response =
+        await policyCatalogClient.listPoliciesGroupedByScope("en-US");
+      const responseObj = response as {
+        groupsList?: unknown[];
+        groups?: unknown[];
+      };
+      const groupsList = responseObj.groupsList || responseObj.groups || [];
+      for (const group of groupsList) {
+        if (!group || typeof group !== "object") continue;
+        const g = group as {
+          scope?: string;
+          policiesList?: unknown[];
+          policies?: unknown[];
+        };
+        const groupScope = parsePolicyGroupScopeLabel(g.scope);
+        const policiesList = g.policiesList || g.policies || [];
+        items.push(...normalizePoliciesList({ policiesList }, groupScope));
+      }
+    }
+    allPoliciesList.value = items;
     allPoliciesLoaded.value = true;
+    lastAllPoliciesOsKey.value = osKey;
   } catch {
-    if (requestId !== allPoliciesSearchRequestId) return;
     notifyError("Error loading all policies");
   } finally {
-    if (requestId === allPoliciesSearchRequestId) {
-      loadingAllPolicies.value = false;
-    }
+    loadingAllPolicies.value = false;
   }
 }
 
@@ -916,13 +968,21 @@ function scopeLabelText(scope: number): string {
 }
 
 const filteredAllPoliciesGrouped = computed(() => {
-  const list = allPoliciesList.value.filter((p) => {
+  const query = allPoliciesSearch.value.trim().toLowerCase();
+  let list = allPoliciesList.value.filter((p) => {
     const scope = normalizeScope(p.scope);
     return (
       scope === operator_pb.PolicyScope.POLICY_SCOPE_MACHINE ||
       scope === operator_pb.PolicyScope.POLICY_SCOPE_BOTH
     );
   });
+  if (query) {
+    list = list.filter(
+      (p) =>
+        (p.displayName || "").toLowerCase().includes(query) ||
+        (p.name || "").toLowerCase().includes(query),
+    );
+  }
   const byScope: Record<number, PolicyItem[]> = {};
   for (const p of list) {
     const key = p.scope ?? SCOPE_NONE;
@@ -963,22 +1023,26 @@ function selectAllPolicy(policy: PolicyItem) {
 
 watch(policyViewMode, (mode) => {
   if (mode === "allPolicies") {
-    loadAllPolicies();
+    void loadAllPolicies();
   }
   selectedPolicy.value = null;
 });
 
-watch(allPoliciesSearch, () => {
-  if (policyViewMode.value !== "allPolicies") return;
-  if (allPoliciesSearchDebounce) clearTimeout(allPoliciesSearchDebounce);
-  allPoliciesSearchDebounce = setTimeout(() => {
-    loadAllPolicies();
-  }, 300);
+watch(selectedSupportedOs, () => {
+  if (!dialogVisible.value) return;
+  allPoliciesLoaded.value = false;
+  if (policyViewMode.value === "allPolicies") {
+    void loadAllPolicies();
+  }
+  if (policyViewMode.value === "byCategory" && selectedCategory.value) {
+    void loadPoliciesByCategory(selectedCategory.value.categoryName);
+  }
 });
 
 watch(dialogVisible, (newVal) => {
   if (newVal) {
     loadCategories();
+    void loadSupportedOsList();
   } else {
     selectedCategoryId.value = null;
     selectedCategory.value = null;
@@ -992,6 +1056,8 @@ watch(dialogVisible, (newVal) => {
     allPoliciesList.value = [];
     allPoliciesSearch.value = "";
     allPoliciesLoaded.value = false;
+    lastAllPoliciesOsKey.value = null;
+    selectedSupportedOs.value = null;
     policyToggleStates.value = {};
     policyIsSimple.value = {};
   }
@@ -1115,64 +1181,32 @@ async function loadPoliciesByCategory(categoryName: string) {
   selectedPolicy.value = null;
 
   try {
-    const metadata = createGrpcMetadata();
-    const request = new operator_pb.GetPoliciesByCategoryRequest();
-    request.setLangCode("en-US");
-    request.setCategory(categoryName);
-
-    const response = await policyCatalogServiceClient.getPoliciesByCategory(
-      request,
-      metadata,
-    );
-
-    const responseObj = response.toObject
-      ? response.toObject()
-      : (response as unknown as { policiesList?: unknown[] });
-
-    const policiesList =
-      (responseObj as { policiesList?: unknown[] }).policiesList || [];
-
-    const policies: PolicyRow[] = [];
-    for (const policy of policiesList) {
-      if (policy && typeof policy === "object") {
-        const p = policy as {
-          id?: number;
-          name?: string;
-          display_name?: string;
-          displayName?: string;
-          explain_text?: string;
-          explainText?: string;
-          scope?: number | string;
-        };
-
-        const explainText = p.explain_text || p.explainText;
-
-        const isLocalizationKey =
-          explainText &&
-          (explainText.endsWith("_Help") ||
-            explainText.endsWith("_Explain") ||
-            explainText.includes("_Help_") ||
-            explainText.includes("_Explain_"));
-
-        const description =
-          explainText && explainText.trim() && !isLocalizationKey
-            ? explainText.trim()
-            : undefined;
-
-        policies.push({
-          id: String(p.id || ""),
-          name: p.name || "",
-          displayName: p.display_name || p.displayName || p.name || "",
-          path: `CN={${p.id}},CN=Policies,CN=System`,
-          enabled: true,
-          description: description,
-          scope: p.scope,
-        });
-      }
+    const [categoryResponse, byOsResponse] = await Promise.all([
+      policyCatalogClient.getPoliciesByCategory(categoryName, "en-US"),
+      selectedSupportedOs.value
+        ? policyCatalogClient.getPoliciesBySupportedOs(
+            selectedSupportedOs.value,
+            "en-US",
+          )
+        : Promise.resolve(null),
+    ]);
+    let policies = normalizePoliciesList(categoryResponse);
+    if (byOsResponse) {
+      const allowed = new Set(
+        normalizePoliciesList(byOsResponse).map((p) => p.id),
+      );
+      policies = policies.filter((p) => allowed.has(p.id));
     }
-
-    selectedCategoryPolicies.value = policies;
-  } catch (error) {
+    selectedCategoryPolicies.value = policies.map((p) => ({
+      id: p.id,
+      name: p.name,
+      displayName: p.displayName,
+      path: `CN={${p.id}},CN=Policies,CN=System`,
+      enabled: true,
+      description: p.description,
+      scope: p.scope,
+    }));
+  } catch {
     notifyError("Error when uploading policies");
   } finally {
     loadingPolicies.value = false;

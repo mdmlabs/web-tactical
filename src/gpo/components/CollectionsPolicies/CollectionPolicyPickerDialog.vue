@@ -33,9 +33,30 @@
           </div>
 
           <div class="col-4">
-            <q-card flat bordered class="column" style="height: calc(100vh - 220px)">
+            <q-card
+              flat
+              bordered
+              class="column"
+              style="height: calc(100vh - 220px)"
+            >
               <q-card-section class="policy-list-section">
                 <div class="text-subtitle2 q-mb-sm">Policies</div>
+
+                <q-select
+                  v-model="selectedSupportedOs"
+                  :options="supportedOsOptions"
+                  option-value="value"
+                  option-label="label"
+                  emit-value
+                  map-options
+                  dense
+                  outlined
+                  clearable
+                  label="Supported OS"
+                  placeholder="All operating systems"
+                  class="q-mb-sm"
+                  :loading="loadingSupportedOs"
+                />
 
                 <q-btn-toggle
                   v-model="policyViewMode"
@@ -55,10 +76,21 @@
                     <q-spinner color="primary" size="2em" />
                     <div class="q-mt-sm">Loading...</div>
                   </div>
-                  <div v-else-if="errorPolicies" class="text-center q-pa-lg text-negative">
+                  <div
+                    v-else-if="errorPolicies"
+                    class="text-center q-pa-lg text-negative"
+                  >
                     <q-icon name="error" size="2em" />
                     <div class="q-mt-sm">{{ errorPolicies }}</div>
-                    <q-btn flat dense no-caps label="Retry" color="primary" class="q-mt-sm" @click="retryLoadPolicies" />
+                    <q-btn
+                      flat
+                      dense
+                      no-caps
+                      label="Retry"
+                      color="primary"
+                      class="q-mt-sm"
+                      @click="retryLoadPolicies"
+                    />
                   </div>
                   <q-scroll-area
                     v-else-if="filteredGroupedPolicies.length > 0"
@@ -70,7 +102,9 @@
                       :key="group.scopeKey"
                       class="q-mb-md"
                     >
-                      <div class="text-caption text-weight-medium text-grey-7 q-mb-xs q-px-sm">
+                      <div
+                        class="text-caption text-weight-medium text-grey-7 q-mb-xs q-px-sm"
+                      >
                         {{ group.scopeLabel }}
                       </div>
                       <q-list separator>
@@ -85,32 +119,54 @@
                         >
                           <q-item-section avatar>
                             <q-checkbox
-                              :model-value="selectedPolicies[policy.id] || false"
-                              @update:model-value="togglePolicySelectionWithItem(policy)"
+                              :model-value="
+                                selectedPolicies[policy.id] || false
+                              "
+                              @update:model-value="
+                                togglePolicySelectionWithItem(policy)
+                              "
                               @click.stop
                             />
                           </q-item-section>
                           <q-item-section>
-                            <q-item-label>{{ policy.displayName || policy.name }}</q-item-label>
+                            <q-item-label>{{
+                              policy.displayName || policy.name
+                            }}</q-item-label>
                           </q-item-section>
-                          <q-item-section v-if="selectedPolicies[policy.id]" side class="q-pl-sm">
+                          <q-item-section
+                            v-if="selectedPolicies[policy.id]"
+                            side
+                            class="q-pl-sm"
+                          >
                             <q-toggle
                               :model-value="policyState[policy.id] !== false"
                               color="primary"
                               dense
-                              :label="policyState[policy.id] !== false ? 'On' : 'Off'"
-                              @update:model-value="setPolicyState(policy.id, $event)"
+                              :label="
+                                policyState[policy.id] !== false ? 'On' : 'Off'
+                              "
+                              @update:model-value="
+                                setPolicyState(policy.id, $event)
+                              "
                               @click.stop
                             />
                           </q-item-section>
                         </q-item>
                       </q-list>
                     </div>
-                    <div v-if="selectedCount > 0" class="q-pa-sm q-mt-sm bg-primary text-white rounded-borders">
-                      <div class="text-caption">Selected: {{ selectedCount }} policy(ies)</div>
+                    <div
+                      v-if="selectedCount > 0"
+                      class="q-pa-sm q-mt-sm bg-primary text-white rounded-borders"
+                    >
+                      <div class="text-caption">
+                        Selected: {{ selectedCount }} policy(ies)
+                      </div>
                     </div>
                   </q-scroll-area>
-                  <div v-else-if="selectedCategory" class="text-center q-pa-lg text-grey-6">
+                  <div
+                    v-else-if="selectedCategory"
+                    class="text-center q-pa-lg text-grey-6"
+                  >
                     <q-icon name="info" size="2em" />
                     <div class="q-mt-sm">No policies in category</div>
                   </div>
@@ -150,7 +206,9 @@
                       :key="group.scopeKey"
                       class="q-mb-md"
                     >
-                      <div class="text-caption text-weight-medium text-grey-7 q-mb-xs q-px-sm">
+                      <div
+                        class="text-caption text-weight-medium text-grey-7 q-mb-xs q-px-sm"
+                      >
                         {{ group.scopeLabel }}
                         <q-badge
                           :label="group.policies.length"
@@ -172,29 +230,48 @@
                         >
                           <q-item-section avatar>
                             <q-checkbox
-                              :model-value="selectedPolicies[policy.id] || false"
-                              @update:model-value="togglePolicySelectionWithItem(policy)"
+                              :model-value="
+                                selectedPolicies[policy.id] || false
+                              "
+                              @update:model-value="
+                                togglePolicySelectionWithItem(policy)
+                              "
                               @click.stop
                             />
                           </q-item-section>
                           <q-item-section>
-                            <q-item-label>{{ policy.displayName || policy.name }}</q-item-label>
+                            <q-item-label>{{
+                              policy.displayName || policy.name
+                            }}</q-item-label>
                           </q-item-section>
-                          <q-item-section v-if="selectedPolicies[policy.id]" side class="q-pl-sm">
+                          <q-item-section
+                            v-if="selectedPolicies[policy.id]"
+                            side
+                            class="q-pl-sm"
+                          >
                             <q-toggle
                               :model-value="policyState[policy.id] !== false"
                               color="primary"
                               dense
-                              :label="policyState[policy.id] !== false ? 'On' : 'Off'"
-                              @update:model-value="setPolicyState(policy.id, $event)"
+                              :label="
+                                policyState[policy.id] !== false ? 'On' : 'Off'
+                              "
+                              @update:model-value="
+                                setPolicyState(policy.id, $event)
+                              "
                               @click.stop
                             />
                           </q-item-section>
                         </q-item>
                       </q-list>
                     </div>
-                    <div v-if="selectedCount > 0" class="q-pa-sm q-mt-sm bg-primary text-white rounded-borders">
-                      <div class="text-caption">Selected: {{ selectedCount }} policy(ies)</div>
+                    <div
+                      v-if="selectedCount > 0"
+                      class="q-pa-sm q-mt-sm bg-primary text-white rounded-borders"
+                    >
+                      <div class="text-caption">
+                        Selected: {{ selectedCount }} policy(ies)
+                      </div>
                     </div>
                   </q-scroll-area>
                   <div
@@ -333,8 +410,12 @@ import CategoryTree from "./CategoryTree.vue";
 import PolicyDetailsForm from "./PolicyDetailsForm.vue";
 import { usePolicyCategories } from "../../composables/usePolicyCategories";
 import { usePolicySelection } from "../../composables/usePolicySelection";
-import { normalizePoliciesList } from "../../api/policy-catalog-adapters";
+import {
+  normalizePoliciesList,
+  parsePolicyGroupScopeLabel,
+} from "../../api/policy-catalog-adapters";
 import { getDefaultValueForElement } from "../../utils/policy-field-types";
+import { fetchSupportedOsSelectOptions } from "../../utils/supportedOsBuildSelect";
 import type { CategoryNode, PolicyItem } from "../../types/policy-catalog";
 
 const POLICY_SCOPE_NONE = 0;
@@ -416,10 +497,27 @@ const allPoliciesRaw = ref<PolicyItem[]>([]);
 const allPoliciesSearch = ref("");
 const loadingAllPolicies = ref(false);
 const allPoliciesLoaded = ref(false);
+const lastAllPoliciesOsKey = ref<string | null>(null);
+
+const selectedSupportedOs = ref<string | null>(null);
+const supportedOsOptions = ref<Array<{ label: string; value: string }>>([]);
+const loadingSupportedOs = ref(false);
 
 const selectedPoliciesList = computed(() =>
   Object.values(selectedPolicyItems.value),
 );
+
+async function loadSupportedOsList() {
+  loadingSupportedOs.value = true;
+  try {
+    supportedOsOptions.value = await fetchSupportedOsSelectOptions();
+  } catch {
+    notifyError("Error loading supported OS list");
+    supportedOsOptions.value = [];
+  } finally {
+    loadingSupportedOs.value = false;
+  }
+}
 
 function togglePolicySelectionWithItem(policy: PolicyItem) {
   const id = policy.id;
@@ -509,19 +607,25 @@ function scopeLabel(scope: number): string {
   }
 }
 
-const filteredGroupedPolicies = computed(() => {
-  const filter = scopeFilter.value;
-  let list = allPolicies.value;
 
-  if (filter !== "all") {
-    list = list.filter((p) => {
-      if (filter === "user")
-        return p.scope === POLICY_SCOPE_USER || p.scope === POLICY_SCOPE_BOTH;
-      if (filter === "computer")
-        return p.scope === POLICY_SCOPE_MACHINE || p.scope === POLICY_SCOPE_BOTH;
-      return true;
-    });
-  }
+function filterPoliciesByCollectionScope(list: PolicyItem[]): PolicyItem[] {
+  const filter = scopeFilter.value;
+  if (filter === "all") return list;
+  return list.filter((p) => {
+    if (filter === "user") {
+      return p.scope === POLICY_SCOPE_USER || p.scope === POLICY_SCOPE_BOTH;
+    }
+    if (filter === "computer") {
+      return (
+        p.scope === POLICY_SCOPE_MACHINE || p.scope === POLICY_SCOPE_BOTH
+      );
+    }
+    return true;
+  });
+}
+
+const filteredGroupedPolicies = computed(() => {
+  let list = filterPoliciesByCollectionScope(allPolicies.value);
 
   const groups: {
     scopeKey: string;
@@ -539,7 +643,12 @@ const filteredGroupedPolicies = computed(() => {
     if (!byScope[scope]) byScope[scope] = [];
     byScope[scope].push(p);
   }
-  const order = [POLICY_SCOPE_USER, POLICY_SCOPE_MACHINE, POLICY_SCOPE_BOTH, POLICY_SCOPE_NONE];
+  const order = [
+    POLICY_SCOPE_USER,
+    POLICY_SCOPE_MACHINE,
+    POLICY_SCOPE_BOTH,
+    POLICY_SCOPE_NONE,
+  ];
   for (const scope of order) {
     const policies = byScope[scope] || [];
     if (policies.length === 0) continue;
@@ -553,21 +662,40 @@ const filteredGroupedPolicies = computed(() => {
 });
 
 async function loadAllPolicies() {
-  if (allPoliciesLoaded.value) return;
+  const osKey = selectedSupportedOs.value ?? "";
+  if (allPoliciesLoaded.value && lastAllPoliciesOsKey.value === osKey) return;
   loadingAllPolicies.value = true;
   try {
-    const response = await policyCatalogClient.listPoliciesGroupedByScope("en-US");
-    const responseObj = response as { groupsList?: unknown[]; groups?: unknown[] };
-    const groupsList = responseObj.groupsList || responseObj.groups || [];
-    const items: PolicyItem[] = [];
-    for (const group of groupsList) {
-      if (!group || typeof group !== "object") continue;
-      const g = group as { policiesList?: unknown[]; policies?: unknown[] };
-      const policiesList = g.policiesList || g.policies || [];
-      items.push(...normalizePoliciesList({ policiesList }));
+    let items: PolicyItem[] = [];
+    if (selectedSupportedOs.value) {
+      const response = await policyCatalogClient.getPoliciesBySupportedOs(
+        selectedSupportedOs.value,
+        "en-US",
+      );
+      items = normalizePoliciesList(response);
+    } else {
+      const response =
+        await policyCatalogClient.listPoliciesGroupedByScope("en-US");
+      const responseObj = response as {
+        groupsList?: unknown[];
+        groups?: unknown[];
+      };
+      const groupsList = responseObj.groupsList || responseObj.groups || [];
+      for (const group of groupsList) {
+        if (!group || typeof group !== "object") continue;
+        const g = group as {
+          scope?: string;
+          policiesList?: unknown[];
+          policies?: unknown[];
+        };
+        const groupScope = parsePolicyGroupScopeLabel(g.scope);
+        const policiesList = g.policiesList || g.policies || [];
+        items.push(...normalizePoliciesList({ policiesList }, groupScope));
+      }
     }
     allPoliciesRaw.value = items;
     allPoliciesLoaded.value = true;
+    lastAllPoliciesOsKey.value = osKey;
   } catch {
     notifyError("Error loading all policies");
   } finally {
@@ -577,7 +705,7 @@ async function loadAllPolicies() {
 
 const filteredAllPoliciesGrouped = computed(() => {
   const query = allPoliciesSearch.value.trim().toLowerCase();
-  let list = allPoliciesRaw.value;
+  let list = filterPoliciesByCollectionScope(allPoliciesRaw.value);
   if (query) {
     list = list.filter(
       (p) =>
@@ -591,12 +719,25 @@ const filteredAllPoliciesGrouped = computed(() => {
     if (!byScope[key]) byScope[key] = [];
     byScope[key].push(p);
   }
-  const order = [POLICY_SCOPE_USER, POLICY_SCOPE_MACHINE, POLICY_SCOPE_BOTH, POLICY_SCOPE_NONE];
-  const groups: { scopeKey: string; scopeLabel: string; policies: PolicyItem[] }[] = [];
+  const order = [
+    POLICY_SCOPE_USER,
+    POLICY_SCOPE_MACHINE,
+    POLICY_SCOPE_BOTH,
+    POLICY_SCOPE_NONE,
+  ];
+  const groups: {
+    scopeKey: string;
+    scopeLabel: string;
+    policies: PolicyItem[];
+  }[] = [];
   for (const scope of order) {
     const policies = byScope[scope];
     if (policies && policies.length > 0) {
-      groups.push({ scopeKey: String(scope), scopeLabel: scopeLabel(scope), policies });
+      groups.push({
+        scopeKey: String(scope),
+        scopeLabel: scopeLabel(scope),
+        policies,
+      });
     }
   }
   return groups;
@@ -604,9 +745,20 @@ const filteredAllPoliciesGrouped = computed(() => {
 
 watch(policyViewMode, (mode) => {
   if (mode === "allPolicies") {
-    loadAllPolicies();
+    void loadAllPolicies();
   }
   selectedPolicy.value = null;
+});
+
+watch(selectedSupportedOs, () => {
+  if (!props.modelValue) return;
+  allPoliciesLoaded.value = false;
+  if (policyViewMode.value === "allPolicies") {
+    void loadAllPolicies();
+  }
+  if (policyViewMode.value === "byCategory" && selectedCategory.value) {
+    void loadPoliciesByCategory(selectedCategory.value.categoryName);
+  }
 });
 
 watch(
@@ -631,8 +783,11 @@ watch(
       allPoliciesRaw.value = [];
       allPoliciesSearch.value = "";
       allPoliciesLoaded.value = false;
+      lastAllPoliciesOsKey.value = null;
+      selectedSupportedOs.value = null;
       policyState.value = {};
-      loadCategories();
+      void loadCategories();
+      void loadSupportedOsList();
     }
   },
 );
@@ -643,11 +798,23 @@ async function loadPoliciesByCategory(categoryName: string) {
   allPolicies.value = [];
   selectedPolicy.value = null;
   try {
-    const response = await policyCatalogClient.getPoliciesByCategory(
-      categoryName,
-      "en-US",
-    );
-    allPolicies.value = normalizePoliciesList(response);
+    const [categoryResponse, byOsResponse] = await Promise.all([
+      policyCatalogClient.getPoliciesByCategory(categoryName, "en-US"),
+      selectedSupportedOs.value
+        ? policyCatalogClient.getPoliciesBySupportedOs(
+            selectedSupportedOs.value,
+            "en-US",
+          )
+        : Promise.resolve(null),
+    ]);
+    let policies = normalizePoliciesList(categoryResponse);
+    if (byOsResponse) {
+      const allowed = new Set(
+        normalizePoliciesList(byOsResponse).map((p) => p.id),
+      );
+      policies = policies.filter((p) => allowed.has(p.id));
+    }
+    allPolicies.value = policies;
   } catch {
     errorPolicies.value = "Error loading policies";
     notifyError("Error loading policies");
@@ -675,7 +842,6 @@ function ensureString(val: unknown): string {
   return String(val);
 }
 
-
 function coercePositivePolicyElementId(raw: unknown): number {
   if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
     return Math.trunc(raw);
@@ -701,9 +867,7 @@ function readPolicyElementRecordId(el: Record<string, unknown>): number {
   return 0;
 }
 
-function buildPresentationMap(
-  presentationList: unknown[],
-): Map<
+function buildPresentationMap(presentationList: unknown[]): Map<
   string,
   {
     type: string;
@@ -824,10 +988,7 @@ function buildPolicyElements(
             const itemName = ensureString(item.name ?? itemValue);
             const itemDisplayName =
               ensureString(
-                item.displayName ??
-                  item.display_name ??
-                  item.text ??
-                  itemValue,
+                item.displayName ?? item.display_name ?? item.text ?? itemValue,
               ) || itemName;
             const itemValueType = (item.valueType ??
               item.value_type ??

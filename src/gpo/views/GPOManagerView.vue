@@ -1592,6 +1592,11 @@
               outlined
               class="q-mb-sm"
             />
+            <OsVersionSelect
+              v-model="createUserForm.minimalOsVersion"
+              label="Minimal OS version"
+              class="q-mt-sm"
+            />
           </q-card-section>
           <q-card-actions align="right">
             <q-btn flat label="Cancel" color="primary" v-close-popup />
@@ -1718,6 +1723,11 @@
               dense
               outlined
               class="q-mb-sm"
+            />
+            <OsVersionSelect
+              v-model="editUserForm.minimalOsVersion"
+              label="Minimal OS version"
+              class="q-mt-sm"
             />
           </q-card-section>
           <q-card-actions align="right">
@@ -1952,6 +1962,11 @@
               dense
               outlined
             />
+            <OsVersionSelect
+              v-model="createGroupForm.minimalOsVersion"
+              label="Minimal OS version"
+              class="q-mt-sm"
+            />
           </q-card-section>
           <q-card-actions align="right">
             <q-btn flat label="Cancel" color="primary" v-close-popup />
@@ -2102,6 +2117,7 @@ import AdmxManagementTab from "../components/PolicyLibrary/AdmxManagementTab.vue
 import WindowsAdmxPolicies from "../components/WindowsPolicies/WindowsAdmxPolicies.vue";
 import AgentAlertsTab from "../components/AgentAlertsTab.vue";
 import WslUserDialog from "../components/WslUserDialog.vue";
+import OsVersionSelect from "@/components/ui/OsVersionSelect.vue";
 import type {
   GPOPolicy,
   CreateGPOPolicyRequest,
@@ -2142,6 +2158,7 @@ interface User {
   scriptPath?: string;
   telephoneNumber?: string;
   employeeId?: string;
+  minimalOsVersion?: string;
 }
 
 const $q = useQuasar();
@@ -2218,9 +2235,11 @@ const createUserForm = ref({
   scriptPath: "",
   telephoneNumber: "",
   employeeId: "",
+  minimalOsVersion: "",
 });
 const showEditUserDialog = ref(false);
 const editUserRow = ref<User | null>(null);
+const editUserMinimalOsBaseline = ref("");
 const editUserForm = ref({
   displayName: "",
   description: "",
@@ -2237,6 +2256,7 @@ const editUserForm = ref({
   scriptPath: "",
   telephoneNumber: "",
   employeeId: "",
+  minimalOsVersion: "",
 });
 const showSetPasswordDialog = ref(false);
 const setPasswordUser = ref<User | null>(null);
@@ -2263,6 +2283,7 @@ const createGroupForm = ref({
   target: { agentId: "" as string },
   samGroupName: "",
   description: "",
+  minimalOsVersion: "",
 });
 const showAddUserToGroupFromGroupDialog = ref(false);
 const addUserToGroupGroupRow = ref<{
@@ -2734,6 +2755,7 @@ async function loadUsersForAgent(agentId: string) {
           scriptPath: getStr("scriptpath", "scriptPath"),
           telephoneNumber: getStr("telephonenumber", "telephoneNumber"),
           employeeId: getStr("employeeid", "employeeId"),
+          minimalOsVersion: getStr("minimalosversion", "minimalOsVersion"),
         };
       });
     }
@@ -3150,6 +3172,7 @@ function openCreateUserDialog() {
     scriptPath: "",
     telephoneNumber: "",
     employeeId: "",
+    minimalOsVersion: "",
   };
   showCreateUserDialog.value = true;
 }
@@ -3196,6 +3219,7 @@ async function createUser() {
     scriptPath: f.scriptPath.trim() || "",
     telephoneNumber: f.telephoneNumber.trim() || "",
     employeeId: f.employeeId.trim() || "",
+    minimalOsVersion: f.minimalOsVersion?.trim() || undefined,
   };
   console.log("[CreateUser] target:", { agentId: targetAgentId });
   console.log("[CreateUser] payload:", {
@@ -3220,6 +3244,7 @@ async function createUser() {
 
 function openEditUserDialog(row: User) {
   editUserRow.value = row;
+  editUserMinimalOsBaseline.value = (row.minimalOsVersion ?? "").trim();
   editUserForm.value = {
     displayName: row.displayName ?? "",
     description: row.description ?? "",
@@ -3236,6 +3261,7 @@ function openEditUserDialog(row: User) {
     scriptPath: row.scriptPath ?? "",
     telephoneNumber: row.telephoneNumber ?? "",
     employeeId: row.employeeId ?? "",
+    minimalOsVersion: row.minimalOsVersion ?? "",
   };
   showEditUserDialog.value = true;
 }
@@ -3245,6 +3271,12 @@ async function updateUser() {
   const row = editUserRow.value;
   if (!row) return;
   const f = editUserForm.value;
+  const nextOs = (f.minimalOsVersion ?? "").trim();
+  const baseOs = (editUserMinimalOsBaseline.value ?? "").trim();
+  let minimalOsPayload: { minimalOsVersion: string } | undefined;
+  if (nextOs !== baseOs) {
+    minimalOsPayload = { minimalOsVersion: nextOs };
+  }
   userControlLoading.value = true;
   try {
     await userControlClient.updateUser(
@@ -3266,6 +3298,7 @@ async function updateUser() {
         scriptPath: f.scriptPath.trim() || undefined,
         telephoneNumber: f.telephoneNumber.trim() || undefined,
         employeeId: f.employeeId.trim() || undefined,
+        ...minimalOsPayload,
       },
     );
     notifySuccess("User updated");
@@ -3517,6 +3550,7 @@ function openCreateGroupDialog() {
     target: { agentId },
     samGroupName: "",
     description: "",
+    minimalOsVersion: "",
   };
   showCreateGroupDialog.value = true;
 }
@@ -3533,7 +3567,10 @@ async function createGroup() {
     await userControlClient.createGroup(
       createUserGroupTargetForAgent(targetAgentId),
       f.samGroupName.trim(),
-      f.description.trim() || undefined,
+      {
+        description: f.description.trim() || undefined,
+        minimalOsVersion: (f.minimalOsVersion ?? "").trim() || undefined,
+      },
     );
     notifySuccess("Group created");
     showCreateGroupDialog.value = false;
