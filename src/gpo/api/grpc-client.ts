@@ -61,13 +61,7 @@ import {
   UserRequest as CommonUserRequest,
 } from "@/generated/common/user_pb";
 
-// interface WindowWithEnv extends Window {
-//   _env_?: {
-//     GRPC_URL?: string;
-//   };
-// }
-
-interface WindowWithEnv {
+interface WindowWithEnv extends Window {
   _env_?: {
     GRPC_URL?: string;
   };
@@ -78,11 +72,7 @@ export function getGrpcUrl(): string {
     return "/api/grpc";
   }
 
-  const windowEnv = (globalThis.window as WindowWithEnv)?._env_?.GRPC_URL;
-  const processEnv = process.env.DEV_GRPC_URL;
-  const fallback = `https://${process.env.MESH_HOST}:${process.env.GRPC_PORT}`;
-
-  const grpcUrl = windowEnv || processEnv || fallback;
+  const grpcUrl = (globalThis.window as WindowWithEnv)._env_?.GRPC_URL;
 
   if (!grpcUrl) {
     throw new Error("GRPC_URL is not configured");
