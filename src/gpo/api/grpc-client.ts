@@ -64,7 +64,30 @@ import {
 interface WindowWithEnv extends Window {
   _env_?: {
     DEV_GRPC_URL?: string;
+    MESH_HOST?: string;
+    GRPC_PORT?: string;
   };
+}
+
+function stripTrailingGrpcSlash(url: string): string {
+  return url.replace(/\/$/, "");
+}
+
+function grpcUrlFromRuntimeEnv(
+  env: WindowWithEnv["_env_"] | undefined,
+): string | undefined {
+  if (!env) return undefined;
+  const explicit = env.DEV_GRPC_URL?.trim();
+  if (explicit) return stripTrailingGrpcSlash(explicit);
+
+  const host = env.MESH_HOST?.trim();
+  if (!host) return undefined;
+  if (/^https?:\/\//i.test(host)) {
+    return stripTrailingGrpcSlash(host);
+  }
+  const port = env.GRPC_PORT?.trim();
+  const portPart = port ? `:${port}` : "";
+  return stripTrailingGrpcSlash(`https://${host}${portPart}`);
 }
 
 export function getGrpcUrl(): string {
@@ -72,13 +95,17 @@ export function getGrpcUrl(): string {
     return "/api/grpc";
   }
 
-  const grpcUrl = (globalThis.window as WindowWithEnv)._env_?.DEV_GRPC_URL;
+  const grpcUrl = grpcUrlFromRuntimeEnv(
+    (globalThis.window as WindowWithEnv)._env_,
+  );
 
   if (!grpcUrl) {
-    throw new Error("DEV_GRPC_URL is not configured");
+    throw new Error(
+      "gRPC endpoint is not configured)",
+    );
   }
 
-  return grpcUrl.replace(/\/$/, "");
+  return grpcUrl;
 }
 
 export function createGrpcMetadata(): grpcWeb.Metadata {
