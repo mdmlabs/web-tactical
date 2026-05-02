@@ -63,7 +63,7 @@ import {
 
 interface WindowWithEnv extends Window {
   _env_?: {
-    GRPC_URL?: string;
+    DEV_GRPC_URL?: string;
   };
 }
 
@@ -72,10 +72,14 @@ export function getGrpcUrl(): string {
     return "/api/grpc";
   }
 
-  const grpcUrl = (globalThis.window as WindowWithEnv)._env_?.GRPC_URL;
+  const grpcUrl =
+    (process.env.DEV_GRPC_URL as string | undefined) ||
+    (typeof globalThis.window !== "undefined"
+      ? (globalThis.window as WindowWithEnv)._env_?.DEV_GRPC_URL
+      : undefined);
 
   if (!grpcUrl) {
-    throw new Error("GRPC_URL is not configured");
+    throw new Error("DEV_GRPC_URL is not configured");
   }
 
   return grpcUrl.replace(/\/$/, "");
