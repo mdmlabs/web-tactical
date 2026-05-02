@@ -38,4 +38,5 @@ export interface PolicyItem {
   scope: number;
   hash?: string;
   state?: boolean;
+  supportedOnRef?: string;
 }

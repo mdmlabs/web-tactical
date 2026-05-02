@@ -71,9 +71,6 @@ interface WindowWithEnv {
   _env_?: {
     GRPC_URL?: string;
   };
-  APP_CONFIG?: {
-    grpcUrl?: string;
-  };
 }
 
 export function getGrpcUrl(): string {
@@ -82,12 +79,10 @@ export function getGrpcUrl(): string {
   }
 
   const windowEnv = (globalThis.window as WindowWithEnv)?._env_?.GRPC_URL;
-  const appConfigEnv = (globalThis.window as WindowWithEnv)?.APP_CONFIG
-    ?.grpcUrl;
   const processEnv = process.env.DEV_GRPC_URL;
-  const fallback = "https://mesh-stage.rmadm.org:5000";
+  const fallback = `https://${process.env.MESH_HOST}:${process.env.GRPC_PORT}`;
 
-  const grpcUrl = windowEnv || appConfigEnv || processEnv || fallback;
+  const grpcUrl = windowEnv || processEnv || fallback;
 
   if (!grpcUrl) {
     throw new Error("GRPC_URL is not configured");
@@ -352,6 +347,33 @@ export const policyCatalogClient = {
     return response.toObject();
   },
 
+  async getPoliciesBySupportedOs(
+    supportedOs: string,
+    langCode: string = "en-US",
+  ): Promise<operator_pb_types.GetPoliciesBySupportedOsResponse.AsObject> {
+    const request = new operator_pb.GetPoliciesBySupportedOsRequest();
+    request.setLangCode(langCode);
+    request.setSupportedOs(supportedOs);
+
+    const response = await policyCatalogServiceClient.getPoliciesBySupportedOs(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async getAllSupportedOs(): Promise<operator_pb_types.GetAllSupportedOsResponse.AsObject> {
+    const request = new operator_pb.GetAllSupportedOsRequest();
+
+    const response = await policyCatalogServiceClient.getAllSupportedOs(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
   async exportAllPolicies(
     exportFormat: export_pb_types.ExportFormat = export_pb.ExportFormat.CSV,
   ): Promise<export_pb_types.ExportResponse.AsObject> {
@@ -448,6 +470,7 @@ export const agentCategoryClient = {
     description?: string;
     parentId?: number;
     maxAgents?: number;
+    osVersion?: string | null;
   }): Promise<agent_category_service_pb_types.AgentCategoryControlResponse.AsObject> {
     const request = new agent_category_service_pb.CreateAgentCategoryRequest();
     request.setName(params.name);
@@ -464,6 +487,11 @@ export const agentCategoryClient = {
 
     request.setMaxAgents(Math.max(0, Math.floor(params.maxAgents ?? 0)));
 
+    const osVersionTrimmed = params.osVersion?.trim();
+    if (osVersionTrimmed) {
+      request.setOsVersion(osVersionTrimmed);
+    }
+
     const response = await agentCategoryServiceClient.createCategory(
       request,
       createGrpcMetadata(),
@@ -477,6 +505,7 @@ export const agentCategoryClient = {
     name: string;
     description?: string;
     maxAgents?: number;
+    osVersion?: string | null;
   }): Promise<agent_category_service_pb_types.AgentCategoryControlResponse.AsObject> {
     const request = new agent_category_service_pb.UpdateAgentCategoryRequest();
     request.setCategoryId(params.categoryId);
@@ -489,6 +518,11 @@ export const agentCategoryClient = {
     }
 
     request.setMaxAgents(Math.max(0, Math.floor(params.maxAgents ?? 0)));
+
+    const osVersionTrimmed = params.osVersion?.trim();
+    if (osVersionTrimmed) {
+      request.setOsVersion(osVersionTrimmed);
+    }
 
     const response = await agentCategoryServiceClient.updateCategory(
       request,
@@ -732,6 +766,15 @@ export type CreateUserParams = {
   employeeId?: string;
   maxAgents?: number;
   maxPolicies?: number;
+  minimalOsVersion?: string;
+};
+
+export type CreateGroupOptions = {
+  description?: string;
+  parentId?: string;
+  maxUsers?: number;
+  maxAgents?: number;
+  minimalOsVersion?: string;
 };
 
 function toNonNegativeInt(value: unknown): number | undefined {
@@ -809,6 +852,12 @@ function fillUserRequest(
   if (maxAgents !== undefined) userReq.setMaxAgents(maxAgents);
   const maxPolicies = toNonNegativeInt((data as CreateUserParams).maxPolicies);
   if (maxPolicies !== undefined) userReq.setMaxPolicies(maxPolicies);
+
+  if (data.minimalOsVersion !== undefined) {
+    const mov = (data.minimalOsVersion ?? "").trim();
+    if (mov) userReq.setMinimalOsVersion(mov);
+    else userReq.clearMinimalOsVersion();
+  }
 }
 
 function setUserIdentifier(
@@ -963,32 +1012,33 @@ export const userControlClient = {
   async createGroup(
     target: Target,
     samGroupName: string,
-    description?: string,
-    parentId?: string,
-    maxUsers?: number,
-    maxAgents?: number,
+    opts?: CreateGroupOptions,
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
     const req = new CreateUserGroupRequest();
     req.setTarget(target);
     req.setSamGroupName(samGroupName);
+    const description = opts?.description;
     if (description != null) {
       const w = new wrappers_pb.StringValue();
       w.setValue(description);
       req.setDescription(w);
     }
+    const parentId = opts?.parentId;
     if (parentId != null && parentId !== "") {
       req.setParentId(parentId);
     }
-    const maxUsersInt = toNonNegativeInt(maxUsers);
+    const maxUsersInt = toNonNegativeInt(opts?.maxUsers);
     if (maxUsersInt !== undefined) req.setMaxUsers(maxUsersInt);
-    const maxAgentsInt = toNonNegativeInt(maxAgents);
+    const maxAgentsInt = toNonNegativeInt(opts?.maxAgents);
     if (maxAgentsInt !== undefined) req.setMaxAgent(maxAgentsInt);
+    if (opts?.minimalOsVersion !== undefined) {
+      const mov = opts.minimalOsVersion.trim();
+      if (mov) req.setMinimalOsVersion(mov);
+      else req.clearMinimalOsVersion();
+    }
     console.log("[createGroup] Request:", {
       samGroupName,
-      description,
-      parentId,
-      maxUsers,
-      maxAgents,
+      opts,
       target: target.toObject(),
       request: req.toObject(),
     });
@@ -1008,6 +1058,7 @@ export const userControlClient = {
       description?: string;
       maxUsers?: number;
       maxAgents?: number;
+      minimalOsVersion?: string;
     },
   ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
     const req = new UpdateGroupRequest();
@@ -1024,6 +1075,11 @@ export const userControlClient = {
     if (maxUsersInt !== undefined) req.setMaxUsers(maxUsersInt);
     const maxAgentsInt = toNonNegativeInt(opts?.maxAgents);
     if (maxAgentsInt !== undefined) req.setMaxAgent(maxAgentsInt);
+    if (opts?.minimalOsVersion !== undefined) {
+      const mov = opts.minimalOsVersion.trim();
+      if (mov) req.setMinimalOsVersion(mov);
+      else req.clearMinimalOsVersion();
+    }
     const response = await operatorUserControlServiceClient.updateGroup(
       req,
       createGrpcMetadata(),

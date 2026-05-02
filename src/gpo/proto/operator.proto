@@ -348,6 +348,9 @@ service PolicyCatalogService {
   rpc GetPoliciesByCategory(GetPoliciesByCategoryRequest)
       returns (GetPoliciesByCategoryResponse);
 
+  rpc GetPoliciesBySupportedOs(GetPoliciesBySupportedOsRequest)
+      returns (GetPoliciesBySupportedOsResponse);
+
   rpc GetPoliciesByAdmx(GetPoliciesByAdmxRequest)
       returns (GetPoliciesByAdmxResponse);
 
@@ -356,11 +359,30 @@ service PolicyCatalogService {
 
   rpc SearchPolicyShort (SearchPolicyShortRequest)
       returns (SearchPolicyShortResponse);
+
+  rpc GetAllSupportedOs(GetAllSupportedOsRequest)
+      returns (GetAllSupportedOsResponse);
 }
 
 message SearchPolicyShortRequest {
     string search = 1;
     string lang_code = 2;
+}
+
+message GetPoliciesBySupportedOsRequest {
+    string lang_code = 1;
+    string supported_os = 2;
+}
+
+message GetPoliciesBySupportedOsResponse {
+    string lang_code = 1;
+    repeated PolicySummary policies = 2;
+}
+
+message GetAllSupportedOsRequest {}
+
+message GetAllSupportedOsResponse {
+    repeated laborato.common.node.OsBuild os_builds = 1;
 }
 
 message SearchPolicyShortResponse {
