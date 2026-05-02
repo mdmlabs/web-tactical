@@ -649,12 +649,21 @@ function resetPassword() {
   });
 }
 
+interface WindowWithDocsEnv extends Window {
+  _env_?: {
+    DOCS_URL?: string;
+  };
+}
+
+function getDocsUrl(): string | undefined {
+  if (process.env.NODE_ENV === "production") {
+    return (globalThis.window as WindowWithDocsEnv)._env_?.DOCS_URL;
+  }
+  return process.env.DEV_DOCS_URL;
+}
+
 function openDocumentation() {
-  const docsUrl = process.env.DEV_DOCS_URL;
-  const fallbackDocsUrl = process.env.APP_HOST
-    ? `https://${process.env.APP_HOST}/docs/en/01-home/`
-    : "";
-  const documentationUrl = docsUrl || fallbackDocsUrl;
+  const documentationUrl = getDocsUrl();
 
   if (!documentationUrl) {
     $q.notify({
