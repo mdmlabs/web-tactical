@@ -73,6 +73,11 @@
             />
           </div>
         </div>
+        <OsVersionSelect
+          v-model="form.minimalOsVersion"
+          label="Minimal OS version"
+          class="q-mt-sm"
+        />
       </q-card-section>
       <q-card-actions align="right">
         <q-btn flat label="Cancel" v-close-popup />
@@ -90,6 +95,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import OsVersionSelect from "@/components/ui/OsVersionSelect.vue";
 
 const props = withDefaults(
   defineProps<{
@@ -103,7 +109,16 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   "update:modelValue": [value: boolean];
-  create: [payload: { samGroupName: string; description: string; parentId: string | null; maxUsers?: number; maxAgents?: number }];
+  create: [
+    payload: {
+      samGroupName: string;
+      description: string;
+      parentId: string | null;
+      maxUsers?: number;
+      maxAgents?: number;
+      minimalOsVersion?: string;
+    },
+  ];
 }>();
 
 const form = ref({
@@ -112,6 +127,7 @@ const form = ref({
   parentId: null as string | null,
   maxUsers: undefined as number | undefined,
   maxAgents: undefined as number | undefined,
+  minimalOsVersion: "",
 });
 
 watch(
@@ -124,6 +140,7 @@ watch(
         parentId: props.initialParentId ?? null,
         maxUsers: undefined,
         maxAgents: undefined,
+        minimalOsVersion: "",
       };
     }
   },
@@ -137,6 +154,9 @@ function submit() {
     parentId: form.value.parentId,
     maxUsers: form.value.maxUsers,
     maxAgents: form.value.maxAgents,
+    minimalOsVersion: form.value.minimalOsVersion?.trim()
+      ? form.value.minimalOsVersion.trim()
+      : "",
   });
 }
 </script>

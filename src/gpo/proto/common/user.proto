@@ -50,9 +50,10 @@ message UserInfo {
 
     int32 max_agents = 21;
     int32 max_policies = 22;
+    optional string minimal_os_version = 23;
 
     // Группы
-    repeated GroupInfo groups = 23;
+    repeated GroupInfo groups = 24;
 }
 
 message GroupInfo {
@@ -66,6 +67,7 @@ message GroupInfo {
     optional string sid = 8;
     optional int32 max_agents = 9;
     optional int32 max_users = 10;
+    optional string minimal_os_version = 11;
 }
 
 message UserRequest {
@@ -90,7 +92,7 @@ message UserRequest {
     google.protobuf.StringValue employee_id = 17;
     int32 max_agents = 18;
     int32 max_policies = 19;
-
+    optional string minimal_os_version = 20;
 }
 
 message UserResponse {

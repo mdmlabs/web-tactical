@@ -103,11 +103,20 @@ const search = ref("");
 const selectedRows = ref<{ key: string; id: number; label: string }[]>([]);
 
 const columns = [
-  { name: "label", label: "Collection", field: "label", align: "left" as const },
+  {
+    name: "label",
+    label: "Collection",
+    field: "label",
+    align: "left" as const,
+  },
 ];
 
 const rows = computed(() =>
-  (props.options ?? []).map((o) => ({ key: String(o.id), id: o.id, label: o.label })),
+  (props.options ?? []).map((o) => ({
+    key: String(o.id),
+    id: o.id,
+    label: o.label,
+  })),
 );
 
 const filteredRows = computed(() => {
@@ -128,7 +137,10 @@ watch(
   },
 );
 
-function onRowClick(_evt: unknown, row: { key: string; id: number; label: string }) {
+function onRowClick(
+  _evt: unknown,
+  row: { key: string; id: number; label: string },
+) {
   selectedRows.value = [row];
   selectedId.value = row.id;
 }

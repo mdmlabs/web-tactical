@@ -146,6 +146,11 @@
             />
           </div>
         </div>
+        <OsVersionSelect
+          v-model="minimalOsModel"
+          label="Minimal OS version"
+          class="q-mt-sm"
+        />
       </q-card-section>
       <q-card-actions align="right">
         <q-btn flat label="Cancel" v-close-popup />
@@ -164,6 +169,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import type { CreateUserParams } from "@/gpo/composables/useUserActions";
+import OsVersionSelect from "@/components/ui/OsVersionSelect.vue";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -196,6 +202,14 @@ const form = ref<CreateUserParams & { name?: string; middleName?: string }>({
   employeeId: "",
   maxAgents: undefined,
   maxPolicies: undefined,
+  minimalOsVersion: "",
+});
+
+const minimalOsModel = computed({
+  get: () => form.value.minimalOsVersion ?? "",
+  set: (v: string) => {
+    form.value.minimalOsVersion = v;
+  },
 });
 
 const canSubmit = computed(
@@ -225,6 +239,7 @@ function resetForm() {
     employeeId: "",
     maxAgents: undefined,
     maxPolicies: undefined,
+    minimalOsVersion: "",
   };
 }
 

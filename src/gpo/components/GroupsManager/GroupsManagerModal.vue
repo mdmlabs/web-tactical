@@ -108,6 +108,7 @@
       :initial-description="selectedGroup?.description ?? ''"
       :initial-max-users="selectedGroup?.maxUsers"
       :initial-max-agents="selectedGroup?.maxAgents"
+      :initial-minimal-os-version="selectedGroup?.minimalOsVersion"
       @save="handleUpdateGroup"
     />
 
@@ -204,6 +205,7 @@ interface GroupRow {
   groupid?: string;
   maxUsers?: number;
   maxAgents?: number;
+  minimalOsVersion?: string;
 }
 
 interface TreeNode {
@@ -504,6 +506,7 @@ type ApiGroupTreeNode = {
     sid?: string;
     maxUsers?: number;
     maxAgents?: number;
+    minimalOsVersion?: string;
   };
   childrenList?: ApiGroupTreeNode[];
 };
@@ -527,6 +530,7 @@ function mapGroupTreeNodeToTreeNode(
     sid: info?.sid || "",
     maxUsers: info?.maxUsers,
     maxAgents: info?.maxAgents,
+    minimalOsVersion: info?.minimalOsVersion,
   });
   const children = (node.childrenList || []).map((child) =>
     mapGroupTreeNodeToTreeNode(child, flatList),
@@ -888,6 +892,7 @@ async function handleUpdateGroup(payload: {
   description: string;
   maxUsers?: number;
   maxAgents?: number;
+  minimalOsVersion?: string;
 }) {
   const groupId = selectedGroupId.value;
   const currentSam = selectedGroupSam.value;
@@ -907,6 +912,7 @@ async function handleUpdateGroup(payload: {
         description: payload.description,
         maxUsers: payload.maxUsers,
         maxAgents: payload.maxAgents,
+        minimalOsVersion: payload.minimalOsVersion,
       },
     );
     if (res.status === 0) {
@@ -947,6 +953,7 @@ async function handleCreateGroup(payload: {
   parentId: string | null;
   maxUsers?: number;
   maxAgents?: number;
+  minimalOsVersion?: string;
 }) {
   const target = currentUserGroupTarget.value;
   if (!target) return;
@@ -955,10 +962,13 @@ async function handleCreateGroup(payload: {
     const res = await userControlClient.createGroup(
       target,
       payload.samGroupName.trim(),
-      payload.description.trim() || undefined,
-      payload.parentId || undefined,
-      payload.maxUsers,
-      payload.maxAgents,
+      {
+        description: payload.description.trim() || undefined,
+        parentId: payload.parentId || undefined,
+        maxUsers: payload.maxUsers,
+        maxAgents: payload.maxAgents,
+        minimalOsVersion: payload.minimalOsVersion,
+      },
     );
     if (res.status === 0) {
       $q.notify({

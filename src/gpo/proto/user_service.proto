@@ -217,6 +217,7 @@ message CreateUserGroupRequest {
     optional string parent_id = 4;
     int32 max_users = 5;
     int32 max_agent = 6;
+    optional string minimal_os_version = 7;
 }
 
 message UpdateGroupRequest {
@@ -227,6 +228,7 @@ message UpdateGroupRequest {
     google.protobuf.StringValue description = 5;
     int32 max_users = 6;
     int32 max_agent = 7;
+    optional string minimal_os_version = 8;
 }
 
 message GroupRequest {

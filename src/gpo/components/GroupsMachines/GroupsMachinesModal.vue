@@ -24,10 +24,18 @@
           no-caps
         >
           <q-list dense>
-            <q-item clickable v-close-popup @click="handleExportCategories('csv')">
+            <q-item
+              clickable
+              v-close-popup
+              @click="handleExportCategories('csv')"
+            >
               <q-item-section>Export CSV</q-item-section>
             </q-item>
-            <q-item clickable v-close-popup @click="handleExportCategories('xlsx')">
+            <q-item
+              clickable
+              v-close-popup
+              @click="handleExportCategories('xlsx')"
+            >
               <q-item-section>Export XLSX</q-item-section>
             </q-item>
           </q-list>
@@ -101,11 +109,13 @@
       :name="editCategoryForm.name"
       :description="editCategoryForm.description"
       :max-agents="editCategoryForm.maxAgents"
+      :os-version="editCategoryForm.osVersion"
       @show="loadCategoryForEdit"
       @save="doUpdateCategory"
       @update:name="editCategoryForm.name = $event"
       @update:description="editCategoryForm.description = $event"
       @update:max-agents="editCategoryForm.maxAgents = $event"
+      @update:os-version="editCategoryForm.osVersion = $event"
     />
 
     <MoveCategoryDialog
@@ -136,10 +146,12 @@
       :description="createCategoryForm.description"
       :parent-id="createCategoryForm.parentId"
       :max-agents="createCategoryForm.maxAgents"
+      :os-version="createCategoryForm.osVersion"
       @update:name="createCategoryForm.name = $event"
       @update:description="createCategoryForm.description = $event"
       @update:parent-id="createCategoryForm.parentId = $event"
       @update:max-agents="createCategoryForm.maxAgents = $event"
+      @update:os-version="createCategoryForm.osVersion = $event"
     />
 
     <ApplyCollectionDialog
@@ -178,7 +190,8 @@
           <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
         <q-card-section v-if="deleteMoveToSiteOptions.length === 0">
-          There are no valid sites to move agents to. Add another site and try again.
+          There are no valid sites to move agents to. Add another site and try
+          again.
         </q-card-section>
         <q-card-section v-else>
           <q-select
@@ -201,7 +214,9 @@
             color="negative"
             label="Delete"
             :loading="deleteLoading"
-            :disable="deleteMoveToSiteOptions.length === 0 || deleteMoveToSiteId == null"
+            :disable="
+              deleteMoveToSiteOptions.length === 0 || deleteMoveToSiteId == null
+            "
             @click="doDeleteCategory(deleteMoveToSiteId)"
           />
         </q-card-actions>
@@ -242,6 +257,7 @@ import type { TargetRef } from "@/gpo/composables/useTargetSelection";
 import { fetchAgentRowsForIds } from "@/gpo/composables/useUserActions";
 import TargetSelectionDialog from "@/gpo/components/shared/TargetSelectionDialog.vue";
 import { notifyError, notifySuccess } from "@/utils/notify";
+import { fetchSite } from "@/api/clients";
 import axios from "axios";
 
 import CategoriesListPanel from "./CategoriesListPanel.vue";
@@ -273,7 +289,6 @@ interface AgentRow {
   status?: string;
   last_boot?: string;
 }
-
 
 const props = withDefaults(
   defineProps<{ open?: boolean; standalonePage?: boolean }>(),
@@ -318,7 +333,15 @@ const categoryChildren = ref<CategoryRow[]>([]);
 
 const categoryAgentsCache = new Map<number, Set<string>>();
 const agentCategoryLookupCache = new Map<string, number[]>();
-const complianceCache = new Map<string, { assignedAndApplied: number; assignedNotApplied: number; notAssigned: number; timestamp: number }>();
+const complianceCache = new Map<
+  string,
+  {
+    assignedAndApplied: number;
+    assignedNotApplied: number;
+    notAssigned: number;
+    timestamp: number;
+  }
+>();
 const COMPLIANCE_CACHE_TTL = 5 * 60 * 1000;
 
 async function mapWithConcurrency<T, R>(
@@ -344,12 +367,14 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
-
-
 async function calculateCollectionCompliance(
   categoryId: number,
   collectionPolicies: { id: number; name: string }[],
-): Promise<{ assignedAndApplied: number; assignedNotApplied: number; notAssigned: number }> {
+): Promise<{
+  assignedAndApplied: number;
+  assignedNotApplied: number;
+  notAssigned: number;
+}> {
   if (!collectionPolicies || collectionPolicies.length === 0) {
     return { assignedAndApplied: 0, assignedNotApplied: 0, notAssigned: 0 };
   }
@@ -360,14 +385,18 @@ async function calculateCollectionCompliance(
     return {
       assignedAndApplied: cached.assignedAndApplied,
       assignedNotApplied: cached.assignedNotApplied,
-      notAssigned: cached.notAssigned
+      notAssigned: cached.notAssigned,
     };
   }
 
   try {
     const agentsRes = await agentCategoryClient.getCategoryAgents(categoryId);
     if (agentsRes.status !== 0 || !agentsRes.agentIdsList?.length) {
-      return { assignedAndApplied: 0, assignedNotApplied: 0, notAssigned: collectionPolicies.length };
+      return {
+        assignedAndApplied: 0,
+        assignedNotApplied: 0,
+        notAssigned: collectionPolicies.length,
+      };
     }
 
     const agentIds = agentsRes.agentIdsList;
@@ -385,10 +414,15 @@ async function calculateCollectionCompliance(
             };
           }
 
-          const [assignmentsResponse, effectivePoliciesResponse] = await Promise.all([
-            policyStateClient.getAssignments(target, "en-US").catch(() => ({ assignmentsList: [] })),
-            policyStateClient.getEffectivePolicies(target, "en-US").catch(() => ({ policiesList: [] })),
-          ]);
+          const [assignmentsResponse, effectivePoliciesResponse] =
+            await Promise.all([
+              policyStateClient
+                .getAssignments(target, "en-US")
+                .catch(() => ({ assignmentsList: [] })),
+              policyStateClient
+                .getEffectivePolicies(target, "en-US")
+                .catch(() => ({ policiesList: [] })),
+            ]);
 
           return {
             assignments: assignmentsResponse.assignmentsList || [],
@@ -438,10 +472,12 @@ async function calculateCollectionCompliance(
       const policyIdStr = String(policy.id);
       const policyHash = `policy_${policyIdStr}`;
 
-      const isAssigned = assignedPolicyHashes.has(policyIdStr) ||
-                        assignedPolicyHashes.has(policyHash);
-      const isApplied = effectivePolicyHashes.has(policyIdStr) ||
-                       effectivePolicyHashes.has(policyHash);
+      const isAssigned =
+        assignedPolicyHashes.has(policyIdStr) ||
+        assignedPolicyHashes.has(policyHash);
+      const isApplied =
+        effectivePolicyHashes.has(policyIdStr) ||
+        effectivePolicyHashes.has(policyHash);
 
       if (isAssigned && isApplied) {
         assignedAndApplied++;
@@ -457,7 +493,11 @@ async function calculateCollectionCompliance(
     return result;
   } catch (err) {
     console.error("Error calculating compliance:", err);
-    return { assignedAndApplied: 0, assignedNotApplied: 0, notAssigned: collectionPolicies.length };
+    return {
+      assignedAndApplied: 0,
+      assignedNotApplied: 0,
+      notAssigned: collectionPolicies.length,
+    };
   }
 }
 
@@ -479,10 +519,12 @@ const editCategoryForm = ref<{
   name: string;
   description: string;
   maxAgents: number | null;
+  osVersion: string;
 }>({
   name: "",
   description: "",
   maxAgents: null,
+  osVersion: "",
 });
 const moveCategoryForm = ref<{ parentId: number | null }>({ parentId: null });
 
@@ -493,11 +535,13 @@ const createCategoryForm = ref<{
   description: string;
   parentId: number | null;
   maxAgents: number | null;
+  osVersion: string;
 }>({
   name: "",
   description: "",
   parentId: null,
   maxAgents: null,
+  osVersion: "",
 });
 
 function collectCategoriesFromTree(
@@ -776,10 +820,17 @@ async function loadCategories() {
   }
 }
 
-function downloadBlob(content: Uint8Array | string, fileName: string, mimeType: string) {
-  const bytes = typeof content === "string"
-    ? new Uint8Array(Array.from(atob(content), (char) => char.codePointAt(0) ?? 0))
-    : new Uint8Array(content);
+function downloadBlob(
+  content: Uint8Array | string,
+  fileName: string,
+  mimeType: string,
+) {
+  const bytes =
+    typeof content === "string"
+      ? new Uint8Array(
+          Array.from(atob(content), (char) => char.codePointAt(0) ?? 0),
+        )
+      : new Uint8Array(content);
   const blob = new Blob([bytes.buffer], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -794,13 +845,15 @@ function downloadBlob(content: Uint8Array | string, fileName: string, mimeType: 
 async function handleExportCategories(format: "csv" | "xlsx") {
   exportLoading.value = true;
   try {
-    const exportFormat = format === "xlsx"
-      ? export_pb.ExportFormat.XLSX
-      : export_pb.ExportFormat.CSV;
+    const exportFormat =
+      format === "xlsx"
+        ? export_pb.ExportFormat.XLSX
+        : export_pb.ExportFormat.CSV;
     const res = await agentCategoryClient.exportAllCategories(exportFormat);
-    const mimeType = format === "xlsx"
-      ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-      : "text/csv";
+    const mimeType =
+      format === "xlsx"
+        ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        : "text/csv";
     const fallbackName = `machine-groups_export.${format}`;
     downloadBlob(res.content, res.fileName || fallbackName, mimeType);
     notifySuccess(`Machine groups exported as ${format.toUpperCase()}`);
@@ -1031,8 +1084,8 @@ async function loadCategoryAppliedCollections() {
   try {
     const response =
       await collectionsClient.getAppliedCollectionsByAgentCategory(
-      categoryId,
-      "en-US",
+        categoryId,
+        "en-US",
       );
     type CollectionItem = {
       id?: number;
@@ -1197,7 +1250,11 @@ async function hasAgentsInSubtree(rootId: number): Promise<boolean> {
   if (categoryAgents.value.length > 0) return true;
 
   const descendantIds = new Set<number>();
-  collectCategoryIdAndDescendants(rootId, categoryTreeNodes.value, descendantIds);
+  collectCategoryIdAndDescendants(
+    rootId,
+    categoryTreeNodes.value,
+    descendantIds,
+  );
   descendantIds.delete(rootId);
 
   for (const id of descendantIds) {
@@ -1216,7 +1273,9 @@ async function confirmDeleteCategory() {
   const hasAgents = await hasAgentsInSubtree(selectedCategoryId.value);
   if (hasAgents) {
     const { data } = await axios.get("/clients/sites/?leaf=true");
-    deleteMoveToSiteOptions.value = (data as { id: number; master_id: number; name: string }[])
+    deleteMoveToSiteOptions.value = (
+      data as { id: number; master_id: number; name: string }[]
+    )
       .filter((s) => s.id !== selectedCategoryId.value)
       .map((s) => ({ label: s.name, value: s.master_id }));
     deleteMoveToSiteId.value = null;
@@ -1259,6 +1318,7 @@ function openCreateCategoryDialog() {
     description: "",
     parentId: selectedCategoryId.value ?? null,
     maxAgents: null,
+    osVersion: "",
   };
   showCreateCategory.value = true;
 }
@@ -1268,7 +1328,15 @@ async function loadCategoryForEdit() {
   if (id == null) return;
   editLoading.value = true;
   try {
-    const res = await agentCategoryClient.getCategory(id);
+    const [res, siteData] = await Promise.all([
+      agentCategoryClient.getCategory(id),
+      fetchSite(id),
+    ]);
+    let siteOs = "";
+    if (siteData != null && typeof siteData === "object") {
+      const ov = (siteData as Record<string, unknown>).os_version;
+      if (ov != null && ov !== "") siteOs = String(ov);
+    }
     if (res.status === 0 && res.category?.info) {
       const info = res.category.info;
       editCategoryForm.value = {
@@ -1276,6 +1344,7 @@ async function loadCategoryForEdit() {
         description:
           info.description?.value ?? selectedCategory.value?.description ?? "",
         maxAgents: info.maxAgents ?? null,
+        osVersion: siteOs,
       };
     }
   } finally {
@@ -1289,6 +1358,7 @@ function openEditCategoryDialog() {
       name: selectedCategory.value.name,
       description: selectedCategory.value.description ?? "",
       maxAgents: null,
+      osVersion: "",
     };
   }
   showEditCategory.value = true;
@@ -1304,6 +1374,7 @@ async function doUpdateCategory() {
         name: editCategoryForm.value.name.trim(),
         description: editCategoryForm.value.description.trim() || "",
         max_agents: editCategoryForm.value.maxAgents ?? null,
+        os_version: editCategoryForm.value.osVersion.trim() || null,
       },
       custom_fields: [],
     });
@@ -1362,6 +1433,7 @@ async function doCreateCategory() {
         description: createCategoryForm.value.description.trim() || "",
         parent: createCategoryForm.value.parentId ?? null,
         max_agents: createCategoryForm.value.maxAgents ?? null,
+        os_version: createCategoryForm.value.osVersion.trim() || null,
       },
       custom_fields: [],
     });

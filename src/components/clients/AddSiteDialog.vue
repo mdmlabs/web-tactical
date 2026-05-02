@@ -53,7 +53,11 @@
           type="number"
           outlined
           dense
+          class="q-mb-sm"
           :min="0"
+        />
+        <OsVersionSelect
+          v-model="osVersionModel"
         />
       </q-card-section>
       <q-card-actions align="right">
@@ -72,6 +76,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import OsVersionSelect from "@/components/ui/OsVersionSelect.vue";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -80,6 +85,7 @@ const props = defineProps<{
   description: string;
   parentId: number | null;
   maxAgents: number;
+  osVersion: string;
   parentOptions: { label: string; value: number }[];
 }>();
 
@@ -89,6 +95,7 @@ const emit = defineEmits<{
   "update:description": [value: string];
   "update:parentId": [value: number | null];
   "update:maxAgents": [value: number];
+  "update:osVersion": [value: string];
   show: [];
   create: [];
 }>();
@@ -111,5 +118,10 @@ const parentModel = computed({
 const maxAgentsModel = computed({
   get: () => props.maxAgents,
   set: (v) => emit("update:maxAgents", v),
+});
+
+const osVersionModel = computed({
+  get: () => props.osVersion,
+  set: (v) => emit("update:osVersion", v ?? ""),
 });
 </script>

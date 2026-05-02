@@ -651,8 +651,12 @@ function resetPassword() {
 
 function openDocumentation() {
   const docsUrl = process.env.DEV_DOCS_URL;
+  const fallbackDocsUrl = process.env.APP_HOST
+    ? `https://${process.env.APP_HOST}/docs/en/01-home/`
+    : "";
+  const documentationUrl = docsUrl || fallbackDocsUrl;
 
-  if (!docsUrl) {
+  if (!documentationUrl) {
     $q.notify({
       type: "negative",
       message: "Documentation URL is not set",
@@ -661,7 +665,7 @@ function openDocumentation() {
     return;
   }
 
-  window.open(docsUrl, "_blank", "noopener,noreferrer");
+  window.open(documentationUrl, "_blank", "noopener,noreferrer");
 }
 
 // async function openWebTerm() {

@@ -57,6 +57,7 @@ message CreateAgentCategoryRequest {
     google.protobuf.StringValue description = 2;
     optional int64 parent_id = 3;
     int32 max_agents = 4;
+    optional string os_version = 5;
 }
 
 message UpdateAgentCategoryRequest {
@@ -64,6 +65,7 @@ message UpdateAgentCategoryRequest {
     string name = 2;
     google.protobuf.StringValue description = 3;
     int32 max_agents = 4;
+    optional string os_version = 5;
 }
 
 message SetCategoryParentRequest {
@@ -152,4 +154,3 @@ enum ACResponseStatus {
     AC_RESPONSE_STATUS_OK = 0;
     AC_RESPONSE_STATUS_ERROR = 1;
 }
-

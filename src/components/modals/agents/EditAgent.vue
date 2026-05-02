@@ -38,6 +38,16 @@
                       filterable
                     />
                   </q-card-section>
+                  <q-card-section class="row items-center">
+                    <div class="col-2">OS version</div>
+                    <div class="col-2"></div>
+                    <div class="col-8">
+                      {{ siteOsTargetDisplay }}
+                      <span class="text-grey-7 text-caption q-ml-xs"
+                        >(machine group)</span
+                      >
+                    </div>
+                  </q-card-section>
                   <q-card-section class="row">
                     <div class="col-2">Type:</div>
                     <div class="col-2"></div>
@@ -477,7 +487,12 @@ export default {
         entries.forEach(([group, sites]) => {
           if (group) this.siteOptions.push({ category: group });
           sites.forEach((site) => {
-            this.siteOptions.push({ label: site.name, value: site.master_id, siteId: site.id });
+            this.siteOptions.push({
+              label: site.name,
+              value: site.master_id,
+              siteId: site.id,
+              os_version: site.os_version,
+            });
           });
         });
         // normalize agent.site from id to master_id once options are ready
@@ -578,6 +593,16 @@ export default {
   },
   computed: {
     ...mapState(["dash_warning_color", "dash_negative_color"]),
+    siteOsTargetDisplay() {
+      const sid = this.agent.site;
+      if (sid == null || sid === "") return "—";
+      const o = this.siteOptions.find(
+        (x) =>
+          !x.category && (x.value === sid || x.siteId === sid),
+      );
+      if (!o || o.os_version == null || o.os_version === "") return "—";
+      return String(o.os_version);
+    },
   },
   mounted() {
     // Get custom fields

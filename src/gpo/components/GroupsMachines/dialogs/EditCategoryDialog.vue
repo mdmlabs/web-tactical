@@ -28,6 +28,11 @@
           :min="0"
           hint="Maximum agents allowed in this machine group"
         />
+        <div class="q-mb-sm">
+          <OsVersionSelect
+            v-model="osVersionModel"
+          />
+        </div>
         <q-input
           v-model="descriptionModel"
           label="Description"
@@ -53,6 +58,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import OsVersionSelect from "@/components/ui/OsVersionSelect.vue";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -60,6 +66,7 @@ const props = defineProps<{
   name: string;
   description: string;
   maxAgents: number | null;
+  osVersion: string;
 }>();
 
 const emit = defineEmits<{
@@ -69,6 +76,7 @@ const emit = defineEmits<{
   "update:name": [value: string];
   "update:description": [value: string];
   "update:maxAgents": [value: number | null];
+  "update:osVersion": [value: string];
 }>();
 
 const nameModel = computed({
@@ -84,6 +92,11 @@ const descriptionModel = computed({
 const maxAgentsModel = computed({
   get: () => props.maxAgents,
   set: (v) => emit("update:maxAgents", v),
+});
+
+const osVersionModel = computed({
+  get: () => props.osVersion,
+  set: (v) => emit("update:osVersion", v ?? ""),
 });
 </script>
 
