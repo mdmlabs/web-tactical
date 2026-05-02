@@ -72,11 +72,7 @@ export function getGrpcUrl(): string {
     return "/api/grpc";
   }
 
-  const grpcUrl =
-    (process.env.DEV_GRPC_URL as string | undefined) ||
-    (typeof globalThis.window !== "undefined"
-      ? (globalThis.window as WindowWithEnv)._env_?.DEV_GRPC_URL
-      : undefined);
+  const grpcUrl = (globalThis.window as WindowWithEnv)._env_?.DEV_GRPC_URL;
 
   if (!grpcUrl) {
     throw new Error("DEV_GRPC_URL is not configured");
