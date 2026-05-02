@@ -355,10 +355,17 @@ const applyCollectionApplying = ref(false);
 const applyCollectionSelectedId = ref<number | null>(null);
 const applyCollectionOptions = ref<{ id: number; label: string }[]>([]);
 const applyCollectionSearch = ref("");
-const applyCollectionSelectedRows = ref<{ key: string; id: number; label: string }[]>([]);
+const applyCollectionSelectedRows = ref<
+  { key: string; id: number; label: string }[]
+>([]);
 
 const applyCollectionColumns = [
-  { name: "label", label: "Collection", field: "label", align: "left" as const },
+  {
+    name: "label",
+    label: "Collection",
+    field: "label",
+    align: "left" as const,
+  },
 ];
 
 const appliedCollectionIds = computed(

@@ -51,6 +51,11 @@
             />
           </div>
         </div>
+        <OsVersionSelect
+          v-model="form.minimalOsVersion"
+          label="Minimal OS version"
+          class="q-mt-sm"
+        />
       </q-card-section>
       <q-card-actions align="right">
         <q-btn flat label="Cancel" v-close-popup />
@@ -68,6 +73,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import OsVersionSelect from "@/components/ui/OsVersionSelect.vue";
 
 const props = withDefaults(
   defineProps<{
@@ -77,6 +83,7 @@ const props = withDefaults(
     initialDescription?: string;
     initialMaxUsers?: number;
     initialMaxAgents?: number;
+    initialMinimalOsVersion?: string | null;
   }>(),
   {
     loading: false,
@@ -92,6 +99,7 @@ const emit = defineEmits<{
       description: string;
       maxUsers?: number;
       maxAgents?: number;
+      minimalOsVersion?: string;
     },
   ];
 }>();
@@ -101,6 +109,7 @@ const form = ref({
   description: "",
   maxUsers: null as number | null,
   maxAgents: null as number | null,
+  minimalOsVersion: "",
 });
 
 function resetForm() {
@@ -109,6 +118,7 @@ function resetForm() {
     description: props.initialDescription ?? "",
     maxUsers: props.initialMaxUsers ?? null,
     maxAgents: props.initialMaxAgents ?? null,
+    minimalOsVersion: (props.initialMinimalOsVersion ?? "").trim(),
   };
 }
 
@@ -148,6 +158,7 @@ function submit() {
       maxAgents === null || maxAgents === undefined || Number.isNaN(maxAgents)
         ? undefined
         : maxAgents,
+    minimalOsVersion: form.value.minimalOsVersion?.trim() ?? "",
   });
 }
 </script>

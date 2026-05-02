@@ -25,6 +25,7 @@ export interface CreateUserParams {
   employeeId?: string;
   maxAgents?: number;
   maxPolicies?: number;
+  minimalOsVersion?: string;
 }
 
 export interface GroupRow {
@@ -361,6 +362,7 @@ export function useUserActions() {
         employeeId: params.employeeId?.trim() || "",
         maxAgents: params.maxAgents,
         maxPolicies: params.maxPolicies,
+        minimalOsVersion: params.minimalOsVersion,
       });
       if (res.status === 0) {
         $q.notify({
@@ -410,6 +412,7 @@ export function useUserActions() {
       employeeId: params.employeeId?.trim() || "",
       maxAgents: params.maxAgents,
       maxPolicies: params.maxPolicies,
+      minimalOsVersion: params.minimalOsVersion,
     };
     const samId =
       userDetail.value?.info?.samaccountname ?? userId;

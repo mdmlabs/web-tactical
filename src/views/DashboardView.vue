@@ -553,7 +553,11 @@
             type="number"
             outlined
             dense
+            class="q-mb-sm"
             :min="0"
+          />
+          <OsVersionSelect
+            v-model="createSiteForm.os_version"
           />
         </q-card-section>
         <q-card-actions align="right">
@@ -582,6 +586,7 @@ import DeleteClient from "@/components/clients/DeleteClient.vue";
 import InstallAgent from "@/components/modals/agents/InstallAgent.vue";
 import AlertTemplateAdd from "@/components/modals/alerts/AlertTemplateAdd.vue";
 import IntegrationsContextMenu from "@/components/ui/IntegrationsContextMenu.vue";
+import OsVersionSelect from "@/components/ui/OsVersionSelect.vue";
 
 import { removeSite } from "@/api/clients";
 
@@ -591,6 +596,7 @@ export default {
     AgentTable,
     InstallAgent,
     IntegrationsContextMenu,
+    OsVersionSelect,
   },
   // allow child components to refresh table
   provide() {
@@ -607,7 +613,13 @@ export default {
       sitePk: null,
       showCreateSiteDialog: false,
       createSiteLoading: false,
-      createSiteForm: { name: "", description: "", parent_id: null, max_agents: 0 },
+      createSiteForm: {
+        name: "",
+        description: "",
+        parent_id: null,
+        max_agents: 0,
+        os_version: "",
+      },
       siteParentOptions: [],
       search: this.$route.query.search ? this.$route.query.search : "",
       filterTextLength: 0,
@@ -801,7 +813,13 @@ export default {
     async openCreateSiteDialog() {
       const { data } = await this.$axios.get("/clients/sites/");
       this.siteParentOptions = data;
-      this.createSiteForm = { name: "", description: "", parent_id: null, max_agents: 0 };
+      this.createSiteForm = {
+        name: "",
+        description: "",
+        parent_id: null,
+        max_agents: 0,
+        os_version: "",
+      };
       this.showCreateSiteDialog = true;
     },
     async doCreateSite() {
@@ -813,6 +831,7 @@ export default {
             description: this.createSiteForm.description.trim() || "",
             parent: this.createSiteForm.parent_id ?? null,
             max_agents: this.createSiteForm.max_agents ?? 0,
+            os_version: (this.createSiteForm.os_version || "").trim() || null,
           },
           custom_fields: [],
         });

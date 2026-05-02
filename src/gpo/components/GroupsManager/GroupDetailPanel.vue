@@ -80,6 +80,12 @@
                       {{ agentsQuotaLine }}
                     </div>
                   </div>
+                  <div class="system-info-kv">
+                    <div class="system-info-k">Minimal OS version</div>
+                    <div class="system-info-v text-mono" style="font-size: 12px">
+                      {{ group?.minimalOsVersion || "—" }}
+                    </div>
+                  </div>
                 </q-scroll-area>
               </div>
             </div>
@@ -791,6 +797,7 @@ export interface GroupRow {
   sid?: string;
   maxUsers?: number;
   maxAgents?: number;
+  minimalOsVersion?: string;
 }
 
 export interface AppliedCollection {

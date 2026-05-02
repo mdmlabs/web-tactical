@@ -49,6 +49,11 @@
             :min="0"
           />
         </q-card-section>
+        <q-card-section>
+          <OsVersionSelect
+            v-model="state.os_version"
+          />
+        </q-card-section>
 
         <div class="q-pl-sm text-h6" v-if="customFields.length > 0">
           Custom Fields
@@ -87,6 +92,7 @@ import { notifySuccess } from "@/utils/notify";
 // ui imports
 import CustomField from "@/components/ui/CustomField.vue";
 import TacticalDropdown from "@/components/ui/TacticalDropdown.vue";
+import OsVersionSelect from "@/components/ui/OsVersionSelect.vue";
 
 export default {
   name: "SitesForm",
@@ -94,6 +100,7 @@ export default {
   components: {
     CustomField,
     TacticalDropdown,
+    OsVersionSelect,
   },
   props: {
     site: Object,
@@ -109,8 +116,14 @@ export default {
 
     // sites for logic
     const state = !!props.site
-      ? ref(Object.assign({ max_agents: 0 }, props.site))
-      : ref({ parent: props.parent || null, name: "", description: "", max_agents: 0 });
+      ? ref(Object.assign({ max_agents: 0, os_version: "" }, props.site))
+      : ref({
+          parent: props.parent || null,
+          name: "",
+          description: "",
+          max_agents: 0,
+          os_version: "",
+        });
     const custom_fields = ref({});
     const customFields = ref([]);
     const loading = ref(false);
@@ -126,6 +139,7 @@ export default {
           description: state.value.description || "",
           parent: parentOption?.value ?? null,
           max_agents: state.value.max_agents ?? 0,
+          os_version: (state.value.os_version ?? "").trim() || null,
         },
         custom_fields: formatCustomFields(
           customFields.value,
@@ -151,6 +165,7 @@ export default {
       if (data.description != null) state.value.description = data.description;
       if (data.parent != null) state.value.parent = data.parent;
       if (data.max_agents != null) state.value.max_agents = data.max_agents;
+      state.value.os_version = data.os_version ?? "";
 
       for (let field of customFields.value) {
         const value = data.custom_fields.find(

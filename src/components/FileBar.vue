@@ -1831,11 +1831,13 @@
       :description="addSiteForm.description"
       :parent-id="addSiteForm.parentId"
       :max-agents="addSiteForm.maxAgents"
+      :os-version="addSiteForm.osVersion"
       :parent-options="addSiteParentOptions"
       @update:name="addSiteForm.name = $event"
       @update:description="addSiteForm.description = $event"
       @update:parent-id="addSiteForm.parentId = $event"
       @update:max-agents="addSiteForm.maxAgents = $event"
+      @update:os-version="addSiteForm.osVersion = $event"
       @create="doAddSite"
     />
   </q-drawer>
@@ -1884,7 +1886,13 @@ export default {
       showCodeSign: false,
       showAddSiteDialog: false,
       addSiteLoading: false,
-      addSiteForm: { name: "", description: "", parentId: null, maxAgents: 0 },
+      addSiteForm: {
+        name: "",
+        description: "",
+        parentId: null,
+        maxAgents: 0,
+        osVersion: "",
+      },
       addSiteParentOptions: [],
     };
   },
@@ -2241,6 +2249,7 @@ export default {
         description: "",
         parentId: null,
         maxAgents: 0,
+        osVersion: "",
       };
       this.showAddSiteDialog = true;
     },
@@ -2253,6 +2262,7 @@ export default {
             description: this.addSiteForm.description.trim() || "",
             parent: this.addSiteForm.parentId ?? null,
             max_agents: this.addSiteForm.maxAgents ?? 0,
+            os_version: (this.addSiteForm.osVersion || "").trim() || null,
           },
           custom_fields: [],
         });

@@ -90,6 +90,12 @@
         {{ policiesQuotaLine }}
       </div>
     </div>
+    <div class="col-12 col-sm-6">
+      <div class="text-caption text-grey-6">Minimal OS version</div>
+      <div class="text-body2 text-mono" style="font-size: 12px">
+        {{ minimalOsLine }}
+      </div>
+    </div>
   </div>
 </template>
 
@@ -142,6 +148,16 @@ const policiesQuotaLine = computed(() => {
   const info = props.user?.info as Record<string, unknown> | undefined;
   const max = pickNumericField(info, "maxPolicies", "max_policies");
   return formatCountVsLimit(props.appliedCollectionsCount ?? 0, max);
+});
+
+const minimalOsLine = computed(() => {
+  const info = props.user?.info as Record<string, unknown> | undefined;
+  if (!info) return "—";
+  const raw =
+    (info.minimalOsVersion as string | undefined) ??
+    (info.minimal_os_version as string | undefined);
+  const v = typeof raw === "string" ? raw.trim() : "";
+  return v || "—";
 });
 
 function formatTimestamp(ts: unknown): string {
