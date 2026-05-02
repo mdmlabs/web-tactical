@@ -11,7 +11,10 @@
 const { mergeConfig } = require("vite");
 const { configure } = require("quasar/wrappers");
 const path = require("node:path");
-require("dotenv").config();
+const dotenv = require("dotenv");
+const dotenvExpand = require("dotenv-expand");
+
+dotenvExpand.expand(dotenv.config());
 
 module.exports = configure(function (/* ctx */) {
   return {
