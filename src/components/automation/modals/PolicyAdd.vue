@@ -127,7 +127,7 @@ export default {
       let data = {};
       let url = "";
       if (this.type === "site") {
-        url = `/clients/sites/${this.object.id}/`;
+        url = `/clients/sites/${this.object.master_id}/`;
         data = {
           site: {
             server_policy: this.selectedServerPolicy,

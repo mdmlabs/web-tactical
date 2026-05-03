@@ -160,7 +160,7 @@ export default {
 
     async function getSiteCustomFieldValues() {
       loading.value = true;
-      const data = await fetchSite(props.site.id);
+      const data = await fetchSite(props.site.master_id);
       if (data.name != null) state.value.name = data.name;
       if (data.description != null) state.value.description = data.description;
       if (data.parent != null) state.value.parent = data.parent;

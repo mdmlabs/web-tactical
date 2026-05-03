@@ -76,9 +76,9 @@ export default {
       let url = "";
       let data = {};
       if (this.type === "site") {
-        url = `/clients/sites/${this.object.id}/`;
+        url = `/clients/sites/${this.object.master_id}/`;
         data = {
-          site: { id: this.object.id, alert_template: this.selectedTemplate },
+          site: { id: this.object.master_id, alert_template: this.selectedTemplate },
         };
       } else if (this.type === "policy") {
         url = `/automation/policies/${this.object.id}/`;
