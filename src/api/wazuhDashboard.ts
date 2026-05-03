@@ -25,10 +25,6 @@ class WazuhDashboardClient {
       baseURL,
       timeout: 30000,
       withCredentials: true,
-      headers: {
-        "Cache-Control": "no-cache, no-store",
-        Pragma: "no-cache",
-      },
     });
 
     // Add osd-xsrf header for mutations (required by OpenSearch Dashboards).
