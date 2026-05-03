@@ -37,10 +37,6 @@ class WazuhApiClient {
     this.client = axios.create({
       baseURL,
       timeout: 30000,
-      headers: {
-        "Cache-Control": "no-cache, no-store",
-        Pragma: "no-cache",
-      },
     });
 
     // Interceptor: inject Wazuh JWT token
