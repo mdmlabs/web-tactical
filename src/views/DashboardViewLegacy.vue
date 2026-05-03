@@ -799,7 +799,7 @@ export default {
           .onOk(async () => {
             this.$q.loading.show();
             try {
-              const result = await removeSite(node.id);
+              const result = await removeSite(node.master_id);
               this.notifySuccess(result);
               this.clearTreeSelected();
             } catch (e) {
