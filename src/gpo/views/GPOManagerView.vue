@@ -46,6 +46,7 @@
                         icon="warning"
                         label="Alerts"
                       />
+                      <q-tab name="vhd" icon="storage" label="VHD" />
                     </q-tabs>
                   </div>
                   <div class="col-auto q-pa-sm">
@@ -839,6 +840,13 @@
                   <AgentAlertsTab
                     :agent-id="selectedAgent?.id ?? null"
                     :active="contentTab === 'alerts'"
+                  />
+                </q-tab-panel>
+
+                <q-tab-panel name="vhd" class="q-pa-md">
+                  <GpoVhdAgentTab
+                    :agent="selectedAgent"
+                    :active="contentTab === 'vhd'"
                   />
                 </q-tab-panel>
               </q-tab-panels>
@@ -2116,6 +2124,7 @@ import GroupsMachinesModal from "../components/GroupsMachines/GroupsMachinesModa
 import AdmxManagementTab from "../components/PolicyLibrary/AdmxManagementTab.vue";
 import WindowsAdmxPolicies from "../components/WindowsPolicies/WindowsAdmxPolicies.vue";
 import AgentAlertsTab from "../components/AgentAlertsTab.vue";
+import GpoVhdAgentTab from "../components/GpoVhdAgentTab.vue";
 import WslUserDialog from "../components/WslUserDialog.vue";
 import OsVersionSelect from "@/components/ui/OsVersionSelect.vue";
 import type {
