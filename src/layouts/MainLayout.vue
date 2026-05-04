@@ -649,17 +649,51 @@ function resetPassword() {
   });
 }
 
+const DEFAULT_DOCS_PATH = "/docs/en/01-home/";
+
 interface WindowWithDocsEnv extends Window {
   _env_?: {
     DOCS_URL?: string;
+    APP_HOST?: string;
   };
+}
+
+function joinOriginAndDocsPath(origin: string, path: string): string {
+  const o = origin.replace(/\/+$/, "");
+  const p = path.startsWith("/") ? path : `/${path}`;
+  return `${o}${p}`;
+}
+
+function docsUrlFromRuntimeEnv(
+  env: WindowWithDocsEnv["_env_"] | undefined,
+): string | undefined {
+  if (!env) return undefined;
+
+  let explicit = env.DOCS_URL?.trim();
+  if (explicit?.includes("${APP_HOST}")) {
+    const host = env.APP_HOST?.trim();
+    if (host) explicit = explicit.split("${APP_HOST}").join(host);
+  }
+  if (explicit) return explicit;
+
+  const host = env.APP_HOST?.trim();
+  if (!host) return undefined;
+  if (/^https?:\/\//i.test(host)) {
+    return joinOriginAndDocsPath(host, DEFAULT_DOCS_PATH);
+  }
+  return joinOriginAndDocsPath(`https://${host}`, DEFAULT_DOCS_PATH);
 }
 
 function getDocsUrl(): string | undefined {
   if (process.env.NODE_ENV === "production") {
-    return (globalThis.window as WindowWithDocsEnv)._env_?.DOCS_URL;
+    return docsUrlFromRuntimeEnv(
+      (globalThis.window as WindowWithDocsEnv)._env_,
+    );
   }
-  return process.env.DEV_DOCS_URL;
+  return docsUrlFromRuntimeEnv({
+    DOCS_URL: process.env.DEV_DOCS_URL,
+    APP_HOST: process.env.APP_HOST,
+  });
 }
 
 function openDocumentation() {
