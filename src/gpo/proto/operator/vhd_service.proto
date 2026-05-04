@@ -1,0 +1,108 @@
+syntax = "proto3";
+
+package laborato.operator.vhd;
+
+option csharp_namespace = "Laborato.Operator.Vhd";
+
+import "common/target.proto";
+import "common/workspace.proto";
+
+service OperatorVhdService {
+
+  // Workspace
+  rpc CreateWorkspace (CreateWorkspaceRequest) returns (VhdOperationResponse);
+  rpc UpdateWorkspace (UpdateWorkspaceRequest) returns (VhdOperationResponse);
+
+  // Volume WRITE
+  rpc CreateVolume (CreateVolumeRequest) returns (VhdOperationResponse);
+  rpc MountVolume (NameRequest) returns (VhdOperationResponse);
+  rpc UnmountVolume (NameRequest) returns (VhdOperationResponse);
+  rpc DeleteVolume (DeleteVolumeRequest) returns (VhdOperationResponse);
+  rpc ResizeVolume (ResizeVolumeRequest) returns (VhdOperationResponse);
+
+  // Volume READ
+  rpc GetVolumes (TargetRequest) returns (VolumesResponse);
+  rpc GetVolume (GetVolumeRequest) returns (VolumeResponse);
+}
+
+// REQUESTS
+message TargetRequest {
+  laborato.common.target.Target target = 1;
+}
+
+message NameRequest {
+  laborato.common.target.Target target = 1;
+  string name = 2;
+}
+
+message DeleteVolumeRequest {
+  laborato.common.target.Target target = 1;
+  string name = 2;
+  string workspace_id = 3;
+}
+
+message GetVolumeRequest {
+  laborato.common.target.Target target = 1;
+  string name = 2;
+}
+
+// Workspace
+
+message CreateWorkspaceRequest {
+  laborato.common.target.Target target = 1;
+
+  string id = 2;
+  string name = 3;
+  string description = 4;
+}
+
+message UpdateWorkspaceRequest {
+  laborato.common.target.Target target = 1;
+
+  string id = 2;
+  string name = 3;
+  string description = 4;
+}
+
+// Volume
+
+message CreateVolumeRequest {
+  laborato.common.target.Target target = 1;
+  string workspace_id = 2;
+  string name = 3;
+  string base_path = 4;
+  string mount_point = 5;
+
+  int32 block_size = 6;
+  int32 blocks = 7;
+}
+
+message ResizeVolumeRequest {
+  laborato.common.target.Target target = 1;
+  string name = 2;
+  int32 blocks = 3;
+}
+
+// RESPONSES
+
+message VhdOperationResponse {
+  VhdOperatorStatus status = 1;
+  optional string error_message = 2;
+}
+
+message VolumesResponse {
+  VhdOperatorStatus status = 1;
+  repeated laborato.common.workspace.VolumeDto volumes = 2;
+  optional string error_message = 3;
+}
+
+message VolumeResponse {
+  VhdOperatorStatus status = 1;
+  laborato.common.workspace.VolumeDto volume = 2;
+  optional string error_message = 3;
+}
+
+enum VhdOperatorStatus {
+  OK = 0;
+  ERROR = 1;
+}

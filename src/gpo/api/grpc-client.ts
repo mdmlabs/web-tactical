@@ -100,9 +100,7 @@ export function getGrpcUrl(): string {
   );
 
   if (!grpcUrl) {
-    throw new Error(
-      "gRPC endpoint is not configured)",
-    );
+    throw new Error("gRPC endpoint is not configured)");
   }
 
   return grpcUrl;
@@ -119,7 +117,7 @@ export function createGrpcMetadata(): grpcWeb.Metadata {
   return metadata;
 }
 
-function createClient<
+export function createClient<
   T extends new (
     hostname: string,
     credentials?: null | { [index: string]: string },

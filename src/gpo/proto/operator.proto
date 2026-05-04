@@ -588,7 +588,17 @@ service PolicyAssignmentService {
  rpc RemovePolicyCollection(RemovePolicyCollectionRequest)
     returns (RemovePolicyCollectionResponse);
 
+ rpc RestoreAllPolicies(RestoreAllPoliciesRequest)
+    returns (RestoreAllPoliciesResponse);
 }
+
+message RestoreAllPoliciesRequest{
+  laborato.common.target.Target target = 1;
+}
+message RestoreAllPoliciesResponse{
+   ACResponseStatus status = 1;
+}
+
 message AssignPolicyCollectionRequest {
   int64 collection_id = 1;
   laborato.common.target.Target target = 2;
@@ -686,4 +696,8 @@ message PolicyAssignment {
 message PolicyAssigmentsState {
   string id_name = 1;
   string value = 2;
+}
+enum ACResponseStatus {
+    RESPONSE_STATUS_OK = 0;
+    RESPONSE_STATUS_ERROR = 1;
 }
