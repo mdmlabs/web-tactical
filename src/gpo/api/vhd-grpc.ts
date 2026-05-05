@@ -25,6 +25,15 @@ function applyTarget<T extends { setTarget: (value: Target) => unknown }>(
 export const operatorVhdClient = {
   VhdOperatorStatus: operator_vhd_service_pb.VhdOperatorStatus,
 
+  async getAllWorkspaces(): Promise<operator_vhd_service_pb_types.WorkspacesResponse.AsObject> {
+    const req = new operator_vhd_service_pb.GetAllWorkspacesRequest();
+    const resp = await operatorVhdServiceClient.getAllWorkspaces(
+      req,
+      grpcMeta(),
+    );
+    return resp.toObject();
+  },
+
   async createWorkspace(
     target: Target,
     input: { id: string; name: string; description: string },
@@ -128,6 +137,7 @@ export const operatorVhdClient = {
     return resp.toObject();
   },
 
+  /* интерфейс отключил пока что - бага .
   async getVolumes(
     target: Target,
   ): Promise<operator_vhd_service_pb_types.VolumesResponse.AsObject> {
@@ -136,6 +146,7 @@ export const operatorVhdClient = {
     const resp = await operatorVhdServiceClient.getVolumes(req, grpcMeta());
     return resp.toObject();
   },
+  */
 
   async getVolume(
     target: Target,
@@ -145,6 +156,48 @@ export const operatorVhdClient = {
     applyTarget(req, target);
     req.setName(name);
     const resp = await operatorVhdServiceClient.getVolume(req, grpcMeta());
+    return resp.toObject();
+  },
+
+  async setWorkstaionAgent(
+    target: Target,
+    workspaceId: string,
+  ): Promise<operator_vhd_service_pb_types.VhdOperationResponse.AsObject> {
+    const req = new operator_vhd_service_pb.SetWorkstaionAgentRequest();
+    req.setWorkspaceId(workspaceId);
+    applyTarget(req, target);
+    const resp = await operatorVhdServiceClient.setWorkstaionAgent(
+      req,
+      grpcMeta(),
+    );
+    return resp.toObject();
+  },
+
+  async getVolumesByWorkspace(
+    target: Target,
+    workspaceId: string,
+  ): Promise<operator_vhd_service_pb_types.GetVolumesByWorkspaceResponse.AsObject> {
+    const req = new operator_vhd_service_pb.GetVolumesByWorkspaceRequest();
+    applyTarget(req, target);
+    req.setWorkspaceId(workspaceId);
+    const resp = await operatorVhdServiceClient.getVolumesByWorkspace(
+      req,
+      grpcMeta(),
+    );
+    return resp.toObject();
+  },
+
+  async getVolumeByWorkspace(
+    target: Target,
+    name: string,
+  ): Promise<operator_vhd_service_pb_types.GetVolumeByWorkspaceResponse.AsObject> {
+    const req = new operator_vhd_service_pb.GetVolumeRequest();
+    applyTarget(req, target);
+    req.setName(name);
+    const resp = await operatorVhdServiceClient.getVolumeByWorkspace(
+      req,
+      grpcMeta(),
+    );
     return resp.toObject();
   },
 };
@@ -185,7 +238,10 @@ export const internalVolumeClient = {
     req.setBlocksize(input.blockSize);
     req.setBlocks(input.blocks);
     req.setOverwrite(Boolean(input.overwrite));
-    const resp = await internalVolumeServiceClient.createVolume(req, grpcMeta());
+    const resp = await internalVolumeServiceClient.createVolume(
+      req,
+      grpcMeta(),
+    );
     return resp.toObject();
   },
 
@@ -215,7 +271,10 @@ export const internalVolumeClient = {
   ): Promise<internal_vhd_pb_types.OperationResult.AsObject> {
     const req = new internal_vhd_pb.NameRequest();
     req.setName(name);
-    const resp = await internalVolumeServiceClient.deleteVolume(req, grpcMeta());
+    const resp = await internalVolumeServiceClient.deleteVolume(
+      req,
+      grpcMeta(),
+    );
     return resp.toObject();
   },
 
@@ -230,7 +289,10 @@ export const internalVolumeClient = {
     } else {
       req.setNewSizeMb(mode.newSizeMb);
     }
-    const resp = await internalVolumeServiceClient.resizeVolume(req, grpcMeta());
+    const resp = await internalVolumeServiceClient.resizeVolume(
+      req,
+      grpcMeta(),
+    );
     return resp.toObject();
   },
 
@@ -241,7 +303,10 @@ export const internalVolumeClient = {
     const req = new internal_vhd_pb.UpdateRequest();
     req.setName(name);
     req.setMountpoint(mountPoint);
-    const resp = await internalVolumeServiceClient.updateVolume(req, grpcMeta());
+    const resp = await internalVolumeServiceClient.updateVolume(
+      req,
+      grpcMeta(),
+    );
     return resp.toObject();
   },
 };
