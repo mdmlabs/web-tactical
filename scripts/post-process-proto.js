@@ -62,17 +62,17 @@ function getImportsForFile(filePath) {
     node: false,
     policy: false,
     operator: false,
+    target: false,
+    workspace: false,
   };
+  const inInternalDir = fileDir.endsWith("internal");
 
   if (fileName === "operator_pb.js") {
     imports.wrappers = true;
     imports.user = true;
     imports.node = true;
     imports.policy = true;
-  } else if (
-    fileName === "wsl_lifecycel_service_pb.js" ||
-    fileName === "wsl_lifecycle_service_pb.js"
-  ) {
+  } else if (fileName === "wsl_lifecycle_service_pb.js") {
     imports.wrappers = true;
     imports.timestamp = true;
     imports.empty = true;
@@ -97,6 +97,14 @@ function getImportsForFile(filePath) {
     fileName === "connectivity_policy_service_pb.js"
   ) {
     imports.empty = true;
+  } else if (inOperatorDir && fileName === "vhd_service_pb.js") {
+    imports.target = true;
+    imports.workspace = true;
+  } else if (inMeshDir && fileName === "vhd_service_pb.js") {
+    imports.timestamp = true;
+    imports.workspace = true;
+  } else if (inInternalDir && fileName === "vhd_pb.js") {
+    imports.workspace = true;
   } else if (fileName === "mesh_pb.js") {
     imports.node = true;
     imports.policy = true;
@@ -107,6 +115,8 @@ function getImportsForFile(filePath) {
     imports.empty = true;
   } else if (fileName === "export_pb.js") {
     // export.proto не использует well-known types напрямую
+  } else if (fileName === "workspace_pb.js") {
+    imports.timestamp = true;
   } else if (fileName === "user_pb.js") {
     imports.wrappers = true;
     imports.timestamp = true;
@@ -151,6 +161,14 @@ function generateES6Imports(imports, packageName, filePath) {
   if (imports.policy) {
     lines.push(
       `import * as common_policy_pb from "${base}common/policy_pb.js";`,
+    );
+  }
+  if (imports.target) {
+    lines.push(`import * as common_target_pb from "${base}common/target_pb.js";`);
+  }
+  if (imports.workspace) {
+    lines.push(
+      `import * as common_workspace_pb from "${base}common/workspace_pb.js";`,
     );
   }
   if (imports.operator) {
@@ -249,6 +267,17 @@ function generateES6Imports(imports, packageName, filePath) {
     if (imports.empty) {
       lines.push("goog.object.extend(proto, google_protobuf_empty_pb);");
     }
+
+    if (imports.target) {
+      lines.push("");
+      lines.push("proto.laborato.common = proto.laborato.common || {};");
+      lines.push("proto.laborato.common.target = common_target_pb;");
+    }
+    if (imports.workspace) {
+      lines.push("");
+      lines.push("proto.laborato.common = proto.laborato.common || {};");
+      lines.push("proto.laborato.common.workspace = common_workspace_pb;");
+    }
   } else if (packageName.startsWith("laborato.operator.service")) {
     lines.push("proto.laborato = proto.laborato || {};");
     lines.push("proto.laborato.operator = proto.laborato.operator || {};");
@@ -295,6 +324,22 @@ function generateES6Imports(imports, packageName, filePath) {
       lines.push("proto.google = proto.google || {};");
       lines.push("proto.google.protobuf = proto.google.protobuf || {};");
       lines.push("goog.object.extend(proto, google_protobuf_empty_pb);");
+    }
+  } else if (packageName.startsWith("laborato.common.workspace")) {
+    lines.push("proto.laborato = proto.laborato || {};");
+    lines.push("proto.laborato.common = proto.laborato.common || {};");
+    lines.push(
+      "proto.laborato.common.workspace = proto.laborato.common.workspace || {};",
+    );
+
+    if (imports.timestamp) {
+      lines.push("");
+      lines.push("proto.google = proto.google || {};");
+      lines.push("proto.google.protobuf = proto.google.protobuf || {};");
+      lines.push("goog.object.extend(proto, google_protobuf_timestamp_pb);");
+      lines.push(
+        "if (google_protobuf_timestamp_pb.Timestamp) { proto.google.protobuf.Timestamp = google_protobuf_timestamp_pb.Timestamp; }",
+      );
     }
   } else if (packageName.startsWith("laborato.common.user")) {
     lines.push("proto.laborato = proto.laborato || {};");
@@ -450,6 +495,26 @@ function generateES6Imports(imports, packageName, filePath) {
       lines.push("proto.laborato.common = proto.laborato.common || {};");
       lines.push("proto.laborato.common.policy = common_policy_pb;");
     }
+  } else if (packageName.startsWith("laborato.mesh.vhd")) {
+    lines.push("proto.laborato = proto.laborato || {};");
+    lines.push("proto.laborato.mesh = proto.laborato.mesh || {};");
+    lines.push("proto.laborato.mesh.vhd = proto.laborato.mesh.vhd || {};");
+
+    if (imports.timestamp) {
+      lines.push("");
+      lines.push("proto.google = proto.google || {};");
+      lines.push("proto.google.protobuf = proto.google.protobuf || {};");
+      lines.push("goog.object.extend(proto, google_protobuf_timestamp_pb);");
+      lines.push(
+        "if (google_protobuf_timestamp_pb.Timestamp) { proto.google.protobuf.Timestamp = google_protobuf_timestamp_pb.Timestamp; }",
+      );
+    }
+
+    if (imports.workspace) {
+      lines.push("");
+      lines.push("proto.laborato.common = proto.laborato.common || {};");
+      lines.push("proto.laborato.common.workspace = common_workspace_pb;");
+    }
   } else if (packageName === "laborato.mesh") {
     lines.push("proto.laborato = proto.laborato || {};");
     lines.push("proto.laborato.mesh = proto.laborato.mesh || {};");
@@ -480,6 +545,14 @@ function generateES6Imports(imports, packageName, filePath) {
     }
     if (imports.empty) {
       lines.push("goog.object.extend(proto, google_protobuf_empty_pb);");
+    }
+  } else if (packageName === "vhd") {
+    lines.push("proto.vhd = proto.vhd || {};");
+
+    if (imports.workspace) {
+      lines.push("");
+      lines.push("proto.laborato.common = proto.laborato.common || {};");
+      lines.push("proto.laborato.common.workspace = common_workspace_pb;");
     }
   }
 
@@ -626,6 +699,10 @@ function main() {
       package: "laborato.common.policy",
     },
     {
+      path: path.join(GENERATED_DIR, "common/workspace_pb.js"),
+      package: "laborato.common.workspace",
+    },
+    {
       path: path.join(GENERATED_DIR, "common/export_pb.js"),
       package: "laborato.common.export",
     },
@@ -642,10 +719,6 @@ function main() {
       package: "laborato.operator.service",
     },
     {
-      path: path.join(GENERATED_DIR, "wsl_lifecycel_service_pb.js"),
-      package: "laborato.operator.service",
-    },
-    {
       path: path.join(GENERATED_DIR, "wsl_lifecycle_service_pb.js"),
       package: "laborato.operator.service",
     },
@@ -658,6 +731,10 @@ function main() {
       package: "laborato.operator.connectivity",
     },
     {
+      path: path.join(GENERATED_DIR, "operator/vhd_service_pb.js"),
+      package: "laborato.operator.vhd",
+    },
+    {
       path: path.join(GENERATED_DIR, "mesh_pb.js"),
       package: "laborato.mesh",
     },
@@ -668,6 +745,14 @@ function main() {
     {
       path: path.join(GENERATED_DIR, "mesh/wsl_lifecycle_service_pb.js"),
       package: "laborato.mesh.service",
+    },
+    {
+      path: path.join(GENERATED_DIR, "mesh/vhd_service_pb.js"),
+      package: "laborato.mesh.vhd",
+    },
+    {
+      path: path.join(GENERATED_DIR, "internal/vhd_pb.js"),
+      package: "vhd",
     },
   ];
 

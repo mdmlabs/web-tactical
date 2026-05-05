@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package vhd;
+
+option csharp_namespace = "Laborato.SecureContainer.VHD.Grpc";
+
+import "common/workspace.proto";
+
+// SERVICE
+
+service VolumeService {
+  rpc GetVolumes (GetVolumesRequest) returns (VolumeList);
+  rpc GetVolume (NameRequest) returns (laborato.common.workspace.VolumeDto);
+
+  rpc CreateVolume (CreateVolumeRequest) returns (OperationResult);
+  rpc MountVolume (NameRequest) returns (OperationResult);
+  rpc UnmountVolume (NameRequest) returns (OperationResult);
+  rpc DeleteVolume (NameRequest) returns (OperationResult);
+
+  rpc ResizeVolume (ResizeRequest) returns (OperationResult);
+  rpc UpdateVolume (UpdateRequest) returns (OperationResult);
+}
+
+// REQUESTS
+
+message GetVolumesRequest {
+  bool only_mounted = 1;
+}
+
+message NameRequest {
+  string name = 1;
+}
+
+message CreateVolumeRequest {
+  string name = 1;
+  string basePath = 2;
+  string mountPoint = 3;
+
+  int32 blockSize = 4;
+  int32 blocks = 5;
+
+  bool overwrite = 6;
+}
+
+message ResizeRequest {
+  string name = 1;
+
+  oneof mode {
+    int32 new_blocks = 2;
+    int64 new_size_mb = 3;
+  }
+}
+
+message UpdateRequest {
+  string name = 1;
+  string mountPoint = 2;
+}
+
+// RESPONSES
+
+message OperationResult {
+  OperationStatus status = 1;
+  string error = 2;
+}
+
+message VolumeList {
+  repeated laborato.common.workspace.VolumeDto volumes = 1;
+}
+
+enum OperationStatus {
+  OK = 0;
+  NOT_FOUND = 1;
+  ALREADY_EXISTS = 2;
+  INVALID_ARGUMENT = 3;
+  FAILED_PRECONDITION = 4;
+  INTERNAL_ERROR = 5;
+}
