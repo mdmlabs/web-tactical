@@ -604,42 +604,6 @@
               <q-item-section>Policies</q-item-section>
             </q-item>
 
-            <!-- Self-Service Portal -->
-            <template v-if="isMiniMode && !isMobile">
-              <q-item
-                clickable
-                class="filebar-menu-section-mini"
-                @click="navigateToSelfService"
-              >
-                <q-item-section avatar>
-                  <q-icon name="self_improvement" size="24px">
-                    <q-tooltip
-                      anchor="center right"
-                      self="center left"
-                      :offset="[10, 0]"
-                    >
-                      Self-Service Portal
-                    </q-tooltip>
-                  </q-icon>
-                </q-item-section>
-              </q-item>
-            </template>
-
-            <q-item
-              v-else
-              clickable
-              v-ripple
-              @click="navigateToSelfService"
-              :class="[
-                'filebar-menu-section',
-                { 'active-menu-item': isSelfServiceActive },
-              ]"
-            >
-              <q-item-section avatar>
-                <q-icon name="self_improvement" />
-              </q-item-section>
-              <q-item-section>Self-Service Portal</q-item-section>
-            </q-item>
 
             <!-- Security (SIEM / Wazuh) -->
             <template v-if="isMiniMode && !isMobile">
@@ -1923,7 +1887,7 @@ export default {
     drawerBehavior() {
       return this.isMobile ? "mobile" : "desktop";
     },
-    
+
     sidebarWidth() {
       if (this.isMobile) {
         return 280;
@@ -1949,9 +1913,6 @@ export default {
     },
     isPoliciesActive() {
       return this.currentPath.startsWith("/policies");
-    },
-    isSelfServiceActive() {
-      return this.currentPath.startsWith("/self-service");
     },
     closeDrawer() {
       if (this.isMobile) {
@@ -2093,12 +2054,6 @@ export default {
         this.closeDrawer();
       }
       this.$router.push({ name: "Policies" });
-    },
-    navigateToSelfService() {
-      if (this.isMobile) {
-        this.closeDrawer();
-      }
-      this.$router.push({ name: "SelfServicePortal" });
     },
     navigateToSecurity(tab = "dashboard") {
       if (this.isMobile) {
