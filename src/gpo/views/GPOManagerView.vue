@@ -501,6 +501,35 @@
                     <div class="row q-mb-md items-center">
                       <div class="text-h6">Users</div>
                       <q-space />
+                      <q-btn-dropdown
+                        flat
+                        dense
+                        icon="groups"
+                        color="primary"
+                        title="Bulk account state on this agent"
+                        class="q-mr-sm"
+                        :loading="userControlLoading"
+                        no-caps
+                      >
+                        <q-list dense>
+                          <q-item
+                            clickable
+                            v-close-popup
+                            @click="confirmEnableAllUsersForAgent(true)"
+                          >
+                            <q-item-section>Enable all users</q-item-section>
+                          </q-item>
+                          <q-item
+                            clickable
+                            v-close-popup
+                            @click="confirmEnableAllUsersForAgent(false)"
+                          >
+                            <q-item-section class="text-negative">
+                              Disable all users
+                            </q-item-section>
+                          </q-item>
+                        </q-list>
+                      </q-btn-dropdown>
                       <q-btn
                         flat
                         dense
@@ -3394,6 +3423,49 @@ async function toggleUserEnabled(row: User) {
       (x) => x.samAccountName === row.samAccountName,
     );
     if (u) u.isEnabled = enable;
+    await refreshUsersAndGroups();
+  } catch (e) {
+    const msg = (e as { message?: string })?.message || String(e);
+    notifyError(msg);
+  } finally {
+    userControlLoading.value = false;
+  }
+}
+
+function confirmEnableAllUsersForAgent(enable: boolean) {
+  if (!selectedAgent.value?.id) {
+    notifyError("No agent selected");
+    return;
+  }
+  $q.dialog({
+    title: enable ? "Enable all users" : "Disable all users",
+    message: enable
+      ? "Enable every user account in directory scope for this agent?"
+      : "Disable every user account in directory scope for this agent? Users will not be able to sign in until re-enabled.",
+    cancel: true,
+    persistent: true,
+    color: enable ? "primary" : "negative",
+  }).onOk(() => runEnableAllUsersForAgent(enable));
+}
+
+async function runEnableAllUsersForAgent(enable: boolean) {
+  let targetAgentId: string;
+  try {
+    targetAgentId = getAgentId();
+  } catch {
+    return;
+  }
+  userControlLoading.value = true;
+  try {
+    const res = await userControlClient.enableAllUsers(
+      createUserGroupTargetForAgent(targetAgentId),
+      enable,
+    );
+    if (res.status !== 0) {
+      notifyError(res.errorMessage || "Operation failed");
+      return;
+    }
+    notifySuccess(enable ? "All users enabled" : "All users disabled");
     await refreshUsersAndGroups();
   } catch (e) {
     const msg = (e as { message?: string })?.message || String(e);
