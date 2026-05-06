@@ -28,15 +28,16 @@ message UserControlMasterMessage {
     UserUpdateCommand update = 2;
     UserDeleteCommand delete = 3;
     UserEnableCoomand enable_disable = 4;
-    UserSetPasswordCommand set_password = 5;
-    UserUnlockCommand unlock = 6;
-    UserExpirePasswordCommand expire_password = 7;
-    UserSetAccountExpirationCommand set_account_expiration = 8;
-    CreateGroupCommand create_group = 9;
-    DeleteGroupCommand delete_group = 10;
-    AddUserToGroupCommand add_user_to_group = 11;
-    RemoveUserFromGroupCommand remove_user_from_group = 12;
-    UpdateGroupCommand update_group = 13;
+    AllUsersEnableCoomand all_enable_disable = 5;
+    UserSetPasswordCommand set_password = 6;
+    UserUnlockCommand unlock = 7;
+    UserExpirePasswordCommand expire_password = 8;
+    UserSetAccountExpirationCommand set_account_expiration = 9;
+    CreateGroupCommand create_group = 10;
+    DeleteGroupCommand delete_group = 11;
+    AddUserToGroupCommand add_user_to_group = 12;
+    RemoveUserFromGroupCommand remove_user_from_group = 13;
+    UpdateGroupCommand update_group = 14;
   }
 }
 
@@ -56,6 +57,10 @@ message UserDeleteCommand {
 message UserEnableCoomand {
     string sam_id = 1;
     bool enable = 2;
+}
+
+message AllUsersEnableCoomand {
+    bool enable = 1;
 }
 
 message UserSetPasswordCommand {

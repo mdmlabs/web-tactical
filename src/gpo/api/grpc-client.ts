@@ -17,6 +17,7 @@ import {
   UserIdentifier,
   CreateUserRequest,
   EnableUserRequest,
+  EnableAllUsersRequest,
   SetUserPasswordRequest,
   SetUserAccountExpirationRequest,
   SetGroupChildGroupsRequest,
@@ -949,6 +950,20 @@ export const userControlClient = {
     req.setUser(uid);
     req.setEnable(enable);
     const response = await operatorUserControlServiceClient.enableUser(
+      req,
+      createGrpcMetadata(),
+    );
+    return response.toObject();
+  },
+
+  async enableAllUsers(
+    target: Target,
+    enable: boolean,
+  ): Promise<user_service_pb_types.UserControlResponse.AsObject> {
+    const req = new EnableAllUsersRequest();
+    req.setTarget(target);
+    req.setEnable(enable);
+    const response = await operatorUserControlServiceClient.enableAllUsers(
       req,
       createGrpcMetadata(),
     );

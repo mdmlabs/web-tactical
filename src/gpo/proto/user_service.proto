@@ -16,6 +16,7 @@ service OperatorUserControlService {
     rpc UpdateUser(UpdateUserRequest) returns (UserControlResponse);
     rpc DeleteUser(UserIdentifier) returns (UserControlResponse);
     rpc EnableUser(EnableUserRequest) returns (UserControlResponse);
+    rpc EnableAllUsers(EnableAllUsersRequest) returns (UserControlResponse);
     rpc SetUserPassword(SetUserPasswordRequest) returns (UserControlResponse);
     rpc UnlockUser(UserIdentifier) returns (UserControlResponse);
     rpc ExpireUserPassword(UserIdentifier) returns (UserControlResponse);
@@ -66,6 +67,11 @@ message CreateUserRequest {
 message UpdateUserRequest {
     UserIdentifier user = 1;
     laborato.common.user.UserRequest data = 3;
+}
+
+message EnableAllUsersRequest {
+    laborato.common.target.Target target = 1;
+    bool enable = 2;
 }
 
 message EnableUserRequest {
