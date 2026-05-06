@@ -41,11 +41,8 @@
                       />
                       <q-tab name="users" icon="people" label="Users" />
                       <q-tab name="groups" icon="group" label="Groups" />
-                      <q-tab
-                        name="alerts"
-                        icon="warning"
-                        label="Alerts"
-                      />
+                      <q-tab name="alerts" icon="warning" label="Alerts" />
+                      <q-tab name="vhd" icon="storage" label="VHD" />
                     </q-tabs>
                   </div>
                   <div class="col-auto q-pa-sm">
@@ -223,7 +220,9 @@
                                   <div class="system-info-kv">
                                     <div class="system-info-k">OS build</div>
                                     <div class="system-info-v">
-                                      {{ agentDetails.nodeInfo.osbuild || "N/A" }}
+                                      {{
+                                        agentDetails.nodeInfo.osbuild || "N/A"
+                                      }}
                                     </div>
                                   </div>
                                 </div>
@@ -246,7 +245,9 @@
                                     </div>
                                   </div>
                                   <div class="system-info-kv">
-                                    <div class="system-info-k">In the domain</div>
+                                    <div class="system-info-k">
+                                      In the domain
+                                    </div>
                                     <div class="system-info-v">
                                       {{
                                         agentDetails.nodeInfo.isdomainjoined
@@ -259,11 +260,12 @@
                                     <div class="system-info-k">Last boot</div>
                                     <div class="system-info-v">
                                       {{
-                                        agentDetails.nodeInfo?.lastboottime?.seconds
+                                        agentDetails.nodeInfo?.lastboottime
+                                          ?.seconds
                                           ? formatDate(
                                               new Date(
-                                                agentDetails.nodeInfo.lastboottime
-                                                  .seconds * 1000,
+                                                agentDetails.nodeInfo
+                                                  .lastboottime.seconds * 1000,
                                               ).toISOString(),
                                             )
                                           : "N/A"
@@ -274,7 +276,12 @@
                               </div>
                             </div>
 
-                            <q-list bordered separator dense class="system-info-accordion">
+                            <q-list
+                              bordered
+                              separator
+                              dense
+                              class="system-info-accordion"
+                            >
                               <q-expansion-item
                                 default-opened
                                 expand-separator
@@ -312,7 +319,9 @@
                                     </div>
                                   </div>
                                   <div class="system-info-kv">
-                                    <div class="system-info-k">Manufacturer</div>
+                                    <div class="system-info-k">
+                                      Manufacturer
+                                    </div>
                                     <div class="system-info-v">
                                       {{
                                         agentDetails.nodeInfo.manufacturer ||
@@ -348,7 +357,9 @@
                                   <div class="system-info-kv">
                                     <div class="system-info-k">Time zone</div>
                                     <div class="system-info-v">
-                                      {{ agentDetails.nodeInfo.timezone || "N/A" }}
+                                      {{
+                                        agentDetails.nodeInfo.timezone || "N/A"
+                                      }}
                                     </div>
                                   </div>
 
@@ -361,7 +372,9 @@
                                     </div>
                                     <div class="row q-col-gutter-xs">
                                       <div
-                                        v-for="(ip, index) in agentSystemIpAddresses"
+                                        v-for="(
+                                          ip, index
+                                        ) in agentSystemIpAddresses"
                                         :key="`ip-${index}`"
                                         class="col-auto"
                                       >
@@ -381,7 +394,9 @@
                                     </div>
                                     <div class="row q-col-gutter-xs">
                                       <div
-                                        v-for="(mac, index) in agentSystemMacAddresses"
+                                        v-for="(
+                                          mac, index
+                                        ) in agentSystemMacAddresses"
                                         :key="`mac-${index}`"
                                         class="col-auto"
                                       >
@@ -406,8 +421,8 @@
                               >
                                 <q-list dense padding>
                                   <q-item
-                                    v-for="(disk, index) in agentDetails.nodeInfo
-                                      ?.systeminfo?.disksList || []"
+                                    v-for="(disk, index) in agentDetails
+                                      .nodeInfo?.systeminfo?.disksList || []"
                                     :key="`disk-${index}`"
                                     class="system-info-list-item"
                                   >
@@ -422,7 +437,8 @@
 
                               <q-expansion-item
                                 v-if="
-                                  agentDetails.nodeInfo.systeminfo?.gpuList?.length
+                                  agentDetails.nodeInfo.systeminfo?.gpuList
+                                    ?.length
                                 "
                                 expand-separator
                                 dense
@@ -841,6 +857,13 @@
                     :active="contentTab === 'alerts'"
                   />
                 </q-tab-panel>
+
+                <q-tab-panel name="vhd" class="q-pa-md">
+                  <GpoVhdAgentTab
+                    :agent="selectedAgent"
+                    :active="contentTab === 'vhd'"
+                  />
+                </q-tab-panel>
               </q-tab-panels>
             </div>
 
@@ -936,10 +959,7 @@
               <GPOCollectionsTable />
             </div>
 
-            <div
-              v-else-if="mainTab === 'windows'"
-              class="gpo-content-panels"
-            >
+            <div v-else-if="mainTab === 'windows'" class="gpo-content-panels">
               <WindowsAdmxPolicies />
             </div>
 
@@ -1132,246 +1152,258 @@
 
           <q-tab-panels v-model="libraryNav" class="gpo-library-panels">
             <q-tab-panel name="all" class="q-pa-none">
-                  <div class="row q-mb-md items-center">
-                    <q-input
-                      v-model="policyFilter"
-                      placeholder="Policy search..."
-                      dense
-                      outlined
-                      class="col-4"
-                    >
-                      <template v-slot:append>
-                        <q-icon name="search" />
-                      </template>
-                    </q-input>
-                    <q-space />
-                    <q-btn
-                      flat
-                      dense
-                      color="secondary"
-                      icon="download"
-                      label=""
-                      :disable="!filteredPoliciesByCategory('all').length"
-                    >
-                      <q-menu>
-                        <q-list dense style="min-width: 120px">
-                          <q-item clickable v-close-popup @click="exportPolicies('all', 'csv')">
-                            <q-item-section avatar>
-                              <q-icon name="table_chart" color="primary" />
-                            </q-item-section>
-                            <q-item-section>CSV</q-item-section>
-                          </q-item>
-                          <q-item clickable v-close-popup @click="exportPolicies('all', 'xlsx')">
-                            <q-item-section avatar>
-                              <q-icon name="description" color="green" />
-                            </q-item-section>
-                            <q-item-section>XLSX</q-item-section>
-                          </q-item>
-                        </q-list>
-                      </q-menu>
-                    </q-btn>
-                  </div>
+              <div class="row q-mb-md items-center">
+                <q-input
+                  v-model="policyFilter"
+                  placeholder="Policy search..."
+                  dense
+                  outlined
+                  class="col-4"
+                >
+                  <template v-slot:append>
+                    <q-icon name="search" />
+                  </template>
+                </q-input>
+                <q-space />
+                <q-btn
+                  flat
+                  dense
+                  color="secondary"
+                  icon="download"
+                  label=""
+                  :disable="!filteredPoliciesByCategory('all').length"
+                >
+                  <q-menu>
+                    <q-list dense style="min-width: 120px">
+                      <q-item
+                        clickable
+                        v-close-popup
+                        @click="exportPolicies('all', 'csv')"
+                      >
+                        <q-item-section avatar>
+                          <q-icon name="table_chart" color="primary" />
+                        </q-item-section>
+                        <q-item-section>CSV</q-item-section>
+                      </q-item>
+                      <q-item
+                        clickable
+                        v-close-popup
+                        @click="exportPolicies('all', 'xlsx')"
+                      >
+                        <q-item-section avatar>
+                          <q-icon name="description" color="green" />
+                        </q-item-section>
+                        <q-item-section>XLSX</q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-menu>
+                </q-btn>
+              </div>
 
-                  <div
-                    v-if="policiesStore.isLoading.value"
-                    class="text-center q-pa-lg"
-                  >
-                    <q-spinner color="primary" size="3em" />
-                    <div class="q-mt-md">Uploading policies...</div>
-                  </div>
-                  <div
-                    v-else-if="policiesStore.isError.value"
-                    class="text-center q-pa-lg"
-                  >
-                    <q-icon name="error" color="negative" size="3em" />
-                    <div class="q-mt-md text-negative">
-                      Policy loading error
-                    </div>
-                    <div
-                      v-if="policiesStore.errorMessage.value"
-                      class="q-mt-sm text-caption"
-                    >
-                      {{ policiesStore.errorMessage.value }}
-                    </div>
-                    <q-btn
-                      flat
-                      color="primary"
-                      label="Repeat"
-                      @click="policiesStore.fetchPolicies()"
-                      class="q-mt-md"
-                    />
-                  </div>
-                  <div v-else class="table-container">
-                    <q-table
-                      :rows="filteredPoliciesByCategory('all')"
-                      :columns="policyColumns"
-                      row-key="id"
-                      :pagination="{ rowsPerPage: 20 }"
-                      :loading="policiesStore.isLoading.value"
-                      flat
-                      bordered
-                    >
-                      <template v-slot:body-cell-description="props">
-                        <q-td :props="props">
-                          <q-tooltip v-if="props.row.description">
-                            {{ props.row.description }}
-                          </q-tooltip>
-                          <span>
-                            {{
-                              props.row.description &&
-                              props.row.description.length > 40
-                                ? props.row.description.slice(0, 40) + "..."
-                                : props.row.description || ""
-                            }}
-                          </span>
-                        </q-td>
-                      </template>
-                      <template v-slot:body-cell-actions="props">
-                        <q-td :props="props">
-                          <q-btn
-                            flat
-                            dense
-                            round
-                            icon="edit"
-                            size="sm"
-                            @click="onEditPolicy(props.row)"
-                            class="q-mr-xs"
-                          />
-                          <q-btn
-                            flat
-                            dense
-                            round
-                            icon="delete"
-                            size="sm"
-                            color="negative"
-                            @click="onDeletePolicy(props.row)"
-                          />
-                        </q-td>
-                      </template>
-                    </q-table>
-                  </div>
-                </q-tab-panel>
+              <div
+                v-if="policiesStore.isLoading.value"
+                class="text-center q-pa-lg"
+              >
+                <q-spinner color="primary" size="3em" />
+                <div class="q-mt-md">Uploading policies...</div>
+              </div>
+              <div
+                v-else-if="policiesStore.isError.value"
+                class="text-center q-pa-lg"
+              >
+                <q-icon name="error" color="negative" size="3em" />
+                <div class="q-mt-md text-negative">Policy loading error</div>
+                <div
+                  v-if="policiesStore.errorMessage.value"
+                  class="q-mt-sm text-caption"
+                >
+                  {{ policiesStore.errorMessage.value }}
+                </div>
+                <q-btn
+                  flat
+                  color="primary"
+                  label="Repeat"
+                  @click="policiesStore.fetchPolicies()"
+                  class="q-mt-md"
+                />
+              </div>
+              <div v-else class="table-container">
+                <q-table
+                  :rows="filteredPoliciesByCategory('all')"
+                  :columns="policyColumns"
+                  row-key="id"
+                  :pagination="{ rowsPerPage: 20 }"
+                  :loading="policiesStore.isLoading.value"
+                  flat
+                  bordered
+                >
+                  <template v-slot:body-cell-description="props">
+                    <q-td :props="props">
+                      <q-tooltip v-if="props.row.description">
+                        {{ props.row.description }}
+                      </q-tooltip>
+                      <span>
+                        {{
+                          props.row.description &&
+                          props.row.description.length > 40
+                            ? props.row.description.slice(0, 40) + "..."
+                            : props.row.description || ""
+                        }}
+                      </span>
+                    </q-td>
+                  </template>
+                  <template v-slot:body-cell-actions="props">
+                    <q-td :props="props">
+                      <q-btn
+                        flat
+                        dense
+                        round
+                        icon="edit"
+                        size="sm"
+                        @click="onEditPolicy(props.row)"
+                        class="q-mr-xs"
+                      />
+                      <q-btn
+                        flat
+                        dense
+                        round
+                        icon="delete"
+                        size="sm"
+                        color="negative"
+                        @click="onDeletePolicy(props.row)"
+                      />
+                    </q-td>
+                  </template>
+                </q-table>
+              </div>
+            </q-tab-panel>
 
-                <q-tab-panel name="templates" class="q-pa-none">
-                  <div class="row q-mb-md items-center">
-                    <q-input
-                      v-model="policyFilter"
-                      placeholder="Search for templates..."
-                      dense
-                      outlined
-                      class="col-4"
-                    >
-                      <template v-slot:append>
-                        <q-icon name="search" />
-                      </template>
-                    </q-input>
-                    <q-space />
-                    <q-btn
-                      flat
-                      dense
-                      color="secondary"
-                      icon="download"
-                      label=""
-                      :disable="!filteredPoliciesByCategory('templates').length"
-                    >
-                      <q-menu>
-                        <q-list dense style="min-width: 120px">
-                          <q-item clickable v-close-popup @click="exportPolicies('templates', 'csv')">
-                            <q-item-section avatar>
-                              <q-icon name="table_chart" color="primary" />
-                            </q-item-section>
-                            <q-item-section>CSV</q-item-section>
-                          </q-item>
-                          <q-item clickable v-close-popup @click="exportPolicies('templates', 'xlsx')">
-                            <q-item-section avatar>
-                              <q-icon name="description" color="green" />
-                            </q-item-section>
-                            <q-item-section>XLSX</q-item-section>
-                          </q-item>
-                        </q-list>
-                      </q-menu>
-                    </q-btn>
-                  </div>
+            <q-tab-panel name="templates" class="q-pa-none">
+              <div class="row q-mb-md items-center">
+                <q-input
+                  v-model="policyFilter"
+                  placeholder="Search for templates..."
+                  dense
+                  outlined
+                  class="col-4"
+                >
+                  <template v-slot:append>
+                    <q-icon name="search" />
+                  </template>
+                </q-input>
+                <q-space />
+                <q-btn
+                  flat
+                  dense
+                  color="secondary"
+                  icon="download"
+                  label=""
+                  :disable="!filteredPoliciesByCategory('templates').length"
+                >
+                  <q-menu>
+                    <q-list dense style="min-width: 120px">
+                      <q-item
+                        clickable
+                        v-close-popup
+                        @click="exportPolicies('templates', 'csv')"
+                      >
+                        <q-item-section avatar>
+                          <q-icon name="table_chart" color="primary" />
+                        </q-item-section>
+                        <q-item-section>CSV</q-item-section>
+                      </q-item>
+                      <q-item
+                        clickable
+                        v-close-popup
+                        @click="exportPolicies('templates', 'xlsx')"
+                      >
+                        <q-item-section avatar>
+                          <q-icon name="description" color="green" />
+                        </q-item-section>
+                        <q-item-section>XLSX</q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-menu>
+                </q-btn>
+              </div>
 
-                  <div
-                    v-if="policiesStore.isLoading.value"
-                    class="text-center q-pa-lg"
-                  >
-                    <q-spinner color="primary" size="3em" />
-                    <div class="q-mt-md">Uploading templates...</div>
-                  </div>
-                  <div
-                    v-else-if="policiesStore.isError.value"
-                    class="text-center q-pa-lg"
-                  >
-                    <q-icon name="error" color="negative" size="3em" />
-                    <div class="q-mt-md text-negative">
-                      Template loading error
-                    </div>
-                    <div
-                      v-if="policiesStore.errorMessage.value"
-                      class="q-mt-sm text-caption"
-                    >
-                      {{ policiesStore.errorMessage.value }}
-                    </div>
-                    <q-btn
-                      flat
-                      color="primary"
-                      label="Repeat"
-                      @click="policiesStore.fetchPolicies()"
-                      class="q-mt-md"
-                    />
-                  </div>
-                  <div v-else class="table-container">
-                    <q-table
-                      :rows="filteredPoliciesByCategory('templates')"
-                      :columns="policyColumns"
-                      row-key="id"
-                      :pagination="{ rowsPerPage: 20 }"
-                      :loading="policiesStore.isLoading.value"
-                      flat
-                      bordered
-                    >
-                      <template v-slot:body-cell-description="props">
-                        <q-td :props="props">
-                          <q-tooltip v-if="props.row.description">
-                            {{ props.row.description }}
-                          </q-tooltip>
-                          <span>
-                            {{
-                              props.row.description &&
-                              props.row.description.length > 40
-                                ? props.row.description.slice(0, 40) + "..."
-                                : props.row.description || ""
-                            }}
-                          </span>
-                        </q-td>
-                      </template>
-                      <template v-slot:body-cell-actions="props">
-                        <q-td :props="props">
-                          <q-btn
-                            flat
-                            dense
-                            round
-                            icon="edit"
-                            size="sm"
-                            @click="onEditPolicy(props.row)"
-                            class="q-mr-xs"
-                          />
-                          <q-btn
-                            flat
-                            dense
-                            round
-                            icon="delete"
-                            size="sm"
-                            color="negative"
-                            @click="onDeletePolicy(props.row)"
-                          />
-                        </q-td>
-                      </template>
-                    </q-table>
-                  </div>
-                </q-tab-panel>
+              <div
+                v-if="policiesStore.isLoading.value"
+                class="text-center q-pa-lg"
+              >
+                <q-spinner color="primary" size="3em" />
+                <div class="q-mt-md">Uploading templates...</div>
+              </div>
+              <div
+                v-else-if="policiesStore.isError.value"
+                class="text-center q-pa-lg"
+              >
+                <q-icon name="error" color="negative" size="3em" />
+                <div class="q-mt-md text-negative">Template loading error</div>
+                <div
+                  v-if="policiesStore.errorMessage.value"
+                  class="q-mt-sm text-caption"
+                >
+                  {{ policiesStore.errorMessage.value }}
+                </div>
+                <q-btn
+                  flat
+                  color="primary"
+                  label="Repeat"
+                  @click="policiesStore.fetchPolicies()"
+                  class="q-mt-md"
+                />
+              </div>
+              <div v-else class="table-container">
+                <q-table
+                  :rows="filteredPoliciesByCategory('templates')"
+                  :columns="policyColumns"
+                  row-key="id"
+                  :pagination="{ rowsPerPage: 20 }"
+                  :loading="policiesStore.isLoading.value"
+                  flat
+                  bordered
+                >
+                  <template v-slot:body-cell-description="props">
+                    <q-td :props="props">
+                      <q-tooltip v-if="props.row.description">
+                        {{ props.row.description }}
+                      </q-tooltip>
+                      <span>
+                        {{
+                          props.row.description &&
+                          props.row.description.length > 40
+                            ? props.row.description.slice(0, 40) + "..."
+                            : props.row.description || ""
+                        }}
+                      </span>
+                    </q-td>
+                  </template>
+                  <template v-slot:body-cell-actions="props">
+                    <q-td :props="props">
+                      <q-btn
+                        flat
+                        dense
+                        round
+                        icon="edit"
+                        size="sm"
+                        @click="onEditPolicy(props.row)"
+                        class="q-mr-xs"
+                      />
+                      <q-btn
+                        flat
+                        dense
+                        round
+                        icon="delete"
+                        size="sm"
+                        color="negative"
+                        @click="onDeletePolicy(props.row)"
+                      />
+                    </q-td>
+                  </template>
+                </q-table>
+              </div>
+            </q-tab-panel>
 
             <q-tab-panel name="management" class="q-pa-none">
               <AdmxManagementTab />
@@ -2116,6 +2148,7 @@ import GroupsMachinesModal from "../components/GroupsMachines/GroupsMachinesModa
 import AdmxManagementTab from "../components/PolicyLibrary/AdmxManagementTab.vue";
 import WindowsAdmxPolicies from "../components/WindowsPolicies/WindowsAdmxPolicies.vue";
 import AgentAlertsTab from "../components/AgentAlertsTab.vue";
+import GpoVhdAgentTab from "../components/GpoVhdAgentTab.vue";
 import WslUserDialog from "../components/WslUserDialog.vue";
 import OsVersionSelect from "@/components/ui/OsVersionSelect.vue";
 import type {
@@ -3719,7 +3752,10 @@ async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
 
   let effectiveResp: Record<string, unknown> = { policiesList: [] };
   if (effectiveOutcome.status === "fulfilled") {
-    effectiveResp = effectiveOutcome.value as unknown as Record<string, unknown>;
+    effectiveResp = effectiveOutcome.value as unknown as Record<
+      string,
+      unknown
+    >;
   } else {
     const msg = describeLoadAppliedPoliciesError(effectiveOutcome.reason);
     notifyError(`Could not load effective policies: ${msg}`);
@@ -3893,12 +3929,12 @@ watch(
   },
 );
 
-function exportPolicies(
-  category: "all" | "templates",
-  format: "csv" | "xlsx",
-) {
+function exportPolicies(category: "all" | "templates", format: "csv" | "xlsx") {
   const policies = filteredPoliciesByCategory(category);
-  const timestamp = new Date().toISOString().replaceAll(/[:.]/g, "-").slice(0, -5);
+  const timestamp = new Date()
+    .toISOString()
+    .replaceAll(/[:.]/g, "-")
+    .slice(0, -5);
   const filename = `policies-${category}-${timestamp}.${format}`;
 
   const columns = [

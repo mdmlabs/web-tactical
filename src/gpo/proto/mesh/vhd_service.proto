@@ -1,0 +1,130 @@
+syntax = "proto3";
+
+package laborato.mesh.vhd;
+
+option csharp_namespace = "Laborato.Mesh.Vhd";
+
+import "google/protobuf/timestamp.proto";
+import "common/workspace.proto";
+
+// SERVICE
+
+service VhdControlService {
+  rpc VhdControlStream(stream VhdAgentMessage)
+      returns (stream VhdMasterMessage);
+}
+
+// AGENT -> MASTER
+
+message VhdAgentMessage {
+  oneof payload {
+    VhdAgentHello hello = 1;
+    VhdCommandAccepted accepted = 2;
+    VhdCommandCompleted completed = 3;
+
+    VhdVolumesResult volumes_result = 4;
+    VhdVolumeResult volume_result = 5;
+
+    VhdAgentHeartbeat heartbeat = 6;
+  }
+}
+
+// MASTER -> AGENT
+
+message VhdMasterMessage {
+  oneof payload {
+    CreateVolumeCommand create = 1;
+    MountVolumeCommand mount = 2;
+    UnmountVolumeCommand unmount = 3;
+    DeleteVolumeCommand delete = 4;
+    ResizeVolumeCommand resize = 5;
+
+    GetVolumesCommand get_volumes = 6;
+    GetVolumeCommand get_volume = 7;
+  }
+}
+
+// COMMANDS
+
+message CreateVolumeCommand {
+  string command_id = 1;
+
+  string name = 2;
+  string base_path = 3;
+  string mount_point = 4;
+
+  int32 block_size = 5;
+  int32 blocks = 6;
+}
+
+message MountVolumeCommand {
+  string command_id = 1;
+  string name = 2;
+}
+
+message UnmountVolumeCommand {
+  string command_id = 1;
+  string name = 2;
+}
+
+message DeleteVolumeCommand {
+  string command_id = 1;
+  string name = 2;
+}
+
+message ResizeVolumeCommand {
+  string command_id = 1;
+  string name = 2;
+  int32 blocks = 3;
+}
+
+message GetVolumesCommand {
+  string command_id = 1;
+}
+
+message GetVolumeCommand {
+  string command_id = 1;
+  string name = 2;
+}
+
+// RESPONSES
+
+message VhdCommandAccepted {
+  string command_id = 1;
+}
+
+message VhdCommandCompleted {
+  string command_id = 1;
+  VhdResponseStatus status = 2;
+  string error_message = 3;
+}
+
+message VhdVolumesResult {
+  string command_id = 1;
+  VhdResponseStatus status = 2;
+  repeated laborato.common.workspace.VolumeDto volumes = 3;
+  string error_message = 4;
+}
+
+message VhdVolumeResult {
+  string command_id = 1;
+  VhdResponseStatus status = 2;
+  laborato.common.workspace.VolumeDto volume = 3;
+  string error_message = 4;
+}
+
+// SERVICE MESSAGES
+message VhdAgentHello {
+  string agent_id = 1;
+  string host_name = 2;
+}
+
+message VhdAgentHeartbeat {
+  string agent_id = 1;
+  google.protobuf.Timestamp utc_time = 2;
+}
+
+enum VhdResponseStatus {
+  OK = 0;
+  ERROR = 1;
+}

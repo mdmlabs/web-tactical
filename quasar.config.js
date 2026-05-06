@@ -73,6 +73,7 @@ module.exports = configure(function (/* ctx */) {
         PROD_API: process.env.PROD_URL,
         DOCKER_BUILD: process.env.DOCKER_BUILD,
         DEV_DOCS_URL: process.env.DEV_DOCS_URL,
+        APP_HOST: process.env.APP_HOST,
         DEV_GRPC_URL: process.env.DEV_GRPC_URL,
 
         // используем проксю для обхода корсов (по умолчанию true в dev режиме)

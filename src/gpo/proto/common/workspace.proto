@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package laborato.common.workspace;
+
+option csharp_namespace = "Laborato.Common.Workspace";
+
+import "google/protobuf/timestamp.proto";
+
+// ENUMS
+
+enum WorkspaceDesiredState {
+  WORKSPACE_DESIRED_UNKNOWN = 0;
+  WORKSPACE_DESIRED_STOPPED = 1;
+  WORKSPACE_DESIRED_RUNNING = 2;
+}
+
+enum WorkspaceActualState {
+  WORKSPACE_ACTUAL_UNKNOWN = 0;
+  WORKSPACE_ACTUAL_STOPPED = 1;
+  WORKSPACE_ACTUAL_RUNNING = 2;
+  WORKSPACE_ACTUAL_ERROR = 3;
+}
+
+enum VolumeStatus {
+  VOLUME_UNKNOWN = 0;
+  VOLUME_MOUNTED = 1;
+  VOLUME_UNMOUNTED = 2;
+}
+
+// DTOs
+
+message WorkspaceDto {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+
+  WorkspaceDesiredState desired_state = 4;
+  WorkspaceActualState actual_state = 5;
+
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message VolumeDto {
+  string name = 1;
+  string base_path = 2;
+  string mount_point = 3;
+
+  int64 size_mb = 4;
+  int64 used_mb = 5;
+  int64 free_mb = 6;
+
+  VolumeStatus status = 7;
+
+  bool exists_on_disk = 8;
+  bool healthy = 9;
+}
