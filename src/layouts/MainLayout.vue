@@ -300,7 +300,7 @@
 
     <FileBar />
 
-    <q-page-container>
+    <q-page-container class="main-page-container">
       <router-view />
     </q-page-container>
   </q-layout>
@@ -551,7 +551,7 @@
 </style>
 
 <style>
-.q-page-container {
+.main-page-container {
   height: 100vh;
   overflow-y: auto;
   box-sizing: border-box;

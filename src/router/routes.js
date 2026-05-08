@@ -134,6 +134,59 @@ const routes = [
           requireAuth: true,
         },
       },
+      {
+        path: "/compliance",
+        name: "Compliance",
+        component: () => import("@/compliance/views/ComplianceView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
+        path: "/compliance-center",
+        name: "ComplianceCenter",
+        component: () =>
+          import("@/compliance-center/views/ComplianceCenterView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
+        path: "/app-management",
+        name: "AppManagement",
+        component: () => import("@/appmanagement/views/AppManagementView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
+        path: "/licenses",
+        name: "Licenses",
+        component: () =>
+          import("@/appmanagement/views/LicenseTrackingView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
+        path: "/security-center",
+        name: "SecurityCenter",
+        component: () => import("@/security/views/SecurityView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
+        path: "/security-center/forensics",
+        name: "Forensics",
+        component: () => import("@/security/views/SecurityView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
+        path: "/security-center/ueba",
+        name: "UEBA",
+        component: () => import("@/security/views/SecurityView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
+        path: "/self-service",
+        name: "SelfServicePortal",
+        component: () =>
+          import("@/views/selfservice/SelfServicePortalView.vue"),
+        meta: {
+          requireAuth: true,
+        },
+      },
 
       {
         path: "/security",
@@ -263,6 +316,50 @@ const routes = [
             component: () => import("@/views/security/WazuhComplianceView.vue"),
           },
         ],
+      },
+    ],
+  },
+  {
+    path: "/ssp",
+    name: "SSP",
+    component: () => import("@/ssp/views/SSPView.vue"),
+    redirect: { name: "SSPDevices" },
+    meta: { requireAuth: true },
+    children: [
+      {
+        path: "devices",
+        name: "SSPDevices",
+        component: () => import("@/ssp/views/SSPDevicesView.vue"),
+      },
+      {
+        path: "rights",
+        name: "SSPRights",
+        component: () => import("@/ssp/views/SSPRightsView.vue"),
+      },
+      {
+        path: "lost-device",
+        name: "SSPLostDevice",
+        component: () => import("@/ssp/views/SSPLostDeviceView.vue"),
+      },
+      {
+        path: "apps",
+        name: "SSPApps",
+        component: () => import("@/ssp/views/SSPAppCatalogView.vue"),
+      },
+      {
+        path: "password",
+        name: "SSPPassword",
+        component: () => import("@/ssp/views/SSPPasswordView.vue"),
+      },
+      {
+        path: "profile",
+        name: "SSPProfile",
+        component: () => import("@/ssp/views/SSPPersonalInfoView.vue"),
+      },
+      {
+        path: "info",
+        name: "SSPInfo",
+        component: () => import("@/ssp/views/SSPInfoPortalView.vue"),
       },
     ],
   },
