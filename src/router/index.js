@@ -39,13 +39,17 @@ export default function (/* { store } */) {
         next({
           name: "Login",
         });
+      } else if (auth.isSspOnly && !to.path.startsWith("/ssp")) {
+        next({
+          name: "SSPDevices",
+        });
       } else {
         next();
       }
     } else if (to.meta.requiresVisitor) {
       if (auth.loggedIn) {
         next({
-          name: "Dashboard",
+          name: auth.isSspOnly ? "SSPDevices" : "Dashboard",
         });
       } else {
         next();

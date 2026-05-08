@@ -91,7 +91,10 @@
                   color="primary"
                   class="text-caption"
                 />
-                <a href="#" class="forgot-link text-caption"
+                <a
+                  href="#"
+                  class="forgot-link text-caption"
+                  @click.prevent="showPasswordResetRequest = true"
                   >Forgot Password?</a
                 >
               </div>
@@ -137,6 +140,65 @@
             </div>
           </q-card-section>
         </q-card>
+
+        <q-dialog v-model="showPasswordResetRequest">
+          <q-card style="min-width: 360px; max-width: 92vw">
+            <q-card-section>
+              <div class="text-h6">Reset password</div>
+              <div class="text-body2 text-grey-7 q-mt-sm">
+                Enter your username or email. If the account exists, a reset link will be sent.
+              </div>
+            </q-card-section>
+            <q-card-section>
+              <q-input
+                v-model="passwordResetRequest.emailOrUsername"
+                label="Username or email"
+                filled
+                autofocus
+              />
+            </q-card-section>
+            <q-card-actions align="right">
+              <q-btn flat label="Cancel" v-close-popup />
+              <q-btn
+                color="primary"
+                label="Send reset link"
+                :loading="passwordResetRequest.loading"
+                @click="submitPasswordResetRequest"
+              />
+            </q-card-actions>
+          </q-card>
+        </q-dialog>
+
+        <q-dialog v-model="showPasswordResetConfirm" persistent>
+          <q-card style="min-width: 360px; max-width: 92vw">
+            <q-card-section>
+              <div class="text-h6">Set a new password</div>
+            </q-card-section>
+            <q-card-section class="q-gutter-md">
+              <q-input
+                v-model="passwordResetConfirm.password"
+                label="New password"
+                type="password"
+                filled
+              />
+              <q-input
+                v-model="passwordResetConfirm.password2"
+                label="Repeat new password"
+                type="password"
+                filled
+              />
+            </q-card-section>
+            <q-card-actions align="right">
+              <q-btn flat label="Cancel" @click="cancelPasswordResetConfirm" />
+              <q-btn
+                color="primary"
+                label="Change password"
+                :loading="passwordResetConfirm.loading"
+                @click="submitPasswordResetConfirm"
+              />
+            </q-card-actions>
+          </q-card>
+        </q-dialog>
       </q-page>
     </q-page-container>
   </q-layout>
@@ -448,7 +510,8 @@
 import { ref, reactive, onMounted, computed } from "vue";
 import { type QForm, useQuasar } from "quasar";
 import { useAuthStore } from "@/stores/auth";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
+import axios from "axios";
 import {
   openSSOProviderRedirect,
   getSSOConfig,
@@ -497,6 +560,7 @@ const auth = useAuthStore();
 
 // setup router
 const router = useRouter();
+const route = useRoute();
 
 const form = ref<QForm | null>(null);
 
@@ -506,12 +570,29 @@ const showPassword = ref(true);
 const rememberMe = ref(false);
 const appVersion = ref(packageJson.version);
 const ssoProviders = ref([] as SSOProviderConfig[]);
+const showPasswordResetRequest = ref(false);
+const showPasswordResetConfirm = ref(false);
+const passwordResetRequest = reactive({
+  emailOrUsername: "",
+  loading: false,
+});
+const passwordResetConfirm = reactive({
+  uid: "",
+  token: "",
+  password: "",
+  password2: "",
+  loading: false,
+});
 
 async function checkCreds() {
   try {
-    await auth.checkCredentials(credentials);
-    await auth.login(credentials);
-    if (auth.next) {
+    await auth.checkCredentials(credentials, rememberMe.value);
+    await auth.login(credentials, rememberMe.value);
+    if (auth.isSspOnly) {
+      const target = auth.next && auth.next.startsWith("/ssp") ? auth.next : "/ssp/devices";
+      router.push(target);
+      auth.next = null;
+    } else if (auth.next) {
       router.push(auth.next);
       auth.next = null;
     } else {
@@ -524,7 +605,61 @@ async function checkCreds() {
   }
 }
 
+async function submitPasswordResetRequest() {
+  passwordResetRequest.loading = true;
+  try {
+    await axios.post("/accounts/password-reset/request/", {
+      email_or_username: passwordResetRequest.emailOrUsername,
+      origin: window.location.origin,
+    });
+    showPasswordResetRequest.value = false;
+    passwordResetRequest.emailOrUsername = "";
+    $q.notify({
+      color: "positive",
+      message: "If the account exists, password reset instructions have been sent.",
+    });
+  } finally {
+    passwordResetRequest.loading = false;
+  }
+}
+
+function cancelPasswordResetConfirm() {
+  showPasswordResetConfirm.value = false;
+  router.replace({ name: "Login" });
+}
+
+async function submitPasswordResetConfirm() {
+  if (passwordResetConfirm.password !== passwordResetConfirm.password2) {
+    $q.notify({ color: "negative", message: "Passwords do not match" });
+    return;
+  }
+
+  passwordResetConfirm.loading = true;
+  try {
+    await axios.post("/accounts/password-reset/confirm/", {
+      uid: passwordResetConfirm.uid,
+      token: passwordResetConfirm.token,
+      password: passwordResetConfirm.password,
+    });
+    showPasswordResetConfirm.value = false;
+    passwordResetConfirm.password = "";
+    passwordResetConfirm.password2 = "";
+    $q.notify({ color: "positive", message: "Password was reset. You can now sign in." });
+    router.replace({ name: "Login" });
+  } finally {
+    passwordResetConfirm.loading = false;
+  }
+}
+
 onMounted(async () => {
+  const uid = typeof route.query.uid === "string" ? route.query.uid : "";
+  const token = typeof route.query.token === "string" ? route.query.token : "";
+  if (uid && token) {
+    passwordResetConfirm.uid = uid;
+    passwordResetConfirm.token = token;
+    showPasswordResetConfirm.value = true;
+  }
+
   try {
     const result = await getSSOConfig();
     ssoProviders.value = result.data.socialaccount.providers;
