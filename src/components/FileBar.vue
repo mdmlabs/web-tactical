@@ -654,6 +654,17 @@
                   clickable
                   v-ripple
                   dense
+                  @click="navigateToMdmExtras('DeviceManagement')"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="devices" />
+                  </q-item-section>
+                  <q-item-section>Devices &amp; Containers</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  dense
                   @click="navigateToMdmExtras('AppManagement')"
                 >
                   <q-item-section avatar><q-icon name="apps" /></q-item-section>
@@ -690,6 +701,17 @@
                   /></q-item-section>
                   <q-item-section>Compliance Center</q-item-section>
                 </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  dense
+                  @click="navigateToMdmExtras('AgentHealthStatus')"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="favorite" />
+                  </q-item-section>
+                  <q-item-section>Agent Health</q-item-section>
+                </q-item>
               </q-list>
             </q-expansion-item>
 
@@ -712,6 +734,17 @@
                     ><q-icon name="security"
                   /></q-item-section>
                   <q-item-section>Security Center</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  dense
+                  @click="navigateToMdmExtras('Geofence')"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="public" />
+                  </q-item-section>
+                  <q-item-section>Geofence</q-item-section>
                 </q-item>
               </q-list>
             </q-expansion-item>
