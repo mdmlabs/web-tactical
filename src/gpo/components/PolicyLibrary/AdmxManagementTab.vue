@@ -4,7 +4,6 @@
     :style="{ height: 'calc(100vh - 200px)' }"
   >
     <div class="q-pa-md">
-      <div class="text-h6 q-mb-md">Policy management</div>
       <q-card class="q-mb-md">
         <q-card-section>
           <div class="text-subtitle1 q-mb-sm">Import ADMX Files</div>

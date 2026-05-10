@@ -488,7 +488,7 @@
             <div class="row items-center justify-between q-mb-md">
               <div>
                 <div class="text-subtitle2">Enrollment policies</div>
-                <div class="text-caption text-grey">Device limits and approved-device lists for Self-Service Portal enrollment.</div>
+                <div class="text-caption text-grey">Device limits and approved-device lists for SSP enrollment.</div>
               </div>
               <q-btn color="primary" icon="add" label="Add policy" @click="showEnrollmentPolicyDialog()" />
             </div>

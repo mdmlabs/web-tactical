@@ -988,10 +988,6 @@
               <GPOCollectionsTable />
             </div>
 
-            <div v-else-if="mainTab === 'windows'" class="gpo-content-panels">
-              <WindowsAdmxPolicies />
-            </div>
-
             <div
               v-else-if="mainTab === 'users'"
               key="users"
@@ -2150,7 +2146,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { formatDate } from "@/utils/format";
 import { exportTableToCSV, exportTableToXLSX } from "@/utils/csv";
 import { useGPOPolicies, useGPOPolicyTree } from "../api/gpo";
@@ -2175,7 +2171,6 @@ import UsersManagerModal from "../components/UsersManager/UsersManagerModal.vue"
 import GroupsManagerModal from "../components/GroupsManager/GroupsManagerModal.vue";
 import GroupsMachinesModal from "../components/GroupsMachines/GroupsMachinesModal.vue";
 import AdmxManagementTab from "../components/PolicyLibrary/AdmxManagementTab.vue";
-import WindowsAdmxPolicies from "../components/WindowsPolicies/WindowsAdmxPolicies.vue";
 import AgentAlertsTab from "../components/AgentAlertsTab.vue";
 import GpoVhdAgentTab from "../components/GpoVhdAgentTab.vue";
 import WslUserDialog from "../components/WslUserDialog.vue";
@@ -2225,6 +2220,17 @@ interface User {
 
 const $q = useQuasar();
 const route = useRoute();
+const router = useRouter();
+
+const GPO_MAIN_TAB_QUERY_SET = new Set([
+  "dashboard",
+  "collections",
+  "library",
+  "devices",
+  "users",
+  "groups",
+  "groupsMachines",
+]);
 
 const policiesStore = useGPOPolicies();
 const treeStore = useGPOPolicyTree();
@@ -3073,19 +3079,19 @@ watch(mainTab, (newTab) => {
 watch(
   () => route.query.tab,
   (newTab) => {
+    if (newTab === "windows") {
+      router
+        .replace({
+          path: route.path,
+          query: { ...route.query, tab: "dashboard" },
+        })
+        .catch(() => {});
+      return;
+    }
     if (
       newTab &&
       typeof newTab === "string" &&
-      [
-        "dashboard",
-        "collections",
-        "library",
-        "windows",
-        "devices",
-        "users",
-        "groups",
-        "groupsMachines",
-      ].includes(newTab)
+      GPO_MAIN_TAB_QUERY_SET.has(newTab)
     ) {
       mainTab.value = newTab;
     }
@@ -3971,19 +3977,15 @@ onMounted(async () => {
   await loadAgents();
 
   const tabFromQuery = route.query.tab as string | undefined;
-  if (
-    tabFromQuery &&
-    [
-      "dashboard",
-      "collections",
-      "library",
-      "windows",
-      "devices",
-      "users",
-      "groups",
-      "groupsMachines",
-    ].includes(tabFromQuery)
-  ) {
+  if (tabFromQuery === "windows") {
+    router
+      .replace({
+        path: route.path,
+        query: { ...route.query, tab: "dashboard" },
+      })
+      .catch(() => {});
+    mainTab.value = "dashboard";
+  } else if (tabFromQuery && GPO_MAIN_TAB_QUERY_SET.has(tabFromQuery)) {
     mainTab.value = tabFromQuery;
   }
 
@@ -4234,34 +4236,6 @@ function exportPolicies(category: "all" | "templates", format: "csv" | "xlsx") {
   :deep(.q-panel > div)
     height: auto
     min-height: 0
-
-.gpo-windows-sub-panels
-  min-height: 300px
-  :deep(.q-panel),
-  :deep(.q-panel > div)
-    height: auto
-    min-height: 0
-
-.admx-tab-panel
-  height: 100%
-  display: flex
-  flex-direction: column
-  overflow: hidden
-  flex: 1
-  min-height: 0
-
-.admx-scroll-area
-  flex: 1
-  height: 100%
-  min-height: 0
-  width: 100%
-
-.gpo-content-panels .q-tab-panel.admx-tab-panel
-  height: 100%
-  display: flex
-  flex-direction: column
-  min-height: 0
-  overflow: hidden
 
 .table-container
   max-height: 600px

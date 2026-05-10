@@ -3,7 +3,9 @@
     <div class="ssp-content-header">
       <div>
         <div class="ssp-content-title">My Enrolled Devices</div>
-        <div class="ssp-content-sub">Register, manage and remove your organization devices.</div>
+        <div class="ssp-content-sub">
+          Register, manage and remove your organization devices.
+        </div>
       </div>
       <q-btn
         color="primary"
@@ -21,17 +23,28 @@
           <div class="col-12 col-md-4">
             <div class="text-subtitle1">BYOD onboarding status</div>
             <div class="text-caption text-grey-7">
-              Privacy acceptance, container-ready enrollment, app catalog access, compliance, and selective wipe are tracked here.
+              Privacy acceptance, container-ready enrollment, app catalog
+              access, compliance, and selective wipe are tracked here.
             </div>
           </div>
           <div class="col-12 col-md-8">
             <div class="row q-col-gutter-sm">
-              <div v-for="step in byodSteps" :key="step.id" class="col-12 col-sm-6 col-lg-3">
+              <div
+                v-for="step in byodSteps"
+                :key="step.id"
+                class="col-12 col-sm-6 col-lg-3"
+              >
                 <div class="ssp-byod-step">
-                  <q-icon :name="step.icon" :color="step.done ? 'positive' : 'grey'" size="22px" />
+                  <q-icon
+                    :name="step.icon"
+                    :color="step.done ? 'positive' : 'grey'"
+                    size="22px"
+                  />
                   <div>
                     <div class="text-weight-medium">{{ step.title }}</div>
-                    <div class="text-caption text-grey-7">{{ step.caption }}</div>
+                    <div class="text-caption text-grey-7">
+                      {{ step.caption }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -39,9 +52,27 @@
           </div>
         </div>
         <div class="row q-gutter-sm q-mt-md">
-          <q-btn outline color="primary" icon="add" label="Register BYOD device" @click="showEnrollDialog" />
-          <q-btn flat color="primary" icon="apps" label="Open app catalog" @click="router.push('/ssp/apps')" />
-          <q-btn flat color="primary" icon="verified_user" label="Review rights" @click="router.push('/ssp/rights')" />
+          <q-btn
+            outline
+            color="primary"
+            icon="add"
+            label="Register BYOD device"
+            @click="showEnrollDialog"
+          />
+          <q-btn
+            flat
+            color="primary"
+            icon="apps"
+            label="Open app catalog"
+            @click="router.push('/ssp/apps')"
+          />
+          <q-btn
+            flat
+            color="primary"
+            icon="verified_user"
+            label="Review rights"
+            @click="router.push('/ssp/rights')"
+          />
         </div>
       </q-card-section>
     </q-card>
@@ -56,21 +87,44 @@
         <q-icon name="devices" size="48px" color="blue-3" />
       </div>
       <div class="ssp-empty-title">No enrolled devices yet</div>
-      <div class="ssp-empty-sub">Add a device, download the one-file installer and run it as administrator.</div>
-      <q-btn color="primary" icon="add" label="Enroll new device" @click="showEnrollDialog" unelevated class="q-mt-lg ssp-action-btn" />
+      <div class="ssp-empty-sub">
+        Add a device, download the one-file installer and run it as
+        administrator.
+      </div>
+      <q-btn
+        color="primary"
+        icon="add"
+        label="Enroll new device"
+        @click="showEnrollDialog"
+        unelevated
+        class="q-mt-lg ssp-action-btn"
+      />
     </div>
 
     <div v-else class="ssp-device-grid">
       <div v-for="device in devices" :key="device.id" class="ssp-device-card">
         <div class="ssp-device-card-header">
           <div class="ssp-device-icon-wrap">
-            <q-icon :name="deviceIcon(device.device_type)" size="24px" color="white" />
+            <q-icon
+              :name="deviceIcon(device.device_type)"
+              size="24px"
+              color="white"
+            />
           </div>
           <div class="col">
             <div class="ssp-device-name">{{ device.device_name }}</div>
-            <div class="ssp-device-os">{{ device.os_info || "Unknown OS" }}</div>
+            <div class="ssp-device-os">
+              {{ device.os_info || "Unknown OS" }}
+            </div>
           </div>
-          <div :class="['ssp-status-dot', device.managed ? 'ssp-status-dot--active' : 'ssp-status-dot--pending']">
+          <div
+            :class="[
+              'ssp-status-dot',
+              device.managed
+                ? 'ssp-status-dot--active'
+                : 'ssp-status-dot--pending',
+            ]"
+          >
             <span>{{ device.managed ? "Managed" : "Pending installer" }}</span>
           </div>
         </div>
@@ -105,32 +159,60 @@
         <div class="ssp-device-actions">
           <q-btn
             v-if="device.can_download_installer || !device.managed"
-            flat dense size="sm" color="primary"
-            icon="download" label="Installer"
+            flat
+            dense
+            size="sm"
+            color="primary"
+            icon="download"
+            label="Installer"
             :loading="downloadingDeviceId === device.id"
             @click="downloadInstaller(device)"
           />
-          <q-btn flat dense size="sm" color="primary" icon="edit" label="Edit" @click="openEditDialog(device)" />
+          <q-btn
+            flat
+            dense
+            size="sm"
+            color="primary"
+            icon="edit"
+            label="Edit"
+            @click="openEditDialog(device)"
+          />
           <q-btn
             v-if="!device.managed"
-            flat dense size="sm" color="secondary"
-            icon="link" label="Link"
+            flat
+            dense
+            size="sm"
+            color="secondary"
+            icon="link"
+            label="Link"
             @click="openClaimDialog(device)"
           />
           <q-btn
             v-if="device.managed"
-            flat dense size="sm" color="secondary"
-            icon="admin_panel_settings" label="Actions"
+            flat
+            dense
+            size="sm"
+            color="secondary"
+            icon="admin_panel_settings"
+            label="Actions"
             @click="openActionsDialog(device)"
           />
           <q-btn
-            flat dense size="sm" color="warning"
-            icon="report_problem" label="Lost"
+            flat
+            dense
+            size="sm"
+            color="warning"
+            icon="report_problem"
+            label="Lost"
             @click="reportLost(device)"
           />
           <q-btn
-            flat dense size="sm" color="negative"
-            icon="remove_circle" label="Unenroll"
+            flat
+            dense
+            size="sm"
+            color="negative"
+            icon="remove_circle"
+            label="Unenroll"
             @click="unenrollDevice(device)"
           />
         </div>
@@ -146,18 +228,54 @@
           <q-btn dense flat icon="close" v-close-popup />
         </q-bar>
         <q-card-section class="q-gutter-md">
-          <q-input v-model="enrollForm.device_name" label="Device name *" outlined dense placeholder="e.g. My Work Laptop" />
-          <q-select v-model="enrollForm.device_type" :options="['Laptop', 'Desktop', 'Workstation', 'Tablet', 'Other']" label="Device type" outlined dense />
-          <q-input v-model="enrollForm.os_info" label="Operating system" outlined dense placeholder="Windows 11" />
-          <q-input v-model="enrollForm.serial_number" label="Serial number (optional)" outlined dense />
+          <q-input
+            v-model="enrollForm.device_name"
+            label="Device name *"
+            outlined
+            dense
+            placeholder="e.g. My Work Laptop"
+          />
+          <q-select
+            v-model="enrollForm.device_type"
+            :options="['Laptop', 'Desktop', 'Workstation', 'Tablet', 'Other']"
+            label="Device type"
+            outlined
+            dense
+          />
+          <q-input
+            v-model="enrollForm.os_info"
+            label="Operating system"
+            outlined
+            dense
+            placeholder="Windows 11"
+          />
+          <q-input
+            v-model="enrollForm.serial_number"
+            label="Serial number (optional)"
+            outlined
+            dense
+          />
           <q-banner class="bg-blue-1 text-blue-10 rounded-borders">
-            {{ settings.privacy_terms || "I accept the organization privacy and device management terms." }}
+            {{
+              settings.privacy_terms ||
+              "I accept the organization privacy and device management terms."
+            }}
           </q-banner>
-          <q-checkbox v-model="enrollForm.privacy_accepted" label="I accept the organization privacy and device management terms" color="primary" />
+          <q-checkbox
+            v-model="enrollForm.privacy_accepted"
+            label="I accept the organization privacy and device management terms"
+            color="primary"
+          />
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancel" v-close-popup />
-          <q-btn color="primary" label="Enroll device" @click="enrollDevice" :loading="enrolling" :disable="!canEnroll" />
+          <q-btn
+            color="primary"
+            label="Enroll device"
+            @click="enrollDevice"
+            :loading="enrolling"
+            :disable="!canEnroll"
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -170,14 +288,40 @@
           <q-btn dense flat icon="close" v-close-popup />
         </q-bar>
         <q-card-section class="q-gutter-md">
-          <q-input v-model="editForm.device_name" label="Device name" outlined dense />
-          <q-select v-model="editForm.device_type" :options="['Laptop', 'Desktop', 'Workstation', 'Tablet', 'Other']" label="Device type" outlined dense />
-          <q-input v-model="editForm.os_info" label="Operating system" outlined dense />
-          <q-input v-model="editForm.serial_number" label="Serial number" outlined dense />
+          <q-input
+            v-model="editForm.device_name"
+            label="Device name"
+            outlined
+            dense
+          />
+          <q-select
+            v-model="editForm.device_type"
+            :options="['Laptop', 'Desktop', 'Workstation', 'Tablet', 'Other']"
+            label="Device type"
+            outlined
+            dense
+          />
+          <q-input
+            v-model="editForm.os_info"
+            label="Operating system"
+            outlined
+            dense
+          />
+          <q-input
+            v-model="editForm.serial_number"
+            label="Serial number"
+            outlined
+            dense
+          />
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancel" v-close-popup />
-          <q-btn color="primary" label="Save" :loading="savingDevice" @click="saveDevice" />
+          <q-btn
+            color="primary"
+            label="Save"
+            :loading="savingDevice"
+            @click="saveDevice"
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -191,13 +335,31 @@
           <q-btn dense flat icon="close" v-close-popup />
         </q-bar>
         <q-card-section class="q-gutter-md">
-          <div class="text-body2 text-grey-7">Use this if the agent is already visible in the admin console but was not linked automatically.</div>
-          <q-input v-model="claimForm.agent_id" label="Agent ID" outlined dense />
-          <q-input v-model="claimForm.hostname" label="Hostname" outlined dense />
+          <div class="text-body2 text-grey-7">
+            Use this if the agent is already visible in the admin console but
+            was not linked automatically.
+          </div>
+          <q-input
+            v-model="claimForm.agent_id"
+            label="Agent ID"
+            outlined
+            dense
+          />
+          <q-input
+            v-model="claimForm.hostname"
+            label="Hostname"
+            outlined
+            dense
+          />
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancel" v-close-popup />
-          <q-btn color="primary" label="Link" :loading="claiming" @click="claimDevice" />
+          <q-btn
+            color="primary"
+            label="Link"
+            :loading="claiming"
+            @click="claimDevice"
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -215,28 +377,85 @@
             <div class="col-12 col-md-4">
               <q-card flat bordered>
                 <q-card-section>
-                  <div class="text-subtitle1">{{ selectedDevice.device_name }}</div>
-                  <div class="text-caption text-grey">{{ selectedDevice.agent_id }}</div>
+                  <div class="text-subtitle1">
+                    {{ selectedDevice.device_name }}
+                  </div>
+                  <div class="text-caption text-grey">
+                    {{ selectedDevice.agent_id }}
+                  </div>
                   <div class="q-mt-md q-gutter-sm">
-                    <q-btn color="warning" icon="lock" label="Lock device" class="full-width" :loading="actionSubmitting === 'lock'" @click="runDeviceAction('lock')" />
-                    <q-btn color="primary" icon="password" label="Reset device password" class="full-width" :loading="actionSubmitting === 'reset_password'" @click="openPasswordAction" />
-                    <q-btn color="negative" icon="delete_sweep" label="Clear organization data" class="full-width" :loading="actionSubmitting === 'clear_org_data'" @click="runDeviceAction('clear_org_data')" />
-                    <q-btn color="negative" outline icon="delete_forever" label="Full wipe" class="full-width" :disable="!settings.allow_full_wipe" :loading="actionSubmitting === 'wipe_full'" @click="runDeviceAction('wipe_full')" />
-                    <q-btn color="grey-8" outline icon="app_blocking" label="Uninstall agent" class="full-width" :loading="actionSubmitting === 'uninstall_agent'" @click="runDeviceAction('uninstall_agent')" />
+                    <q-btn
+                      color="warning"
+                      icon="lock"
+                      label="Lock device"
+                      class="full-width"
+                      :loading="actionSubmitting === 'lock'"
+                      @click="runDeviceAction('lock')"
+                    />
+                    <q-btn
+                      color="primary"
+                      icon="password"
+                      label="Reset device password"
+                      class="full-width"
+                      :loading="actionSubmitting === 'reset_password'"
+                      @click="openPasswordAction"
+                    />
+                    <q-btn
+                      color="negative"
+                      icon="delete_sweep"
+                      label="Clear organization data"
+                      class="full-width"
+                      :loading="actionSubmitting === 'clear_org_data'"
+                      @click="runDeviceAction('clear_org_data')"
+                    />
+                    <q-btn
+                      color="negative"
+                      outline
+                      icon="delete_forever"
+                      label="Full wipe"
+                      class="full-width"
+                      :disable="!settings.allow_full_wipe"
+                      :loading="actionSubmitting === 'wipe_full'"
+                      @click="runDeviceAction('wipe_full')"
+                    />
+                    <q-btn
+                      color="grey-8"
+                      outline
+                      icon="app_blocking"
+                      label="Uninstall agent"
+                      class="full-width"
+                      :loading="actionSubmitting === 'uninstall_agent'"
+                      @click="runDeviceAction('uninstall_agent')"
+                    />
                   </div>
                 </q-card-section>
               </q-card>
             </div>
             <div class="col-12 col-md-8">
-              <q-table :rows="deviceActions" :columns="actionColumns" row-key="id" dense flat bordered :loading="loadingActions">
+              <q-table
+                :rows="deviceActions"
+                :columns="actionColumns"
+                row-key="id"
+                dense
+                flat
+                bordered
+                :loading="loadingActions"
+              >
                 <template v-slot:body-cell-status="props">
                   <q-td :props="props">
-                    <q-chip dense :color="actionStatusColor(props.row.status)" text-color="white">{{ props.row.status }}</q-chip>
+                    <q-chip
+                      dense
+                      :color="actionStatusColor(props.row.status)"
+                      text-color="white"
+                      >{{ props.row.status }}</q-chip
+                    >
                   </q-td>
                 </template>
                 <template v-slot:body-cell-result="props">
                   <q-td :props="props">
-                    <div class="text-caption ellipsis" style="max-width: 360px">{{ stringify(props.row.result) }}</div>
+                    <div class="text-caption ellipsis" style="max-width: 360px">
+                      {{ stringify(props.row.result) }}
+                    </div>
                   </q-td>
                 </template>
               </q-table>
@@ -254,12 +473,29 @@
           <q-btn dense flat icon="close" v-close-popup />
         </q-bar>
         <q-card-section class="q-gutter-md">
-          <q-input v-model="passwordAction.username" label="Windows username (optional)" outlined dense />
-          <q-input v-model="passwordAction.password" label="New password" type="password" outlined dense />
+          <q-input
+            v-model="passwordAction.username"
+            label="Windows username (optional)"
+            outlined
+            dense
+          />
+          <q-input
+            v-model="passwordAction.password"
+            label="New password"
+            type="password"
+            outlined
+            dense
+          />
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancel" v-close-popup />
-          <q-btn color="primary" label="Send" :disable="!passwordAction.password" :loading="actionSubmitting === 'reset_password'" @click="runPasswordAction" />
+          <q-btn
+            color="primary"
+            label="Send"
+            :disable="!passwordAction.password"
+            :loading="actionSubmitting === 'reset_password'"
+            @click="runPasswordAction"
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -288,7 +524,12 @@ const claimForm = ref({ agent_id: "", hostname: "" });
 const editDialogOpen = ref(false);
 const savingDevice = ref(false);
 const editingDevice = ref<any | null>(null);
-const editForm = ref({ device_name: "", device_type: "Laptop", os_info: "", serial_number: "" });
+const editForm = ref({
+  device_name: "",
+  device_type: "Laptop",
+  os_info: "",
+  serial_number: "",
+});
 const actionsDialogOpen = ref(false);
 const selectedDevice = ref<any | null>(null);
 const deviceActions = ref<any[]>([]);
@@ -306,10 +547,28 @@ const enrollForm = ref({
 });
 
 const actionColumns = [
-  { name: "action_type", label: "Action", field: "action_type", align: "left", sortable: true },
-  { name: "status", label: "Status", field: "status", align: "left", sortable: true },
+  {
+    name: "action_type",
+    label: "Action",
+    field: "action_type",
+    align: "left",
+    sortable: true,
+  },
+  {
+    name: "status",
+    label: "Status",
+    field: "status",
+    align: "left",
+    sortable: true,
+  },
   { name: "reason", label: "Reason", field: "reason", align: "left" },
-  { name: "requested_at", label: "Requested", field: "requested_at", align: "left", sortable: true },
+  {
+    name: "requested_at",
+    label: "Requested",
+    field: "requested_at",
+    align: "left",
+    sortable: true,
+  },
   { name: "result", label: "Result", field: "result", align: "left" },
 ];
 
@@ -318,14 +577,22 @@ const canEnroll = computed(() => {
   if (settings.value.require_privacy_acceptance === false) return true;
   return !!enrollForm.value.privacy_accepted;
 });
-const acceptedPrivacyCount = computed(() => devices.value.filter((d) => d.privacy_accepted_at || d.privacy_accepted).length);
+const acceptedPrivacyCount = computed(
+  () =>
+    devices.value.filter((d) => d.privacy_accepted_at || d.privacy_accepted)
+      .length,
+);
 const byodSteps = computed(() => [
   {
     id: "privacy",
     title: "Privacy accepted",
-    caption: acceptedPrivacyCount.value ? `${acceptedPrivacyCount.value} device(s)` : "Required before enrollment",
+    caption: acceptedPrivacyCount.value
+      ? `${acceptedPrivacyCount.value} device(s)`
+      : "Required before enrollment",
     icon: "privacy_tip",
-    done: acceptedPrivacyCount.value > 0 || settings.value.require_privacy_acceptance === false,
+    done:
+      acceptedPrivacyCount.value > 0 ||
+      settings.value.require_privacy_acceptance === false,
   },
   {
     id: "agent",
@@ -351,7 +618,9 @@ const byodSteps = computed(() => [
 ]);
 const managedDeviceCountLabel = computed(() => {
   const managed = devices.value.filter((d) => d.managed || d.agent_id).length;
-  return managed ? `${managed} managed device(s)` : "Run installer to link agent";
+  return managed
+    ? `${managed} managed device(s)`
+    : "Run installer to link agent";
 });
 
 function deviceIcon(type?: string): string {
@@ -370,22 +639,29 @@ function formatDate(d?: string) {
 
 function stringify(value: any) {
   if (!value) return "";
-  try { return typeof value === "string" ? value : JSON.stringify(value); } catch { return String(value); }
+  try {
+    return typeof value === "string" ? value : JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
 }
 
 function actionStatusColor(status: string) {
-  return {
-    queued: "grey",
-    sent: "info",
-    succeeded: "positive",
-    failed: "negative",
-    cancelled: "grey",
-  }[status] || "grey";
+  return (
+    {
+      queued: "grey",
+      sent: "info",
+      succeeded: "positive",
+      failed: "negative",
+      cancelled: "grey",
+    }[status] || "grey"
+  );
 }
 
 async function loadSettings() {
   try {
-    settings.value = (await axios.get("/appmanagement/ssp/settings/")).data || {};
+    settings.value =
+      (await axios.get("/appmanagement/ssp/settings/")).data || {};
   } catch {
     settings.value = {};
   }
@@ -406,7 +682,9 @@ async function loadDeviceActions(deviceId?: number) {
   if (!deviceId) return;
   loadingActions.value = true;
   try {
-    deviceActions.value = (await axios.get(`/appmanagement/ssp/devices/${deviceId}/actions/`)).data || [];
+    deviceActions.value =
+      (await axios.get(`/appmanagement/ssp/devices/${deviceId}/actions/`))
+        .data || [];
   } catch {
     deviceActions.value = [];
   } finally {
@@ -415,7 +693,13 @@ async function loadDeviceActions(deviceId?: number) {
 }
 
 function showEnrollDialog() {
-  enrollForm.value = { device_name: "", device_type: "Laptop", os_info: "", serial_number: "", privacy_accepted: false };
+  enrollForm.value = {
+    device_name: "",
+    device_type: "Laptop",
+    os_info: "",
+    serial_number: "",
+    privacy_accepted: false,
+  };
   enrollDialogOpen.value = true;
 }
 
@@ -450,12 +734,26 @@ async function downloadInstaller(device: any) {
     );
     const disposition = String(resp.headers?.["content-disposition"] || "");
     const match = disposition.match(/filename="?([^"]+)"?/i);
-    saveBlob(resp.data, match?.[1] || `labmdm-${device.device_name || "device"}-installer.exe`);
-    $q.notify({ message: "Installer downloaded. Run it as Administrator on the target device.", color: "positive", icon: "download" });
+    saveBlob(
+      resp.data,
+      match?.[1] || `labmdm-${device.device_name || "device"}-installer.exe`,
+    );
+    $q.notify({
+      message:
+        "Installer downloaded. Run it as Administrator on the target device.",
+      color: "positive",
+      icon: "download",
+    });
     await loadDevices();
   } catch (e: any) {
-    const message = e?.response?.data instanceof Blob ? await blobErrorMessage(e.response.data) : e?.response?.data?.error;
-    $q.notify({ message: message || "Installer generation failed", color: "negative" });
+    const message =
+      e?.response?.data instanceof Blob
+        ? await blobErrorMessage(e.response.data)
+        : e?.response?.data?.error;
+    $q.notify({
+      message: message || "Installer generation failed",
+      color: "negative",
+    });
   } finally {
     downloadingDeviceId.value = null;
   }
@@ -464,13 +762,23 @@ async function downloadInstaller(device: any) {
 async function enrollDevice() {
   enrolling.value = true;
   try {
-    const resp = await axios.post("/appmanagement/ssp/devices/", enrollForm.value);
+    const resp = await axios.post(
+      "/appmanagement/ssp/devices/",
+      enrollForm.value,
+    );
     enrollDialogOpen.value = false;
-    $q.notify({ message: "Device enrolled. Downloading installer...", color: "positive", icon: "check" });
+    $q.notify({
+      message: "Device enrolled. Downloading installer...",
+      color: "positive",
+      icon: "check",
+    });
     await loadDevices();
     await downloadInstaller(resp.data);
   } catch (e: any) {
-    $q.notify({ message: e?.response?.data?.error || "Enrollment failed", color: "negative" });
+    $q.notify({
+      message: e?.response?.data?.error || "Enrollment failed",
+      color: "negative",
+    });
   } finally {
     enrolling.value = false;
   }
@@ -491,12 +799,18 @@ async function saveDevice() {
   if (!editingDevice.value) return;
   savingDevice.value = true;
   try {
-    await axios.put(`/appmanagement/ssp/devices/${editingDevice.value.id}/`, editForm.value);
+    await axios.put(
+      `/appmanagement/ssp/devices/${editingDevice.value.id}/`,
+      editForm.value,
+    );
     editDialogOpen.value = false;
     $q.notify({ message: "Device updated", color: "positive", icon: "check" });
     await loadDevices();
   } catch (e: any) {
-    $q.notify({ message: e?.response?.data?.error || "Failed to update device", color: "negative" });
+    $q.notify({
+      message: e?.response?.data?.error || "Failed to update device",
+      color: "negative",
+    });
   } finally {
     savingDevice.value = false;
   }
@@ -504,7 +818,10 @@ async function saveDevice() {
 
 function openClaimDialog(device: any) {
   selectedClaimDevice.value = device;
-  claimForm.value = { agent_id: device.agent_id || "", hostname: device.device_name || "" };
+  claimForm.value = {
+    agent_id: device.agent_id || "",
+    hostname: device.device_name || "",
+  };
   claimDialogOpen.value = true;
 }
 
@@ -512,12 +829,22 @@ async function claimDevice() {
   if (!selectedClaimDevice.value) return;
   claiming.value = true;
   try {
-    await axios.post(`/appmanagement/ssp/devices/${selectedClaimDevice.value.id}/claim/`, claimForm.value);
+    await axios.post(
+      `/appmanagement/ssp/devices/${selectedClaimDevice.value.id}/claim/`,
+      claimForm.value,
+    );
     claimDialogOpen.value = false;
-    $q.notify({ message: "Device linked to managed agent", color: "positive", icon: "link" });
+    $q.notify({
+      message: "Device linked to managed agent",
+      color: "positive",
+      icon: "link",
+    });
     await loadDevices();
   } catch (e: any) {
-    $q.notify({ message: e?.response?.data?.error || "Failed to link device", color: "negative" });
+    $q.notify({
+      message: e?.response?.data?.error || "Failed to link device",
+      color: "negative",
+    });
   } finally {
     claiming.value = false;
   }
@@ -530,27 +857,47 @@ function openActionsDialog(device: any) {
   loadDeviceActions(device.id);
 }
 
-async function runDeviceAction(actionType: string, details: Record<string, any> = {}) {
+async function runDeviceAction(
+  actionType: string,
+  details: Record<string, any> = {},
+) {
   if (!selectedDevice.value) return;
-  const dangerous = ["wipe_selective", "wipe_full", "clear_org_data", "uninstall_agent"].includes(actionType);
+  const dangerous = [
+    "wipe_selective",
+    "wipe_full",
+    "clear_org_data",
+    "uninstall_agent",
+  ].includes(actionType);
   $q.dialog({
     title: `Run ${actionType.replace(/_/g, " ")}?`,
-    message: dangerous ? "This command changes or removes organization data on the device." : "The command will be sent to the managed agent.",
+    message: dangerous
+      ? "This command changes or removes organization data on the device."
+      : "The command will be sent to the managed agent.",
     cancel: true,
     ok: { color: dangerous ? "negative" : "primary", label: "Confirm" },
   }).onOk(async () => {
     actionSubmitting.value = actionType;
     try {
-      await axios.post(`/appmanagement/ssp/devices/${selectedDevice.value.id}/actions/`, {
-        action_type: actionType,
-        reason: "Requested from Self-Service Portal",
-        details,
+      await axios.post(
+        `/appmanagement/ssp/devices/${selectedDevice.value.id}/actions/`,
+        {
+          action_type: actionType,
+          reason: "Requested from Self-Service Portal",
+          details,
+        },
+      );
+      $q.notify({
+        message: "Command recorded and sent",
+        color: "positive",
+        icon: "check",
       });
-      $q.notify({ message: "Command recorded and sent", color: "positive", icon: "check" });
       await loadDeviceActions(selectedDevice.value.id);
       await loadDevices();
     } catch (e: any) {
-      $q.notify({ message: e?.response?.data?.error || "Command failed", color: "negative" });
+      $q.notify({
+        message: e?.response?.data?.error || "Command failed",
+        color: "negative",
+      });
     } finally {
       actionSubmitting.value = "";
     }
@@ -568,7 +915,10 @@ async function runPasswordAction() {
 }
 
 function reportLost(device: any) {
-  router.push({ name: "SSPLostDevice", query: { device_id: device.id, agent_id: device.agent_id } });
+  router.push({
+    name: "SSPLostDevice",
+    query: { device_id: device.id, agent_id: device.agent_id },
+  });
 }
 
 function unenrollDevice(device: any) {
@@ -582,10 +932,17 @@ function unenrollDevice(device: any) {
   }).onOk(async () => {
     try {
       await axios.delete(`/appmanagement/ssp/devices/${device.id}/`);
-      $q.notify({ message: "Device unenrolled", color: "positive", icon: "check" });
+      $q.notify({
+        message: "Device unenrolled",
+        color: "positive",
+        icon: "check",
+      });
       await loadDevices();
     } catch (e: any) {
-      $q.notify({ message: e?.response?.data?.error || "Failed to unenroll", color: "negative" });
+      $q.notify({
+        message: e?.response?.data?.error || "Failed to unenroll",
+        color: "negative",
+      });
     }
   });
 }
@@ -744,12 +1101,16 @@ onMounted(async () => {
   border-radius: 50%;
   flex-shrink: 0;
 }
-.ssp-status-dot--active::before { background: #059669; }
+.ssp-status-dot--active::before {
+  background: #059669;
+}
 .ssp-status-dot--pending {
   background: #fef3c7;
   color: #92400e;
 }
-.ssp-status-dot--pending::before { background: #f59e0b; }
+.ssp-status-dot--pending::before {
+  background: #f59e0b;
+}
 .ssp-device-meta {
   padding: 12px 16px;
   display: flex;

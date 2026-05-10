@@ -75,6 +75,8 @@ module.exports = configure(function (/* ctx */) {
         DEV_DOCS_URL: process.env.DEV_DOCS_URL,
         APP_HOST: process.env.APP_HOST,
         DEV_GRPC_URL: process.env.DEV_GRPC_URL,
+        MASTER_HOST: process.env.MASTER_HOST,
+        GRPC_PORT: process.env.GRPC_PORT,
 
         // используем проксю для обхода корсов (по умолчанию true в dev режиме)
         USE_PROXY: process.env.USE_PROXY !== "false",
