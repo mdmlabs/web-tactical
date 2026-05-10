@@ -65,7 +65,7 @@ import {
 interface WindowWithEnv extends Window {
   _env_?: {
     DEV_GRPC_URL?: string;
-    MASTER_HOST?: string;
+    MESH_HOST?: string;
     GRPC_PORT?: string;
   };
 }
@@ -81,7 +81,7 @@ function grpcUrlFromRuntimeEnv(
   const explicit = env.DEV_GRPC_URL?.trim();
   if (explicit) return stripTrailingGrpcSlash(explicit);
 
-  const host = env.MASTER_HOST?.trim();
+  const host = env.MESH_HOST?.trim();
   if (!host) return undefined;
   if (/^https?:\/\//i.test(host)) {
     return stripTrailingGrpcSlash(host);
