@@ -231,22 +231,6 @@
                     <q-item
                       clickable
                       v-ripple
-                      @click="navigateToGPO('windows')"
-                      :class="[
-                        'filebar-popup-item',
-                        { 'active-menu-item': isActiveGPOTab('windows') },
-                      ]"
-                      v-close-popup
-                    >
-                      <q-item-section avatar>
-                        <q-icon name="dns" size="sm" />
-                      </q-item-section>
-                      <q-item-section>Windows Policies</q-item-section>
-                    </q-item>
-
-                    <q-item
-                      clickable
-                      v-ripple
                       @click="handleMenuAction('users')"
                       :class="[
                         'filebar-popup-item',
@@ -345,20 +329,6 @@
                     <q-icon name="library_books" />
                   </q-item-section>
                   <q-item-section>Policy Library</q-item-section>
-                </q-item>
-                <q-item
-                  clickable
-                  v-ripple
-                  @click="navigateToGPO('windows')"
-                  :class="[
-                    'filebar-menu-item',
-                    { 'active-menu-item': isActiveGPOTab('windows') },
-                  ]"
-                >
-                  <q-item-section avatar>
-                    <q-icon name="laptop_windows" />
-                  </q-item-section>
-                  <q-item-section>Windows Policies</q-item-section>
                 </q-item>
                 <q-item
                   clickable
@@ -604,42 +574,217 @@
               <q-item-section>Policies</q-item-section>
             </q-item>
 
-            <!-- Self-Service Portal admin -->
             <template v-if="isMiniMode && !isMobile">
-              <q-item
-                clickable
-                class="filebar-menu-section-mini"
-                @click="navigateToSelfService"
-              >
+              <q-item clickable class="filebar-menu-section-mini">
                 <q-item-section avatar>
-                  <q-icon name="self_improvement" size="24px">
+                  <q-icon name="hub" size="24px">
                     <q-tooltip
                       anchor="center right"
                       self="center left"
                       :offset="[10, 0]"
                     >
-                      Self-Service Portal
+                      Workspace
                     </q-tooltip>
                   </q-icon>
                 </q-item-section>
+                <q-menu
+                  anchor="top end"
+                  self="top start"
+                  :offset="[8, 0]"
+                  class="sidebar-popup-menu"
+                >
+                  <q-list class="filebar-popup-list">
+                    <q-item-label header class="text-weight-bold"
+                      >Workspace</q-item-label
+                    >
+                    <q-item
+                      clickable
+                      v-ripple
+                      dense
+                      class="filebar-popup-item"
+                      v-close-popup
+                      @click="navigateToMdmExtras('AppManagement')"
+                    >
+                      <q-item-section avatar><q-icon name="apps" /></q-item-section>
+                      <q-item-section>App Management</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      dense
+                      class="filebar-popup-item"
+                      v-close-popup
+                      @click="navigateToMdmExtras('Licenses')"
+                    >
+                      <q-item-section avatar><q-icon name="receipt_long" /></q-item-section>
+                      <q-item-section>License Tracking</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      dense
+                      class="filebar-popup-item"
+                      v-close-popup
+                      @click="navigateToMdmExtras('Compliance')"
+                    >
+                      <q-item-section avatar><q-icon name="rule" /></q-item-section>
+                      <q-item-section>Compliance</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      dense
+                      class="filebar-popup-item"
+                      v-close-popup
+                      @click="navigateToMdmExtras('ComplianceCenter')"
+                    >
+                      <q-item-section avatar><q-icon name="fact_check" /></q-item-section>
+                      <q-item-section>Compliance Center</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
+              </q-item>
+
+              <q-item clickable class="filebar-menu-section-mini">
+                <q-item-section avatar>
+                  <q-icon name="shield" size="24px">
+                    <q-tooltip
+                      anchor="center right"
+                      self="center left"
+                      :offset="[10, 0]"
+                    >
+                      DLP &amp; Security
+                    </q-tooltip>
+                  </q-icon>
+                </q-item-section>
+                <q-menu
+                  anchor="top end"
+                  self="top start"
+                  :offset="[8, 0]"
+                  class="sidebar-popup-menu"
+                >
+                  <q-list class="filebar-popup-list">
+                    <q-item-label header class="text-weight-bold"
+                      >DLP &amp; Security</q-item-label
+                    >
+                    <q-item
+                      clickable
+                      v-ripple
+                      dense
+                      class="filebar-popup-item"
+                      v-close-popup
+                      @click="navigateToMdmExtras('SecurityCenter')"
+                    >
+                      <q-item-section avatar><q-icon name="security" /></q-item-section>
+                      <q-item-section>Security Center</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
+              </q-item>
+
+              <q-item clickable class="filebar-menu-section-mini">
+                <q-item-section avatar>
+                  <q-icon name="vpn_key" size="24px">
+                    <q-tooltip
+                      anchor="center right"
+                      self="center left"
+                      :offset="[10, 0]"
+                    >
+                      SSP (Self-Service)
+                    </q-tooltip>
+                  </q-icon>
+                </q-item-section>
+                <q-menu
+                  anchor="top end"
+                  self="top start"
+                  :offset="[8, 0]"
+                  class="sidebar-popup-menu"
+                >
+                  <q-list class="filebar-popup-list">
+                    <q-item-label header class="text-weight-bold"
+                      >SSP (Self-Service)</q-item-label
+                    >
+                    <q-item
+                      clickable
+                      v-ripple
+                      dense
+                      class="filebar-popup-item"
+                      v-close-popup
+                      @click="navigateToMdmExtras('SSPDevices')"
+                    >
+                      <q-item-section avatar><q-icon name="devices_other" /></q-item-section>
+                      <q-item-section>My Devices</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      dense
+                      class="filebar-popup-item"
+                      v-close-popup
+                      @click="navigateToMdmExtras('SSPApps')"
+                    >
+                      <q-item-section avatar><q-icon name="apps_outage" /></q-item-section>
+                      <q-item-section>App Catalog</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      dense
+                      class="filebar-popup-item"
+                      v-close-popup
+                      @click="navigateToMdmExtras('SSPRights')"
+                    >
+                      <q-item-section avatar><q-icon name="verified_user" /></q-item-section>
+                      <q-item-section>My Rights</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      dense
+                      class="filebar-popup-item"
+                      v-close-popup
+                      @click="navigateToMdmExtras('SSPPassword')"
+                    >
+                      <q-item-section avatar><q-icon name="lock" /></q-item-section>
+                      <q-item-section>Password</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      dense
+                      class="filebar-popup-item"
+                      v-close-popup
+                      @click="navigateToMdmExtras('SSPProfile')"
+                    >
+                      <q-item-section avatar><q-icon name="account_circle" /></q-item-section>
+                      <q-item-section>My Profile</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      dense
+                      class="filebar-popup-item"
+                      v-close-popup
+                      @click="navigateToMdmExtras('SSPInfo')"
+                    >
+                      <q-item-section avatar><q-icon name="menu_book" /></q-item-section>
+                      <q-item-section>Info Portal</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      dense
+                      class="filebar-popup-item"
+                      v-close-popup
+                      @click="navigateToMdmExtras('SSPLostDevice')"
+                    >
+                      <q-item-section avatar><q-icon name="report_problem" /></q-item-section>
+                      <q-item-section>Report Lost Device</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
               </q-item>
             </template>
-
-            <q-item
-              v-else
-              clickable
-              v-ripple
-              @click="navigateToSelfService"
-              :class="[
-                'filebar-menu-section',
-                { 'active-menu-item': isSelfServiceActive() },
-              ]"
-            >
-              <q-item-section avatar>
-                <q-icon name="self_improvement" />
-              </q-item-section>
-              <q-item-section>Self-Service Portal</q-item-section>
-            </q-item>
 
             <q-expansion-item
               icon="hub"
@@ -2113,9 +2258,6 @@ export default {
     isPoliciesActive() {
       return this.currentPath.startsWith("/policies");
     },
-    isSelfServiceActive() {
-      return this.currentPath.startsWith("/self-service");
-    },
     closeDrawer() {
       if (this.isMobile) {
         this.$store.commit("SET_FILEBAR_DRAWER", false);
@@ -2256,12 +2398,6 @@ export default {
         this.closeDrawer();
       }
       this.$router.push({ name: "Policies" });
-    },
-    navigateToSelfService() {
-      if (this.isMobile) {
-        this.closeDrawer();
-      }
-      this.$router.push({ name: "SelfServicePortal" });
     },
     navigateToMdmExtras(routeName) {
       if (this.isMobile) {

@@ -179,16 +179,6 @@ const routes = [
         meta: { requireAuth: true },
       },
       {
-        path: "/self-service",
-        name: "SelfServicePortal",
-        component: () =>
-          import("@/views/selfservice/SelfServicePortalView.vue"),
-        meta: {
-          requireAuth: true,
-        },
-      },
-
-      {
         path: "/security",
         component: () => import("@/views/security/SecurityLayout.vue"),
         meta: { requireAuth: true },
