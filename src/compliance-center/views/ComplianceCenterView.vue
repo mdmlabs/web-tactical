@@ -1511,6 +1511,7 @@ const policyCheckTypeOptions = [
   { label: "App policy compliance", value: "app" },
   { label: "Hardware compliance", value: "hardware" },
   { label: "OS version compliance", value: "os_version" },
+  { label: "Custom script compliance", value: "custom" },
 ];
 
 const signalColumnNames = ["mdm", "cyber", "bitlocker", "defender", "firewall", "dlp", "workspace"];
@@ -1914,7 +1915,6 @@ async function refreshComplianceCenter() {
       devicesResponse,
       violationsResponse,
       exceptionsResponse,
-      cyberResponse,
       scaResponse,
       workflowsResponse,
       incidentsResponse,
@@ -1929,7 +1929,6 @@ async function refreshComplianceCenter() {
       axios.get("/compliance/devices/"),
       axios.get("/compliance/violations/"),
       axios.get("/compliance/exceptions/"),
-      axios.get("/cyber-defense/summary/"),
       axios.get("/compliance/integrations/wazuh/results/?limit=100&ordering=-fetched_at"),
       axios.get("/security/remediation/workflows/"),
       axios.get("/security/remediation/incidents/"),
@@ -1945,8 +1944,15 @@ async function refreshComplianceCenter() {
     devices.value = ensureArray(settledData(devicesResponse, reportSummary.value?.device_rows || []));
     violations.value = ensureArray(settledData(violationsResponse, reportSummary.value?.open_violations || []));
     exceptions.value = ensureArray(settledData(exceptionsResponse, []));
-    cyberSummary.value = settledData(cyberResponse, null);
     scaResults.value = settledData(scaResponse, { summary: {}, items: [] }) || { summary: {}, items: [] };
+    const scaItems = ensureArray(scaResults.value?.items);
+    const scaSummary = scaResults.value?.summary || {};
+    cyberSummary.value = {
+      sca_enabled: Boolean(scaItems.length || scaSummary.total),
+      mapped_agents: new Set(scaItems.map((item: AnyRecord) => item.agent_id).filter(Boolean)).size,
+      results_total: scaSummary.total || 0,
+      results_failed: scaSummary.failed || 0,
+    };
     remediationWorkflows.value = ensureArray(settledData(workflowsResponse, []));
     remediationIncidents.value = ensureArray(settledData(incidentsResponse, []));
     complianceLevels.value = ensureArray(settledData(levelsResponse, []));
