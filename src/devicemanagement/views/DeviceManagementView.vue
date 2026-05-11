@@ -49,6 +49,7 @@
               <q-item clickable v-close-popup @click="showActionDialog('reset_password')"><q-item-section>{{ $t('devicemanagement.views.DeviceManagementView.3fb75e') }}</q-item-section></q-item>
               <q-item clickable v-close-popup @click="showActionDialog('block_access')"><q-item-section>{{ $t('devicemanagement.views.DeviceManagementView.9ee317') }}</q-item-section></q-item>
               <q-item clickable v-close-popup @click="showActionDialog('allow_access')"><q-item-section>{{ $t('devicemanagement.views.DeviceManagementView.a8347d') }}</q-item-section></q-item>
+              <q-item clickable v-close-popup @click="showActionDialog('geolockmode')"><q-item-section class="text-warning">Lost Mode + Geolocation</q-item-section></q-item>
               <q-item clickable v-close-popup @click="showActionDialog('remove_agent')"><q-item-section>{{ $t('devicemanagement.views.DeviceManagementView.193a6f') }}</q-item-section></q-item>
               <q-item clickable v-close-popup @click="showActionDialog('createrestorepoint')">
                 <q-item-section avatar><q-icon name="restore" /></q-item-section>
@@ -81,6 +82,10 @@
               <q-item clickable v-close-popup @click="bulkAction('allow_access')">
                 <q-item-section avatar><q-icon name="check_circle" /></q-item-section>
                 <q-item-section>{{ $t('devicemanagement.views.DeviceManagementView.a8347d') }}</q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="bulkAction('geolockmode')">
+                <q-item-section avatar><q-icon name="travel_explore" /></q-item-section>
+                <q-item-section>Lost Mode + Geolocation</q-item-section>
               </q-item>
             </q-list>
           </q-btn-dropdown>
@@ -1092,11 +1097,14 @@
           <div v-if="currentActionType === 'factory_reset'" class="text-negative text-weight-bold">
             {{ $t('devicemanagement.views.DeviceManagementView.b410c2') }}
           </div>
+          <div v-if="currentActionType === 'geolockmode'" class="text-warning text-weight-bold">
+            Device will be locked and asked to report geolocation for lost-mode tracking.
+          </div>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat :label="$t('devicemanagement.views.DeviceManagementView.77dfd2')" v-close-popup />
           <q-btn
-            :color="['wipe_full', 'factory_reset'].includes(currentActionType) ? 'negative' : 'primary'"
+            :color="actionSubmitColor(currentActionType)"
             :label="actionTypeLabel(currentActionType)"
             @click="submitAction"
             :loading="submittingAction"
@@ -1652,6 +1660,7 @@ const actionTypeOptions = [
   { label: "Reset Password", value: "reset_password" }, { label: "Block Access", value: "block_access" },
   { label: "Allow Access", value: "allow_access" }, { label: "Remove Agent", value: "remove_agent" },
   { label: "Factory Reset", value: "factory_reset" },
+  { label: "Lost Mode + Geolocation", value: "geolockmode" },
 ];
 const statusOptions = [
   { label: "Pending", value: "pending" }, { label: "Sent", value: "sent" },
@@ -1715,7 +1724,12 @@ function actionTypeLabel(type: string) {
   return actionTypeOptions.find(o => o.value === type)?.label ?? type;
 }
 function actionTypeIcon(type: string) {
-  return { lock: "lock", unlock: "lock_open", wipe_full: "delete_forever", wipe_selective: "delete", reset_password: "password", block_access: "block", allow_access: "check_circle", remove_agent: "remove_circle", factory_reset: "restart_alt" }[type] ?? "settings_remote";
+  return { lock: "lock", unlock: "lock_open", wipe_full: "delete_forever", wipe_selective: "delete", reset_password: "password", block_access: "block", allow_access: "check_circle", remove_agent: "remove_circle", factory_reset: "restart_alt", geolockmode: "travel_explore" }[type] ?? "settings_remote";
+}
+function actionSubmitColor(type: string) {
+  if (["wipe_full", "factory_reset"].includes(type)) return "negative";
+  if (type === "geolockmode") return "warning";
+  return "primary";
 }
 // Colour mapping for the "Recent Recovery Actions" chip. Backend audit log
 // emits lowercase statuses ("success", "failed") for container ops; the older

@@ -252,10 +252,19 @@
             :label="$t('security.views.SecurityView.38bd21')"
             @click="showIncidentDialog()"
           />
+          <q-btn
+            v-if="selectedIncidents.length > 0"
+            color="negative"
+            icon="delete_sweep"
+            :label="`Mass wipe selected (${selectedIncidents.length})`"
+            @click="massWipeSelectedIncidents"
+          />
         </div>
         <q-table
+          v-model:selected="selectedIncidents"
           :rows="incidents"
           :columns="incidentColumns"
+          selection="multiple"
           dense
           row-key="id"
           :loading="loadingIncidents"
@@ -2555,6 +2564,7 @@ function syncTabFromRoute(path: string) {
 
 const devices = ref<any[]>([]);
 const incidents = ref<any[]>([]);
+const selectedIncidents = ref<any[]>([]);
 const fimPolicies = ref<any[]>([]);
 const fimEvents = ref<any[]>([]);
 const usbPolicies = ref<any[]>([]);
@@ -3546,6 +3556,7 @@ async function massWipeIncident(incident: any) {
       const resp = await axios.post(
         `/security/incidents/${incident.id}/mass-wipe/`,
         {
+          incident_ids: [incident.id],
           agent_ids: [incident.agent_id],
         },
       );
@@ -3554,6 +3565,41 @@ async function massWipeIncident(incident: any) {
         color: "positive",
         icon: "check",
       });
+    } catch {
+      $q.notify({ message: "Mass wipe failed", color: "negative" });
+    }
+  });
+}
+
+async function massWipeSelectedIncidents() {
+  const incidentIds = Array.from(new Set(selectedIncidents.value.map((row) => row.id).filter(Boolean)));
+  const agentIds = Array.from(new Set(selectedIncidents.value.map((row) => row.agent_id).filter(Boolean)));
+  if (!incidentIds.length || !agentIds.length) {
+    $q.notify({ message: "Select incidents with linked agents first", color: "warning" });
+    return;
+  }
+
+  $q.dialog({
+    title: "Mass Wipe Selected Incidents?",
+    message: `Send selective wipe to ${agentIds.length} unique device(s) from ${incidentIds.length} selected incident(s).`,
+    cancel: true,
+    ok: { label: "Wipe Selected", color: "negative" },
+  }).onOk(async () => {
+    try {
+      const resp = await axios.post(
+        `/security/incidents/${incidentIds[0]}/mass-wipe/`,
+        {
+          incident_ids: incidentIds,
+          agent_ids: agentIds,
+        },
+      );
+      $q.notify({
+        message: `Wipe sent to ${resp.data.triggered} device(s)`,
+        color: "positive",
+        icon: "check",
+      });
+      selectedIncidents.value = [];
+      await loadIncidents();
     } catch {
       $q.notify({ message: "Mass wipe failed", color: "negative" });
     }
