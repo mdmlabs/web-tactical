@@ -575,9 +575,21 @@ async function deployPolicy() {
   deploying.value = true;
   try {
     const resp = await axios.post(`/winadvanced/kiosk-policies/${selectedPolicy.value.id}/deploy/`, { wait: true, timeout: 180 });
-    $q.notify({ message: `Deploy completed on ${resp.data.agents_triggered ?? 0} device(s)`, color: "positive", icon: "send" });
-  } catch {
-    $q.notify({ message: "Deploy failed", color: "negative" });
+    const results = Array.isArray(resp.data?.results) ? resp.data.results : [];
+    const failures = results.filter((row: any) => row?.ok === false || row?.error);
+    if (failures.length || resp.data?.status === "deploy_failed" || resp.data?.status === "deploy_partial") {
+      const failedHosts = failures.map((row: any) => row.hostname || row.agent_id).filter(Boolean).join(", ");
+      $q.notify({
+        message: `Deploy failed on ${resp.data?.agents_failed ?? failures.length} device(s)${failedHosts ? `: ${failedHosts}` : ""}`,
+        color: "negative",
+        icon: "error",
+      });
+      return;
+    }
+    $q.notify({ message: `Deploy completed on ${resp.data.agents_succeeded ?? resp.data.agents_triggered ?? 0} device(s)`, color: "positive", icon: "send" });
+  } catch (error: any) {
+    const detail = error?.response?.data?.detail || error?.response?.data?.error;
+    $q.notify({ message: detail ? `Deploy failed: ${detail}` : "Deploy failed", color: "negative" });
   } finally {
     deploying.value = false;
   }
