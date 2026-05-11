@@ -141,6 +141,13 @@ const routes = [
         meta: { requireAuth: true },
       },
       {
+        path: "/agents/health-status",
+        name: "AgentHealthStatus",
+        component: () =>
+          import("@/agent-health/views/AgentHealthStatusView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
         path: "/compliance-center",
         name: "ComplianceCenter",
         component: () =>
@@ -161,9 +168,22 @@ const routes = [
         meta: { requireAuth: true },
       },
       {
+        path: "/device-management",
+        name: "DeviceManagement",
+        component: () =>
+          import("@/devicemanagement/views/DeviceManagementView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
         path: "/security-center",
         name: "SecurityCenter",
         component: () => import("@/security/views/SecurityView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
+        path: "/geofence",
+        name: "Geofence",
+        component: () => import("@/security/views/GeofenceView.vue"),
         meta: { requireAuth: true },
       },
       {
