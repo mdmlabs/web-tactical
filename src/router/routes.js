@@ -429,6 +429,14 @@ const routes = [
     },
   },
   {
+    path: "/reset-password",
+    name: "PasswordResetConfirm",
+    component: () => import("@/views/LoginView.vue"),
+    meta: {
+      requiresVisitor: true,
+    },
+  },
+  {
     path: "/expired",
     name: "SessionExpired",
     component: () => import("@/views/SessionExpired.vue"),

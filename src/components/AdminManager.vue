@@ -28,6 +28,16 @@
           icon="add"
           @click="showAddUserModal"
         />
+        <q-btn
+          label="Export Excel"
+          dense
+          flat
+          push
+          unelevated
+          no-caps
+          icon="download"
+          @click="exportUsersExcel"
+        />
       </div>
       <q-table
         dense
@@ -105,6 +115,17 @@
                   </q-item-section>
                   <q-item-section>Reset Password</q-item-section>
                 </q-item>
+                <q-item
+                  clickable
+                  v-close-popup
+                  @click="verifyEmail(props.row)"
+                  :disable="!props.row.email || Boolean(props.row.email_verified_at)"
+                >
+                  <q-item-section side>
+                    <q-icon name="mark_email_read" />
+                  </q-item-section>
+                  <q-item-section>Verify Email Identifier</q-item-section>
+                </q-item>
 
                 <q-separator></q-separator>
 
@@ -160,6 +181,23 @@
             <q-td>{{ props.row.username }}</q-td>
             <q-td>{{ props.row.first_name }} {{ props.row.last_name }}</q-td>
             <q-td>{{ props.row.email }}</q-td>
+            <q-td>
+              <q-chip
+                v-if="props.row.email_verified_at"
+                color="positive"
+                text-color="white"
+                dense
+              >
+                Verified
+                <q-tooltip>
+                  {{ formatDate(props.row.email_verified_at) }}
+                  <span v-if="props.row.email_verified_by_username">
+                    by {{ props.row.email_verified_by_username }}
+                  </span>
+                </q-tooltip>
+              </q-chip>
+              <q-chip v-else color="grey-5" text-color="white" dense>Unverified</q-chip>
+            </q-td>
             <q-td v-if="props.row.last_login">{{
               formatDate(props.row.last_login)
             }}</q-td>
@@ -258,6 +296,13 @@ export default {
           sortable: true,
         },
         {
+          name: "email_verified_at",
+          label: "Email ID",
+          field: "email_verified_at",
+          align: "left",
+          sortable: true,
+        },
+        {
           name: "last_login",
           label: "Last Login",
           field: "last_login",
@@ -291,6 +336,36 @@ export default {
         .catch(() => {
           this.$q.loading.hide();
         });
+    },
+    exportUsersExcel() {
+      this.$q.loading.show();
+      this.$axios
+        .get("/accounts/users/export/excel/", { responseType: "blob" })
+        .then((r) => {
+          const blob = new Blob([r.data], {
+            type:
+              r.headers["content-type"] ||
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          });
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "users_export.xlsx";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+          this.notifySuccess("User list exported");
+        })
+        .finally(() => {
+          this.$q.loading.hide();
+        });
+    },
+    verifyEmail(user) {
+      this.$axios.post(`/accounts/users/${user.id}/verify-email/`).then((r) => {
+        Object.assign(user, r.data);
+        this.notifySuccess(`Email identifier verified for ${user.username}`);
+      });
     },
     deleteUser(user) {
       this.$q
