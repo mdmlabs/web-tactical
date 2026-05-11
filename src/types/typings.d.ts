@@ -9,6 +9,13 @@ declare module "*?worker" {
   export default content;
 }
 
+declare module "qrcode" {
+  const QRCode: {
+    toDataURL(text: string, options?: Record<string, unknown>): Promise<string>;
+  };
+  export default QRCode;
+}
+
 declare module "google-protobuf/google/protobuf/wrappers_pb" {
   export class StringValue {
     setValue(value: string): StringValue;

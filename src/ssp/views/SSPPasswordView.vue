@@ -85,7 +85,7 @@
           <q-chip :color="mfaEnabled ? 'positive' : 'grey'" text-color="white" :icon="mfaEnabled ? 'check_circle' : 'radio_button_unchecked'">
             {{ mfaEnabled ? "Enabled" : "Disabled" }}
           </q-chip>
-          <q-btn v-if="!mfaEnabled" color="primary" :label="$t('ssp.views.SSPPasswordView.590a06')" @click="enableMFA" />
+          <q-btn v-if="!mfaEnabled" color="primary" :label="$t('ssp.views.SSPPasswordView.590a06')" :loading="mfaLoading" @click="enableMFA" />
           <q-btn v-else flat color="negative" :label="$t('ssp.views.SSPPasswordView.9a7d4e')" @click="disableMFA" />
         </div>
       </q-card-section>
@@ -97,6 +97,7 @@
 import { ref, computed } from "vue";
 import axios from "axios";
 import { useQuasar } from "quasar";
+import QRCode from "qrcode";
 
 const $q = useQuasar();
 
@@ -125,7 +126,7 @@ async function changePassword() {
     $q.notify({ type: "positive", message: "Password changed successfully" });
     changeForm.value = { current: "", newPass: "", confirm: "" };
   } catch (e: any) {
-    $q.notify({ type: "negative", message: e?.response?.data?.detail || "Failed to change password" });
+    $q.notify({ type: "negative", message: e?.response?.data?.error || e?.response?.data?.detail || "Failed to change password" });
   } finally { changingPass.value = false; }
 }
 
@@ -152,6 +153,19 @@ const mfaSetupStep = ref<"idle" | "scan" | "verify">("idle");
 const mfaVerifyCode = ref("");
 const mfaLoading = ref(false);
 
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (char) => {
+    const entities: Record<string, string> = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;",
+    };
+    return entities[char];
+  });
+}
+
 async function checkMFAStatus() {
   try {
     const r = await axios.get("/accounts/mfa/status/");
@@ -165,13 +179,21 @@ async function enableMFA() {
   mfaLoading.value = true;
   try {
     const r = await axios.post("/accounts/mfa/setup/");
-    mfaQRCode.value = r.data.qr_code || "";
+    const provisioningUri = r.data.provisioning_uri || "";
+    mfaQRCode.value = r.data.qr_code || (provisioningUri ? await QRCode.toDataURL(provisioningUri, { width: 192, margin: 1 }) : "");
     mfaSecret.value = r.data.secret || "";
     mfaSetupStep.value = "scan";
 
+    const qrHtml = mfaQRCode.value
+      ? `<div style="text-align:center;margin:12px 0"><img src="${mfaQRCode.value}" alt="TOTP QR code" style="width:192px;height:192px" /></div>`
+      : "";
+    const secretHtml = mfaSecret.value
+      ? `<div style="margin-top:8px"><strong>Manual setup key:</strong><br><code style="word-break:break-all">${escapeHtml(mfaSecret.value)}</code></div>`
+      : "";
+
     $q.dialog({
       title: "Enable TOTP MFA",
-      message: "Scan the QR code below with your authenticator app (Google Authenticator, Authy, etc.), then enter the 6-digit code to confirm.",
+      message: `<div>Scan this code with your authenticator app, then enter the 6-digit code to confirm.</div>${qrHtml}${secretHtml}`,
       html: true,
       persistent: true,
       ok: { label: "Enter Code", color: "primary" },
