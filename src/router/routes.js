@@ -161,6 +161,13 @@ const routes = [
         meta: { requireAuth: true },
       },
       {
+        path: "/windows-advanced",
+        name: "WindowsAdvanced",
+        component: () =>
+          import("@/winadvanced/views/WindowsAdvancedView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
         path: "/security-center",
         name: "SecurityCenter",
         component: () => import("@/security/views/SecurityView.vue"),
