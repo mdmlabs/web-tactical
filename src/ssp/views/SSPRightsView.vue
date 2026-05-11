@@ -148,8 +148,7 @@
             <div>
               <div class="text-subtitle1">Applied Rights and Policies</div>
               <div class="text-caption text-grey-7">
-                Policies currently associated with your account and managed
-                devices.
+                Effective policies resolved for your managed devices.
               </div>
             </div>
             <q-input
@@ -203,6 +202,26 @@
                 <q-item-section>
                   <q-item-label>{{ policy.name }}</q-item-label>
                   <q-item-label caption>{{ policy.description }}</q-item-label>
+                  <q-item-label caption>
+                    <div class="policy-meta row items-center q-gutter-xs q-mt-xs">
+                      <q-badge
+                        outline
+                        color="grey-7"
+                        :label="policy.policy_type || policy.category || 'Policy'"
+                      />
+                      <q-badge
+                        outline
+                        color="grey-7"
+                        :label="policy.scope_label || policy.scope || 'Global'"
+                      />
+                      <q-badge
+                        v-if="policy.device_name || policy.hostname"
+                        outline
+                        color="grey-7"
+                        :label="policy.device_name || policy.hostname"
+                      />
+                    </div>
+                  </q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <q-chip
@@ -211,7 +230,10 @@
                     text-color="white"
                     size="sm"
                   >
-                    {{ policy.enforced ? "Enforced" : "Advisory" }}
+                    {{
+                      policy.status_label ||
+                      (policy.enforced ? "Enforced" : "Advisory")
+                    }}
                   </q-chip>
                 </q-item-section>
               </q-item>
@@ -220,7 +242,7 @@
               v-if="!filteredPolicies.length"
               class="col-12 text-grey-7 q-pa-sm"
             >
-              No matching policies.
+              No effective policies found for linked managed devices.
             </div>
           </div>
         </q-card-section>
@@ -562,9 +584,12 @@ const rightCategoryOptions = [
 ];
 const policyCategoryOptions = [
   { label: "All policies", value: "all" },
+  { label: "Security / DLP", value: "security" },
   { label: "Compliance policy", value: "compliance_policy" },
   { label: "Application", value: "application" },
   { label: "Network", value: "network" },
+  { label: "Windows Advanced", value: "windows_advanced" },
+  { label: "Automation", value: "automation" },
   { label: "Workspace", value: "workspace" },
   { label: "System access", value: "system_access" },
   { label: "Other", value: "other" },
@@ -638,6 +663,21 @@ const filteredPolicies = computed(() => {
           .toLowerCase()
           .includes(q) ||
         String(p.description || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(p.policy_type || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(p.device_name || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(p.hostname || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(p.scope_label || p.scope || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(p.agent_id || "")
           .toLowerCase()
           .includes(q)),
   );
