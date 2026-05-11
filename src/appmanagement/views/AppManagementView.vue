@@ -1234,7 +1234,12 @@
               <q-input v-model.number="distributionForm.max_os_build" label="Maximum OS build" outlined dense type="number" clearable />
             </div>
           </div>
-          <q-input v-model="requiredAppPoliciesInput" label="Required AppPolicy IDs" outlined dense hint="Comma-separated IDs" />
+          <q-select
+            v-model="distributionForm.required_app_policy_ids"
+            :options="appPolicySelectorOptions"
+            label="Required application policies"
+            outlined dense emit-value map-options multiple use-chips clearable
+          />
           <div class="row q-gutter-md">
             <q-toggle v-model="distributionForm.enabled" label="Enabled" />
             <q-toggle v-model="distributionForm.dry_run" label="Dry run" />
@@ -1550,7 +1555,6 @@ const savingEnrollmentPolicy = ref(false);
 const appNamesInput = ref("");
 const appPublishersInput = ref("");
 const appHashesInput = ref("");
-const requiredAppPoliciesInput = ref("");
 const emptyScopedTargets = {
   target_agent_id: "",
   target_device_group_id: null,
@@ -1599,9 +1603,9 @@ const infoArticleForm = ref<any>(defaultInfoArticleForm());
 const scopeOptions = [
   { label: "Global", value: "global" },
   { label: "Specific Device", value: "device" },
-  { label: "Device Group", value: "device_group" },
+  { label: "Device Group (existing or new)", value: "device_group" },
   { label: "Specific User", value: "user" },
-  { label: "User Group", value: "user_group" },
+  { label: "User Group (existing or new)", value: "user_group" },
 ];
 const distributionInstallerOptions = [
   { label: "Chocolatey", value: "choco" },
@@ -1682,6 +1686,11 @@ function resetScopedTarget(form: any, scope: string) {
   form.target_user_group_id = null;
 }
 
+function scopeLabel(scope: string) {
+  const match = scopeOptions.find((item) => item.value === (scope || "global"));
+  return match?.label || scope || "Global";
+}
+
 function lookupTargetLabel(options: { label: string; value: string | number }[], value: any, fallback: string) {
   if (value === undefined || value === null || value === "") return "Not selected";
   return options.find((item) => String(item.value) === String(value))?.label || fallback;
@@ -1734,7 +1743,7 @@ const appColumns = [
   { name: "name", label: "Name", field: "name", align: "left", sortable: true },
   { name: "list_type", label: "Type", field: "list_type", align: "center" },
   { name: "app_names", label: "Entries", field: "app_names", align: "left" },
-  { name: "scope", label: "Scope", field: "scope", align: "left" },
+  { name: "scope", label: "Scope", field: (row: any) => scopeLabel(row.scope), align: "left" },
   { name: "target", label: "Target", field: (row: any) => scopeTargetLabel(row), align: "left" },
   { name: "enabled", label: "Enabled", field: "enabled", align: "center" },
   { name: "actions", label: "", field: "actions", align: "right" },
@@ -1745,7 +1754,7 @@ const distributionColumns = [
   { name: "action", label: "Action", field: "action", align: "left", sortable: true },
   { name: "package_id", label: "Package", field: "package_id", align: "left", sortable: true },
   { name: "package_version", label: "Version", field: "package_version", align: "left" },
-  { name: "scope", label: "Scope", field: "scope", align: "left", sortable: true },
+  { name: "scope", label: "Scope", field: (row: any) => scopeLabel(row.scope), align: "left", sortable: true },
   { name: "target", label: "Target", field: (row: any) => scopeTargetLabel(row), align: "left" },
   { name: "enabled", label: "Enabled", field: "enabled", align: "center" },
   { name: "dry_run", label: "Mode", field: "dry_run", align: "center" },
@@ -1754,7 +1763,7 @@ const distributionColumns = [
 const websiteColumns = [
   { name: "name", label: "Name", field: "name", align: "left", sortable: true },
   { name: "list_type", label: "Type", field: "list_type", align: "center" },
-  { name: "scope", label: "Scope", field: "scope", align: "left" },
+  { name: "scope", label: "Scope", field: (row: any) => scopeLabel(row.scope), align: "left" },
   { name: "target", label: "Target", field: (row: any) => scopeTargetLabel(row), align: "left" },
   { name: "actions", label: "", field: "actions", align: "right" },
 ];
@@ -1762,7 +1771,7 @@ const wlanColumns = [
   { name: "name", label: "Name", field: "name", align: "left", sortable: true },
   { name: "ssid", label: "SSID", field: "ssid", align: "left" },
   { name: "security_type", label: "Security", field: "security_type", align: "center" },
-  { name: "scope", label: "Scope", field: "scope", align: "left" },
+  { name: "scope", label: "Scope", field: (row: any) => scopeLabel(row.scope), align: "left" },
   { name: "target", label: "Target", field: (row: any) => scopeTargetLabel(row), align: "left" },
   { name: "actions", label: "", field: "actions", align: "right" },
 ];
@@ -1770,7 +1779,7 @@ const vpnColumns = [
   { name: "name", label: "Name", field: "name", align: "left", sortable: true },
   { name: "vpn_type", label: "Type", field: "vpn_type", align: "center" },
   { name: "server", label: "Server", field: "server", align: "left" },
-  { name: "scope", label: "Scope", field: "scope", align: "left" },
+  { name: "scope", label: "Scope", field: (row: any) => scopeLabel(row.scope), align: "left" },
   { name: "target", label: "Target", field: (row: any) => scopeTargetLabel(row), align: "left" },
   { name: "actions", label: "", field: "actions", align: "right" },
 ];
@@ -1848,6 +1857,10 @@ const sspInfoArticleColumns = [
 
 const activeBlockPolicies = computed(() => appPolicies.value.filter((p) => p.enabled && p.list_type === "blacklist"));
 const activeAllowPolicies = computed(() => appPolicies.value.filter((p) => p.enabled && p.list_type === "whitelist"));
+const appPolicySelectorOptions = computed(() => appPolicies.value.map((policy: any) => ({
+  label: `${policy.name || `Policy #${policy.id}`} (${policy.list_type || "policy"})`,
+  value: policy.id,
+})));
 
 const appAgentOptions = computed(() => {
   const fromInventory = (appInventory.value.agents || []).map((a: any) => ({
@@ -2493,6 +2506,35 @@ function validateScopedTarget(form: any) {
   return false;
 }
 
+function distributionTriggerCount(data: any) {
+  const value = data?._triggered ?? data?.triggered ?? 0;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function notifyDistributionResult(data: any, message: string, icon = "check") {
+  const triggered = distributionTriggerCount(data);
+  if (triggered > 0) {
+    $q.notify({ message: `${message}; dispatched to ${triggered} device(s)`, color: "positive", icon });
+    return;
+  }
+  $q.notify({ message: `${message}; no matching agents found yet`, color: "warning", icon: "warning" });
+}
+
+function apiErrorMessage(error: any, fallback: string) {
+  const data = error?.response?.data;
+  if (typeof data === "string") return data;
+  if (data?.error) return data.error;
+  if (data && typeof data === "object") {
+    const [key, value] = Object.entries(data)[0] || [];
+    if (key) {
+      const details = Array.isArray(value) ? value.join(", ") : String(value || "");
+      return details ? `${key}: ${details}` : key;
+    }
+  }
+  return error?.message || fallback;
+}
+
 function defaultPortalUserForm() {
   return {
     username: "",
@@ -2638,7 +2680,9 @@ function defaultDistributionForm() {
 function showDistributionDialog(item?: any) {
   editingDistribution.value = item || null;
   distributionForm.value = item ? { ...defaultDistributionForm(), ...item } : defaultDistributionForm();
-  requiredAppPoliciesInput.value = (distributionForm.value.required_app_policy_ids || []).join(", ");
+  distributionForm.value.required_app_policy_ids = (distributionForm.value.required_app_policy_ids || [])
+    .map((id: any) => Number(id))
+    .filter((id: number) => Number.isInteger(id) && id > 0);
   distributionDialogOpen.value = true;
 }
 function showWebsiteDialog(type: string, item?: any) {
@@ -2971,12 +3015,12 @@ async function installAvailableApp(row: any) {
     return;
   }
   try {
-    await axios.post("/appmanagement/app-distributions/", distributionPayloadForApp(row));
-    $q.notify({ message: `Install dispatched for ${row.name}`, color: "positive", icon: "system_update_alt" });
+    const response = await axios.post("/appmanagement/app-distributions/", distributionPayloadForApp(row));
+    notifyDistributionResult(response.data, `Install request saved for ${row.name}`, "system_update_alt");
     await loadAppDistributions();
     await loadAppInventory();
   } catch (e: any) {
-    $q.notify({ message: e?.response?.data?.error || e?.message || "Install dispatch failed", color: "negative" });
+    $q.notify({ message: apiErrorMessage(e, "Install dispatch failed"), color: "negative" });
   }
 }
 
@@ -2988,15 +3032,21 @@ async function installSelectedApps() {
   }
   installingSelectedApps.value = true;
   try {
+    let triggered = 0;
     for (const row of rows) {
-      await axios.post("/appmanagement/app-distributions/", distributionPayloadForApp(row));
+      const response = await axios.post("/appmanagement/app-distributions/", distributionPayloadForApp(row));
+      triggered += distributionTriggerCount(response.data);
     }
-    $q.notify({ message: `${rows.length} install request(s) dispatched`, color: "positive", icon: "system_update_alt" });
+    if (triggered > 0) {
+      $q.notify({ message: `${rows.length} install request(s) saved; dispatched to ${triggered} device(s)`, color: "positive", icon: "system_update_alt" });
+    } else {
+      $q.notify({ message: `${rows.length} install request(s) saved; no matching agents found yet`, color: "warning", icon: "warning" });
+    }
     selectedAvailableApps.value = [];
     await loadAppDistributions();
     await loadAppInventory();
   } catch (e: any) {
-    $q.notify({ message: e?.response?.data?.error || e?.message || "Install dispatch failed", color: "negative" });
+    $q.notify({ message: apiErrorMessage(e, "Install dispatch failed"), color: "negative" });
   } finally {
     installingSelectedApps.value = false;
   }
@@ -3004,10 +3054,9 @@ async function installSelectedApps() {
 
 function normalizeDistributionPayload() {
   const payload = normalizeScopedPayload(distributionForm.value);
-  payload.required_app_policy_ids = requiredAppPoliciesInput.value
-    .split(",")
-    .map((s) => Number(s.trim()))
-    .filter((n) => Number.isInteger(n) && n > 0);
+  payload.required_app_policy_ids = (payload.required_app_policy_ids || [])
+    .map((id: any) => Number(id))
+    .filter((id: number) => Number.isInteger(id) && id > 0);
   for (const key of ["min_os_build", "max_os_build"]) {
     if (payload[key] === "" || payload[key] === undefined) payload[key] = null;
   }
@@ -3024,35 +3073,36 @@ async function saveDistribution() {
   try {
     const payload = normalizeDistributionPayload();
     if (editingDistribution.value) {
-      await axios.patch(`/appmanagement/app-distributions/${editingDistribution.value.id}/`, payload);
+      const response = await axios.patch(`/appmanagement/app-distributions/${editingDistribution.value.id}/`, payload);
+      notifyDistributionResult(response.data, "App distribution saved");
     } else {
-      await axios.post("/appmanagement/app-distributions/", payload);
+      const response = await axios.post("/appmanagement/app-distributions/", payload);
+      notifyDistributionResult(response.data, "App distribution saved");
     }
     distributionDialogOpen.value = false;
-    $q.notify({ message: "App distribution saved", color: "positive", icon: "check" });
     await loadAppDistributions();
   } catch (e: any) {
-    $q.notify({ message: e?.response?.data?.error || e?.message || "Save failed", color: "negative" });
+    $q.notify({ message: apiErrorMessage(e, "Save failed"), color: "negative" });
   } finally {
     savingDistribution.value = false;
   }
 }
 async function toggleDistribution(row: any) {
   try {
-    await axios.patch(`/appmanagement/app-distributions/${row.id}/`, { enabled: !row.enabled });
-    $q.notify({ message: row.enabled ? "Distribution disabled" : "Distribution enabled", color: "positive", icon: "check" });
+    const response = await axios.patch(`/appmanagement/app-distributions/${row.id}/`, { enabled: !row.enabled });
+    notifyDistributionResult(response.data, response.data?.enabled ? "Distribution enabled" : "Distribution disabled");
     await loadAppDistributions();
   } catch (e: any) {
-    $q.notify({ message: e?.response?.data?.error || e?.message || "Update failed", color: "negative" });
+    $q.notify({ message: apiErrorMessage(e, "Update failed"), color: "negative" });
   }
 }
 async function refreshDistribution(row: any) {
   try {
-    await axios.patch(`/appmanagement/app-distributions/${row.id}/`, {});
-    $q.notify({ message: "Distribution dispatched", color: "info", icon: "sync" });
+    const response = await axios.patch(`/appmanagement/app-distributions/${row.id}/`, {});
+    notifyDistributionResult(response.data, "Distribution dispatch requested", "sync");
     await loadAppDistributions();
   } catch (e: any) {
-    $q.notify({ message: e?.response?.data?.error || e?.message || "Dispatch failed", color: "negative" });
+    $q.notify({ message: apiErrorMessage(e, "Dispatch failed"), color: "negative" });
   }
 }
 
