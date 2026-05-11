@@ -4431,12 +4431,12 @@ async function applyMeetingMode() {
     return;
   }
   try {
-    await axios.post("/security/mic-control/meeting-mode/", {
+    const { data } = await axios.post("/security/mic-control/meeting-mode/", {
       devices: micMeetingDevices.value,
       duration: micMeetingDuration.value,
     });
     $q.notify({
-      message: `Meeting mode recorded for ${micMeetingDevices.value.length} device(s).`,
+      message: `Meeting mode sent to ${data?.dispatched ?? micMeetingDevices.value.length} device(s).`,
       color: "positive",
     });
     await loadMicEvents();
@@ -4459,17 +4459,17 @@ function muteMeetingMode() {
   }
   $q.dialog({
     title: "Meeting mode — all devices",
-    message: `Record meeting mode for ${all.length} agent(s)? Device agents must still enforce mute locally.`,
+    message: `Mute microphones on ${all.length} agent(s)?`,
     cancel: true,
     ok: { color: "warning", label: "Record" },
   }).onOk(async () => {
     try {
-      await axios.post("/security/mic-control/meeting-mode/", {
+      const { data } = await axios.post("/security/mic-control/meeting-mode/", {
         devices: all,
         duration: micMeetingDuration.value,
       });
       $q.notify({
-        message: `Meeting mode recorded for ${all.length} devices.`,
+        message: `Meeting mode sent to ${data?.dispatched ?? all.length} devices.`,
         color: "warning",
         icon: "mic_off",
       });
@@ -4503,7 +4503,7 @@ async function grantEmergencyMic() {
       reason: emergencyMicReason.value,
     });
     $q.notify({
-      message: `Emergency access recorded for ${emergencyMicDevice.value}.`,
+      message: `Emergency mic access sent to ${emergencyMicDevice.value}.`,
       color: "positive",
     });
     emergencyMicDevice.value = "";
