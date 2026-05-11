@@ -287,11 +287,21 @@ async function loadReport() {
 }
 
 async function exportCSV() {
-  const url = `/security/dlp/report/?period=${period.value}&format=csv`
+  const resp = await axios.get('/security/dlp/report/', {
+    params: { period: period.value, fmt: 'csv' },
+    responseType: 'blob',
+  })
+  const disposition = String(resp.headers?.['content-disposition'] || '')
+  const match = disposition.match(/filename="?([^"]+)"?/i)
+  const blob = new Blob([resp.data], { type: 'text/csv;charset=utf-8' })
+  const url = window.URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `dlp_report_${period.value}.csv`
+  a.download = match?.[1] || `dlp_report_${period.value}.csv`
+  document.body.appendChild(a)
   a.click()
+  document.body.removeChild(a)
+  window.URL.revokeObjectURL(url)
 }
 
 onMounted(loadReport)
