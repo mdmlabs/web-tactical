@@ -1511,6 +1511,7 @@ const policyCheckTypeOptions = [
   { label: "App policy compliance", value: "app" },
   { label: "Hardware compliance", value: "hardware" },
   { label: "OS version compliance", value: "os_version" },
+  { label: "Custom script compliance", value: "custom" },
 ];
 
 const signalColumnNames = ["mdm", "cyber", "bitlocker", "defender", "firewall", "dlp", "workspace"];

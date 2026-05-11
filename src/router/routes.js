@@ -168,6 +168,13 @@ const routes = [
         meta: { requireAuth: true },
       },
       {
+        path: "/windows-advanced",
+        name: "WindowsAdvanced",
+        component: () =>
+          import("@/winadvanced/views/WindowsAdvancedView.vue"),
+        meta: { requireAuth: true },
+       },
+      {
         path: "/device-management",
         name: "DeviceManagement",
         component: () =>

@@ -641,6 +641,17 @@
                       <q-item-section avatar><q-icon name="fact_check" /></q-item-section>
                       <q-item-section>Compliance Center</q-item-section>
                     </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      dense
+                      class="filebar-popup-item"
+                      v-close-popup
+                      @click="navigateToMdmExtras('WindowsAdvanced')"
+                    >
+                      <q-item-section avatar><q-icon name="dns" /></q-item-section>
+                      <q-item-section>Windows Advanced</q-item-section>
+                    </q-item>
                   </q-list>
                 </q-menu>
               </q-item>
@@ -846,6 +857,15 @@
                   /></q-item-section>
                   <q-item-section>Compliance Center</q-item-section>
                 </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  dense
+                  @click="navigateToMdmExtras('WindowsAdvanced')"
+                >
+                  <q-item-section avatar><q-icon name="dns" /></q-item-section>
+                  <q-item-section>Windows Advanced</q-item-section>
+                </q-item>  
                 <q-item
                   clickable
                   v-ripple
