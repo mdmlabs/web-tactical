@@ -258,23 +258,23 @@ async function logout() {
 .ssp-page-container {
   background: #F8FAFC;
   box-sizing: border-box;
-  height: auto !important;
-  min-height: calc(100vh - 100px);
+  height: 100vh;
+  min-height: 100vh;
   overflow-x: hidden;
-  overflow-y: visible !important;
-  overscroll-behavior-y: auto;
+  overflow-y: auto !important;
+  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
 }
 </style>
 
 <style>
 .ssp-layout {
-  height: auto !important;
+  height: 100vh;
   min-height: 100vh;
-  overflow: visible !important;
+  overflow: hidden;
 }
 
 .ssp-layout .q-page-container {
-  overflow-y: visible !important;
+  overflow-y: auto !important;
 }
 </style>
