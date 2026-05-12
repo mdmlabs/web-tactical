@@ -17,6 +17,14 @@
           :hint="deviceHint"
         />
       </div>
+      <div class="col-12 col-md-3">
+        <q-select
+          v-model="categoryFilter"
+          :options="catalogCategories"
+          dense outlined
+          label="Category"
+        />
+      </div>
       <div class="col-12 col-md-4">
         <q-input
           v-model="search"
@@ -54,14 +62,24 @@
           <div class="text-caption text-grey ellipsis-2-lines">
             {{ app.description || "No description available." }}
           </div>
-          <div class="text-caption text-grey q-mt-xs" v-if="app.version">
-            Version: {{ app.version }}
+          <div class="text-caption text-grey q-mt-xs" v-if="app.version || app.latest_version || app.installed_version">
+            Version: {{ app.installed_version || app.version || "not installed" }}
+            <span v-if="app.latest_version"> · Latest: {{ app.latest_version }}</span>
+          </div>
+          <div class="row q-gutter-xs q-mt-sm">
+            <q-chip v-if="app.installed" dense color="positive" text-color="white" icon="check">Installed</q-chip>
+            <q-chip v-if="app.update_available" dense color="warning" text-color="dark" icon="system_update">Update</q-chip>
+            <q-chip v-if="app.force_update_required" dense color="negative" text-color="white" icon="priority_high">Required</q-chip>
+            <q-chip v-if="app.approval_required === false" dense color="info" text-color="white" icon="flash_on">Auto</q-chip>
+          </div>
+          <div class="text-caption text-grey q-mt-xs" v-if="app.retirement_date">
+            Retirement: {{ app.retirement_date }}
           </div>
         </q-card-section>
 
         <q-separator />
 
-        <q-card-actions>
+        <q-card-actions class="q-gutter-xs">
           <q-btn
             v-if="app.source === 'external'"
             flat dense color="primary" icon="open_in_new"
@@ -70,20 +88,36 @@
             target="_blank"
           />
           <q-btn
-            v-else-if="getAppStatus(app) === 'idle'"
+            v-else-if="isActionIdle(app) && !app.installed"
             flat dense color="primary" icon="download"
             :label="$t('ssp.views.SSPAppCatalogView.7fb1c1')"
-            @click="requestInstall(app)"
+            @click="requestInstall(app, 'install')"
           />
-          <q-chip v-else-if="getAppStatus(app) === 'pending'" dense color="warning" text-color="dark" icon="hourglass_empty">
+          <q-btn
+            v-if="app.source !== 'external' && isActionIdle(app) && app.installed && app.update_available"
+            flat dense color="primary" icon="system_update_alt"
+            label="Update"
+            @click="requestInstall(app, 'update')"
+          />
+          <q-btn
+            v-if="app.source !== 'external' && isActionIdle(app) && app.installed"
+            flat dense color="negative" icon="delete"
+            label="Uninstall"
+            @click="requestInstall(app, 'uninstall')"
+          />
+          <q-chip v-if="getAppStatus(app) === 'pending'" dense color="warning" text-color="dark" icon="hourglass_empty">
             {{ $t('ssp.views.SSPAppCatalogView.25d1b4') }}
           </q-chip>
-          <q-chip v-else-if="getAppStatus(app) === 'installing'" dense color="info" text-color="white" icon="sync">
+          <q-chip v-if="getAppStatus(app) === 'installing'" dense color="info" text-color="white" icon="sync">
             {{ $t('ssp.views.SSPAppCatalogView.1106a2') }}
           </q-chip>
-          <q-chip v-else-if="getAppStatus(app) === 'installed'" dense color="positive" text-color="white" icon="check">
+          <q-chip v-if="getAppStatus(app) === 'installed' && !app.installed" dense color="positive" text-color="white" icon="check">
             {{ $t('ssp.views.SSPAppCatalogView.7bb440') }}
           </q-chip>
+          <q-space />
+          <q-btn flat dense round color="secondary" icon="rate_review" @click="openFeedback(app)">
+            <q-tooltip>Feedback</q-tooltip>
+          </q-btn>
         </q-card-actions>
       </q-card>
     </div>
@@ -102,11 +136,30 @@
         </template>
       </q-table>
     </div>
+
+    <q-dialog v-model="feedbackDialogOpen">
+      <q-card style="min-width: 420px">
+        <q-bar>
+          Feedback
+          <q-space />
+          <q-btn dense flat icon="close" v-close-popup />
+        </q-bar>
+        <q-card-section class="q-gutter-md">
+          <div class="text-subtitle2">{{ feedbackTarget?.name }}</div>
+          <q-rating v-model="feedbackRating" size="28px" color="amber" icon="star_border" icon-selected="star" />
+          <q-input v-model="feedbackComment" type="textarea" outlined dense label="Comment" autogrow />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn color="primary" label="Send" :loading="submittingFeedback" @click="submitFeedback" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useQuasar } from "quasar";
 import { useAuthStore } from "@/stores/auth";
 import axios from "axios";
@@ -119,6 +172,13 @@ const apps = ref<any[]>([]);
 const myRequests = ref<any[]>([]);
 const myDevices = ref<any[]>([]);
 const selectedDeviceId = ref<number | null>(null);
+const categoryFilter = ref("All");
+const catalogCategoriesFromApi = ref<string[]>([]);
+const feedbackDialogOpen = ref(false);
+const feedbackTarget = ref<any | null>(null);
+const feedbackRating = ref(5);
+const feedbackComment = ref("");
+const submittingFeedback = ref(false);
 
 const filteredApps = computed(() => {
   if (!search.value) return apps.value;
@@ -130,10 +190,18 @@ const filteredApps = computed(() => {
 
 const requestColumns = [
   { name: "app_name", label: "App", field: "app_name", align: "left" as const },
+  { name: "request_type", label: "Type", field: "request_type", align: "center" as const },
   { name: "device_name", label: "Device", field: "device_name", align: "left" as const },
   { name: "status", label: "Status", field: "status", align: "center" as const },
   { name: "requested_at", label: "Requested", field: "requested_at", align: "left" as const },
 ];
+
+const catalogCategories = computed(() => {
+  const values = (catalogCategoriesFromApi.value.length ? catalogCategoriesFromApi.value : apps.value.map((a) => a.category || "General"))
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
+  return ["All", ...Array.from(new Set(values))];
+});
 
 const deviceOptions = computed(() =>
   myDevices.value.map((d) => ({
@@ -160,17 +228,34 @@ function getAppStatus(app: any): string {
   return req.status === "approved" ? "installing" : req.status;
 }
 
+function isActionIdle(app: any): boolean {
+  return !["pending", "approved", "installing"].includes(getAppStatus(app));
+}
+
 function statusColor(status: string) {
-  return { pending: "warning", approved: "positive", denied: "negative", installing: "info" }[status] ?? "grey";
+  return {
+    pending: "warning",
+    approved: "positive",
+    denied: "negative",
+    installing: "info",
+    installed: "positive",
+    removed: "grey",
+    failed: "negative",
+  }[status] ?? "grey";
 }
 
 async function loadCatalog() {
   loading.value = true;
   try {
-    const resp = await axios.get("/appmanagement/ssp/catalog/");
+    const params: Record<string, any> = {};
+    if (selectedDeviceId.value) params.device_id = selectedDeviceId.value;
+    if (categoryFilter.value && categoryFilter.value !== "All") params.category = categoryFilter.value;
+    const resp = await axios.get("/appmanagement/ssp/catalog/", { params });
     apps.value = resp.data?.items || [];
+    catalogCategoriesFromApi.value = resp.data?.categories || [];
   } catch {
     apps.value = [];
+    catalogCategoriesFromApi.value = [];
   } finally {
     loading.value = false;
   }
@@ -194,7 +279,7 @@ async function loadMyDevices() {
   }
 }
 
-async function requestInstall(app: any) {
+async function requestInstall(app: any, requestType = "install") {
   if (myDevices.value.length === 0) {
     $q.notify({ message: "Please enroll a device first before requesting apps.", color: "warning" });
     return;
@@ -206,11 +291,18 @@ async function requestInstall(app: any) {
     return;
   }
 
+  const actionLabels: Record<string, string> = {
+    install: "Install",
+    update: "Update",
+    uninstall: "Uninstall",
+  };
+  const label = actionLabels[requestType] || "Install";
+
   $q.dialog({
-    title: `Install "${app.name}"?`,
-    message: `Request installation of ${app.name} on your device "${device.device_name}".`,
+    title: `${label} "${app.name}"?`,
+    message: `Request ${label.toLowerCase()} of ${app.name} on your device "${device.device_name}".`,
     cancel: true,
-    ok: { label: "Request", color: "primary" },
+    ok: { label: app.approval_required === false ? "Start" : "Request", color: requestType === "uninstall" ? "negative" : "primary" },
   }).onOk(async () => {
     try {
       await axios.post("/appmanagement/ssp/install-requests/", {
@@ -220,21 +312,56 @@ async function requestInstall(app: any) {
         device_id: device.id,
         device_name: device.device_name,
         agent_id: device.agent_id,
+        request_type: requestType,
         status: "pending",
       });
       $q.notify({
-        message: "Installation request submitted. IT will review and approve.",
+        message: app.approval_required === false ? `${label} started.` : `${label} request submitted. IT will review and approve.`,
         color: "positive",
         icon: "check",
       });
       await loadMyRequests();
+      await loadCatalog();
     } catch {
       $q.notify({ message: "Failed to submit request", color: "negative" });
     }
   });
 }
 
-onMounted(() => { loadCatalog(); loadMyRequests(); loadMyDevices(); });
+function openFeedback(app: any) {
+  feedbackTarget.value = app;
+  feedbackRating.value = 5;
+  feedbackComment.value = "";
+  feedbackDialogOpen.value = true;
+}
+
+async function submitFeedback() {
+  if (!feedbackTarget.value) return;
+  submittingFeedback.value = true;
+  try {
+    await axios.post("/appmanagement/ssp/feedback/", {
+      subject: feedbackTarget.value.name,
+      type: "App Catalog",
+      rating: feedbackRating.value,
+      message: feedbackComment.value,
+    });
+    feedbackDialogOpen.value = false;
+    $q.notify({ message: "Feedback sent", color: "positive", icon: "check" });
+  } catch {
+    $q.notify({ message: "Failed to send feedback", color: "negative" });
+  } finally {
+    submittingFeedback.value = false;
+  }
+}
+
+watch([selectedDeviceId, categoryFilter], () => {
+  void loadCatalog();
+});
+
+onMounted(async () => {
+  await loadMyDevices();
+  await Promise.all([loadCatalog(), loadMyRequests()]);
+});
 </script>
 
 <style scoped>
