@@ -868,6 +868,38 @@
 
         <q-card flat bordered class="q-mb-md">
           <q-card-section>
+            <div class="row items-center q-col-gutter-md">
+              <div class="col-12 col-md-4">
+                <div class="text-subtitle2">SSP category visibility</div>
+                <div class="text-caption text-grey">Enable or hide whole catalog categories for Self-Service users.</div>
+              </div>
+              <div class="col-12 col-md-4">
+                <q-select
+                  v-model="catalogCategoryForToggle"
+                  :options="catalogCategoryOptions"
+                  dense outlined
+                  label="Category"
+                />
+              </div>
+              <div class="col-12 col-md-2">
+                <q-toggle v-model="catalogCategoryVisible" label="Visible" />
+              </div>
+              <div class="col-12 col-md-2">
+                <q-btn
+                  color="primary"
+                  icon="visibility"
+                  label="Apply"
+                  :disable="!catalogCategoryForToggle"
+                  :loading="savingCatalogCategory"
+                  @click="applyCatalogCategoryVisibility"
+                />
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+
+        <q-card flat bordered class="q-mb-md">
+          <q-card-section>
             <div class="text-subtitle2 q-mb-sm">Internal app files</div>
             <q-table
               :rows="internalCatalogApps"
@@ -958,7 +990,11 @@
               <q-input v-model="internalCatalogForm.category" label="Category" outlined dense />
               <div class="row q-col-gutter-sm">
                 <div class="col-6"><q-input v-model="internalCatalogForm.version" label="Version" outlined dense /></div>
+                <div class="col-6"><q-input v-model="internalCatalogForm.latest_version" label="Latest version" outlined dense /></div>
+              </div>
+              <div class="row q-col-gutter-sm">
                 <div class="col-6"><q-input v-model="internalCatalogForm.platform" label="Platform" outlined dense /></div>
+                <div class="col-6"><q-input v-model="internalCatalogForm.retirement_date" label="Retirement date" outlined dense type="date" /></div>
               </div>
               <div class="row q-col-gutter-sm">
                 <div class="col-6"><q-input v-model="internalCatalogForm.installer" label="Installer" outlined dense placeholder="choco / winget / rawcmd" /></div>
@@ -966,6 +1002,8 @@
               </div>
               <q-input v-model="internalCatalogForm.file_name" label="File name" outlined dense />
               <q-toggle v-model="internalCatalogForm.visible_in_ssp" label="Visible in SSP catalog" />
+              <q-toggle v-model="internalCatalogForm.approval_required" label="Requires approval before install/update/uninstall" />
+              <q-toggle v-model="internalCatalogForm.force_update_required" label="Upgrade required when latest version is newer" />
             </q-card-section>
             <q-card-actions align="right">
               <q-btn flat label="Cancel" v-close-popup />
@@ -1611,6 +1649,7 @@ const distributionInstallerOptions = [
 ];
 const distributionActionOptions = [
   { label: "Install", value: "install" },
+  { label: "Upgrade", value: "upgrade" },
   { label: "Uninstall", value: "uninstall" },
 ];
 const enrollmentScopeOptions = [
@@ -3255,16 +3294,29 @@ const internalCatalogForm = ref<any>(defaultInternalCatalogForm());
 const showAddAppStore = ref(false);
 const newStore = ref({ name: "", url: "", description: "", category: "Other", visible_in_ssp: true });
 const appStoreLinks = ref<any[]>([]);
+const catalogCategoryForToggle = ref("");
+const catalogCategoryVisible = ref(true);
+const savingCatalogCategory = ref(false);
 
 const internalCatalogColumns = [
   { name: "name", label: "Name", field: "name", align: "left" },
   { name: "category", label: "Category", field: "category", align: "left" },
   { name: "version", label: "Version", field: "version", align: "left" },
+  { name: "latest_version", label: "Latest", field: "latest_version", align: "left" },
   { name: "installer", label: "Installer", field: "installer", align: "left" },
   { name: "package_id", label: "Package ID", field: "package_id", align: "left" },
+  { name: "approval_required", label: "Approval", field: (row: any) => row.approval_required ? "Required" : "Auto", align: "center" },
   { name: "visible_in_ssp", label: "SSP", field: "visible_in_ssp", align: "center" },
   { name: "actions", label: "Actions", field: "actions", align: "right" },
 ];
+
+const catalogCategoryOptions = computed(() => {
+  const values = [
+    ...internalCatalogApps.value.map((row) => row.category || "Enterprise Software"),
+    ...appStoreLinks.value.map((row) => row.category || "Other"),
+  ];
+  return Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b));
+});
 
 function defaultInternalCatalogForm() {
   return {
@@ -3277,6 +3329,10 @@ function defaultInternalCatalogForm() {
     package_id: "",
     file_name: "",
     visible_in_ssp: true,
+    approval_required: true,
+    latest_version: "",
+    force_update_required: false,
+    retirement_date: "",
   };
 }
 
@@ -3380,6 +3436,30 @@ async function patchAppStoreVisibility(store: any, visible: boolean) {
   } catch (e: any) {
     store.visible_in_ssp = prev;
     $q.notify({ message: e?.response?.data?.error || e?.message || "Update failed", color: "negative" });
+  }
+}
+
+async function applyCatalogCategoryVisibility() {
+  if (!catalogCategoryForToggle.value) {
+    $q.notify({ message: "Choose category", color: "warning" });
+    return;
+  }
+  savingCatalogCategory.value = true;
+  try {
+    const resp = await axios.post("/appmanagement/ssp/catalog/category/toggle/", {
+      category: catalogCategoryForToggle.value,
+      visible: catalogCategoryVisible.value,
+    });
+    await Promise.all([loadInternalCatalogApps(), loadAppStoreLinks()]);
+    $q.notify({
+      message: `Category updated (${resp.data?.external_updated || 0} links, ${resp.data?.internal_updated || 0} internal apps)`,
+      color: "positive",
+      icon: "check",
+    });
+  } catch (e: any) {
+    $q.notify({ message: e?.response?.data?.error || e?.message || "Category update failed", color: "negative" });
+  } finally {
+    savingCatalogCategory.value = false;
   }
 }
 

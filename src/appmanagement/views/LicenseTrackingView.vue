@@ -126,6 +126,7 @@ const columns = [
 
 const requestColumns = [
   { name: "app_name", label: "App", field: "app_name", align: "left" as const },
+  { name: "request_type", label: "Type", field: "request_type", align: "center" as const },
   { name: "device_name", label: "Device", field: "device_name", align: "left" as const },
   { name: "status", label: "Status", field: "status", align: "center" as const },
   { name: "requested_at", label: "Requested", field: "requested_at", align: "left" as const },
@@ -144,7 +145,15 @@ function isExpired(date: string): boolean {
   return new Date(date) < new Date();
 }
 function reqStatusColor(s: string) {
-  return { pending: "warning", approved: "positive", denied: "negative", installed: "info" }[s] ?? "grey";
+  return {
+    pending: "warning",
+    approved: "positive",
+    installing: "info",
+    denied: "negative",
+    installed: "positive",
+    removed: "grey",
+    failed: "negative",
+  }[s] ?? "grey";
 }
 
 async function load() {
