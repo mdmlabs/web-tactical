@@ -1199,19 +1199,120 @@
 
     <!-- App Distribution Dialog -->
     <q-dialog v-model="distributionDialogOpen" persistent>
-      <q-card style="min-width:560px">
+      <q-card style="width:760px; max-width:95vw">
         <q-bar>{{ editingDistribution ? 'Edit' : 'New' }} App Distribution<q-space /><q-btn dense flat icon="close" v-close-popup /></q-bar>
         <q-card-section class="q-gutter-md">
           <q-input v-model="distributionForm.name" label="Name" outlined dense />
           <div class="row q-col-gutter-sm">
             <div class="col-12 col-md-6">
-              <q-select v-model="distributionForm.installer" :options="distributionInstallerOptions" label="Installer" outlined dense emit-value map-options />
+              <q-select
+                v-model="distributionForm.installer"
+                :options="distributionInstallerOptions"
+                label="Installer"
+                outlined
+                dense
+                emit-value
+                map-options
+                @update:model-value="onDistributionInstallerChanged"
+              />
             </div>
             <div class="col-12 col-md-6">
               <q-select v-model="distributionForm.action" :options="distributionActionOptions" label="Action" outlined dense emit-value map-options />
             </div>
           </div>
-          <q-input v-if="distributionForm.installer !== 'rawcmd'" v-model="distributionForm.package_id" label="Package ID" outlined dense />
+          <q-input
+            v-if="distributionForm.installer !== 'rawcmd'"
+            v-model="distributionForm.package_id"
+            :label="distributionForm.installer === 'choco' ? 'Selected Chocolatey package ID' : 'Package ID'"
+            outlined
+            dense
+          >
+            <template v-if="distributionForm.installer === 'choco'" v-slot:append>
+              <q-btn
+                flat
+                round
+                dense
+                icon="open_in_new"
+                :disable="!distributionForm.package_id"
+                @click.stop="openChocolateyPackage(distributionForm.package_id)"
+              >
+                <q-tooltip>Open Chocolatey package page</q-tooltip>
+              </q-btn>
+            </template>
+          </q-input>
+          <q-card v-if="distributionForm.installer === 'choco'" flat bordered class="distribution-choco-picker">
+            <q-card-section class="row items-center q-col-gutter-sm q-pb-sm">
+              <div class="col-12 col-md-8">
+                <q-input v-model="distributionChocoSearch" outlined dense clearable label="Search Chocolatey packages">
+                  <template v-slot:prepend>
+                    <q-icon name="search" />
+                  </template>
+                </q-input>
+              </div>
+              <div class="col-12 col-md-4 text-right">
+                <q-btn
+                  flat
+                  color="primary"
+                  icon="refresh"
+                  label="Refresh"
+                  :loading="loadingDistributionChocoPackages"
+                  @click="loadDistributionChocoPackages(true)"
+                />
+              </div>
+            </q-card-section>
+            <q-table
+              class="distribution-choco-table"
+              dense
+              flat
+              virtual-scroll
+              row-key="name"
+              :rows="filteredDistributionChocoPackages"
+              :columns="distributionChocoColumns"
+              :loading="loadingDistributionChocoPackages"
+              v-model:pagination="distributionChocoPagination"
+              :rows-per-page-options="[0]"
+              hide-bottom
+              binary-state-sort
+            >
+              <template v-slot:body="props">
+                <q-tr
+                  :props="props"
+                  :class="{ 'bg-blue-1': props.row.name === distributionForm.package_id }"
+                >
+                  <q-td auto-width>
+                    <q-btn
+                      dense
+                      flat
+                      round
+                      color="primary"
+                      icon="add"
+                      @click="selectDistributionChocolateyPackage(props.row)"
+                    >
+                      <q-tooltip>Add package to distribution</q-tooltip>
+                    </q-btn>
+                  </q-td>
+                  <q-td key="name" :props="props">
+                    <span
+                      class="text-primary text-weight-medium cursor-pointer"
+                      @click="selectDistributionChocolateyPackage(props.row)"
+                    >
+                      {{ props.row.name }}
+                    </span>
+                  </q-td>
+                  <q-td key="version" :props="props">{{ props.row.version || "-" }}</q-td>
+                  <q-td key="description" :props="props" class="distribution-choco-description">
+                    {{ props.row.description || "-" }}
+                  </q-td>
+                </q-tr>
+              </template>
+              <template v-slot:no-data>
+                <div class="full-width row flex-center q-gutter-sm text-grey-7 q-pa-md">
+                  <q-icon name="info" />
+                  <span>No Chocolatey packages found</span>
+                </div>
+              </template>
+            </q-table>
+          </q-card>
           <q-input v-if="distributionForm.installer !== 'rawcmd'" v-model="distributionForm.package_version" label="Package version" outlined dense placeholder="Optional" />
           <q-input v-if="distributionForm.installer === 'rawcmd'" v-model="distributionForm.command" label="PowerShell command" outlined dense type="textarea" autogrow />
           <div class="row q-col-gutter-sm">
@@ -1502,6 +1603,7 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useQuasar } from "quasar";
 import axios from "axios";
+import { fetchChocosSoftware } from "@/api/software";
 
 const $q = useQuasar();
 const tab = ref("apps");
@@ -1533,6 +1635,7 @@ const loadingAppInventory = ref(false);
 const refreshingInstalledApps = ref(false);
 const installingSelectedApps = ref(false);
 const loadingDistributions = ref(false);
+const loadingDistributionChocoPackages = ref(false);
 const loadingWebsites = ref(false);
 const loadingWlan = ref(false);
 const loadingVpn = ref(false);
@@ -1593,6 +1696,13 @@ const savingEnrollmentPolicy = ref(false);
 const appNamesInput = ref("");
 const appPublishersInput = ref("");
 const appHashesInput = ref("");
+const distributionChocoPackages = ref<any[]>([]);
+const distributionChocoSearch = ref("");
+const distributionChocoPagination = ref({
+  rowsPerPage: 0,
+  sortBy: "name",
+  descending: false,
+});
 const emptyScopedTargets = {
   target_agent_id: "",
   target_device_group_id: null,
@@ -1700,6 +1810,32 @@ const filteredSspInfoArticles = computed(() => {
       .some((value) => String(value || "").toLowerCase().includes(q))
   );
 });
+const filteredDistributionChocoPackages = computed(() => {
+  const q = distributionChocoSearch.value.trim().toLowerCase();
+  if (!q) return distributionChocoPackages.value;
+  return distributionChocoPackages.value.filter((row: any) =>
+    [row.name, row.version, row.description]
+      .some((value) => String(value || "").toLowerCase().includes(q))
+  );
+});
+
+function normalizeChocolateyPackage(row: any) {
+  const name = typeof row === "string"
+    ? row
+    : row?.name || row?.id || row?.package_id || row?.packageId || row?.title || "";
+  const version = typeof row === "string"
+    ? ""
+    : row?.version || row?.latest_version || row?.latestVersion || row?.package_version || "";
+  const description = typeof row === "string"
+    ? ""
+    : row?.description || row?.summary || row?.title || "";
+  return {
+    ...(typeof row === "object" && row ? row : {}),
+    name: String(name || "").trim(),
+    version: String(version || "").trim(),
+    description: String(description || "").trim(),
+  };
+}
 
 function filterScopeAgents(value: string, update: (fn: () => void) => void) {
   update(() => { scopeAgentNeedle.value = value || ""; });
@@ -1798,6 +1934,12 @@ const distributionColumns = [
   { name: "enabled", label: "Enabled", field: "enabled", align: "center" },
   { name: "dry_run", label: "Mode", field: "dry_run", align: "center" },
   { name: "actions", label: "", field: "actions", align: "right" },
+];
+const distributionChocoColumns = [
+  { name: "select", label: "Add", field: "select", align: "left", sortable: false },
+  { name: "name", label: "Name", field: "name", align: "left", sortable: true },
+  { name: "version", label: "Version", field: "version", align: "left", sortable: true },
+  { name: "description", label: "Description", field: "description", align: "left", sortable: false },
 ];
 const websiteColumns = [
   { name: "name", label: "Name", field: "name", align: "left", sortable: true },
@@ -2716,13 +2858,65 @@ function defaultDistributionForm() {
     dry_run: false,
   };
 }
+async function loadDistributionChocoPackages(force = false) {
+  if (loadingDistributionChocoPackages.value) return;
+  if (!force && distributionChocoPackages.value.length) return;
+  loadingDistributionChocoPackages.value = true;
+  try {
+    const data = await fetchChocosSoftware();
+    const rows = Array.isArray(data) ? data : data?.software || data?.results || [];
+    distributionChocoPackages.value = rows
+      .map((row: any) => normalizeChocolateyPackage(row))
+      .filter((row: any) => row.name);
+  } catch (e: any) {
+    distributionChocoPackages.value = [];
+    $q.notify({ message: e?.response?.data?.error || e?.message || "Failed to load Chocolatey packages", color: "negative" });
+  } finally {
+    loadingDistributionChocoPackages.value = false;
+  }
+}
+
+function distributionActionLabel(action: string) {
+  return distributionActionOptions.find((option) => option.value === action)?.label || "Install";
+}
+
+function selectDistributionChocolateyPackage(row: any) {
+  const pkg = normalizeChocolateyPackage(row);
+  if (!pkg.name) return;
+  distributionForm.value.package_id = pkg.name;
+  if (!distributionForm.value.name) {
+    distributionForm.value.name = `${distributionActionLabel(distributionForm.value.action)} ${pkg.name}`;
+  }
+}
+
+function openChocolateyPackage(packageId: string) {
+  if (!packageId) return;
+  window.open(`https://chocolatey.org/packages/${encodeURIComponent(packageId)}`, "_blank");
+}
+
+function onDistributionInstallerChanged(installer: string) {
+  if (installer === "choco") {
+    void loadDistributionChocoPackages();
+  }
+  if (installer === "rawcmd") {
+    distributionForm.value.package_id = "";
+    distributionForm.value.package_version = "";
+  } else {
+    distributionForm.value.command = "";
+  }
+}
+
 function showDistributionDialog(item?: any) {
   editingDistribution.value = item || null;
   distributionForm.value = item ? { ...defaultDistributionForm(), ...item } : defaultDistributionForm();
   distributionForm.value.required_app_policy_ids = (distributionForm.value.required_app_policy_ids || [])
     .map((id: any) => Number(id))
     .filter((id: number) => Number.isInteger(id) && id > 0);
+  distributionChocoSearch.value = "";
   distributionDialogOpen.value = true;
+  if (distributionForm.value.installer === "choco") {
+    void loadDistributionChocoPackages();
+  }
 }
 function showWebsiteDialog(type: string, item?: any) {
   websiteDialogType.value = type;
@@ -3678,6 +3872,19 @@ async function extractFromContainer() {
   flex-wrap: wrap
   gap: 4px
   max-width: 520px
+
+.distribution-choco-picker
+  max-height: 360px
+  overflow: hidden
+
+.distribution-choco-table
+  max-height: 250px
+
+.distribution-choco-description
+  max-width: 300px
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
 
 .ssp-request-detail-label
   width: 190px
