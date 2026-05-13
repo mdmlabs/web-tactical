@@ -549,7 +549,10 @@
                   <q-btn
                     flat dense round icon="done_all" color="primary"
                     :disable="!['approved', 'installing'].includes(props.row.status)"
-                    @click="reviewSspInstallRequest(props.row, 'installed')"
+                    @click="reviewSspInstallRequest(
+                      props.row,
+                      props.row.request_type === 'uninstall' ? 'removed' : 'installed'
+                    )"
                   />
                 </q-td>
               </template>
