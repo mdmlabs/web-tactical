@@ -166,7 +166,7 @@
             icon="download"
             label="Installer"
             :loading="downloadingDeviceId === device.id"
-            @click="downloadInstaller(device)"
+            @click="openInstallerDialog(device)"
           />
           <q-btn
             flat
@@ -266,6 +266,33 @@
             label="I accept the organization privacy and device management terms"
             color="primary"
           />
+          <q-separator />
+          <div>
+            <div class="text-subtitle2 q-mb-sm">Windows installer bundle</div>
+            <q-option-group
+              v-model="enrollInstallerForm.goarch"
+              :options="installerArchOptions"
+              type="radio"
+              inline
+              dense
+            />
+            <q-checkbox
+              v-model="enrollInstallerForm.install_mdm"
+              label="Install Windows Policy Extension (MDM Agent)"
+              color="primary"
+              dense
+              class="q-mt-sm"
+            />
+            <q-input
+              v-if="enrollInstallerForm.install_mdm"
+              v-model="enrollInstallerForm.mdm_master_url"
+              label="Master URL"
+              placeholder="Leave empty to use API URL"
+              outlined
+              dense
+              class="q-mt-sm"
+            />
+          </div>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancel" v-close-popup />
@@ -275,6 +302,57 @@
             @click="enrollDevice"
             :loading="enrolling"
             :disable="!canEnroll"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="installerDialogOpen" persistent>
+      <q-card style="min-width: 460px">
+        <q-bar class="bg-primary text-white">
+          <q-icon name="download" class="q-mr-sm" />
+          Download device installer
+          <q-space />
+          <q-btn dense flat icon="close" v-close-popup />
+        </q-bar>
+        <q-card-section class="q-gutter-md">
+          <div class="text-body2 text-grey-7">
+            The bundle installs the Tactical/RMM agent first, then the Windows
+            Policy Extension.
+          </div>
+          <div>
+            <div class="text-subtitle2 q-mb-sm">Architecture</div>
+            <q-option-group
+              v-model="installerForm.goarch"
+              :options="installerArchOptions"
+              type="radio"
+              inline
+              dense
+            />
+          </div>
+          <q-checkbox
+            v-model="installerForm.install_mdm"
+            label="Install Windows Policy Extension (MDM Agent)"
+            color="primary"
+            dense
+          />
+          <q-input
+            v-if="installerForm.install_mdm"
+            v-model="installerForm.mdm_master_url"
+            label="Master URL"
+            placeholder="Leave empty to use API URL"
+            outlined
+            dense
+          />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn
+            color="primary"
+            icon="download"
+            label="Download installer"
+            :loading="downloadingDeviceId === installerDevice?.id"
+            @click="submitInstallerDownload"
           />
         </q-card-actions>
       </q-card>
@@ -545,6 +623,20 @@ const enrollForm = ref({
   serial_number: "",
   privacy_accepted: false,
 });
+const defaultInstallerForm = () => ({
+  goarch: "amd64",
+  install_mdm: true,
+  mdm_master_url: "",
+});
+const enrollInstallerForm = ref(defaultInstallerForm());
+const installerDialogOpen = ref(false);
+const installerDevice = ref<any | null>(null);
+const installerForm = ref(defaultInstallerForm());
+
+const installerArchOptions = [
+  { label: "x64", value: "amd64" },
+  { label: "ARM64", value: "arm64" },
+];
 
 const actionColumns = [
   {
@@ -700,6 +792,7 @@ function showEnrollDialog() {
     serial_number: "",
     privacy_accepted: false,
   };
+  enrollInstallerForm.value = defaultInstallerForm();
   enrollDialogOpen.value = true;
 }
 
@@ -724,12 +817,37 @@ async function blobErrorMessage(blob: Blob) {
   }
 }
 
-async function downloadInstaller(device: any) {
+function installerPayload(form: ReturnType<typeof defaultInstallerForm>) {
+  return {
+    install_cyber_secure: true,
+    goarch: form.goarch,
+    install_mdm: form.install_mdm,
+    mdm_arch: form.goarch === "arm64" ? "arm64" : "x64",
+    mdm_master_url: form.mdm_master_url,
+  };
+}
+
+function openInstallerDialog(device: any) {
+  installerDevice.value = device;
+  installerForm.value = defaultInstallerForm();
+  installerDialogOpen.value = true;
+}
+
+async function submitInstallerDownload() {
+  if (!installerDevice.value) return;
+  await downloadInstaller(
+    installerDevice.value,
+    installerPayload(installerForm.value),
+  );
+  installerDialogOpen.value = false;
+}
+
+async function downloadInstaller(device: any, payload = installerPayload(defaultInstallerForm())) {
   downloadingDeviceId.value = device.id;
   try {
     const resp = await axios.post(
       `/appmanagement/ssp/devices/${device.id}/installer/`,
-      { install_cyber_secure: true },
+      payload,
       { responseType: "blob" },
     );
     const disposition = String(resp.headers?.["content-disposition"] || "");
@@ -773,7 +891,7 @@ async function enrollDevice() {
       icon: "check",
     });
     await loadDevices();
-    await downloadInstaller(resp.data);
+    await downloadInstaller(resp.data, installerPayload(enrollInstallerForm.value));
   } catch (e: any) {
     $q.notify({
       message: e?.response?.data?.error || "Enrollment failed",
