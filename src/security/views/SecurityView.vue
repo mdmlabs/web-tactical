@@ -952,7 +952,21 @@
               color="warning"
               icon="collecting_bag"
               :label="$t('security.views.SecurityView.4d9904')"
-              @click="showForensicWizard = true"
+              @click="openForensicJobDialog"
+            />
+            <q-btn
+              color="primary"
+              icon="schedule"
+              label="File carving policy"
+              @click="openForensicPolicyDialog()"
+            />
+            <q-btn
+              outline
+              color="primary"
+              icon="picture_as_pdf"
+              label="Export PDF"
+              :disable="!forensicsReport"
+              @click="exportForensicsPdf"
             />
           </div>
         </div>
@@ -998,6 +1012,71 @@
             </q-card-section>
           </q-card>
         </div>
+
+        <q-card flat bordered class="q-mb-md">
+          <q-card-section>
+            <div class="row items-center justify-between q-mb-sm">
+              <div>
+                <div class="text-subtitle2">File carving policies</div>
+                <div class="text-caption text-grey">
+                  Scoped and scheduled forensic collection policies.
+                </div>
+              </div>
+              <q-btn
+                flat
+                color="primary"
+                icon="refresh"
+                label="Refresh"
+                @click="loadForensicPolicies"
+              />
+            </div>
+            <q-table
+              :rows="forensicPolicies"
+              :columns="forensicPolicyColumns"
+              dense
+              row-key="id"
+              :loading="loadingForensicPolicies"
+              :rows-per-page-options="[5, 10, 25]"
+            >
+              <template v-slot:body-cell-enabled="props">
+                <q-td :props="props">
+                  <q-chip
+                    dense
+                    :color="props.value ? 'positive' : 'grey'"
+                    text-color="white"
+                    size="sm"
+                  >
+                    {{ props.value ? "Enabled" : "Disabled" }}
+                  </q-chip>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-actions="props">
+                <q-td :props="props">
+                  <q-btn
+                    flat
+                    dense
+                    icon="edit"
+                    size="sm"
+                    @click="openForensicPolicyDialog(props.row)"
+                  />
+                  <q-btn
+                    flat
+                    dense
+                    icon="delete"
+                    color="negative"
+                    size="sm"
+                    @click="deleteForensicPolicy(props.row)"
+                  />
+                </q-td>
+              </template>
+              <template v-slot:no-data>
+                <div class="text-center q-pa-md text-grey">
+                  No file carving policies configured.
+                </div>
+              </template>
+            </q-table>
+          </q-card-section>
+        </q-card>
 
         <!-- IR Timeline -->
         <q-card flat bordered class="q-mb-md">
@@ -2062,13 +2141,9 @@
                 v-model="forensicWizardForm.job_types"
                 multiple
                 use-chips
-                :options="[
-                  'filesystem',
-                  'memory',
-                  'processes',
-                  'registry',
-                  'network',
-                ]"
+                emit-value
+                map-options
+                :options="forensicJobTypeOptions"
                 :label="$t('security.views.SecurityView.46c4fc')"
                 outlined
                 dense
@@ -2128,8 +2203,26 @@
             <div class="col-12 col-md-4">
               <q-select
                 v-model="forensicWizardForm.engine"
-                :options="['builtin']"
+                :options="['builtin', 'velociraptor']"
                 :label="$t('security.views.SecurityView.c1f65d')"
+                outlined
+                dense
+              />
+            </div>
+            <div class="col-12 col-md-6">
+              <q-input
+                v-model="forensicWizardForm.modified_after"
+                label="Modified after"
+                type="datetime-local"
+                outlined
+                dense
+              />
+            </div>
+            <div class="col-12 col-md-6">
+              <q-input
+                v-model="forensicWizardForm.modified_before"
+                label="Modified before"
+                type="datetime-local"
                 outlined
                 dense
               />
@@ -2152,6 +2245,173 @@
             color="warning"
             :label="$t('security.views.SecurityView.abcceb')"
             @click="submitForensicJob"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="showForensicPolicyDialog" persistent>
+      <q-card style="min-width: 760px; max-width: 94vw">
+        <q-bar
+          >{{
+            editingForensicPolicy
+              ? "Edit file carving policy"
+              : "New file carving policy"
+          }}<q-space /><q-btn dense flat icon="close" v-close-popup
+        /></q-bar>
+        <q-card-section class="q-gutter-md">
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-8">
+              <q-input
+                v-model="forensicPolicyForm.name"
+                label="Policy name"
+                outlined
+                dense
+              />
+            </div>
+            <div class="col-12 col-md-4">
+              <q-toggle v-model="forensicPolicyForm.enabled" label="Enabled" />
+            </div>
+            <div class="col-12 col-md-6">
+              <q-select
+                v-model="forensicPolicyForm.scope"
+                :options="forensicScopeOptions"
+                emit-value
+                map-options
+                label="Scope"
+                outlined
+                dense
+              />
+            </div>
+            <div
+              class="col-12 col-md-6"
+              v-if="forensicPolicyForm.scope === 'device'"
+            >
+              <q-select
+                v-model="forensicPolicyForm.target_agent_id"
+                :options="agentOptions"
+                emit-value
+                map-options
+                label="Target device"
+                outlined
+                dense
+                clearable
+              />
+            </div>
+            <div
+              class="col-12 col-md-6"
+              v-else-if="forensicPolicyForm.scope === 'device_group'"
+            >
+              <q-select
+                v-model="forensicPolicyForm.target_device_group_id"
+                :options="forensicDeviceGroupOptions"
+                emit-value
+                map-options
+                label="Target device group"
+                outlined
+                dense
+                clearable
+              />
+            </div>
+            <div class="col-12">
+              <q-select
+                v-model="forensicPolicyForm.job_types"
+                multiple
+                use-chips
+                emit-value
+                map-options
+                :options="forensicJobTypeOptions"
+                label="Collectors"
+                outlined
+                dense
+              />
+            </div>
+            <div class="col-12">
+              <q-input
+                v-model="forensicPolicyKeywordsInput"
+                label="Keywords, comma-separated"
+                outlined
+                dense
+                @update:model-value="updateForensicPolicyKeywords"
+              />
+            </div>
+            <div class="col-12">
+              <q-input
+                v-model="forensicPolicyPathGlobsInput"
+                label="Path globs, comma-separated"
+                outlined
+                dense
+                @update:model-value="updateForensicPolicyPathGlobs"
+              />
+            </div>
+            <div class="col-12 col-md-3">
+              <q-input
+                v-model.number="forensicPolicyForm.min_size_bytes"
+                label="Min size bytes"
+                type="number"
+                outlined
+                dense
+              />
+            </div>
+            <div class="col-12 col-md-3">
+              <q-input
+                v-model.number="forensicPolicyForm.max_size_bytes"
+                label="Max size bytes"
+                type="number"
+                outlined
+                dense
+              />
+            </div>
+            <div class="col-12 col-md-3">
+              <q-input
+                v-model="forensicPolicyForm.modified_after"
+                label="Modified after"
+                type="datetime-local"
+                outlined
+                dense
+              />
+            </div>
+            <div class="col-12 col-md-3">
+              <q-input
+                v-model="forensicPolicyForm.modified_before"
+                label="Modified before"
+                type="datetime-local"
+                outlined
+                dense
+              />
+            </div>
+            <div class="col-12 col-md-6">
+              <q-input
+                v-model="forensicPolicyForm.schedule_cron"
+                label="Schedule cron"
+                hint="Leave empty for manual-only. Example: */30 * * * *"
+                outlined
+                dense
+              />
+            </div>
+            <div class="col-12 col-md-3">
+              <q-select
+                v-model="forensicPolicyForm.engine"
+                :options="['builtin', 'velociraptor']"
+                label="Engine"
+                outlined
+                dense
+              />
+            </div>
+            <div class="col-12 col-md-3">
+              <q-toggle
+                v-model="forensicPolicyForm.only_non_compliant"
+                label="Only non-compliant"
+              />
+            </div>
+          </div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn
+            color="primary"
+            :label="editingForensicPolicy ? 'Save policy' : 'Create policy'"
+            @click="submitForensicPolicy"
           />
         </q-card-actions>
       </q-card>
@@ -3569,6 +3829,9 @@ onMounted(() => {
   loadDLP();
   loadDLPViolations();
   loadDLPQuarantine();
+  loadForensicJobTypes();
+  loadForensicPolicies();
+  loadForensicDeviceGroups();
   loadForensics();
   loadForensicsAudit();
   loadUEBA();
@@ -3588,32 +3851,85 @@ watch(() => route.path, syncTabFromRoute, { immediate: true });
 // ===== Forensics & IR (func #765-773, #782-791) =====
 const showIsolateDialog = ref(false);
 const showForensicWizard = ref(false);
+const showForensicPolicyDialog = ref(false);
 const loadingForensics = ref(false);
 const loadingForensicsAudit = ref(false);
+const loadingForensicPolicies = ref(false);
 const forensicCases = ref<any[]>([]);
+const forensicPolicies = ref<any[]>([]);
 const forensicAuditTrail = ref<any[]>([]);
 const forensicsReport = ref<any>(null);
 const forensicsError = ref("");
 const forensicsAuditError = ref("");
 const uebaError = ref("");
 const threatIntelError = ref("");
+const editingForensicPolicy = ref<any | null>(null);
+
+const defaultForensicJobTypeOptions = [
+  { label: "Extract files by path", value: "file_collection" },
+  { label: "Crash dumps / memory dumps", value: "crash_dumps" },
+  { label: "Keyword file carving", value: "keyword_carve" },
+  { label: "Event logs", value: "event_log" },
+  { label: "Prefetch files", value: "prefetch" },
+  { label: "MFT / filesystem timeline", value: "mft" },
+  { label: "Registry hives", value: "registry" },
+  { label: "Lite memory process dump", value: "memory_lite" },
+  { label: "YARA scan", value: "yara" },
+  { label: "Triage bundle", value: "triage_bundle" },
+];
+const forensicJobTypeOptions = ref(defaultForensicJobTypeOptions);
+const forensicDeviceGroupOptions = ref<{ label: string; value: number }[]>([]);
+const forensicScopeOptions = [
+  { label: "Global", value: "global" },
+  { label: "Specific device", value: "device" },
+  { label: "Device group", value: "device_group" },
+];
+
+function defaultForensicWizardForm() {
+  return {
+    agent_id: "",
+    title: "",
+    reason: "",
+    job_types: [] as string[],
+    keywords: [] as string[],
+    path_globs: [] as string[],
+    min_size_bytes: null as number | null,
+    max_size_bytes: null as number | null,
+    modified_after: "",
+    modified_before: "",
+    engine: "builtin",
+    approval_status: "not_required",
+    only_non_compliant: false,
+  };
+}
+
+function defaultForensicPolicyForm() {
+  return {
+    name: "",
+    enabled: true,
+    scope: "global",
+    target_agent_id: "",
+    target_device_group_id: null as number | null,
+    job_types: ["file_collection"] as string[],
+    keywords: [] as string[],
+    path_globs: [] as string[],
+    min_size_bytes: null as number | null,
+    max_size_bytes: null as number | null,
+    modified_after: "",
+    modified_before: "",
+    schedule_cron: "",
+    engine: "builtin",
+    only_non_compliant: false,
+  };
+}
 
 // Wizard form state
-const forensicWizardForm = ref({
-  agent_id: "",
-  title: "",
-  reason: "",
-  job_types: [] as string[],
-  keywords: [] as string[],
-  path_globs: [] as string[],
-  min_size_bytes: null as number | null,
-  max_size_bytes: null as number | null,
-  engine: "builtin",
-  approval_status: "not_required",
-  only_non_compliant: false,
-});
+const forensicWizardForm = ref(defaultForensicWizardForm());
+const forensicPolicyForm = ref(defaultForensicPolicyForm());
 const forensicKeywordsInput = ref("");
 const forensicPathGlobsInput = ref("");
+const forensicPolicyKeywordsInput = ref("");
+const forensicPolicyPathGlobsInput = ref("");
 
 const forensicColumns = [
   { name: "agent_id", label: "Device", field: "agent_id", align: "left" },
@@ -3647,12 +3963,85 @@ const forensicAuditColumns = [
   { name: "job", label: "Job ID", field: "job", align: "left" },
 ];
 
+const forensicPolicyColumns = [
+  { name: "name", label: "Policy", field: "name", align: "left" },
+  { name: "scope", label: "Scope", field: "scope", align: "center" },
+  {
+    name: "target",
+    label: "Target",
+    field: (row: any) => formatForensicPolicyTarget(row),
+    align: "left",
+  },
+  {
+    name: "job_types",
+    label: "Collectors",
+    field: (row: any) => formatForensicJobTypes(row),
+    align: "left",
+  },
+  {
+    name: "schedule_cron",
+    label: "Schedule",
+    field: (row: any) => row.schedule_cron || "Manual only",
+    align: "left",
+  },
+  { name: "enabled", label: "Status", field: "enabled", align: "center" },
+  { name: "actions", label: "", field: "actions", align: "right" },
+];
+
 function _apiErrMessage(e: any, fallback: string) {
   const d = e?.response?.data;
   if (typeof d?.detail === "string") return d.detail;
   if (typeof d?.error === "string") return d.error;
   if (Array.isArray(d?.detail) && d.detail[0]) return String(d.detail[0]);
   return fallback;
+}
+
+async function loadForensicJobTypes() {
+  try {
+    const r = await axios.get("/security/forensics/job-types/");
+    const groups = Array.isArray(r.data?.groups) ? r.data.groups : [];
+    forensicJobTypeOptions.value = groups.length
+      ? groups.map((row: any) => ({
+          label: row.label || row.kind,
+          value: row.kind,
+        }))
+      : defaultForensicJobTypeOptions;
+  } catch {
+    forensicJobTypeOptions.value = defaultForensicJobTypeOptions;
+  }
+}
+
+async function loadForensicDeviceGroups() {
+  try {
+    const r = await axios.get("/clients/sites/?leaf=true");
+    const list = Array.isArray(r.data) ? r.data : (r.data?.results ?? []);
+    forensicDeviceGroupOptions.value = list
+      .filter((site: any) => site?.id !== undefined && site?.id !== null)
+      .map((site: any) => ({
+        value: site.id,
+        label: site.ancestors
+          ? `${site.ancestors} / ${site.name}`
+          : site.name || `Device group #${site.id}`,
+      }));
+  } catch {
+    forensicDeviceGroupOptions.value = [];
+  }
+}
+
+async function loadForensicPolicies() {
+  loadingForensicPolicies.value = true;
+  try {
+    const r = await axios.get("/security/forensics/policies/");
+    forensicPolicies.value = Array.isArray(r.data) ? r.data : [];
+  } catch (e: any) {
+    forensicPolicies.value = [];
+    $q.notify({
+      message: _apiErrMessage(e, "Failed to load file carving policies"),
+      color: "negative",
+    });
+  } finally {
+    loadingForensicPolicies.value = false;
+  }
 }
 
 async function loadForensics() {
@@ -3696,9 +4085,174 @@ async function loadForensicsAudit() {
   }
 }
 
+async function exportForensicsPdf() {
+  if (!forensicsReport.value) {
+    $q.notify({ message: "Forensics report is not loaded", color: "warning" });
+    return;
+  }
+
+  const [{ jsPDF }, autoTableModule] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
+  const autoTable = autoTableModule.default;
+  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+  const margin = 36;
+  const generatedAt = new Date().toISOString();
+  const stats = forensicsReport.value.stats || {};
+  const jobs = Array.isArray(forensicsReport.value.recent_jobs)
+    ? forensicsReport.value.recent_jobs
+    : [];
+  const audit = Array.isArray(forensicsReport.value.recent_audit)
+    ? forensicsReport.value.recent_audit
+    : [];
+
+  doc.setFontSize(16);
+  doc.text("File Carving / Forensics Report", margin, 42);
+  doc.setFontSize(9);
+  doc.text(`Generated: ${generatedAt}`, margin, 58);
+
+  autoTable(doc, {
+    startY: 76,
+    head: [["Metric", "Value"]],
+    body: Object.entries(stats).map(([key, value]) => [
+      key,
+      String(value ?? 0),
+    ]),
+    theme: "grid",
+    styles: { fontSize: 8 },
+    margin: { left: margin, right: margin },
+  });
+
+  autoTable(doc, {
+    startY: (doc as any).lastAutoTable.finalY + 18,
+    head: [
+      ["ID", "Device", "Title", "Status", "Collectors", "SHA256", "Updated"],
+    ],
+    body: jobs.map((row: any) => [
+      row.id,
+      row.agent_id,
+      row.title,
+      row.status,
+      Array.isArray(row.job_types) ? row.job_types.join(", ") : "",
+      row.manifest_sha256 || "-",
+      row.updated_at || "",
+    ]),
+    theme: "striped",
+    styles: { fontSize: 7 },
+    margin: { left: margin, right: margin },
+  });
+
+  autoTable(doc, {
+    startY: (doc as any).lastAutoTable.finalY + 18,
+    head: [["Time", "Action", "Actor", "Job", "Details"]],
+    body: audit.map((row: any) => [
+      row.created_at || "",
+      row.action || "",
+      row.actor || "-",
+      row.job || "-",
+      row.details ? JSON.stringify(row.details).slice(0, 120) : "",
+    ]),
+    theme: "striped",
+    styles: { fontSize: 7 },
+    margin: { left: margin, right: margin },
+  });
+
+  doc.save(`file-carving-report-${generatedAt.slice(0, 10)}.pdf`);
+}
+
+function formatForensicPolicyTarget(row: any) {
+  if (row.scope === "device") {
+    const found = agentOptions.value.find(
+      (agent) => agent.value === row.target_agent_id,
+    );
+    return found?.label || row.target_agent_id || "No device selected";
+  }
+  if (row.scope === "device_group") {
+    const found = forensicDeviceGroupOptions.value.find(
+      (group) => group.value === row.target_device_group_id,
+    );
+    return (
+      found?.label ||
+      (row.target_device_group_id
+        ? `Device group #${row.target_device_group_id}`
+        : "No device group selected")
+    );
+  }
+  return "All devices";
+}
+
+function formatForensicJobTypes(row: any) {
+  const jobTypes = Array.isArray(row.job_types) ? row.job_types : [];
+  if (!jobTypes.length) return "No collectors selected";
+  const labels = jobTypes.map((value: string) => {
+    const found = forensicJobTypeOptions.value.find(
+      (option) => option.value === value,
+    );
+    return found?.label || value;
+  });
+  return labels.join(", ");
+}
+
+function openForensicJobDialog() {
+  forensicWizardForm.value = defaultForensicWizardForm();
+  forensicKeywordsInput.value = "";
+  forensicPathGlobsInput.value = "";
+  showForensicWizard.value = true;
+}
+
+function openForensicPolicyDialog(row: any | null = null) {
+  editingForensicPolicy.value = row;
+  forensicPolicyForm.value = row
+    ? {
+        ...defaultForensicPolicyForm(),
+        ...row,
+        modified_after: row.modified_after
+          ? String(row.modified_after).slice(0, 16)
+          : "",
+        modified_before: row.modified_before
+          ? String(row.modified_before).slice(0, 16)
+          : "",
+      }
+    : defaultForensicPolicyForm();
+  forensicPolicyKeywordsInput.value = (
+    forensicPolicyForm.value.keywords || []
+  ).join(", ");
+  forensicPolicyPathGlobsInput.value = (
+    forensicPolicyForm.value.path_globs || []
+  ).join(", ");
+  showForensicPolicyDialog.value = true;
+}
+
+function normalizeForensicPayload(payload: any) {
+  const normalized = { ...payload };
+  if (normalized.scope !== "device") normalized.target_agent_id = "";
+  if (normalized.scope !== "device_group")
+    normalized.target_device_group_id = null;
+  for (const key of [
+    "min_size_bytes",
+    "max_size_bytes",
+    "target_device_group_id",
+  ]) {
+    if (normalized[key] === "") normalized[key] = null;
+  }
+  for (const key of ["modified_after", "modified_before"]) {
+    if (!normalized[key]) normalized[key] = null;
+  }
+  return normalized;
+}
+
 async function submitForensicJob() {
   try {
-    const payload = { ...forensicWizardForm.value };
+    if (!forensicWizardForm.value.agent_id) {
+      $q.notify({ message: "Select a target device", color: "warning" });
+      return;
+    }
+    if (!forensicWizardForm.value.job_types.length) {
+      $q.notify({ message: "Select at least one collector", color: "warning" });
+      return;
+    }
+    const payload = normalizeForensicPayload({ ...forensicWizardForm.value });
     await axios.post("/security/forensics/jobs/", payload);
     $q.notify({
       message: "Forensic job created successfully",
@@ -3706,19 +4260,7 @@ async function submitForensicJob() {
       icon: "check",
     });
     showForensicWizard.value = false;
-    forensicWizardForm.value = {
-      agent_id: "",
-      title: "",
-      reason: "",
-      job_types: [],
-      keywords: [],
-      path_globs: [],
-      min_size_bytes: null,
-      max_size_bytes: null,
-      engine: "builtin",
-      approval_status: "not_required",
-      only_non_compliant: false,
-    };
+    forensicWizardForm.value = defaultForensicWizardForm();
     forensicKeywordsInput.value = "";
     forensicPathGlobsInput.value = "";
     await loadForensics();
@@ -3726,6 +4268,59 @@ async function submitForensicJob() {
   } catch (e: any) {
     $q.notify({
       message: e?.response?.data?.error || "Failed to create forensic job",
+      color: "negative",
+    });
+  }
+}
+
+async function submitForensicPolicy() {
+  if (!forensicPolicyForm.value.name.trim()) {
+    $q.notify({ message: "Policy name is required", color: "warning" });
+    return;
+  }
+  if (!forensicPolicyForm.value.job_types.length) {
+    $q.notify({ message: "Select at least one collector", color: "warning" });
+    return;
+  }
+  if (
+    forensicPolicyForm.value.scope === "device" &&
+    !forensicPolicyForm.value.target_agent_id
+  ) {
+    $q.notify({ message: "Select a target device", color: "warning" });
+    return;
+  }
+  if (
+    forensicPolicyForm.value.scope === "device_group" &&
+    !forensicPolicyForm.value.target_device_group_id
+  ) {
+    $q.notify({ message: "Select a target device group", color: "warning" });
+    return;
+  }
+
+  const payload = normalizeForensicPayload({ ...forensicPolicyForm.value });
+  try {
+    if (editingForensicPolicy.value?.id) {
+      await axios.put(
+        `/security/forensics/policies/${editingForensicPolicy.value.id}/`,
+        payload,
+      );
+    } else {
+      await axios.post("/security/forensics/policies/", payload);
+    }
+    $q.notify({
+      message: editingForensicPolicy.value
+        ? "File carving policy saved"
+        : "File carving policy created",
+      color: "positive",
+      icon: "check",
+    });
+    showForensicPolicyDialog.value = false;
+    editingForensicPolicy.value = null;
+    forensicPolicyForm.value = defaultForensicPolicyForm();
+    await loadForensicPolicies();
+  } catch (e: any) {
+    $q.notify({
+      message: _apiErrMessage(e, "Failed to save file carving policy"),
       color: "negative",
     });
   }
@@ -3743,6 +4338,40 @@ function updateForensicPathGlobs(value: string) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function updateForensicPolicyKeywords(value: string) {
+  forensicPolicyForm.value.keywords = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function updateForensicPolicyPathGlobs(value: string) {
+  forensicPolicyForm.value.path_globs = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+async function deleteForensicPolicy(row: any) {
+  $q.dialog({
+    title: "Delete File Carving Policy",
+    message: `Delete policy "${row.name}"?`,
+    cancel: true,
+    ok: { color: "negative", label: "Delete" },
+  }).onOk(async () => {
+    try {
+      await axios.delete(`/security/forensics/policies/${row.id}/`);
+      $q.notify({ message: "File carving policy deleted", color: "warning" });
+      await loadForensicPolicies();
+    } catch (e: any) {
+      $q.notify({
+        message: _apiErrMessage(e, "Failed to delete file carving policy"),
+        color: "negative",
+      });
+    }
+  });
 }
 
 async function approveForensicJob(row: any) {
