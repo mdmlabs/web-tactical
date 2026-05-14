@@ -16,6 +16,14 @@
           @click="privacyDialogOpen = true"
         />
         <q-btn
+          outline
+          color="primary"
+          icon="usb"
+          label="Peripheral access"
+          :disable="managedDeviceCount === 0"
+          @click="openPeripheralDialog"
+        />
+        <q-btn
           color="primary"
           icon="add"
           label="Request access"
@@ -494,6 +502,70 @@
       </q-card>
     </q-dialog>
 
+    <q-dialog v-model="peripheralDialogOpen" persistent>
+      <q-card style="min-width: 460px">
+        <q-bar>
+          Temporary peripheral access
+          <q-space />
+          <q-btn dense flat icon="close" v-close-popup />
+        </q-bar>
+        <q-card-section class="q-gutter-md">
+          <q-select
+            v-model="peripheralForm.agent_id"
+            :options="peripheralDeviceOptions"
+            label="Target device"
+            outlined
+            dense
+            emit-value
+            map-options
+          />
+          <div class="row q-col-gutter-sm">
+            <div class="col-7">
+              <q-select
+                v-model="peripheralForm.device_type"
+                :options="peripheralTypeOptions"
+                label="Peripheral"
+                outlined
+                dense
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-5">
+              <q-input
+                v-model.number="peripheralForm.duration_minutes"
+                label="Minutes"
+                outlined
+                dense
+                type="number"
+                min="5"
+                max="240"
+              />
+            </div>
+          </div>
+          <q-input
+            v-model="peripheralForm.reason"
+            label="Business justification"
+            outlined
+            dense
+            type="textarea"
+            rows="3"
+          />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn
+            color="primary"
+            icon="send"
+            label="Submit"
+            :loading="savingPeripheral"
+            :disable="!peripheralForm.agent_id || !peripheralForm.reason"
+            @click="submitPeripheralRequest"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <q-dialog v-model="showChangePwDialog" persistent>
       <q-card style="min-width: 380px">
         <q-bar class="bg-primary text-white">
@@ -560,9 +632,11 @@ const settings = ref<any>({});
 const policySearch = ref("");
 const policyCategoryFilter = ref("all");
 const requestDialogOpen = ref(false);
+const peripheralDialogOpen = ref(false);
 const privacyDialogOpen = ref(false);
 const editingRight = ref<any | null>(null);
 const savingRight = ref(false);
+const savingPeripheral = ref(false);
 const showChangePwDialog = ref(false);
 const changingPw = ref(false);
 const pwForm = ref({ current: "", newPw: "", confirm: "" });
@@ -573,6 +647,12 @@ const rightForm = ref({
   justification: "",
   target_device_id: null as number | null,
 });
+const peripheralForm = ref({
+  agent_id: "",
+  device_type: "usb",
+  duration_minutes: 30,
+  reason: "",
+});
 
 const rightCategoryOptions = [
   { label: "System access", value: "system_access" },
@@ -581,6 +661,11 @@ const rightCategoryOptions = [
   { label: "Network", value: "network" },
   { label: "Workspace", value: "workspace" },
   { label: "Other", value: "other" },
+];
+const peripheralTypeOptions = [
+  { label: "USB storage", value: "usb" },
+  { label: "Camera", value: "camera" },
+  { label: "Microphone", value: "mic" },
 ];
 const policyCategoryOptions = [
   { label: "All policies", value: "all" },
@@ -648,6 +733,14 @@ const deviceOptions = computed(() =>
     label: `${d.device_name}${d.agent_id ? ` (${d.agent_id})` : ""}`,
     value: d.id,
   })),
+);
+const peripheralDeviceOptions = computed(() =>
+  devices.value
+    .filter((d) => d.agent_id)
+    .map((d) => ({
+      label: `${d.device_name || d.hostname || d.name || d.agent_id} (${d.agent_id})`,
+      value: d.agent_id,
+    })),
 );
 const filteredPolicies = computed(() => {
   const q = policySearch.value.trim().toLowerCase();
@@ -823,6 +916,42 @@ function openPolicyRequest() {
     target_device: null,
   });
   editingRight.value = null;
+}
+
+function openPeripheralDialog() {
+  peripheralForm.value = {
+    agent_id: peripheralDeviceOptions.value[0]?.value || "",
+    device_type: "usb",
+    duration_minutes: 30,
+    reason: "",
+  };
+  peripheralDialogOpen.value = true;
+}
+
+async function submitPeripheralRequest() {
+  savingPeripheral.value = true;
+  try {
+    await axios.post("/security/peripheral-requests/", {
+      agent_id: peripheralForm.value.agent_id,
+      device_type: peripheralForm.value.device_type,
+      duration_minutes: peripheralForm.value.duration_minutes,
+      reason: peripheralForm.value.reason,
+      status: "pending",
+    });
+    peripheralDialogOpen.value = false;
+    $q.notify({
+      message: "Peripheral access request submitted",
+      color: "positive",
+      icon: "check",
+    });
+  } catch (e: any) {
+    $q.notify({
+      message: e?.response?.data?.detail || "Failed to submit peripheral request",
+      color: "negative",
+    });
+  } finally {
+    savingPeripheral.value = false;
+  }
 }
 
 async function saveRight() {
