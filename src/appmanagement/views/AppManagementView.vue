@@ -1015,6 +1015,101 @@
 
         <q-card flat bordered class="q-mb-md">
           <q-card-section>
+            <div class="row items-center justify-between q-mb-sm">
+              <div class="text-subtitle2">App lifecycle</div>
+              <q-btn flat dense round icon="refresh" :loading="loadingAppLifecycle" @click="loadAppLifecycle">
+                <q-tooltip>Refresh lifecycle</q-tooltip>
+              </q-btn>
+            </div>
+            <q-table
+              :rows="appLifecycleManagedRows"
+              :columns="appLifecycleColumns"
+              dense
+              row-key="catalog_id"
+              :loading="loadingAppLifecycle"
+              :rows-per-page-options="[5,10,25]"
+            >
+              <template v-slot:body-cell-name="props">
+                <q-td :props="props">
+                  <div class="text-weight-medium">{{ props.row.name }}</div>
+                  <div class="text-caption text-grey">{{ props.row.category || props.row.source }}</div>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-lifecycle="props">
+                <q-td :props="props">
+                  <div class="row q-gutter-xs justify-center">
+                    <q-chip dense size="sm" color="blue-grey-2" text-color="dark">
+                      {{ props.row.lifecycle?.installed_agent_count || 0 }} installed
+                    </q-chip>
+                    <q-chip
+                      dense
+                      size="sm"
+                      :color="(props.row.lifecycle?.outdated_agent_count || 0) > 0 ? 'warning' : 'positive'"
+                      text-color="white"
+                    >
+                      {{ props.row.lifecycle?.outdated_agent_count || 0 }} outdated
+                    </q-chip>
+                  </div>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-license="props">
+                <q-td :props="props">
+                  <q-chip
+                    v-if="props.row.license?.managed"
+                    dense
+                    size="sm"
+                    :color="licenseStatusColor(props.row.license.compliance_status)"
+                    text-color="white"
+                  >
+                    {{ props.row.license.seats_used }}/{{ props.row.license.seats_total }}
+                  </q-chip>
+                  <span v-else class="text-grey">-</span>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-retirement="props">
+                <q-td :props="props">
+                  <q-chip
+                    v-if="props.row.retirement_date"
+                    dense
+                    size="sm"
+                    :color="props.row.lifecycle?.retired ? 'negative' : 'blue-grey'"
+                    text-color="white"
+                  >
+                    {{ props.row.retirement_date }}
+                  </q-chip>
+                  <span v-else class="text-grey">-</span>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-actions="props">
+                <q-td :props="props">
+                  <q-btn
+                    flat dense round size="sm"
+                    icon="system_update_alt"
+                    color="primary"
+                    :disable="!props.row.lifecycle?.force_update_ready || props.row.source !== 'internal'"
+                    :loading="lifecycleActionLoading === lifecycleActionKey(props.row, 'force_upgrade')"
+                    @click="runAppLifecycleAction(props.row, 'force_upgrade')"
+                  >
+                    <q-tooltip>Force upgrade outdated devices</q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    flat dense round size="sm"
+                    icon="delete_sweep"
+                    color="negative"
+                    :disable="!props.row.lifecycle?.retirement_ready || props.row.source !== 'internal'"
+                    :loading="lifecycleActionLoading === lifecycleActionKey(props.row, 'retire')"
+                    @click="runAppLifecycleAction(props.row, 'retire')"
+                  >
+                    <q-tooltip>Uninstall from installed devices</q-tooltip>
+                  </q-btn>
+                </q-td>
+              </template>
+            </q-table>
+          </q-card-section>
+        </q-card>
+
+        <q-card flat bordered class="q-mb-md">
+          <q-card-section>
             <div class="text-subtitle2 q-mb-sm">Internal app files</div>
             <q-table
               :rows="internalCatalogApps"
@@ -1033,8 +1128,41 @@
                   />
                 </q-td>
               </template>
+              <template v-slot:body-cell-lifecycle="props">
+                <q-td :props="props">
+                  <div class="row q-gutter-xs justify-center">
+                    <q-chip dense size="sm" color="blue-grey-2" text-color="dark">
+                      {{ internalCatalogLifecycle(props.row).installed_agent_count || 0 }}
+                    </q-chip>
+                    <q-chip
+                      dense
+                      size="sm"
+                      :color="(internalCatalogLifecycle(props.row).outdated_agent_count || 0) > 0 ? 'warning' : 'positive'"
+                      text-color="white"
+                    >
+                      {{ internalCatalogLifecycle(props.row).outdated_agent_count || 0 }}
+                    </q-chip>
+                  </div>
+                </q-td>
+              </template>
               <template v-slot:body-cell-actions="props">
                 <q-td :props="props">
+                  <q-btn
+                    flat dense round icon="system_update_alt" size="sm" color="primary"
+                    :disable="!internalCatalogLifecycle(props.row).force_update_ready"
+                    :loading="lifecycleActionLoading === lifecycleActionKey(props.row, 'force_upgrade')"
+                    @click="runAppLifecycleAction(props.row, 'force_upgrade')"
+                  >
+                    <q-tooltip>Force upgrade outdated devices</q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    flat dense round icon="delete_sweep" size="sm" color="negative"
+                    :disable="!internalCatalogLifecycle(props.row).retirement_ready"
+                    :loading="lifecycleActionLoading === lifecycleActionKey(props.row, 'retire')"
+                    @click="runAppLifecycleAction(props.row, 'retire')"
+                  >
+                    <q-tooltip>Uninstall from installed devices</q-tooltip>
+                  </q-btn>
                   <q-btn flat dense round icon="edit" size="sm" @click="showInternalAppDialog(props.row)" />
                   <q-btn flat dense round icon="delete" size="sm" color="negative" @click="removeInternalCatalogApp(props.row.id)" />
                 </q-td>
@@ -2358,7 +2486,7 @@ async function loadAppInventory() {
 }
 
 async function refreshAppManagement() {
-  await Promise.all([loadApps(), loadAppInventory(), loadAppDistributions(), loadInternalCatalogApps(), loadAppStoreLinks()]);
+  await Promise.all([loadApps(), loadAppInventory(), loadAppDistributions(), loadInternalCatalogApps(), loadAppLifecycle(), loadAppStoreLinks()]);
 }
 
 async function refreshInstalledApps() {
@@ -2371,6 +2499,7 @@ async function refreshInstalledApps() {
     const data = (await axios.post("/appmanagement/app-inventory/", { agent_id: selectedAppAgentId.value })).data || {};
     appInventory.value = { ...appInventory.value, installed: data.installed || [] };
     $q.notify({ message: `Inventory refreshed: ${(data.installed || []).length} app(s)`, color: "positive", icon: "check" });
+    await loadAppLifecycle();
   } catch (e: any) {
     $q.notify({ message: e?.response?.data?.error || e?.message || "Inventory refresh failed", color: "negative" });
   } finally {
@@ -3756,6 +3885,7 @@ onMounted(() => {
   loadScopeTargetOptions();
   loadUserGroups();
   loadInternalCatalogApps();
+  loadAppLifecycle();
   loadAppStoreLinks();
   loadContainerTransfers();
   loadAgentsForContainers();
@@ -3842,9 +3972,21 @@ const internalCatalogForm = ref<any>(defaultInternalCatalogForm());
 const showAddAppStore = ref(false);
 const newStore = ref({ name: "", url: "", description: "", category: "Other", visible_in_ssp: true });
 const appStoreLinks = ref<any[]>([]);
+const appLifecycleRows = ref<any[]>([]);
+const loadingAppLifecycle = ref(false);
+const lifecycleActionLoading = ref("");
 const catalogCategoryForToggle = ref("");
 const catalogCategoryVisible = ref(true);
 const savingCatalogCategory = ref(false);
+
+const appLifecycleColumns = [
+  { name: "name", label: "App", field: "name", align: "left" },
+  { name: "target_version", label: "Target", field: (row: any) => row.lifecycle?.target_version || row.latest_version || row.version || "-", align: "left" },
+  { name: "lifecycle", label: "Installations", field: "lifecycle", align: "center" },
+  { name: "license", label: "License", field: "license", align: "center" },
+  { name: "retirement", label: "Retirement", field: "retirement_date", align: "center" },
+  { name: "actions", label: "Actions", field: "actions", align: "right" },
+];
 
 const internalCatalogColumns = [
   { name: "name", label: "Name", field: "name", align: "left" },
@@ -3855,8 +3997,23 @@ const internalCatalogColumns = [
   { name: "package_id", label: "Package ID", field: "package_id", align: "left" },
   { name: "approval_required", label: "Approval", field: (row: any) => row.approval_required ? "Required" : "Auto", align: "center" },
   { name: "visible_in_ssp", label: "SSP", field: "visible_in_ssp", align: "center" },
+  { name: "lifecycle", label: "Inst/Out", field: "lifecycle", align: "center" },
   { name: "actions", label: "Actions", field: "actions", align: "right" },
 ];
+
+const appLifecycleManagedRows = computed(() => appLifecycleRows.value.filter((row) => (
+  row.source === "internal"
+  || row.installable
+  || row.license?.managed
+)));
+
+const appLifecycleByCatalogId = computed(() => {
+  const rows: Record<string, any> = {};
+  for (const row of appLifecycleRows.value) {
+    if (row.catalog_id) rows[row.catalog_id] = row;
+  }
+  return rows;
+});
 
 const catalogCategoryOptions = computed(() => {
   const values = [
@@ -3885,6 +4042,96 @@ function defaultInternalCatalogForm() {
     license_label: "",
     system_requirements: "",
   };
+}
+
+function internalCatalogId(row: any) {
+  return row.catalog_id || (row.id ? `internal:${row.id}` : "");
+}
+
+function internalCatalogLifecycle(row: any) {
+  return appLifecycleByCatalogId.value[internalCatalogId(row)]?.lifecycle || {};
+}
+
+function lifecycleActionKey(row: any, action: string) {
+  return `${internalCatalogId(row) || row.catalog_id || row.id}:${action}`;
+}
+
+function licenseStatusColor(status: string) {
+  return {
+    compliant: "positive",
+    freeware: "blue-grey",
+    expiring_soon: "warning",
+    over_limit: "negative",
+    expired: "negative",
+  }[status] || "grey";
+}
+
+async function loadAppLifecycle() {
+  loadingAppLifecycle.value = true;
+  try {
+    const data = (await axios.get("/appmanagement/app-lifecycle/")).data || {};
+    appLifecycleRows.value = Array.isArray(data) ? data : data.results || [];
+  } catch (e: any) {
+    appLifecycleRows.value = [];
+    $q.notify({ message: e?.response?.data?.error || e?.message || "Failed to load app lifecycle", color: "negative" });
+  } finally {
+    loadingAppLifecycle.value = false;
+  }
+}
+
+function lifecycleActionLabel(action: string) {
+  return action === "force_upgrade" ? "force upgrade" : "retire";
+}
+
+async function runAppLifecycleAction(row: any, action: "force_upgrade" | "retire") {
+  const catalogId = internalCatalogId(row);
+  if (!catalogId) {
+    $q.notify({ message: "Catalog id is missing", color: "warning" });
+    return;
+  }
+  const key = lifecycleActionKey(row, action);
+  lifecycleActionLoading.value = key;
+  try {
+    const preview = (await axios.post("/appmanagement/app-lifecycle/action/", {
+      catalog_id: catalogId,
+      action,
+      dry_run: true,
+    })).data || {};
+    const count = preview.target_count || 0;
+    if (count < 1) {
+      $q.notify({ message: `No devices need ${lifecycleActionLabel(action)}`, color: "info" });
+      lifecycleActionLoading.value = "";
+      return;
+    }
+    lifecycleActionLoading.value = "";
+    $q.dialog({
+      title: action === "force_upgrade" ? "Force app upgrade?" : "Retire app from devices?",
+      message: `${row.name || "App"}: ${count} device(s) will receive a ${lifecycleActionLabel(action)} policy.`,
+      cancel: true,
+      ok: { color: action === "retire" ? "negative" : "primary" },
+    }).onOk(async () => {
+      lifecycleActionLoading.value = key;
+      try {
+        const response = (await axios.post("/appmanagement/app-lifecycle/action/", {
+          catalog_id: catalogId,
+          action,
+        })).data || {};
+        $q.notify({
+          message: `${response.created || 0} policy(s) created; dispatched to ${response.triggered || 0} device(s)`,
+          color: "positive",
+          icon: "check",
+        });
+        await Promise.all([loadAppLifecycle(), loadAppDistributions(), loadAppInventory()]);
+      } catch (e: any) {
+        $q.notify({ message: e?.response?.data?.error || e?.message || "Lifecycle action failed", color: "negative" });
+      } finally {
+        lifecycleActionLoading.value = "";
+      }
+    });
+  } catch (e: any) {
+    $q.notify({ message: e?.response?.data?.error || e?.message || "Lifecycle action failed", color: "negative" });
+    lifecycleActionLoading.value = "";
+  }
 }
 
 async function loadInternalCatalogApps() {
@@ -3919,7 +4166,7 @@ async function saveInternalCatalogApp() {
     }
     internalCatalogDialogOpen.value = false;
     $q.notify({ message: "Internal app saved", color: "positive", icon: "check" });
-    await loadInternalCatalogApps();
+    await Promise.all([loadInternalCatalogApps(), loadAppLifecycle()]);
   } catch (e: any) {
     $q.notify({ message: e?.response?.data?.error || e?.message || "Save failed", color: "negative" });
   } finally {
@@ -3932,6 +4179,7 @@ async function patchInternalCatalogApp(row: any, patch: Record<string, any>) {
   Object.assign(row, patch);
   try {
     await axios.patch(`/appmanagement/ssp/catalog/internal-files/${row.id}/`, patch);
+    await loadAppLifecycle();
   } catch (e: any) {
     Object.assign(row, prev);
     $q.notify({ message: e?.response?.data?.error || e?.message || "Update failed", color: "negative" });
@@ -3942,7 +4190,7 @@ async function removeInternalCatalogApp(id: number) {
   $q.dialog({ title: "Remove internal app?", cancel: true, ok: { color: "negative" } }).onOk(async () => {
     try {
       await axios.delete(`/appmanagement/ssp/catalog/internal-files/${id}/`);
-      await loadInternalCatalogApps();
+      await Promise.all([loadInternalCatalogApps(), loadAppLifecycle()]);
       $q.notify({ message: "Removed", color: "positive" });
     } catch (e: any) {
       $q.notify({ message: e?.response?.data?.error || e?.message || "Delete failed", color: "negative" });
