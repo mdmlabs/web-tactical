@@ -475,6 +475,23 @@
             label="Emergency block storage"
             @click="emergencyUSB"
           />
+          <q-btn
+            color="primary"
+            outline
+            icon="schedule"
+            label="USB schedules"
+            @click="tab = 'peripheral-requests'"
+          />
+          <q-btn
+            flat
+            round
+            dense
+            icon="refresh"
+            @click="
+              loadUSB();
+              loadUSBEvents();
+            "
+          />
         </div>
         <q-table
           :rows="usbPolicies"
@@ -562,6 +579,59 @@
                   </q-chip>
                 </q-td>
               </template>
+        </q-table>
+
+        <q-separator class="q-my-md" />
+
+        <div class="row q-gutter-sm q-mb-sm items-center">
+          <div class="text-subtitle2">USB usage alerts</div>
+          <q-space />
+          <q-select
+            v-model="usbEventAgentFilter"
+            :options="agentOptions"
+            label="Agent"
+            dense
+            outlined
+            clearable
+            emit-value
+            map-options
+            style="min-width: 260px"
+            @update:model-value="loadUSBEvents"
+          />
+          <q-btn flat round dense icon="refresh" @click="loadUSBEvents" />
+        </div>
+        <q-table
+          :rows="usbEvents"
+          :columns="usbEventColumns"
+          dense
+          row-key="id"
+          :loading="loadingUSBEvents"
+          :rows-per-page-options="[10, 25, 50]"
+        >
+          <template v-slot:body-cell-severity="props">
+            <q-td :props="props">
+              <q-chip
+                dense
+                size="sm"
+                :color="severityColor(props.value)"
+                text-color="white"
+              >
+                {{ props.value }}
+              </q-chip>
+            </q-td>
+          </template>
+          <template v-slot:body-cell-status="props">
+            <q-td :props="props">
+              <q-chip
+                dense
+                size="sm"
+                :color="incidentStatusColor(props.value)"
+                text-color="white"
+              >
+                {{ props.value }}
+              </q-chip>
+            </q-td>
+          </template>
         </q-table>
       </q-tab-panel>
 
@@ -2924,6 +2994,8 @@ const selectedIncidents = ref<any[]>([]);
 const fimPolicies = ref<any[]>([]);
 const fimEvents = ref<any[]>([]);
 const usbPolicies = ref<any[]>([]);
+const usbEvents = ref<any[]>([]);
+const usbEventAgentFilter = ref<string | null>(null);
 const dlpPolicies = ref<any[]>([]);
 const healthSummary = ref<Record<string, number>>({});
 const incidentSummary = ref<any>({
@@ -2937,6 +3009,7 @@ const loadingIncidents = ref(false);
 const loadingFIM = ref(false);
 const loadingFIMEvents = ref(false);
 const loadingUSB = ref(false);
+const loadingUSBEvents = ref(false);
 const loadingDLP = ref(false);
 const dlpDialogOpen = ref(false);
 const editingDLP = ref<any>(null);
@@ -3457,6 +3530,25 @@ const usbColumns = [
   { name: "enabled", label: "Status", field: "enabled", align: "center" },
   { name: "actions", label: "", field: "actions", align: "right" },
 ];
+const usbEventColumns = [
+  { name: "occurred_at", label: "Occurred", field: "occurred_at", align: "left" },
+  { name: "agent_id", label: "Agent", field: "agent_id", align: "left" },
+  { name: "severity", label: "Severity", field: "severity", align: "center" },
+  {
+    name: "violation_type",
+    label: "Violation",
+    field: (row: any) => row.details?.violation_type || "usb_usage",
+    align: "center",
+  },
+  {
+    name: "device_class",
+    label: "Class",
+    field: (row: any) => row.details?.device_class || row.details?.pnp_class || "—",
+    align: "center",
+  },
+  { name: "title", label: "Title", field: "title", align: "left" },
+  { name: "status", label: "Status", field: "status", align: "center" },
+];
 const dlpColumns = [
   {
     name: "name",
@@ -3575,6 +3667,18 @@ async function loadUSB() {
     usbPolicies.value = (await axios.get("/security/usb/")).data;
   } finally {
     loadingUSB.value = false;
+  }
+}
+async function loadUSBEvents() {
+  loadingUSBEvents.value = true;
+  try {
+    const params: Record<string, string> = { incident_type: "unauthorized_usb" };
+    if (usbEventAgentFilter.value) {
+      params.agent_id = usbEventAgentFilter.value;
+    }
+    usbEvents.value = (await axios.get("/security/incidents/", { params })).data || [];
+  } finally {
+    loadingUSBEvents.value = false;
   }
 }
 async function loadDLP() {
@@ -3904,6 +4008,7 @@ async function deployUSB(policy: any) {
       color: "positive",
       icon: "send",
     });
+    await loadUSBEvents();
   } catch (e: any) {
     $q.notify({
       message: _apiErrMessage(e, "USB deploy failed"),
@@ -3947,6 +4052,7 @@ function emergencyUSB() {
         icon: "emergency",
       });
       await loadUSB();
+      await loadUSBEvents();
     } catch (e: any) {
       $q.notify({
         message: _apiErrMessage(e, "Emergency USB dispatch failed"),
@@ -4108,6 +4214,7 @@ onMounted(() => {
   loadFIMPolicies();
   loadFIMEvents();
   loadUSB();
+  loadUSBEvents();
   loadDLP();
   loadDLPViolations();
   loadDLPQuarantine();
