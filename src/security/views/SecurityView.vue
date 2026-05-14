@@ -17,7 +17,16 @@
       @open-graph-setup="openDLPGraphSetup"
     />
 
-    <q-tabs v-model="tab" dense class="q-mb-md" align="left" :breakpoint="0">
+    <q-tabs
+      v-model="tab"
+      dense
+      no-caps
+      outside-arrows
+      mobile-arrows
+      class="q-mb-md"
+      align="left"
+      :breakpoint="0"
+    >
       <q-tab
         name="health"
         :label="$t('security.views.SecurityView.767b92')"
@@ -2506,6 +2515,15 @@ const $q = useQuasar();
 const route = useRoute();
 const tab = ref("health");
 const fimTab = ref("policies");
+const tabByRouteName: Record<string, string> = {
+  SecurityCenter: "health",
+  SecurityPeripheralControls: "peripheral-requests",
+  SecurityPeripheralRequests: "peripheral-requests",
+  SecurityUsbControls: "usb",
+  SecurityMicrophoneControls: "mic-control",
+  Forensics: "forensics",
+  UEBA: "ueba",
+};
 
 // Performance chart data
 const chartAgentId = ref("");
@@ -2552,13 +2570,16 @@ async function loadAgentOptions() {
   }
 }
 
-function syncTabFromRoute(path: string) {
-  if (path.endsWith("/security/forensics")) {
-    tab.value = "forensics";
-  } else if (path.endsWith("/security/ueba")) {
-    tab.value = "ueba";
-  } else if (path.endsWith("/security")) {
-    tab.value = "health";
+function syncTabFromRoute() {
+  const routeName = String(route.name ?? "");
+  if (tabByRouteName[routeName]) {
+    tab.value = tabByRouteName[routeName];
+    return;
+  }
+
+  const queryTab = route.query.tab;
+  if (typeof queryTab === "string" && queryTab) {
+    tab.value = queryTab;
   }
 }
 
@@ -3629,7 +3650,7 @@ onUnmounted(() => {
   stopDLPTestWatch();
 });
 
-watch(() => route.path, syncTabFromRoute, { immediate: true });
+watch(() => route.fullPath, syncTabFromRoute, { immediate: true });
 
 // ===== Forensics & IR (func #765-773, #782-791) =====
 const showIsolateDialog = ref(false);

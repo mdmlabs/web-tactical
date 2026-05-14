@@ -188,6 +188,30 @@ const routes = [
         meta: { requireAuth: true },
       },
       {
+        path: "/security-center/peripheral-controls",
+        name: "SecurityPeripheralControls",
+        component: () => import("@/security/views/SecurityView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
+        path: "/security-center/peripheral-requests",
+        name: "SecurityPeripheralRequests",
+        component: () => import("@/security/views/SecurityView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
+        path: "/security-center/usb",
+        name: "SecurityUsbControls",
+        component: () => import("@/security/views/SecurityView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
+        path: "/security-center/microphone",
+        name: "SecurityMicrophoneControls",
+        component: () => import("@/security/views/SecurityView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
         path: "/geofence",
         name: "Geofence",
         component: () => import("@/security/views/GeofenceView.vue"),
