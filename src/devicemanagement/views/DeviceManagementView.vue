@@ -724,6 +724,13 @@
                 <span class="text-caption text-grey-7 q-ml-xs">{{ ws.disk_quota_mb }} MB</span>
               </div>
               <!-- Phase-4 DLP chips -->
+              <div v-if="ws.encrypt_storage || (ws.export_behavior && ws.export_behavior !== 'free') || (ws.clipboard_behavior && ws.clipboard_behavior !== 'free')" class="q-mt-xs">
+                <q-badge color="indigo">WIP analog</q-badge>
+                <q-badge color="blue-grey" class="q-ml-xs">agent sync</q-badge>
+              </div>
+              <div v-if="ws.encrypt_storage" class="q-mt-xs">
+                <q-badge color="deep-purple">at-rest encryption</q-badge>
+              </div>
               <div v-if="ws.export_behavior && ws.export_behavior !== 'free'" class="q-mt-xs">
                 <q-badge :color="ws.export_behavior === 'block' ? 'negative' : 'orange'">
                   Export: {{ ws.export_behavior }}
@@ -1466,8 +1473,8 @@
         </q-bar>
         <q-card-section class="q-gutter-md">
           <div class="text-caption text-grey-7">
-            Enforced by LaboratoGuard running in each end-user's desktop session.
-            Changes take effect on next <em>{{ $t('devicemanagement.views.DeviceManagementView.ab1e82') }}</em> {{ $t('devicemanagement.views.DeviceManagementView.f58326') }}
+            Enforced by the Windows agent WIP syncer and LaboratoGuard in the end-user desktop session.
+            Changes apply on the next agent poll or manual <em>{{ $t('devicemanagement.views.DeviceManagementView.ab1e82') }}</em>.
           </div>
           <q-select
             v-model="dlpEditForm.export_behavior"
