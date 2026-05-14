@@ -53,11 +53,24 @@
           <q-input v-model.number="form.notify_min_before" :label="$t('winadvanced.components.RebootPolicyPanel.4e7af0')" outlined dense type="number" min="0" />
           <q-select
             v-model="form.scope"
-            :options="[{label:'Global',value:'global'},{label:'Specific Device',value:'device'}]"
+            :options="scopeOptions"
             :label="$t('winadvanced.components.RebootPolicyPanel.4651a3')" outlined dense emit-value map-options
+            @update:model-value="onScopeChange"
           />
-          <q-input v-if="form.scope === 'device'" v-model="form.target_agent_id"
-            :label="$t('winadvanced.components.RebootPolicyPanel.ad08b5')" outlined dense />
+          <q-select
+            v-if="form.scope === 'device'"
+            v-model="form.target_agent_id"
+            :options="agentOptions"
+            :label="$t('winadvanced.components.RebootPolicyPanel.ad08b5')"
+            outlined dense emit-value map-options clearable
+          />
+          <q-select
+            v-if="form.scope === 'device_group'"
+            v-model="form.target_device_group_id"
+            :options="siteOptions"
+            label="Target device group"
+            outlined dense emit-value map-options clearable
+          />
           <q-toggle v-model="form.enabled" :label="$t('winadvanced.components.RebootPolicyPanel.df174a')" />
         </q-card-section>
         <q-card-actions align="right">
@@ -81,6 +94,8 @@ const loading = ref(false);
 const dialogOpen = ref(false);
 const editing = ref<any>(null);
 const saving = ref(false);
+const agentOptions = ref<{ label: string; value: string }[]>([]);
+const siteOptions = ref<{ label: string; value: number }[]>([]);
 
 const hours = Array.from({ length: 24 }, (_, i) => ({
   label: `${i.toString().padStart(2, "0")}:00`,
@@ -89,21 +104,72 @@ const hours = Array.from({ length: 24 }, (_, i) => ({
 
 const form = ref<any>({
   name: "Default Reboot Policy", work_hours_start: 9, work_hours_end: 18,
-  max_defer_days: 7, notify_min_before: 15, scope: "global", target_agent_id: "", enabled: false,
+  max_defer_days: 7, notify_min_before: 15, scope: "global", target_agent_id: "", target_device_group_id: null, enabled: false,
 });
+
+const scopeOptions = [
+  { label: "Global", value: "global" },
+  { label: "Specific Device", value: "device" },
+  { label: "Device Group", value: "device_group" },
+];
 
 const columns = [
   { name: "name", label: "Name", field: "name", align: "left" as const, sortable: true },
   { name: "hours", label: "Work Hours", field: "hours", align: "center" as const },
   { name: "max_defer_days", label: "Max Defer (days)", field: "max_defer_days", align: "center" as const },
   { name: "scope", label: "Scope", field: "scope", align: "center" as const },
+  { name: "target", label: "Target", field: targetLabel, align: "left" as const },
   { name: "enabled", label: "Status", field: "enabled", align: "center" as const },
   { name: "actions", label: "", field: "actions", align: "right" as const },
 ];
 
+function targetLabel(row: any) {
+  if (row.scope === "device") {
+    return agentOptions.value.find((option) => option.value === row.target_agent_id)?.label || row.target_agent_id || "No device";
+  }
+  if (row.scope === "device_group") {
+    return siteOptions.value.find((option) => option.value === row.target_device_group_id)?.label || `Device group #${row.target_device_group_id || "-"}`;
+  }
+  return "All matching Windows devices";
+}
+
+function onScopeChange(scope: string) {
+  form.value.scope = scope || "global";
+  if (form.value.scope !== "device") form.value.target_agent_id = "";
+  if (form.value.scope !== "device_group") form.value.target_device_group_id = null;
+}
+
+async function loadOptions() {
+  const [agentsResp, sitesResp] = await Promise.allSettled([
+    axios.get("/agents/", { params: { detail: "false" } }),
+    axios.get("/clients/sites/?leaf=true"),
+  ]);
+  if (agentsResp.status === "fulfilled") {
+    const list = Array.isArray(agentsResp.value.data) ? agentsResp.value.data : (agentsResp.value.data?.results ?? []);
+    agentOptions.value = list
+      .filter((agent: any) => agent?.agent_id)
+      .map((agent: any) => ({
+        value: agent.agent_id,
+        label: `${agent.hostname || agent.description || agent.agent_id} (${agent.agent_id})`,
+      }));
+  }
+  if (sitesResp.status === "fulfilled") {
+    const list = Array.isArray(sitesResp.value.data) ? sitesResp.value.data : (sitesResp.value.data?.results ?? []);
+    siteOptions.value = list
+      .filter((site: any) => site?.id !== undefined && site?.id !== null)
+      .map((site: any) => ({
+        value: site.id,
+        label: site.ancestors ? `${site.ancestors} / ${site.name}` : site.name || `Device group #${site.id}`,
+      }));
+  }
+}
+
 async function load() {
   loading.value = true;
-  try { policies.value = (await axios.get("/winadvanced/reboot-policy/")).data; }
+  try {
+    await loadOptions();
+    policies.value = (await axios.get("/winadvanced/reboot-policy/")).data;
+  }
   catch { policies.value = []; }
   finally { loading.value = false; }
 }
@@ -112,7 +178,7 @@ function showDialog(item?: any) {
   editing.value = item || null;
   form.value = item ? { ...item } : {
     name: "Default Reboot Policy", work_hours_start: 9, work_hours_end: 18,
-    max_defer_days: 7, notify_min_before: 15, scope: "global", target_agent_id: "", enabled: false,
+    max_defer_days: 7, notify_min_before: 15, scope: "global", target_agent_id: "", target_device_group_id: null, enabled: false,
   };
   dialogOpen.value = true;
 }
@@ -120,10 +186,13 @@ function showDialog(item?: any) {
 async function savePolicy() {
   saving.value = true;
   try {
+    const payload = { ...form.value };
+    if (payload.scope !== "device") payload.target_agent_id = "";
+    if (payload.scope !== "device_group") payload.target_device_group_id = null;
     if (editing.value) {
-      await axios.put(`/winadvanced/reboot-policy/${editing.value.id}/`, form.value);
+      await axios.put(`/winadvanced/reboot-policy/${editing.value.id}/`, payload);
     } else {
-      await axios.post("/winadvanced/reboot-policy/", form.value);
+      await axios.post("/winadvanced/reboot-policy/", payload);
     }
     dialogOpen.value = false;
     $q.notify({ message: "Policy saved", color: "positive", icon: "check" });
@@ -152,7 +221,7 @@ async function previewPolicy(row: any) {
 
 async function cancelPending(row: any) {
   try {
-    const body: any = { wait: true, timeout: 60 };
+    const body: any = { policy_id: row.id, wait: true, timeout: 60 };
     if (row.target_agent_id) body.agent_ids = [row.target_agent_id];
     const resp = await axios.post("/winadvanced/reboot-policy/cancel/", body);
     const first = resp.data?.results?.[0]?.result || "Cancel completed";

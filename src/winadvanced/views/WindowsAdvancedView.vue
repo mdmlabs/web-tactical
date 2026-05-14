@@ -732,11 +732,34 @@
           <q-toggle v-if="'enabled' in genericForm" v-model="genericForm.enabled" :label="$t('winadvanced.views.WindowsAdvancedView.df174a')" />
           <component :is="'div'" v-if="extraFields.length > 0">
             <template v-for="field in extraFields" :key="field.key">
-              <q-input v-if="field.type === 'text'" v-model="genericForm[field.key]" :label="field.label" outlined dense />
-              <q-input v-else-if="field.type === 'number'" v-model.number="genericForm[field.key]" :label="field.label" outlined dense type="number" />
-              <q-input v-else-if="field.type === 'textarea'" v-model="genericForm[field.key]" :label="field.label" outlined dense type="textarea" autogrow />
-              <q-select v-else-if="field.type === 'select'" v-model="genericForm[field.key]" :options="field.options" :label="field.label" outlined dense emit-value map-options />
-              <q-toggle v-else-if="field.type === 'toggle'" v-model="genericForm[field.key]" :label="field.label" />
+              <div v-if="shouldShowGenericField(field)" class="q-mb-sm">
+                <q-input v-if="field.type === 'text'" v-model="genericForm[field.key]" :label="field.label" outlined dense />
+                <q-input v-else-if="field.type === 'number'" v-model.number="genericForm[field.key]" :label="field.label" outlined dense type="number" />
+                <q-input v-else-if="field.type === 'textarea'" v-model="genericForm[field.key]" :label="field.label" outlined dense type="textarea" autogrow />
+                <q-select
+                  v-else-if="field.type === 'select'"
+                  v-model="genericForm[field.key]"
+                  :options="field.options"
+                  :label="field.label"
+                  outlined dense emit-value map-options
+                  @update:model-value="handleGenericFieldUpdate(field.key)"
+                />
+                <q-select
+                  v-else-if="field.type === 'agent-select'"
+                  v-model="genericForm[field.key]"
+                  :options="genericAgentOptions"
+                  :label="field.label"
+                  outlined dense emit-value map-options clearable
+                />
+                <q-select
+                  v-else-if="field.type === 'site-select'"
+                  v-model="genericForm[field.key]"
+                  :options="genericSiteOptions"
+                  :label="field.label"
+                  outlined dense emit-value map-options clearable
+                />
+                <q-toggle v-else-if="field.type === 'toggle'" v-model="genericForm[field.key]" :label="field.label" />
+              </div>
             </template>
           </component>
         </q-card-section>
@@ -813,6 +836,8 @@ const savingGeneric = ref(false);
 const genericForm = ref<any>({ name: "", enabled: true });
 const extraFields = ref<any[]>([]);
 const currentEndpoint = ref("");
+const genericAgentOptions = ref<{ label: string; value: string }[]>([]);
+const genericSiteOptions = ref<{ label: string; value: number }[]>([]);
 
 function vulnSevColor(sev: string) { return { critical: "negative", high: "deep-orange", medium: "warning", low: "info", info: "grey" }[sev] ?? "grey"; }
 function logLevelColor(level: string) { return { critical: "negative", error: "negative", warning: "warning", information: "info", verbose: "grey" }[level] ?? "grey"; }
@@ -982,7 +1007,46 @@ function openDialog(title: string, endpoint: string, item: any | null, form: any
   editingGeneric.value = item;
   genericForm.value = item ? { ...item } : { ...form };
   extraFields.value = fields;
+  if (fields.some((field) => field.type === "agent-select" || field.type === "site-select")) {
+    loadGenericTargetOptions();
+  }
   genericDialogOpen.value = true;
+}
+
+function shouldShowGenericField(field: any) {
+  if (!field.showWhen) return true;
+  return genericForm.value[field.showWhen.key] === field.showWhen.value;
+}
+
+function handleGenericFieldUpdate(key: string) {
+  if (key !== "scope") return;
+  if (genericForm.value.scope !== "device") genericForm.value.target_agent_id = "";
+  if (genericForm.value.scope !== "device_group") genericForm.value.target_device_group_id = null;
+}
+
+async function loadGenericTargetOptions() {
+  const [agentsResp, sitesResp] = await Promise.allSettled([
+    axios.get("/agents/", { params: { detail: "false" } }),
+    axios.get("/clients/sites/?leaf=true"),
+  ]);
+  if (agentsResp.status === "fulfilled") {
+    const list = Array.isArray(agentsResp.value.data) ? agentsResp.value.data : (agentsResp.value.data?.results ?? []);
+    genericAgentOptions.value = list
+      .filter((agent: any) => agent?.agent_id)
+      .map((agent: any) => ({
+        value: agent.agent_id,
+        label: `${agent.hostname || agent.description || agent.agent_id} (${agent.agent_id})`,
+      }));
+  }
+  if (sitesResp.status === "fulfilled") {
+    const list = Array.isArray(sitesResp.value.data) ? sitesResp.value.data : (sitesResp.value.data?.results ?? []);
+    genericSiteOptions.value = list
+      .filter((site: any) => site?.id !== undefined && site?.id !== null)
+      .map((site: any) => ({
+        value: site.id,
+        label: site.ancestors ? `${site.ancestors} / ${site.name}` : site.name || `Device group #${site.id}`,
+      }));
+  }
 }
 
 async function saveGeneric() {
@@ -1018,6 +1082,10 @@ async function saveGeneric() {
       delete payload.sources_csv;
       delete payload.log_names_csv;
       delete payload.levels_csv;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "scope")) {
+      if (payload.scope !== "device") payload.target_agent_id = "";
+      if (payload.scope !== "device_group") payload.target_device_group_id = null;
     }
     if (editingGeneric.value) {
       await axios.put(`${currentEndpoint.value}${editingGeneric.value.id}/`, payload);
@@ -1500,12 +1568,25 @@ const updateRingColumns = [
   { name: "defer_quality_update_days", label: "Quality Defer (days)", field: "defer_quality_update_days", align: "center" as const },
   { name: "include_driver_updates", label: "Drivers", field: "include_driver_updates", align: "center" as const },
   { name: "scope", label: "Scope", field: "scope", align: "center" as const },
+  { name: "target", label: "Target", field: updateRingTargetLabel, align: "left" as const },
   { name: "enabled", label: "Status", field: "enabled", align: "center" as const },
   { name: "actions", label: "", field: "actions", align: "right" as const },
 ];
+function updateRingTargetLabel(row: any) {
+  if (row.scope === "device") {
+    return genericAgentOptions.value.find((option) => option.value === row.target_agent_id)?.label || row.target_agent_id || "No device";
+  }
+  if (row.scope === "device_group") {
+    return genericSiteOptions.value.find((option) => option.value === row.target_device_group_id)?.label || `Device group #${row.target_device_group_id || "-"}`;
+  }
+  return "All matching Windows devices";
+}
 async function loadUpdateRings() {
   loadingUpdateRings.value = true;
-  try { updateRings.value = (await axios.get("/winadvanced/update-rings/")).data; }
+  try {
+    await loadGenericTargetOptions();
+    updateRings.value = (await axios.get("/winadvanced/update-rings/")).data;
+  }
   finally { loadingUpdateRings.value = false; }
 }
 function showUpdateRingDialog(item?: any) {
@@ -1513,13 +1594,32 @@ function showUpdateRingDialog(item?: any) {
     item ? "Edit Update Ring" : "New Update Ring",
     "/winadvanced/update-rings/",
     item || null,
-    { name: "", ring: "broad", defer_feature_update_days: 0, defer_quality_update_days: 0, include_driver_updates: true, enabled: true, scope: "global" },
+    {
+      name: "",
+      ring: "broad",
+      defer_feature_update_days: 0,
+      defer_quality_update_days: 0,
+      include_driver_updates: true,
+      enabled: true,
+      scope: "global",
+      target_agent_id: "",
+      target_device_group_id: null,
+    },
     [
       { key: "ring", label: "Ring Type", type: "select", options: [
         { label: "Pilot (Fast)", value: "pilot" },
         { label: "Broad (General)", value: "broad" },
         { label: "Critical (Slow)", value: "critical" },
       ]},
+      { key: "scope", label: "Scope", type: "select", options: [
+        { label: "Global", value: "global" },
+        { label: "Specific Device", value: "device" },
+        { label: "Device Group", value: "device_group" },
+      ]},
+      { key: "target_agent_id", label: "Target device", type: "agent-select", showWhen: { key: "scope", value: "device" } },
+      { key: "target_device_group_id", label: "Target device group", type: "site-select", showWhen: { key: "scope", value: "device_group" } },
+      { key: "defer_feature_update_days", label: "Feature update defer days", type: "number" },
+      { key: "defer_quality_update_days", label: "Quality update defer days", type: "number" },
       { key: "include_driver_updates", label: "Include driver updates", type: "toggle" },
     ],
   );
