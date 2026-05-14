@@ -49,6 +49,7 @@ import type * as operator_pb_types from "@/generated/operator_pb";
 import type * as user_service_pb_types from "@/generated/user_service_pb";
 import * as wrappers_pb from "google-protobuf/google/protobuf/wrappers_pb";
 import * as empty_pb from "google-protobuf/google/protobuf/empty_pb";
+import * as timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
 import * as agent_category_service_pb from "@/generated/agent_category_service_pb";
 import type * as agent_category_service_pb_types from "@/generated/agent_category_service_pb";
 import { AlertQueryServiceClient } from "@/generated/operator/Alerts_serviceServiceClientPb";
@@ -72,6 +73,14 @@ interface WindowWithEnv extends Window {
 
 function stripTrailingGrpcSlash(url: string): string {
   return url.replace(/\/$/, "");
+}
+
+function dateToProtobufTimestamp(d: Date): timestamp_pb.Timestamp {
+  const ts = new timestamp_pb.Timestamp();
+  const ms = d.getTime();
+  ts.setSeconds(Math.floor(ms / 1000));
+  ts.setNanos((ms % 1000) * 1_000_000);
+  return ts;
 }
 
 function grpcUrlFromRuntimeEnv(
@@ -459,6 +468,8 @@ export const agentServiceClientWrapper = {
     opts?: {
       requestedBy?: string;
       note?: string;
+      fromUtc?: Date;
+      toUtc?: Date;
     },
   ): Promise<export_pb_types.ExportResponse.AsObject> {
     const target = createPolicyTargetFromParams(targetType, targetParams);
@@ -471,6 +482,13 @@ export const agentServiceClientWrapper = {
       String(auth.displayName || auth.username || "").trim();
     req.setRequestedBy(requestedBy);
     req.setNote(opts?.note ?? "");
+
+    if (opts?.fromUtc != null && !Number.isNaN(opts.fromUtc.getTime())) {
+      req.setFromUtc(dateToProtobufTimestamp(opts.fromUtc));
+    }
+    if (opts?.toUtc != null && !Number.isNaN(opts.toUtc.getTime())) {
+      req.setToUtc(dateToProtobufTimestamp(opts.toUtc));
+    }
 
     const resp = await agentServiceClient.exportAgentStatus(
       req,
