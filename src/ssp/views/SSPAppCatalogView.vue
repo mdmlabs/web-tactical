@@ -6,7 +6,7 @@
     </div>
 
     <div class="row q-col-gutter-md q-mb-md">
-      <div class="col-12 col-md-4">
+      <div class="col-12 col-md-3">
         <q-select
           v-model="selectedDeviceId"
           :options="deviceOptions"
@@ -17,7 +17,7 @@
           :hint="deviceHint"
         />
       </div>
-      <div class="col-12 col-md-3">
+      <div class="col-12 col-md-2">
         <q-select
           v-model="categoryFilter"
           :options="catalogCategories"
@@ -25,13 +25,19 @@
           label="Category"
         />
       </div>
-      <div class="col-12 col-md-4">
+      <div class="col-12 col-md-3">
         <q-input
           v-model="search"
           dense outlined :placeholder="$t('ssp.views.SSPAppCatalogView.b5ac67')" clearable
         >
           <template v-slot:prepend><q-icon name="search" /></template>
         </q-input>
+      </div>
+      <div class="col-12 col-md-2">
+        <q-select v-model="sortMode" :options="sortOptions" dense outlined label="Sort" emit-value map-options />
+      </div>
+      <div class="col-12 col-md-2 row q-gutter-xs">
+        <q-btn dense outline color="primary" icon="download" label="Batch" :disable="selectedCatalogIds.length === 0" @click="requestSelected('install')" />
       </div>
     </div>
 
@@ -52,12 +58,18 @@
         class="col-12 col-sm-5 col-md-3 app-card"
       >
         <q-card-section>
-          <div class="row items-center q-mb-sm">
+          <div class="row items-start q-mb-sm no-wrap">
             <q-avatar color="primary" text-color="white" :icon="app.source === 'external' ? 'open_in_new' : 'apps'" size="40px" class="q-mr-sm" />
-            <div>
+            <div class="col">
               <div class="text-subtitle2">{{ app.name }}</div>
               <div class="text-caption text-grey">{{ app.category || "General" }} · {{ app.source === 'external' ? 'External link' : 'Internal app' }}</div>
             </div>
+            <q-checkbox
+              v-if="app.source !== 'external'"
+              :model-value="selectedCatalogIds.includes(app.catalog_id)"
+              dense
+              @update:model-value="(v) => toggleSelectedCatalog(app, v)"
+            />
           </div>
           <div class="text-caption text-grey ellipsis-2-lines">
             {{ app.description || "No description available." }}
@@ -66,11 +78,24 @@
             Version: {{ app.installed_version || app.version || "not installed" }}
             <span v-if="app.latest_version"> · Latest: {{ app.latest_version }}</span>
           </div>
+          <div v-if="app.average_rating || app.feedback_count" class="row items-center q-gutter-xs q-mt-xs text-caption text-grey">
+            <q-rating :model-value="Number(app.average_rating || 0)" readonly size="16px" color="amber" />
+            <span>{{ app.average_rating || 0 }}/5 · {{ app.feedback_count || 0 }} reviews</span>
+          </div>
           <div class="row q-gutter-xs q-mt-sm">
             <q-chip v-if="app.installed" dense color="positive" text-color="white" icon="check">Installed</q-chip>
             <q-chip v-if="app.update_available" dense color="warning" text-color="dark" icon="system_update">Update</q-chip>
             <q-chip v-if="app.force_update_required" dense color="negative" text-color="white" icon="priority_high">Required</q-chip>
             <q-chip v-if="app.approval_required === false" dense color="info" text-color="white" icon="flash_on">Auto</q-chip>
+            <q-chip v-if="app.license?.managed" dense :color="app.license.blocked ? 'negative' : 'secondary'" text-color="white" icon="verified_user">
+              {{ app.license.seats_available }}/{{ app.license.seats_total }} seats
+            </q-chip>
+          </div>
+          <div v-if="app.changelog && app.update_available" class="text-caption q-mt-xs">
+            {{ app.changelog }}
+          </div>
+          <div v-if="app.request_count" class="text-caption text-grey q-mt-xs">
+            Requests {{ app.request_count }} · Installed {{ app.installed_count || 0 }} · Failed {{ app.failed_count || 0 }}
           </div>
           <div class="text-caption text-grey q-mt-xs" v-if="app.retirement_date">
             Retirement: {{ app.retirement_date }}
@@ -91,19 +116,20 @@
             v-else-if="isActionIdle(app) && !app.installed"
             flat dense color="primary" icon="download"
             :label="$t('ssp.views.SSPAppCatalogView.7fb1c1')"
-            @click="requestInstall(app, 'install')"
+            :disable="app.license?.blocked"
+            @click="openRequestDialog(app, 'install')"
           />
           <q-btn
             v-if="app.source !== 'external' && isActionIdle(app) && app.installed && app.update_available"
             flat dense color="primary" icon="system_update_alt"
             label="Update"
-            @click="requestInstall(app, 'update')"
+            @click="openRequestDialog(app, 'update')"
           />
           <q-btn
             v-if="app.source !== 'external' && isActionIdle(app) && app.installed"
             flat dense color="negative" icon="delete"
             label="Uninstall"
-            @click="requestInstall(app, 'uninstall')"
+            @click="openRequestDialog(app, 'uninstall')"
           />
           <q-chip v-if="getAppStatus(app) === 'pending'" dense color="warning" text-color="dark" icon="hourglass_empty">
             {{ $t('ssp.views.SSPAppCatalogView.25d1b4') }}
@@ -134,8 +160,49 @@
             </q-chip>
           </q-td>
         </template>
+        <template v-slot:body-cell-actions="props">
+          <q-td :props="props">
+            <q-btn
+              flat dense round color="secondary" icon="rate_review"
+              :disable="!['installed', 'removed', 'failed'].includes(props.row.status)"
+              @click="openFeedbackForRequest(props.row)"
+            >
+              <q-tooltip>Send install feedback</q-tooltip>
+            </q-btn>
+          </q-td>
+        </template>
       </q-table>
     </div>
+
+    <q-dialog v-model="requestDialogOpen" persistent>
+      <q-card style="min-width: 460px; max-width: 95vw">
+        <q-bar>
+          {{ requestActionLabel }} {{ requestTarget?.name }}
+          <q-space />
+          <q-btn dense flat icon="close" v-close-popup />
+        </q-bar>
+        <q-card-section class="q-gutter-sm">
+          <div v-if="selectedDevice" class="text-caption text-grey">
+            Target: {{ selectedDevice.device_name }} · Agent {{ selectedDevice.agent_id }}
+          </div>
+          <q-banner v-if="requestTarget?.force_update_required && requestType === 'update'" dense class="bg-orange-1 text-dark">
+            Critical update required. IT may force this update if it remains pending.
+          </q-banner>
+          <q-input v-model="requestJustification" outlined dense type="textarea" autogrow label="Business reason / note" />
+          <q-input v-model="requestScheduledFor" outlined dense type="datetime-local" label="Run at" clearable />
+          <div v-if="requestTarget?.changelog" class="text-caption">
+            {{ requestTarget.changelog }}
+          </div>
+          <div v-if="requestTarget?.license?.managed" class="text-caption text-grey">
+            License seats: {{ requestTarget.license.seats_available }}/{{ requestTarget.license.seats_total }} available
+          </div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn color="primary" :label="requestTarget?.approval_required === false ? 'Start' : 'Request'" :loading="submittingRequest" @click="submitRequestDialog" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
     <q-dialog v-model="feedbackDialogOpen">
       <q-card style="min-width: 420px">
@@ -146,6 +213,7 @@
         </q-bar>
         <q-card-section class="q-gutter-md">
           <div class="text-subtitle2">{{ feedbackTarget?.name }}</div>
+          <q-select v-model="feedbackType" :options="feedbackTypeOptions" outlined dense label="Type" />
           <q-rating v-model="feedbackRating" size="28px" color="amber" icon="star_border" icon-selected="star" />
           <q-input v-model="feedbackComment" type="textarea" outlined dense label="Comment" autogrow />
         </q-card-section>
@@ -172,21 +240,48 @@ const apps = ref<any[]>([]);
 const myRequests = ref<any[]>([]);
 const myDevices = ref<any[]>([]);
 const selectedDeviceId = ref<number | null>(null);
+const selectedCatalogIds = ref<string[]>([]);
 const categoryFilter = ref("All");
+const sortMode = ref("name");
 const catalogCategoriesFromApi = ref<string[]>([]);
+const requestDialogOpen = ref(false);
+const requestTarget = ref<any | null>(null);
+const requestType = ref("install");
+const requestJustification = ref("");
+const requestScheduledFor = ref("");
+const submittingRequest = ref(false);
 const feedbackDialogOpen = ref(false);
 const feedbackTarget = ref<any | null>(null);
+const feedbackRequest = ref<any | null>(null);
+const feedbackType = ref("Review");
 const feedbackRating = ref(5);
 const feedbackComment = ref("");
 const submittingFeedback = ref(false);
 
 const filteredApps = computed(() => {
-  if (!search.value) return apps.value;
-  const q = search.value.toLowerCase();
-  return apps.value.filter((a) =>
-    a.name?.toLowerCase().includes(q) || a.description?.toLowerCase().includes(q)
-  );
+  let rows = apps.value;
+  if (search.value) {
+    const q = search.value.toLowerCase();
+    rows = rows.filter((a) =>
+      a.name?.toLowerCase().includes(q) || a.description?.toLowerCase().includes(q)
+    );
+  }
+  return [...rows].sort((a, b) => {
+    if (sortMode.value === "rating") return Number(b.average_rating || 0) - Number(a.average_rating || 0);
+    if (sortMode.value === "popular") return Number(b.request_count || 0) - Number(a.request_count || 0);
+    if (sortMode.value === "updates") return Number(!!b.update_available) - Number(!!a.update_available);
+    return String(a.name || "").localeCompare(String(b.name || ""));
+  });
 });
+
+const sortOptions = [
+  { label: "Name", value: "name" },
+  { label: "Rating", value: "rating" },
+  { label: "Popularity", value: "popular" },
+  { label: "Updates", value: "updates" },
+];
+
+const feedbackTypeOptions = ["Review", "Install issue", "Crash report", "Request help", "Uninstall reason"];
 
 const requestColumns = [
   { name: "app_name", label: "App", field: "app_name", align: "left" as const },
@@ -194,6 +289,7 @@ const requestColumns = [
   { name: "device_name", label: "Device", field: "device_name", align: "left" as const },
   { name: "status", label: "Status", field: "status", align: "center" as const },
   { name: "requested_at", label: "Requested", field: "requested_at", align: "left" as const },
+  { name: "actions", label: "", field: "actions", align: "right" as const },
 ];
 
 const catalogCategories = computed(() => {
@@ -219,6 +315,15 @@ const deviceHint = computed(() => {
   return `Agent ${selectedDevice.value.agent_id}`;
 });
 
+const requestActionLabel = computed(() => {
+  const labels: Record<string, string> = {
+    install: "Install",
+    update: "Update",
+    uninstall: "Uninstall",
+  };
+  return labels[requestType.value] || "Request";
+});
+
 function getAppStatus(app: any): string {
   const req = myRequests.value.find((r) =>
     (r.catalog_id && r.catalog_id === app.catalog_id)
@@ -229,13 +334,14 @@ function getAppStatus(app: any): string {
 }
 
 function isActionIdle(app: any): boolean {
-  return !["pending", "approved", "installing"].includes(getAppStatus(app));
+  return !["pending", "approved", "scheduled", "installing"].includes(getAppStatus(app));
 }
 
 function statusColor(status: string) {
   return {
     pending: "warning",
     approved: "positive",
+    scheduled: "secondary",
     denied: "negative",
     installing: "info",
     installed: "positive",
@@ -279,58 +385,107 @@ async function loadMyDevices() {
   }
 }
 
-async function requestInstall(app: any, requestType = "install") {
+function toggleSelectedCatalog(app: any, checked: boolean) {
+  const id = String(app.catalog_id || "");
+  if (!id) return;
+  if (checked && !selectedCatalogIds.value.includes(id)) {
+    selectedCatalogIds.value.push(id);
+  } else if (!checked) {
+    selectedCatalogIds.value = selectedCatalogIds.value.filter((item) => item !== id);
+  }
+}
+
+function openRequestDialog(app: any, action = "install") {
   if (myDevices.value.length === 0) {
     $q.notify({ message: "Please enroll a device first before requesting apps.", color: "warning" });
     return;
   }
-
   const device = selectedDevice.value;
   if (!device || !device.agent_id) {
     $q.notify({ message: "Choose a managed device before requesting apps.", color: "warning" });
     return;
   }
+  requestTarget.value = app;
+  requestType.value = action;
+  requestJustification.value = "";
+  requestScheduledFor.value = "";
+  requestDialogOpen.value = true;
+}
 
-  const actionLabels: Record<string, string> = {
-    install: "Install",
-    update: "Update",
-    uninstall: "Uninstall",
-  };
-  const label = actionLabels[requestType] || "Install";
-
-  $q.dialog({
-    title: `${label} "${app.name}"?`,
-    message: `Request ${label.toLowerCase()} of ${app.name} on your device "${device.device_name}".`,
-    cancel: true,
-    ok: { label: app.approval_required === false ? "Start" : "Request", color: requestType === "uninstall" ? "negative" : "primary" },
-  }).onOk(async () => {
-    try {
-      await axios.post("/appmanagement/ssp/install-requests/", {
-        app_id: app.id,
-        catalog_id: app.catalog_id,
-        app_name: app.name,
-        device_id: device.id,
-        device_name: device.device_name,
-        agent_id: device.agent_id,
-        request_type: requestType,
-        status: "pending",
-      });
-      $q.notify({
-        message: app.approval_required === false ? `${label} started.` : `${label} request submitted. IT will review and approve.`,
-        color: "positive",
-        icon: "check",
-      });
-      await loadMyRequests();
-      await loadCatalog();
-    } catch {
-      $q.notify({ message: "Failed to submit request", color: "negative" });
-    }
+async function submitRequest(app: any, action = "install") {
+  const device = selectedDevice.value;
+  if (!device || !device.agent_id) throw new Error("Choose a managed device before requesting apps.");
+  await axios.post("/appmanagement/ssp/install-requests/", {
+    app_id: app.id,
+    catalog_id: app.catalog_id,
+    app_name: app.name,
+    device_id: device.id,
+    device_name: device.device_name,
+    agent_id: device.agent_id,
+    request_type: action,
+    status: "pending",
+    user_justification: requestJustification.value,
+    scheduled_for: requestScheduledFor.value || null,
   });
+}
+
+async function submitRequestDialog() {
+  if (!requestTarget.value) return;
+  submittingRequest.value = true;
+  try {
+    await submitRequest(requestTarget.value, requestType.value);
+    const label = requestActionLabel.value;
+    requestDialogOpen.value = false;
+    $q.notify({
+      message: requestTarget.value.approval_required === false ? `${label} started.` : `${label} request submitted. IT will review and approve.`,
+      color: "positive",
+      icon: "check",
+    });
+    await loadMyRequests();
+    await loadCatalog();
+  } catch (e: any) {
+    $q.notify({ message: e?.response?.data?.error || e?.message || "Failed to submit request", color: "negative" });
+  } finally {
+    submittingRequest.value = false;
+  }
+}
+
+async function requestSelected(action = "install") {
+  const selected = apps.value.filter((app) => selectedCatalogIds.value.includes(app.catalog_id));
+  if (!selected.length) return;
+  submittingRequest.value = true;
+  try {
+    let count = 0;
+    for (const app of selected) {
+      const itemAction = action === "install" && app.installed && app.update_available ? "update" : action;
+      await submitRequest(app, itemAction);
+      count += 1;
+    }
+    selectedCatalogIds.value = [];
+    $q.notify({ message: `${count} request(s) submitted`, color: "positive", icon: "check" });
+    await loadMyRequests();
+    await loadCatalog();
+  } catch (e: any) {
+    $q.notify({ message: e?.response?.data?.error || e?.message || "Batch request failed", color: "negative" });
+  } finally {
+    submittingRequest.value = false;
+  }
 }
 
 function openFeedback(app: any) {
   feedbackTarget.value = app;
+  feedbackRequest.value = null;
+  feedbackType.value = "Review";
   feedbackRating.value = 5;
+  feedbackComment.value = "";
+  feedbackDialogOpen.value = true;
+}
+
+function openFeedbackForRequest(row: any) {
+  feedbackTarget.value = { name: row.app_name, catalog_id: row.catalog_id, id: row.app_id };
+  feedbackRequest.value = row;
+  feedbackType.value = row.status === "failed" ? "Install issue" : row.request_type === "uninstall" ? "Uninstall reason" : "Review";
+  feedbackRating.value = row.status === "failed" ? 2 : 5;
   feedbackComment.value = "";
   feedbackDialogOpen.value = true;
 }
@@ -340,8 +495,10 @@ async function submitFeedback() {
   submittingFeedback.value = true;
   try {
     await axios.post("/appmanagement/ssp/feedback/", {
+      request_id: feedbackRequest.value?.id || null,
+      catalog_id: feedbackTarget.value.catalog_id,
       subject: feedbackTarget.value.name,
-      type: "App Catalog",
+      type: feedbackType.value,
       rating: feedbackRating.value,
       message: feedbackComment.value,
     });

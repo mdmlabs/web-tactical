@@ -593,6 +593,39 @@
           <q-card-section>
             <div class="row items-center justify-between q-mb-md">
               <div>
+                <div class="text-subtitle2">App feedback</div>
+                <div class="text-caption text-grey">Ratings, install issues, crash reports, and admin replies from the self-service catalog.</div>
+              </div>
+              <q-btn flat color="primary" icon="refresh" label="Refresh" @click="loadSspFeedback" />
+            </div>
+            <q-table :rows="sspFeedback" :columns="sspFeedbackColumns" dense row-key="id" :loading="loadingSspFeedback">
+              <template v-slot:body-cell-rating="props">
+                <q-td :props="props">
+                  <q-rating :model-value="Number(props.row.rating || 0)" readonly size="16px" color="amber" />
+                </q-td>
+              </template>
+              <template v-slot:body-cell-status="props">
+                <q-td :props="props">
+                  <q-chip dense :color="feedbackStatusColor(props.row.status)" text-color="white">
+                    {{ props.row.status }}
+                  </q-chip>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-actions="props">
+                <q-td :props="props">
+                  <q-btn flat dense round icon="reply" color="primary" @click="replySspFeedback(props.row)">
+                    <q-tooltip>Reply / update status</q-tooltip>
+                  </q-btn>
+                </q-td>
+              </template>
+            </q-table>
+          </q-card-section>
+        </q-card>
+
+        <q-card flat bordered class="q-mt-lg">
+          <q-card-section>
+            <div class="row items-center justify-between q-mb-md">
+              <div>
                 <div class="text-subtitle2">Right and policy requests</div>
                 <div class="text-caption text-grey">Review employee requests for access rights, policy exceptions, apps, network, and workspace access.</div>
               </div>
@@ -1068,16 +1101,19 @@
             <q-bar>{{ editingInternalCatalogApp ? 'Edit internal app' : 'Add internal app' }}<q-space /><q-btn dense flat icon="close" v-close-popup /></q-bar>
             <q-card-section class="q-gutter-sm">
               <q-input v-model="internalCatalogForm.name" label="Name" outlined dense />
-              <q-input v-model="internalCatalogForm.description" label="Description" outlined dense />
+              <q-input v-model="internalCatalogForm.description" label="Description" outlined dense type="textarea" autogrow />
               <q-input v-model="internalCatalogForm.category" label="Category" outlined dense />
               <div class="row q-col-gutter-sm">
                 <div class="col-6"><q-input v-model="internalCatalogForm.version" label="Version" outlined dense /></div>
                 <div class="col-6"><q-input v-model="internalCatalogForm.latest_version" label="Latest version" outlined dense /></div>
               </div>
+              <q-input v-model="internalCatalogForm.changelog" label="Update changelog / release notes" outlined dense type="textarea" autogrow />
+              <q-input v-model="internalCatalogForm.system_requirements" label="System requirements" outlined dense type="textarea" autogrow />
               <div class="row q-col-gutter-sm">
                 <div class="col-6"><q-input v-model="internalCatalogForm.platform" label="Platform" outlined dense /></div>
                 <div class="col-6"><q-input v-model="internalCatalogForm.retirement_date" label="Retirement date" outlined dense type="date" /></div>
               </div>
+              <q-input v-model="internalCatalogForm.license_label" label="License label" outlined dense placeholder="Corporate / Freeware / Shareware" />
               <div class="row q-col-gutter-sm">
                 <div class="col-6"><q-input v-model="internalCatalogForm.installer" label="Installer" outlined dense placeholder="choco / winget / rawcmd" /></div>
                 <div class="col-6"><q-input v-model="internalCatalogForm.package_id" label="Package ID" outlined dense /></div>
@@ -1700,6 +1736,7 @@ const sspDevices = ref<any[]>([]);
 const sspPortalUsers = ref<any[]>([]);
 const sspEnrollmentPolicies = ref<any[]>([]);
 const sspInstallRequests = ref<any[]>([]);
+const sspFeedback = ref<any[]>([]);
 const sspSettings = ref<any>(defaultSspSettings());
 const sspExtraProfilesText = ref("{}");
 const sspRightRequests = ref<any[]>([]);
@@ -1725,6 +1762,7 @@ const loadingSsp = ref(false);
 const loadingPortalUsers = ref(false);
 const loadingEnrollmentPolicies = ref(false);
 const loadingSspInstallRequests = ref(false);
+const loadingSspFeedback = ref(false);
 const savingSspSettings = ref(false);
 const loadingSspRights = ref(false);
 const loadingSspActions = ref(false);
@@ -2104,6 +2142,16 @@ const sspInstallRequestColumns = [
   { name: "user_id", label: "User ID", field: "user_id", align: "center" },
   { name: "status", label: "Status", field: "status", align: "left" },
   { name: "requested_at", label: "Requested", field: "requested_at", align: "left", sortable: true },
+  { name: "actions", label: "", field: "actions", align: "right" },
+];
+const sspFeedbackColumns = [
+  { name: "app_name", label: "App", field: "app_name", align: "left", sortable: true },
+  { name: "feedback_type", label: "Type", field: "feedback_type", align: "left" },
+  { name: "rating", label: "Rating", field: "rating", align: "center" },
+  { name: "message", label: "Message", field: "message", align: "left" },
+  { name: "status", label: "Status", field: "status", align: "center" },
+  { name: "admin_reply", label: "Reply", field: "admin_reply", align: "left" },
+  { name: "submitted_at", label: "Submitted", field: "submitted_at", align: "left", sortable: true },
   { name: "actions", label: "", field: "actions", align: "right" },
 ];
 const sspRightRequestColumns = [
@@ -2495,6 +2543,18 @@ async function loadSspInstallRequests() {
   } finally { loadingSspInstallRequests.value = false; }
 }
 
+async function loadSspFeedback() {
+  loadingSspFeedback.value = true;
+  try {
+    sspFeedback.value = (await axios.get("/appmanagement/ssp/feedback/")).data || [];
+  } catch (e: any) {
+    sspFeedback.value = [];
+    $q.notify({ message: e?.response?.data?.error || e?.message || "Failed to load SSP feedback", color: "negative" });
+  } finally {
+    loadingSspFeedback.value = false;
+  }
+}
+
 function defaultSspExtraProfiles() {
   return {
     database: {
@@ -2630,10 +2690,20 @@ function installRequestStatusColor(status: string) {
   return {
     pending: "warning",
     approved: "info",
+    scheduled: "secondary",
     installing: "primary",
     denied: "negative",
     installed: "positive",
     failed: "negative",
+  }[status] || "grey";
+}
+
+function feedbackStatusColor(status: string) {
+  return {
+    open: "warning",
+    acknowledged: "info",
+    resolved: "positive",
+    closed: "grey",
   }[status] || "grey";
 }
 
@@ -2741,6 +2811,37 @@ async function reviewSspInstallRequest(row: any, status: string) {
   } catch (e: any) {
     $q.notify({ message: e?.response?.data?.error || e?.message || "Review failed", color: "negative" });
   }
+}
+
+function replySspFeedback(row: any) {
+  $q.dialog({
+    title: `Reply to ${row.app_name}`,
+    message: row.message || "User feedback",
+    prompt: { model: row.admin_reply || "", label: "Admin reply", type: "textarea" },
+    options: {
+      type: "radio",
+      model: row.status || "acknowledged",
+      items: [
+        { label: "Acknowledged", value: "acknowledged" },
+        { label: "Resolved", value: "resolved" },
+        { label: "Closed", value: "closed" },
+      ],
+    },
+    cancel: true,
+    ok: { label: "Save", color: "primary" },
+  }).onOk(async (data: any) => {
+    try {
+      const resp = await axios.patch(`/appmanagement/ssp/feedback/${row.id}/`, {
+        admin_reply: data.prompt,
+        status: data.opt,
+      });
+      Object.assign(row, resp.data || {});
+      $q.notify({ message: "Feedback updated", color: "positive", icon: "check" });
+      await loadSspFeedback();
+    } catch (e: any) {
+      $q.notify({ message: e?.response?.data?.error || e?.message || "Feedback update failed", color: "negative" });
+    }
+  });
 }
 
 async function reviewSspRightRequest(row: any, status: string) {
@@ -3648,6 +3749,7 @@ onMounted(() => {
   loadPortalUsers();
   loadEnrollmentPolicies();
   loadSspInstallRequests();
+  loadSspFeedback();
   loadSspRightRequests();
   loadSspActions();
   loadSspInfoPortalAdmin();
@@ -3779,6 +3881,9 @@ function defaultInternalCatalogForm() {
     latest_version: "",
     force_update_required: false,
     retirement_date: "",
+    changelog: "",
+    license_label: "",
+    system_requirements: "",
   };
 }
 
