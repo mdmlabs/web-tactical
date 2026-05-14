@@ -474,8 +474,28 @@
                   </q-chip>
                 </q-td>
               </template>
+              <template v-slot:body-cell-zero_touch="props">
+                <q-td :props="props">
+                  <q-chip dense :color="zeroTouchColor(props.row.zero_touch)" text-color="white">
+                    {{ zeroTouchLabel(props.row.zero_touch) }}
+                  </q-chip>
+                  <div v-if="props.row.zero_touch?.required_apps?.length" class="text-caption text-grey q-mt-xs">
+                    Apps {{ zeroTouchInstalledApps(props.row.zero_touch) }}/{{ props.row.zero_touch.required_apps.length }}
+                  </div>
+                  <div v-if="props.row.zero_touch?.health" class="text-caption text-grey">
+                    Health {{ props.row.zero_touch.health.status }}
+                  </div>
+                </q-td>
+              </template>
               <template v-slot:body-cell-actions="props">
                 <q-td :props="props">
+                  <q-btn
+                    flat dense round icon="how_to_reg" size="sm" color="positive"
+                    :disable="!props.row.zero_touch?.can_handoff"
+                    @click="markZeroTouchHandoff(props.row)"
+                  >
+                    <q-tooltip>Mark zero-touch handoff complete</q-tooltip>
+                  </q-btn>
                   <q-btn flat dense round icon="delete" size="sm" color="negative" @click="deleteItem('ssp', props.row.id)" :title="$t('appmanagement.views.AppManagementView.479e24')" />
                 </q-td>
               </template>
@@ -1901,6 +1921,24 @@ function enrollmentTargetLabel(row: any) {
   return "All users";
 }
 
+function zeroTouchLabel(zt: any) {
+  const stage = String(zt?.stage || "pending").replace(/_/g, " ");
+  return stage.charAt(0).toUpperCase() + stage.slice(1);
+}
+
+function zeroTouchColor(zt: any) {
+  const stage = zt?.stage;
+  if (stage === "handed_off" || zt?.ready) return "positive";
+  if (stage === "failed") return "negative";
+  if (["configured", "apps_installed", "compliant"].includes(stage)) return "primary";
+  if (["linked", "enrolled", "installer_ready"].includes(stage)) return "warning";
+  return "grey";
+}
+
+function zeroTouchInstalledApps(zt: any) {
+  return (zt?.required_apps || []).filter((row: any) => row.installed).length;
+}
+
 const installedAppColumns = [
   { name: "name", label: "Application", field: "name", align: "left", sortable: true },
   { name: "version", label: "Version", field: "version", align: "left", sortable: true },
@@ -1983,6 +2021,7 @@ const sspColumns = [
   { name: "device_type", label: "Type", field: "device_type", align: "left" },
   { name: "os_info", label: "OS", field: "os_info", align: "left" },
   { name: "enrollment_status", label: "Enrollment", field: "enrollment_status", align: "center" },
+  { name: "zero_touch", label: "Zero Touch", field: "zero_touch", align: "left" },
   { name: "is_active", label: "Status", field: "is_active", align: "center" },
   { name: "enrolled_at", label: "Enrolled", field: "enrolled_at", align: "left", sortable: true },
   { name: "actions", label: "", field: "actions", align: "right" },
@@ -2274,6 +2313,18 @@ async function loadSsp() {
     sspDevices.value = [];
     $q.notify({ message: e?.response?.data?.error || e?.message || "Failed to load SSP devices", color: "negative" });
   } finally { loadingSsp.value = false; }
+}
+
+async function markZeroTouchHandoff(row: any) {
+  try {
+    const resp = await axios.post(`/appmanagement/zero-touch/devices/${row.id}/handoff/`);
+    const updated = resp.data;
+    const idx = sspDevices.value.findIndex((item: any) => item.id === row.id);
+    if (idx >= 0) sspDevices.value.splice(idx, 1, { ...sspDevices.value[idx], ...updated });
+    $q.notify({ message: "Zero-touch handoff marked complete", color: "positive" });
+  } catch (e: any) {
+    $q.notify({ message: e?.response?.data?.error || e?.message || "Failed to mark handoff", color: "negative" });
+  }
 }
 
 async function loadPortalUsers() {
