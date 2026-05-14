@@ -1596,6 +1596,54 @@
                     @click="saveScanPolicy"
                   />
                 </div>
+                <q-separator class="q-my-md" />
+                <div class="text-subtitle2 q-mb-sm">
+                  Credential breach response
+                </div>
+                <q-select
+                  v-model="credentialRiskForm.agent_id"
+                  :options="agentOptions"
+                  emit-value
+                  map-options
+                  label="Device"
+                  outlined
+                  dense
+                />
+                <q-input
+                  v-model="credentialRiskForm.username"
+                  label="User"
+                  outlined
+                  dense
+                  class="q-mt-sm"
+                />
+                <q-input
+                  v-model.number="credentialRiskForm.risk_score"
+                  type="number"
+                  min="0"
+                  max="100"
+                  label="Risk score"
+                  outlined
+                  dense
+                  class="q-mt-sm"
+                />
+                <q-select
+                  v-model="credentialRiskForm.response_action"
+                  :options="credentialRiskActionOptions"
+                  emit-value
+                  map-options
+                  label="Response"
+                  outlined
+                  dense
+                  class="q-mt-sm"
+                />
+                <q-btn
+                  color="negative"
+                  icon="lock"
+                  label="Send credential risk event"
+                  class="q-mt-sm"
+                  :disable="!credentialRiskForm.agent_id"
+                  @click="sendCredentialRiskEvent"
+                />
               </div>
             </div>
           </q-card-section>
@@ -4533,6 +4581,19 @@ const scanPolicy = ref({
   autoAlert: true,
   autoBlock: false,
 });
+const credentialRiskForm = ref({
+  agent_id: "",
+  username: "",
+  risk_score: 95,
+  response_action: "lock",
+});
+const credentialRiskActionOptions = [
+  { label: "Monitor only", value: "monitor" },
+  { label: "Lock device", value: "lock" },
+  { label: "Block org access", value: "block_access" },
+  { label: "Selective wipe", value: "wipe_selective" },
+  { label: "Full wipe", value: "wipe_full" },
+];
 
 async function loadUEBA() {
   loadingUEBA.value = true;
@@ -4613,6 +4674,29 @@ async function saveScanPolicy() {
   } catch (e: any) {
     $q.notify({
       message: _apiErrMessage(e, "Failed to save scan policy"),
+      color: "negative",
+    });
+  }
+}
+
+async function sendCredentialRiskEvent() {
+  try {
+    const response = await axios.post("/security/credential-risk/events/", {
+      ...credentialRiskForm.value,
+      source: "admin_live_test",
+      event_count: 1,
+      window: "manual",
+    });
+    $q.notify({
+      message: `Credential risk handled: ${response.data.action}`,
+      color: response.data.dispatched ? "positive" : "warning",
+      icon: response.data.dispatched ? "lock" : "visibility",
+    });
+    await loadIncidents();
+    await loadUEBA();
+  } catch (e: any) {
+    $q.notify({
+      message: _apiErrMessage(e, "Failed to send credential risk event"),
       color: "negative",
     });
   }
