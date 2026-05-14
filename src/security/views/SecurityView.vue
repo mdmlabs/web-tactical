@@ -1293,6 +1293,13 @@
               @click="promptIsolateDevice"
             />
             <q-btn
+              color="deep-orange"
+              outline
+              icon="rule"
+              label="Non-compliance carve"
+              @click="showNonComplianceForensicWizard"
+            />
+            <q-btn
               color="warning"
               icon="collecting_bag"
               :label="$t('security.views.SecurityView.4d9904')"
@@ -1381,6 +1388,32 @@
                   >
                 </q-td>
               </template>
+              <template v-slot:body-cell-only_non_compliant="props">
+                <q-td :props="props">
+                  <q-chip
+                    dense
+                    size="sm"
+                    :color="props.value ? 'deep-orange' : 'grey'"
+                    text-color="white"
+                  >
+                    {{ props.value ? "Non-compliant only" : "Any status" }}
+                  </q-chip>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-artifact_count="props">
+                <q-td :props="props">
+                  {{ props.row.artifacts?.length || 0 }}
+                </q-td>
+              </template>
+              <template v-slot:body-cell-manifest_sha256="props">
+                <q-td :props="props">
+                  <span v-if="props.value">
+                    {{ props.value.slice(0, 12) }}...
+                    <q-tooltip>{{ props.value }}</q-tooltip>
+                  </span>
+                  <span v-else>—</span>
+                </q-td>
+              </template>
               <template v-slot:body-cell-actions="props">
                 <q-td :props="props">
                   <q-btn
@@ -1409,6 +1442,16 @@
                     @click="downloadForensicToolExport(props.row, 'autopsy')"
                   >
                     <q-tooltip>Download Autopsy manifest</q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    flat
+                    dense
+                    icon="verified_user"
+                    size="sm"
+                    color="positive"
+                    @click="downloadForensicToolExport(props.row, 'chain_of_custody')"
+                  >
+                    <q-tooltip>Download chain-of-custody manifest</q-tooltip>
                   </q-btn>
                   <q-btn
                     flat
@@ -4294,6 +4337,24 @@ const forensicColumns = [
     field: "approval_status",
     align: "left",
   },
+  {
+    name: "only_non_compliant",
+    label: "Trigger",
+    field: "only_non_compliant",
+    align: "center",
+  },
+  {
+    name: "artifact_count",
+    label: "Artifacts",
+    field: (row: any) => row.artifacts?.length || 0,
+    align: "center",
+  },
+  {
+    name: "manifest_sha256",
+    label: "Manifest SHA-256",
+    field: "manifest_sha256",
+    align: "left",
+  },
   { name: "created_at", label: "Created", field: "created_at", align: "left" },
   {
     name: "completed_at",
@@ -4381,6 +4442,26 @@ async function loadForensicsAudit() {
   } finally {
     loadingForensicsAudit.value = false;
   }
+}
+
+function showNonComplianceForensicWizard() {
+  forensicWizardForm.value = {
+    agent_id: agentOptions.value.length === 1 ? agentOptions.value[0].value : "",
+    title: "Non-compliance forensic carve",
+    reason: "Automatic collection gated to non-compliant devices",
+    job_types: ["keyword_carve", "crash_dumps", "tool_export"],
+    keywords: ["password", "secret", "token", "credential"],
+    path_globs: ["C:\\Users\\**\\Documents\\*", "C:\\Users\\**\\Desktop\\*"],
+    min_size_bytes: null,
+    max_size_bytes: 268435456,
+    engine: "builtin",
+    external_ref: "",
+    approval_status: "not_required",
+    only_non_compliant: true,
+  };
+  forensicKeywordsInput.value = forensicWizardForm.value.keywords.join(", ");
+  forensicPathGlobsInput.value = forensicWizardForm.value.path_globs.join(", ");
+  showForensicWizard.value = true;
 }
 
 async function submitForensicJob() {
