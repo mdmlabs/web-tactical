@@ -1323,6 +1323,26 @@
                   <q-btn
                     flat
                     dense
+                    icon="download"
+                    size="sm"
+                    color="primary"
+                    @click="downloadForensicToolExport(props.row, 'generic')"
+                  >
+                    <q-tooltip>Download tool export manifest</q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    flat
+                    dense
+                    icon="biotech"
+                    size="sm"
+                    color="secondary"
+                    @click="downloadForensicToolExport(props.row, 'autopsy')"
+                  >
+                    <q-tooltip>Download Autopsy manifest</q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    flat
+                    dense
                     icon="arrow_upward"
                     size="sm"
                     color="warning"
@@ -2394,13 +2414,9 @@
                 v-model="forensicWizardForm.job_types"
                 multiple
                 use-chips
-                :options="[
-                  'filesystem',
-                  'memory',
-                  'processes',
-                  'registry',
-                  'network',
-                ]"
+                :options="forensicJobTypeOptions"
+                emit-value
+                map-options
                 :label="$t('security.views.SecurityView.46c4fc')"
                 outlined
                 dense
@@ -2460,8 +2476,18 @@
             <div class="col-12 col-md-4">
               <q-select
                 v-model="forensicWizardForm.engine"
-                :options="['builtin']"
+                :options="forensicEngineOptions"
+                emit-value
+                map-options
                 :label="$t('security.views.SecurityView.c1f65d')"
+                outlined
+                dense
+              />
+            </div>
+            <div class="col-12" v-if="forensicWizardForm.engine !== 'builtin'">
+              <q-input
+                v-model="forensicWizardForm.external_ref"
+                label="External case / flow reference"
                 outlined
                 dense
               />
@@ -2748,7 +2774,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from "vue";
-import { useQuasar, copyToClipboard } from "quasar";
+import { useQuasar, copyToClipboard, exportFile } from "quasar";
 import { useRoute } from "vue-router";
 import axios from "axios";
 import HealthChart from "@/security/components/HealthChart.vue";
@@ -4037,6 +4063,7 @@ onMounted(() => {
   loadDLP();
   loadDLPViolations();
   loadDLPQuarantine();
+  loadForensicJobTypes();
   loadForensics();
   loadForensicsAudit();
   loadUEBA();
@@ -4077,11 +4104,30 @@ const forensicWizardForm = ref({
   min_size_bytes: null as number | null,
   max_size_bytes: null as number | null,
   engine: "builtin",
+  external_ref: "",
   approval_status: "not_required",
   only_non_compliant: false,
 });
 const forensicKeywordsInput = ref("");
 const forensicPathGlobsInput = ref("");
+const forensicJobTypeOptions = ref<any[]>([
+  { label: "File collection", value: "file_collection" },
+  { label: "Keyword carve", value: "keyword_carve" },
+  { label: "Crash dumps", value: "crash_dumps" },
+  { label: "Event logs", value: "event_log" },
+  { label: "Prefetch", value: "prefetch" },
+  { label: "Filesystem timeline", value: "filesystem_timeline" },
+  { label: "Registry hives", value: "registry" },
+  { label: "Memory lite", value: "memory_lite" },
+  { label: "YARA scan", value: "yara" },
+  { label: "Triage bundle", value: "triage_bundle" },
+  { label: "External tool export", value: "tool_export" },
+]);
+const forensicEngineOptions = [
+  { label: "Built-in collectors", value: "builtin" },
+  { label: "Velociraptor handoff", value: "velociraptor" },
+  { label: "Bulk Extractor handoff", value: "bulk_extractor" },
+];
 
 const forensicColumns = [
   { name: "agent_id", label: "Device", field: "agent_id", align: "left" },
@@ -4147,6 +4193,24 @@ async function loadForensics() {
   loadingForensics.value = false;
 }
 
+async function loadForensicJobTypes() {
+  try {
+    const r = await axios.get("/security/forensics/job-types/");
+    const groups = Array.isArray(r.data?.groups) ? r.data.groups : [];
+    if (groups.length) {
+      forensicJobTypeOptions.value = groups.map((row: any) => ({
+        label: row.label || row.kind,
+        value: row.kind,
+      }));
+    }
+  } catch (e: any) {
+    $q.notify({
+      message: _apiErrMessage(e, "Failed to load forensic job types"),
+      color: "warning",
+    });
+  }
+}
+
 async function loadForensicsAudit() {
   loadingForensicsAudit.value = true;
   forensicsAuditError.value = "";
@@ -4184,6 +4248,7 @@ async function submitForensicJob() {
       min_size_bytes: null,
       max_size_bytes: null,
       engine: "builtin",
+      external_ref: "",
       approval_status: "not_required",
       only_non_compliant: false,
     };
@@ -4248,6 +4313,31 @@ function openIRCase(row: any) {
     message: `Agent: ${row.agent_id}\nStatus: ${row.status}\nArtifacts: ${row.artifacts?.length ?? 0}`,
     ok: true,
   });
+}
+
+async function downloadForensicToolExport(row: any, format = "generic") {
+  try {
+    const r = await axios.get(`/security/forensics/jobs/${row.id}/tool-export/`, {
+      params: { tool: format },
+    });
+    const payload = JSON.stringify(r.data, null, 2);
+    const filename = `forensics-${row.id}-${format}-manifest.json`;
+    const status = exportFile(filename, payload, "application/json");
+    if (status !== true) {
+      throw new Error("browser blocked file export");
+    }
+    $q.notify({
+      message: `Forensic ${format} manifest exported`,
+      color: "positive",
+      icon: "download",
+    });
+    await loadForensicsAudit();
+  } catch (e: any) {
+    $q.notify({
+      message: _apiErrMessage(e, "Failed to export forensic manifest"),
+      color: "negative",
+    });
+  }
 }
 
 function escalateCase(row: any) {
