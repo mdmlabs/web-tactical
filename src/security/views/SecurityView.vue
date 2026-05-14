@@ -468,6 +468,13 @@
             :label="$t('security.views.SecurityView.78d02f')"
             @click="showUSBDialog()"
           />
+          <q-btn
+            color="negative"
+            outline
+            icon="emergency"
+            label="Emergency block storage"
+            @click="emergencyUSB"
+          />
         </div>
         <q-table
           :rows="usbPolicies"
@@ -500,6 +507,16 @@
                 flat
                 dense
                 round
+                icon="send"
+                size="sm"
+                color="primary"
+                @click="deployUSB(props.row)"
+                title="Deploy now"
+              />
+              <q-btn
+                flat
+                dense
+                round
                 icon="undo"
                 size="sm"
                 color="warning"
@@ -516,7 +533,35 @@
                 @click="deleteUSB(props.row.id)"
               />
             </q-td>
-          </template>
+              </template>
+              <template v-slot:body-cell-device_classes="props">
+                <q-td :props="props">
+                  <q-chip
+                    v-for="cls in props.value"
+                    :key="cls"
+                    dense
+                    size="sm"
+                    color="blue-grey"
+                    text-color="white"
+                    class="q-mr-xs"
+                  >
+                    {{ cls }}
+                  </q-chip>
+                  <span v-if="!props.value?.length">—</span>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-encrypt_required="props">
+                <q-td :props="props">
+                  <q-chip
+                    dense
+                    size="sm"
+                    :color="props.value ? 'warning' : 'grey'"
+                    text-color="white"
+                  >
+                    {{ props.value ? "BitLocker required" : "Optional" }}
+                  </q-chip>
+                </q-td>
+              </template>
         </q-table>
       </q-tab-panel>
 
@@ -1836,6 +1881,13 @@
                   dense
                   class="q-mb-sm"
                 />
+                <q-input
+                  v-model="micMeetingReason"
+                  label="Meeting / incident reason"
+                  outlined
+                  dense
+                  class="q-mb-sm"
+                />
                 <q-btn
                   color="warning"
                   :label="$t('security.views.SecurityView.0ae271')"
@@ -1988,9 +2040,60 @@
             emit-value
             map-options
           />
+          <q-select
+            v-model="usbForm.blocked_device_classes"
+            :options="usbClassOptions"
+            label="Blocked device classes"
+            outlined
+            dense
+            multiple
+            use-chips
+            emit-value
+            map-options
+          />
+          <q-select
+            v-model="usbForm.allowed_device_classes"
+            :options="usbClassOptions"
+            label="Allowed device classes"
+            outlined
+            dense
+            multiple
+            use-chips
+            emit-value
+            map-options
+          />
+          <q-input
+            v-model="usbAllowedIdsInput"
+            label="Allowed USB IDs"
+            hint="One VID/PID, hardware ID, or instance prefix per line"
+            type="textarea"
+            rows="2"
+            outlined
+            dense
+          />
+          <q-input
+            v-model="usbBlockedIdsInput"
+            label="Blocked USB IDs"
+            hint="One VID/PID, hardware ID, or instance prefix per line"
+            type="textarea"
+            rows="2"
+            outlined
+            dense
+          />
           <q-toggle
             v-model="usbForm.encrypt_required"
             :label="$t('security.views.SecurityView.273ef9')"
+          />
+          <q-toggle
+            v-model="usbForm.emergency_mode"
+            label="Emergency policy"
+          />
+          <q-input
+            v-if="usbForm.emergency_mode"
+            v-model="usbForm.emergency_reason"
+            label="Emergency reason"
+            outlined
+            dense
           />
           <q-toggle
             v-model="usbForm.log_usage"
@@ -2934,6 +3037,8 @@ const editingFIM = ref<any>(null);
 const savingIncident = ref(false);
 const savingUSB = ref(false);
 const savingFIM = ref(false);
+const usbAllowedIdsInput = ref("");
+const usbBlockedIdsInput = ref("");
 
 const monitoredPathsInput = ref("");
 const excludedPathsInput = ref("");
@@ -2952,9 +3057,15 @@ const incidentForm = ref<any>({
 const usbForm = ref<any>({
   name: "",
   policy_type: "read_only",
+  allowed_device_ids: [],
+  blocked_device_ids: [],
+  allowed_device_classes: [],
+  blocked_device_classes: [],
   encrypt_required: false,
   log_usage: true,
   alert_on_connect: false,
+  emergency_mode: false,
+  emergency_reason: "",
   enabled: true,
 });
 const fimForm = ref<any>({
@@ -3000,6 +3111,17 @@ const incidentTypeOptions = [
   { label: "DLP Violation", value: "dlp_violation" },
   { label: "Brute Force", value: "brute_force" },
   { label: "Other", value: "other" },
+];
+const usbClassOptions = [
+  { label: "Mass storage", value: "mass_storage" },
+  { label: "HID keyboard/mouse", value: "hid" },
+  { label: "Printer", value: "printer" },
+  { label: "Imaging / camera", value: "imaging" },
+  { label: "Audio", value: "audio" },
+  { label: "Smart card", value: "smart_card" },
+  { label: "MTP / portable device", value: "mtp" },
+  { label: "Network adapter", value: "network" },
+  { label: "Serial / modem", value: "serial" },
 ];
 const fimEventTypeOptions = [
   { label: "Created", value: "created" },
@@ -3242,6 +3364,21 @@ const fimEventColumns = [
 const usbColumns = [
   { name: "name", label: "Name", field: "name", align: "left", sortable: true },
   { name: "policy_type", label: "Type", field: "policy_type", align: "center" },
+  {
+    name: "device_classes",
+    label: "Classes",
+    field: (row: any) => [
+      ...(row.blocked_device_classes || []).map((c: string) => `block:${c}`),
+      ...(row.allowed_device_classes || []).map((c: string) => `allow:${c}`),
+    ],
+    align: "left",
+  },
+  {
+    name: "encrypt_required",
+    label: "Encryption",
+    field: "encrypt_required",
+    align: "center",
+  },
   { name: "scope", label: "Scope", field: "scope", align: "center" },
   { name: "enabled", label: "Status", field: "enabled", align: "center" },
   { name: "actions", label: "", field: "actions", align: "right" },
@@ -3638,16 +3775,34 @@ function showUSBDialog(item?: any) {
     : {
         name: "",
         policy_type: "read_only",
+        allowed_device_ids: [],
+        blocked_device_ids: [],
+        allowed_device_classes: [],
+        blocked_device_classes: [],
         encrypt_required: false,
         log_usage: true,
         alert_on_connect: false,
+        emergency_mode: false,
+        emergency_reason: "",
         enabled: true,
       };
+  usbAllowedIdsInput.value = (usbForm.value.allowed_device_ids || []).join("\n");
+  usbBlockedIdsInput.value = (usbForm.value.blocked_device_ids || []).join("\n");
   usbDialogOpen.value = true;
 }
+
+function splitLines(value: string) {
+  return (value || "")
+    .split(/[\n,]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 async function saveUSB() {
   savingUSB.value = true;
   try {
+    usbForm.value.allowed_device_ids = splitLines(usbAllowedIdsInput.value);
+    usbForm.value.blocked_device_ids = splitLines(usbBlockedIdsInput.value);
     if (editingUSB.value) {
       await axios.put(`/security/usb/${editingUSB.value.id}/`, usbForm.value);
     } else {
@@ -3664,6 +3819,24 @@ async function saveUSB() {
     savingUSB.value = false;
   }
 }
+async function deployUSB(policy: any) {
+  try {
+    const resp = await axios.post(`/security/usb/${policy.id}/deploy/`, {
+      wait: true,
+    });
+    const count = resp.data?.agents_triggered ?? 0;
+    $q.notify({
+      message: `USB policy deployed to ${count} agent(s)`,
+      color: "positive",
+      icon: "send",
+    });
+  } catch (e: any) {
+    $q.notify({
+      message: _apiErrMessage(e, "USB deploy failed"),
+      color: "negative",
+    });
+  }
+}
 async function deleteUSB(id: number) {
   $q.dialog({
     title: "Delete USB policy?",
@@ -3672,6 +3845,40 @@ async function deleteUSB(id: number) {
   }).onOk(async () => {
     await axios.delete(`/security/usb/${id}/`);
     await loadUSB();
+  });
+}
+function emergencyUSB() {
+  $q.dialog({
+    title: "Emergency USB block",
+    message: "Block USB mass-storage class on all matching Windows agents now.",
+    prompt: {
+      model: "Incident response emergency",
+      type: "text",
+      label: "Reason",
+    },
+    cancel: true,
+    ok: { color: "negative", label: "Dispatch" },
+  }).onOk(async (reason: string) => {
+    try {
+      const resp = await axios.post("/security/usb/emergency/", {
+        reason,
+        policy_type: "block_all",
+        blocked_device_classes: ["mass_storage"],
+        wait: true,
+      });
+      const count = resp.data?.agents_triggered ?? 0;
+      $q.notify({
+        message: `Emergency USB block sent to ${count} agent(s)`,
+        color: "negative",
+        icon: "emergency",
+      });
+      await loadUSB();
+    } catch (e: any) {
+      $q.notify({
+        message: _apiErrMessage(e, "Emergency USB dispatch failed"),
+        color: "negative",
+      });
+    }
   });
 }
 async function revokeUSB(policy: any) {
@@ -4544,6 +4751,7 @@ const showAddMicRule = ref(false);
 const micLoggingEnabled = ref(false);
 const micMeetingDevices = ref([]);
 const micMeetingDuration = ref("1 hour");
+const micMeetingReason = ref("Confidential meeting");
 const emergencyMicDevice = ref("");
 const emergencyMicReason = ref("");
 const deviceOptions = computed(() =>
@@ -4567,6 +4775,12 @@ const micEventColumns = [
   { name: "device", label: "Device", field: "agent_id", align: "left" },
   { name: "app", label: "Application", field: "app", align: "left" },
   { name: "action", label: "Action", field: "action", align: "left" },
+  {
+    name: "source",
+    label: "Source",
+    field: (row: any) => row.details?.source || "server",
+    align: "left",
+  },
 ];
 
 async function loadMicRulesFromServer() {
@@ -4695,6 +4909,7 @@ async function applyMeetingMode() {
     const { data } = await axios.post("/security/mic-control/meeting-mode/", {
       devices: micMeetingDevices.value,
       duration: micMeetingDuration.value,
+      reason: micMeetingReason.value,
     });
     $q.notify({
       message: `Meeting mode sent to ${data?.dispatched ?? micMeetingDevices.value.length} device(s).`,
@@ -4728,6 +4943,7 @@ function muteMeetingMode() {
       const { data } = await axios.post("/security/mic-control/meeting-mode/", {
         devices: all,
         duration: micMeetingDuration.value,
+        reason: micMeetingReason.value,
       });
       $q.notify({
         message: `Meeting mode sent to ${data?.dispatched ?? all.length} devices.`,
