@@ -14,7 +14,7 @@
         editingDLP = null;
       "
       @saved="loadDLP"
-      @open-graph-setup="openDLPGraphSetup"
+      @open-email-test="openEmailDLPTest"
     />
 
     <q-tabs
@@ -541,6 +541,7 @@
             icon="policy"
             :label="$t('security.views.SecurityView.8d6118')"
           />
+          <q-tab name="email" icon="email" label="Email DLP" />
           <q-tab
             name="violations"
             icon="warning"
@@ -649,6 +650,197 @@
                 </q-td>
               </template>
             </q-table>
+          </q-tab-panel>
+
+          <!-- Internal Email DLP analog -->
+          <q-tab-panel name="email">
+            <q-banner
+              dense
+              class="bg-blue-1 text-blue-10 q-mb-md rounded-borders"
+            >
+              <template v-slot:avatar>
+                <q-icon name="email" color="primary" />
+              </template>
+              Internal Email DLP scans message bodies and attachments through the
+              same DLP classification pipeline used by Windows agents. Use this
+              panel to verify policy behavior without Microsoft Graph.
+            </q-banner>
+
+            <div class="row q-col-gutter-md">
+              <div class="col-12 col-lg-5">
+                <q-card flat bordered>
+                  <q-card-section>
+                    <div class="text-subtitle2 q-mb-md">
+                      Email sample
+                    </div>
+                    <div class="row q-col-gutter-sm">
+                      <div class="col-12">
+                        <q-input
+                          v-model="emailDLPForm.sender"
+                          label="Sender"
+                          outlined
+                          dense
+                        />
+                      </div>
+                      <div class="col-12">
+                        <q-input
+                          v-model="emailDLPForm.recipients"
+                          label="Recipients"
+                          hint="Comma-separated"
+                          outlined
+                          dense
+                        />
+                      </div>
+                      <div class="col-12">
+                        <q-input
+                          v-model="emailDLPForm.subject"
+                          label="Subject"
+                          outlined
+                          dense
+                        />
+                      </div>
+                      <div class="col-12">
+                        <q-input
+                          v-model="emailDLPForm.body"
+                          label="Message body"
+                          type="textarea"
+                          rows="4"
+                          outlined
+                          dense
+                        />
+                      </div>
+                      <div class="col-12 col-md-5">
+                        <q-input
+                          v-model="emailDLPForm.attachment_name"
+                          label="Attachment name"
+                          outlined
+                          dense
+                        />
+                      </div>
+                      <div class="col-12 col-md-7">
+                        <q-input
+                          v-model="emailDLPForm.attachment_content"
+                          label="Attachment text"
+                          outlined
+                          dense
+                        />
+                      </div>
+                    </div>
+                  </q-card-section>
+                  <q-card-actions align="right">
+                    <q-btn
+                      color="primary"
+                      icon="science"
+                      label="Run Email DLP test"
+                      :loading="emailDLPTesting"
+                      @click="runInternalEmailDLPTest"
+                    />
+                  </q-card-actions>
+                </q-card>
+              </div>
+
+              <div class="col-12 col-lg-7">
+                <q-card flat bordered>
+                  <q-card-section>
+                    <div class="row items-center q-mb-md">
+                      <div class="text-subtitle2">Scan result</div>
+                      <q-space />
+                      <q-chip
+                        v-if="emailDLPResult"
+                        dense
+                        :color="emailDLPResult.allowed ? 'positive' : 'negative'"
+                        text-color="white"
+                      >
+                        {{ emailDLPResult.allowed ? "Allowed" : "Blocked" }}
+                      </q-chip>
+                    </div>
+
+                    <div v-if="!emailDLPResult" class="text-grey-7">
+                      Run a sample message to see policy match, action, severity,
+                      and the created DLP incident.
+                    </div>
+
+                    <template v-else>
+                      <q-list dense separator>
+                        <q-item>
+                          <q-item-section>
+                            <q-item-label caption>Action</q-item-label>
+                            <q-item-label>
+                              <q-chip
+                                dense
+                                :color="dlpActionColor(emailDLPResult.action)"
+                                text-color="white"
+                                size="sm"
+                              >
+                                {{ emailDLPResult.action }}
+                              </q-chip>
+                            </q-item-label>
+                          </q-item-section>
+                          <q-item-section>
+                            <q-item-label caption>Policies evaluated</q-item-label>
+                            <q-item-label>{{
+                              emailDLPResult.policies_evaluated
+                            }}</q-item-label>
+                          </q-item-section>
+                          <q-item-section>
+                            <q-item-label caption>Incident</q-item-label>
+                            <q-item-label>{{
+                              emailDLPResult.incident_id || "—"
+                            }}</q-item-label>
+                          </q-item-section>
+                        </q-item>
+                        <q-item>
+                          <q-item-section>
+                            <q-item-label caption>Message</q-item-label>
+                            <q-item-label>{{
+                              emailDLPResult.message || "—"
+                            }}</q-item-label>
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+
+                      <q-table
+                        class="q-mt-md"
+                        :rows="emailDLPResult.violations || []"
+                        :columns="emailDLPViolationColumns"
+                        dense
+                        flat
+                        row-key="source"
+                        :rows-per-page-options="[5, 10]"
+                      >
+                        <template v-slot:body-cell-action_taken="props">
+                          <q-td :props="props">
+                            <q-chip
+                              dense
+                              :color="dlpActionColor(props.value)"
+                              text-color="white"
+                              size="sm"
+                            >
+                              {{ props.value }}
+                            </q-chip>
+                          </q-td>
+                        </template>
+                      </q-table>
+
+                      <div class="q-mt-md">
+                        <q-btn
+                          v-if="emailDLPResult.incident_id"
+                          outline
+                          color="primary"
+                          icon="warning"
+                          label="Open DLP violations"
+                          @click="
+                            dlpViolationFilter = 'email_dlp';
+                            dlpSubTab = 'violations';
+                            loadDLPViolations();
+                          "
+                        />
+                      </div>
+                    </template>
+                  </q-card-section>
+                </q-card>
+              </div>
+            </div>
           </q-tab-panel>
 
           <!-- Violations (DLP incidents) -->
@@ -2429,67 +2621,6 @@
       </q-card>
     </q-dialog>
 
-    <q-dialog v-model="dlpGraphSetupOpen" persistent>
-      <q-card style="min-width: 560px; max-width: 92vw">
-        <q-bar
-          >Email DLP Graph setup<q-space /><q-btn
-            dense
-            flat
-            icon="close"
-            v-close-popup
-        /></q-bar>
-        <q-card-section class="q-gutter-md">
-          <q-input
-            v-model="dlpGraphForm.tenant_id"
-            label="Tenant ID"
-            outlined
-            dense
-          />
-          <q-input
-            v-model="dlpGraphForm.client_id"
-            label="Client ID"
-            outlined
-            dense
-          />
-          <q-input
-            v-model="dlpGraphForm.client_secret"
-            label="Client secret"
-            type="password"
-            outlined
-            dense
-          />
-          <q-input
-            v-model="dlpGraphForm.notification_url"
-            label="Webhook URL"
-            outlined
-            dense
-          />
-          <q-input
-            v-model="dlpGraphEmailsInput"
-            label="Mailboxes, comma-separated"
-            outlined
-            dense
-            type="textarea"
-            rows="2"
-          />
-          <div
-            v-if="dlpGraphSubscriptions.length"
-            class="text-caption text-grey"
-          >
-            Active subscriptions: {{ dlpGraphSubscriptions.length }}
-          </div>
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn
-            color="primary"
-            label="Save subscriptions"
-            :loading="savingDLPGraph"
-            @click="saveDLPGraphSetup"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
   </q-page>
 </template>
 
@@ -2517,6 +2648,7 @@ const tab = ref("health");
 const fimTab = ref("policies");
 const tabByRouteName: Record<string, string> = {
   SecurityCenter: "health",
+  SecurityEmailDLP: "dlp",
   SecurityPeripheralControls: "peripheral-requests",
   SecurityPeripheralRequests: "peripheral-requests",
   SecurityUsbControls: "usb",
@@ -2574,12 +2706,19 @@ function syncTabFromRoute() {
   const routeName = String(route.name ?? "");
   if (tabByRouteName[routeName]) {
     tab.value = tabByRouteName[routeName];
+    if (routeName === "SecurityEmailDLP") {
+      dlpSubTab.value = "email";
+    }
     return;
   }
 
   const queryTab = route.query.tab;
   if (typeof queryTab === "string" && queryTab) {
     tab.value = queryTab;
+  }
+  const queryDlpTab = route.query.dlp;
+  if (typeof queryDlpTab === "string" && queryDlpTab) {
+    dlpSubTab.value = queryDlpTab;
   }
 }
 
@@ -2629,15 +2768,15 @@ const dlpTestForm = ref({
 const dlpQuarantine = ref<any[]>([]);
 const loadingDLPQuarantine = ref(false);
 const quarantineActiveOnly = ref(true);
-const dlpGraphSetupOpen = ref(false);
-const savingDLPGraph = ref(false);
-const dlpGraphEmailsInput = ref("");
-const dlpGraphSubscriptions = ref<any[]>([]);
-const dlpGraphForm = ref<any>({
-  tenant_id: "",
-  client_id: "",
-  client_secret: "",
-  notification_url: "",
+const emailDLPTesting = ref(false);
+const emailDLPResult = ref<any>(null);
+const emailDLPForm = ref({
+  sender: "alex@example.local",
+  recipients: "security@example.local",
+  subject: "Secret export",
+  body: "password=Secret123!",
+  attachment_name: "secret.txt",
+  attachment_content: "api_key=ABCDEFGHIJKLMNOP123456",
 });
 
 const dlpViolationTypeOptions = [
@@ -2649,8 +2788,21 @@ const dlpViolationTypeOptions = [
   { label: "Cloud sync", value: "cloud_sync" },
   { label: "Network upload", value: "network_upload" },
   { label: "USB transfer", value: "usb_transfer" },
+  { label: "Email DLP", value: "email_dlp" },
   { label: "Auto encrypt", value: "auto_encrypt" },
   { label: "Network DLP health", value: "network_dlp_health" },
+];
+const emailDLPViolationColumns = [
+  { name: "source", label: "Source", field: "source", align: "left" as const },
+  { name: "policy_name", label: "Policy", field: "policy_name", align: "left" as const },
+  { name: "level", label: "Level", field: "level", align: "center" as const },
+  { name: "score", label: "Score", field: "score", align: "center" as const },
+  {
+    name: "action_taken",
+    label: "Action",
+    field: "action_taken",
+    align: "center" as const,
+  },
 ];
 const violationColumns = [
   {
@@ -2903,6 +3055,8 @@ function dlpSearchText(row: any) {
     dlpDetail(row, "policy_name"),
     dlpDetail(row, "policy_id"),
     dlpDetail(row, "action_taken"),
+    dlpDetail(row, "sender"),
+    dlpDetail(row, "subject"),
   ]
     .filter(Boolean)
     .join(" ")
@@ -3266,42 +3420,49 @@ async function remediateQuarantine(
   });
 }
 
-async function openDLPGraphSetup() {
-  dlpGraphSetupOpen.value = true;
-  await loadDLPGraphSubscriptions();
+function openEmailDLPTest() {
+  dlpDialogOpen.value = false;
+  editingDLP.value = null;
+  tab.value = "dlp";
+  dlpSubTab.value = "email";
 }
 
-async function loadDLPGraphSubscriptions() {
-  try {
-    const data = (await axios.get("/security/dlp/email/setup/")).data;
-    dlpGraphSubscriptions.value = Array.isArray(data) ? data : [];
-  } catch {
-    dlpGraphSubscriptions.value = [];
-  }
+function emailDLPRecipients() {
+  return emailDLPForm.value.recipients
+    .split(",")
+    .map((value: string) => value.trim())
+    .filter(Boolean);
 }
 
-async function saveDLPGraphSetup() {
-  savingDLPGraph.value = true;
+async function runInternalEmailDLPTest() {
+  emailDLPTesting.value = true;
   try {
-    const user_emails = dlpGraphEmailsInput.value
-      .split(",")
-      .map((v: string) => v.trim())
-      .filter(Boolean);
-    const result = (
-      await axios.post("/security/dlp/email/setup/", {
-        ...dlpGraphForm.value,
-        user_emails,
+    const attachmentContent = emailDLPForm.value.attachment_content.trim();
+    const attachments = attachmentContent
+      ? [
+          {
+            name: emailDLPForm.value.attachment_name || "attachment.txt",
+            content: attachmentContent,
+          },
+        ]
+      : [];
+    emailDLPResult.value = (
+      await axios.post("/security/dlp/email/internal-test/", {
+        sender: emailDLPForm.value.sender,
+        recipients: emailDLPRecipients(),
+        subject: emailDLPForm.value.subject,
+        body: emailDLPForm.value.body,
+        attachments,
       })
     ).data;
     $q.notify({
-      color: "positive",
-      icon: "check",
-      message: `Graph subscriptions created: ${result?.total ?? 0}`,
+      color: emailDLPResult.value.allowed ? "positive" : "negative",
+      icon: emailDLPResult.value.allowed ? "check" : "block",
+      message: emailDLPResult.value.message || "Email DLP scan finished",
     });
-    dlpGraphSetupOpen.value = false;
-    await loadDLPGraphSubscriptions();
+    await loadDLPViolations();
   } finally {
-    savingDLPGraph.value = false;
+    emailDLPTesting.value = false;
   }
 }
 

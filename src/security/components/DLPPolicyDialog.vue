@@ -522,9 +522,9 @@
                 <template v-slot:avatar
                   ><q-icon name="info" color="blue"
                 /></template>
-                Email DLP uses Microsoft Graph API webhooks to scan outgoing
-                emails and attachments. Configure the Graph application
-                credentials in Settings → Integrations.
+                Email DLP uses the internal MDM scan flow for outgoing message
+                bodies and attachments. No Microsoft Graph tenant is required
+                for this policy mode.
               </q-banner>
 
               <q-toggle
@@ -538,9 +538,9 @@
                 <q-btn
                   outline
                   color="primary"
-                  icon="settings"
-                  :label="$t('security.components.DLPPolicyDialog.087741')"
-                  @click="$emit('open-graph-setup')"
+                  icon="science"
+                  label="Open Email DLP test"
+                  @click="$emit('open-email-test')"
                   class="q-mt-sm"
                 />
               </template>
@@ -583,7 +583,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "close"): void;
   (e: "saved"): void;
-  (e: "open-graph-setup"): void;
+  (e: "open-email-test"): void;
 }>();
 
 const open = computed({

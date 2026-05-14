@@ -188,6 +188,12 @@ const routes = [
         meta: { requireAuth: true },
       },
       {
+        path: "/security-center/email-dlp",
+        name: "SecurityEmailDLP",
+        component: () => import("@/security/views/SecurityView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
         path: "/security-center/peripheral-controls",
         name: "SecurityPeripheralControls",
         component: () => import("@/security/views/SecurityView.vue"),
