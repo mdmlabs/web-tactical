@@ -7,6 +7,7 @@ import "common/target.proto";
 import "common/export.proto";
 
 import "google/protobuf/wrappers.proto";
+import "google/protobuf/timestamp.proto";
 
 package laborato.mesh.operator.v1;
 
@@ -54,6 +55,8 @@ message ExportAgentStatusRequest {
   laborato.common.target.Target target = 1;
   string requested_by = 2;
   string note = 3;
+  optional google.protobuf.Timestamp from_utc = 4;
+  optional google.protobuf.Timestamp to_utc = 5;
 }
 
 message UpdateAgentResponse {}

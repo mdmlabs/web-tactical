@@ -25,7 +25,7 @@
             color="secondary"
             :loading="exportAgentStatusLoading"
             :disable="exportAgentStatusLoading"
-            @click="handleExportAgentStatus"
+            @click="openExportAgentStatusRangeDialog"
           >
             <q-tooltip>Export agent status</q-tooltip>
           </q-btn>
@@ -628,6 +628,11 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+
+  <ExportAgentStatusRangeDialog
+    v-model="exportAgentStatusRangeOpen"
+    @confirm="onExportAgentStatusRangeConfirm"
+  />
 </template>
 
 <script setup lang="ts">
@@ -645,6 +650,8 @@ import {
 import export_pb from "@/generated/common/export_pb";
 import { notifySuccess, notifyError } from "@/utils/notify";
 import ConnectivityPoliciesTab from "./ConnectivityPolicy/ConnectivityPoliciesTab.vue";
+import ExportAgentStatusRangeDialog from "./ExportAgentStatusRangeDialog.vue";
+import type { ExportAgentStatusRangePayload } from "./ExportAgentStatusRangeDialog.vue";
 
 interface Agent {
   id: string;
@@ -687,6 +694,7 @@ const removingPolicyHash = ref<string | null>(null);
 const exportAssignmentsLoading = ref(false);
 const exportEffectiveLoading = ref(false);
 const exportAgentStatusLoading = ref(false);
+const exportAgentStatusRangeOpen = ref(false);
 
 function downloadBlob(
   content: Uint8Array | string,
@@ -734,13 +742,25 @@ function exportExtension(format: export_pb.ExportFormat | number | undefined): s
   return "csv";
 }
 
-async function handleExportAgentStatus() {
+function openExportAgentStatusRangeDialog() {
+  if (!props.agent) return;
+  exportAgentStatusRangeOpen.value = true;
+}
+
+async function onExportAgentStatusRangeConfirm(
+  range: ExportAgentStatusRangePayload,
+) {
   if (!props.agent) return;
   exportAgentStatusLoading.value = true;
   try {
-    const res = await agentServiceClientWrapper.exportAgentStatusFor("agent", {
-      agentId: props.agent.id,
-    });
+    const res = await agentServiceClientWrapper.exportAgentStatusFor(
+      "agent",
+      { agentId: props.agent.id },
+      {
+        fromUtc: range.fromUtc,
+        toUtc: range.toUtc,
+      },
+    );
     const ext = exportExtension(res.exportFormat);
     const fallbackName = `agent_status_${String(
       props.agent.hostname || props.agent.id,
