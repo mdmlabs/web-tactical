@@ -34,6 +34,15 @@
             </q-item-section>
           </q-item>
           <q-item tag="label">
+            <q-item-section avatar><q-icon name="gpp_bad" color="negative" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Block USB storage on malware detection</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-toggle v-model="globals.usb_block_on_threat" @update:model-value="saveGlobals" />
+            </q-item-section>
+          </q-item>
+          <q-item tag="label">
             <q-item-section avatar><q-icon name="policy" color="warning" /></q-item-section>
             <q-item-section>
               <q-item-label>Block camera on non-compliance</q-item-label>
@@ -275,6 +284,7 @@ const globals = ref<any>({
   mic_global_disabled: false,
   mic_block_on_non_compliance: false,
   usb_block_on_non_compliance: false,
+  usb_block_on_threat: false,
 });
 const actionForm = ref<any>({
   agent_id: "",
