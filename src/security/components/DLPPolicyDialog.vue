@@ -636,6 +636,31 @@
                       label="Use STARTTLS"
                     />
                   </div>
+                  <div class="col-12 col-md-6">
+                    <q-toggle
+                      v-model="form.email_agent_relay_enabled"
+                      color="primary"
+                      label="Enable Windows agent relay"
+                    />
+                  </div>
+                  <div class="col-12 col-md-3">
+                    <q-input
+                      v-model.number="form.email_agent_relay_port"
+                      label="Agent relay port"
+                      type="number"
+                      outlined
+                      dense
+                      min="1"
+                      max="65535"
+                    />
+                  </div>
+                  <div class="col-12 col-md-3">
+                    <q-toggle
+                      v-model="form.email_block_direct_smtp"
+                      color="negative"
+                      label="Block direct SMTP"
+                    />
+                  </div>
                 </div>
                 <q-btn
                   outline
@@ -741,6 +766,9 @@ const defaultForm = () => ({
   email_smtp_password_set: false,
   email_smtp_from_email: "",
   email_smtp_use_tls: true,
+  email_agent_relay_enabled: false,
+  email_agent_relay_port: 2525,
+  email_block_direct_smtp: false,
 });
 
 const form = ref(defaultForm());
@@ -823,6 +851,9 @@ async function save() {
       email_smtp_password: form.value.email_smtp_password,
       email_smtp_from_email: form.value.email_smtp_from_email.trim(),
       email_smtp_use_tls: Boolean(form.value.email_smtp_use_tls),
+      email_agent_relay_enabled: Boolean(form.value.email_agent_relay_enabled),
+      email_agent_relay_port: Number(form.value.email_agent_relay_port || 2525),
+      email_block_direct_smtp: Boolean(form.value.email_block_direct_smtp),
     };
     if (!payload.email_smtp_password) {
       delete payload.email_smtp_password;
