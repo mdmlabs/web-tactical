@@ -1243,9 +1243,14 @@
               </div>
               <q-input v-model="internalCatalogForm.license_label" label="License label" outlined dense placeholder="Corporate / Freeware / Shareware" />
               <div class="row q-col-gutter-sm">
-                <div class="col-6"><q-input v-model="internalCatalogForm.installer" label="Installer" outlined dense placeholder="choco / winget / rawcmd" /></div>
+                <div class="col-6"><q-select v-model="internalCatalogForm.installer" :options="distributionInstallerOptions" label="Installer" outlined dense emit-value map-options clearable /></div>
                 <div class="col-6"><q-input v-model="internalCatalogForm.package_id" label="Package ID" outlined dense /></div>
               </div>
+              <template v-if="String(internalCatalogForm.installer || '').toLowerCase() === 'rawcmd'">
+                <q-input v-model="internalCatalogForm.install_command" label="Install PowerShell command" outlined dense type="textarea" autogrow />
+                <q-input v-model="internalCatalogForm.upgrade_command" label="Upgrade PowerShell command" outlined dense type="textarea" autogrow />
+                <q-input v-model="internalCatalogForm.uninstall_command" label="Uninstall PowerShell command" outlined dense type="textarea" autogrow />
+              </template>
               <q-input v-model="internalCatalogForm.file_name" label="File name" outlined dense />
               <q-toggle v-model="internalCatalogForm.visible_in_ssp" label="Visible in SSP catalog" />
               <q-toggle v-model="internalCatalogForm.approval_required" label="Requires approval before install/update/uninstall" />
@@ -4032,6 +4037,10 @@ function defaultInternalCatalogForm() {
     platform: "windows",
     installer: "",
     package_id: "",
+    command: "",
+    install_command: "",
+    upgrade_command: "",
+    uninstall_command: "",
     file_name: "",
     visible_in_ssp: true,
     approval_required: true,
