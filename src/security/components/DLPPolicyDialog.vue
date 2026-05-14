@@ -535,6 +535,108 @@
               />
 
               <template v-if="form.email_dlp_enabled">
+                <q-select
+                  v-model="form.email_dlp_action"
+                  :options="emailDLPActionOptions"
+                  label="Delivery action"
+                  outlined
+                  dense
+                  emit-value
+                  map-options
+                  class="q-mb-md"
+                />
+                <q-toggle
+                  v-model="form.email_external_only"
+                  color="primary"
+                  class="q-mb-md"
+                  label="Apply only to external recipients"
+                />
+                <q-select
+                  v-model="form.email_corporate_domains"
+                  label="Corporate domains"
+                  hint="Used to decide whether recipients are external"
+                  outlined
+                  dense
+                  use-input
+                  use-chips
+                  multiple
+                  input-debounce="0"
+                  class="q-mb-md"
+                  @new-value="(val, done) => done(normalizeDomain(val), 'add-unique')"
+                />
+                <q-select
+                  v-model="form.email_quarantine_recipients"
+                  label="Quarantine recipients"
+                  hint="Messages are sent here when action is Quarantine"
+                  outlined
+                  dense
+                  use-input
+                  use-chips
+                  multiple
+                  input-debounce="0"
+                  class="q-mb-md"
+                  @new-value="(val, done) => done(val.trim(), 'add-unique')"
+                />
+                <q-separator class="q-my-md" />
+                <div class="text-subtitle2 q-mb-sm">SMTP relay delivery</div>
+                <div class="row q-col-gutter-md">
+                  <div class="col-12 col-md-8">
+                    <q-input
+                      v-model="form.email_smtp_host"
+                      label="SMTP host"
+                      outlined
+                      dense
+                    />
+                  </div>
+                  <div class="col-12 col-md-4">
+                    <q-input
+                      v-model.number="form.email_smtp_port"
+                      label="SMTP port"
+                      type="number"
+                      outlined
+                      dense
+                      min="1"
+                      max="65535"
+                    />
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <q-input
+                      v-model="form.email_smtp_username"
+                      label="SMTP username"
+                      outlined
+                      dense
+                    />
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <q-input
+                      v-model="form.email_smtp_password"
+                      label="SMTP password"
+                      type="password"
+                      outlined
+                      dense
+                      :hint="
+                        form.email_smtp_password_set
+                          ? 'Password saved; leave blank to keep it'
+                          : ''
+                      "
+                    />
+                  </div>
+                  <div class="col-12 col-md-8">
+                    <q-input
+                      v-model="form.email_smtp_from_email"
+                      label="Envelope from"
+                      outlined
+                      dense
+                    />
+                  </div>
+                  <div class="col-12 col-md-4">
+                    <q-toggle
+                      v-model="form.email_smtp_use_tls"
+                      color="primary"
+                      label="Use STARTTLS"
+                    />
+                  </div>
+                </div>
                 <q-btn
                   outline
                   color="primary"
@@ -628,6 +730,17 @@ const defaultForm = () => ({
   blocked_domains: [] as string[],
   // Email
   email_dlp_enabled: false,
+  email_dlp_action: "inherit",
+  email_external_only: true,
+  email_corporate_domains: [] as string[],
+  email_quarantine_recipients: [] as string[],
+  email_smtp_host: "",
+  email_smtp_port: 587,
+  email_smtp_username: "",
+  email_smtp_password: "",
+  email_smtp_password_set: false,
+  email_smtp_from_email: "",
+  email_smtp_use_tls: true,
 });
 
 const form = ref(defaultForm());
@@ -652,6 +765,16 @@ watch(
         blocked_domains: Array.isArray(item.blocked_domains)
           ? [...item.blocked_domains]
           : [],
+        email_corporate_domains: Array.isArray(item.email_corporate_domains)
+          ? [...item.email_corporate_domains]
+          : [],
+        email_quarantine_recipients: Array.isArray(
+          item.email_quarantine_recipients,
+        )
+          ? [...item.email_quarantine_recipients]
+          : [],
+        email_smtp_password: "",
+        email_smtp_password_set: Boolean(item.email_smtp_password_set),
       };
     } else {
       form.value = defaultForm();
@@ -688,7 +811,22 @@ async function save() {
       blocked_domains: form.value.blocked_domains
         .map((d) => d.trim())
         .filter(Boolean),
+      email_corporate_domains: form.value.email_corporate_domains
+        .map((d) => normalizeDomain(d))
+        .filter(Boolean),
+      email_quarantine_recipients: form.value.email_quarantine_recipients
+        .map((d) => d.trim())
+        .filter(Boolean),
+      email_smtp_host: form.value.email_smtp_host.trim(),
+      email_smtp_port: Number(form.value.email_smtp_port || 587),
+      email_smtp_username: form.value.email_smtp_username.trim(),
+      email_smtp_password: form.value.email_smtp_password,
+      email_smtp_from_email: form.value.email_smtp_from_email.trim(),
+      email_smtp_use_tls: Boolean(form.value.email_smtp_use_tls),
     };
+    if (!payload.email_smtp_password) {
+      delete payload.email_smtp_password;
+    }
     normalizeScopedPayload(payload);
     const filePathCount = payload.monitored_paths.filter((p: string) =>
       looksLikeFilePath(p),
@@ -957,4 +1095,18 @@ const blockModeOptions = [
   { label: "Warn + Allow (alert user, action proceeds)", value: "warn" },
   { label: "Block (deny action or require justification)", value: "block" },
 ];
+
+const emailDLPActionOptions = [
+  { label: "Use policy action", value: "inherit" },
+  { label: "Monitor only", value: "monitor" },
+  { label: "Block delivery", value: "block" },
+  { label: "Quarantine", value: "quarantine" },
+];
+
+function normalizeDomain(value: string) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^@+/, "");
+}
 </script>

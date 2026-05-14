@@ -731,9 +731,17 @@
                     <q-btn
                       color="primary"
                       icon="science"
-                      label="Run Email DLP test"
+                      label="Run scan only"
                       :loading="emailDLPTesting"
-                      @click="runInternalEmailDLPTest"
+                      @click="runInternalEmailDLPTest(false)"
+                    />
+                    <q-btn
+                      color="negative"
+                      outline
+                      icon="outgoing_mail"
+                      label="Send live SMTP test"
+                      :loading="emailDLPLiveSending"
+                      @click="runInternalEmailDLPTest(true)"
                     />
                   </q-card-actions>
                 </q-card>
@@ -795,6 +803,17 @@
                             <q-item-label>{{
                               emailDLPResult.message || "—"
                             }}</q-item-label>
+                          </q-item-section>
+                        </q-item>
+                        <q-item v-if="emailDLPResult.delivery">
+                          <q-item-section>
+                            <q-item-label caption>SMTP delivery</q-item-label>
+                            <q-item-label>
+                              {{ emailDLPResult.delivery.delivery || "—" }}
+                              <span v-if="emailDLPResult.delivery.recipients">
+                                to {{ emailDLPResult.delivery.recipients.join(", ") }}
+                              </span>
+                            </q-item-label>
                           </q-item-section>
                         </q-item>
                       </q-list>
@@ -2769,10 +2788,11 @@ const dlpQuarantine = ref<any[]>([]);
 const loadingDLPQuarantine = ref(false);
 const quarantineActiveOnly = ref(true);
 const emailDLPTesting = ref(false);
+const emailDLPLiveSending = ref(false);
 const emailDLPResult = ref<any>(null);
 const emailDLPForm = ref({
-  sender: "alex@example.local",
-  recipients: "security@example.local",
+  sender: "noreply@it-laborato.ru",
+  recipients: "",
   subject: "Secret export",
   body: "password=Secret123!",
   attachment_name: "secret.txt",
@@ -3434,26 +3454,38 @@ function emailDLPRecipients() {
     .filter(Boolean);
 }
 
-async function runInternalEmailDLPTest() {
-  emailDLPTesting.value = true;
+function emailDLPPayload() {
+  const attachmentContent = emailDLPForm.value.attachment_content.trim();
+  const attachments = attachmentContent
+    ? [
+        {
+          name: emailDLPForm.value.attachment_name || "attachment.txt",
+          content: attachmentContent,
+        },
+      ]
+    : [];
+  return {
+    sender: emailDLPForm.value.sender,
+    recipients: emailDLPRecipients(),
+    subject: emailDLPForm.value.subject,
+    body: emailDLPForm.value.body,
+    attachments,
+  };
+}
+
+async function runInternalEmailDLPTest(live = false) {
+  if (live && !emailDLPRecipients().length) {
+    $q.notify({ type: "warning", message: "Recipient is required for live SMTP test" });
+    return;
+  }
+  emailDLPTesting.value = !live;
+  emailDLPLiveSending.value = live;
   try {
-    const attachmentContent = emailDLPForm.value.attachment_content.trim();
-    const attachments = attachmentContent
-      ? [
-          {
-            name: emailDLPForm.value.attachment_name || "attachment.txt",
-            content: attachmentContent,
-          },
-        ]
-      : [];
+    const endpoint = live
+      ? "/security/dlp/email/live-test/"
+      : "/security/dlp/email/internal-test/";
     emailDLPResult.value = (
-      await axios.post("/security/dlp/email/internal-test/", {
-        sender: emailDLPForm.value.sender,
-        recipients: emailDLPRecipients(),
-        subject: emailDLPForm.value.subject,
-        body: emailDLPForm.value.body,
-        attachments,
-      })
+      await axios.post(endpoint, emailDLPPayload())
     ).data;
     $q.notify({
       color: emailDLPResult.value.allowed ? "positive" : "negative",
@@ -3463,6 +3495,7 @@ async function runInternalEmailDLPTest() {
     await loadDLPViolations();
   } finally {
     emailDLPTesting.value = false;
+    emailDLPLiveSending.value = false;
   }
 }
 
