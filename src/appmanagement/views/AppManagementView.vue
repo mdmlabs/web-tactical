@@ -457,9 +457,18 @@
                 <div class="text-subtitle2">Device registry</div>
                 <div class="text-caption text-grey">Employee SSP device records, installer state, and managed agent links.</div>
               </div>
-              <q-btn flat color="primary" icon="refresh" label="Refresh" @click="loadSsp" />
+              <div class="row q-gutter-sm">
+                <q-btn color="primary" icon="playlist_add" label="Pre-register" @click="showZeroTouchPreregisterDialog" />
+                <q-btn flat color="primary" icon="refresh" label="Refresh" @click="loadSsp" />
+              </div>
             </div>
             <q-table :rows="sspDevices" :columns="sspColumns" dense row-key="id" :loading="loadingSsp">
+              <template v-slot:body-cell-identifiers="props">
+                <q-td :props="props">
+                  <div>{{ props.row.serial_number || '-' }}</div>
+                  <div class="text-caption text-grey ellipsis">{{ props.row.hardware_id || '-' }}</div>
+                </q-td>
+              </template>
               <template v-slot:body-cell-is_active="props">
                 <q-td :props="props">
                   <q-chip dense :color="props.value ? 'positive' : 'grey'" text-color="white">
@@ -720,6 +729,56 @@
             <q-card-actions align="right">
               <q-btn flat label="Cancel" v-close-popup />
               <q-btn color="primary" label="Save" :loading="savingEnrollmentPolicy" @click="saveEnrollmentPolicy" />
+            </q-card-actions>
+          </q-card>
+        </q-dialog>
+
+        <q-dialog v-model="zeroTouchPreregisterDialogOpen" persistent>
+          <q-card style="width: 760px; max-width: 95vw">
+            <q-bar>Pre-register zero-touch devices<q-space /><q-btn dense flat icon="close" v-close-popup /></q-bar>
+            <q-card-section class="q-gutter-sm">
+              <div class="row q-col-gutter-sm">
+                <div class="col-12 col-md-6">
+                  <q-select
+                    v-model="zeroTouchPreregisterForm.user_id"
+                    :options="scopeUserOptions"
+                    label="Employee"
+                    outlined dense emit-value map-options clearable use-input hide-selected fill-input input-debounce="200"
+                    @filter="filterScopeUsers"
+                  />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-select
+                    v-model="zeroTouchPreregisterForm.site_id"
+                    :options="scopeDeviceGroupOptions"
+                    label="Site / device group"
+                    outlined dense emit-value map-options clearable use-input hide-selected fill-input input-debounce="200"
+                    @filter="filterScopeDeviceGroups"
+                  />
+                </div>
+              </div>
+              <q-input v-model.trim="zeroTouchPreregisterForm.source" label="Supplier / source" outlined dense />
+              <div class="row q-col-gutter-sm">
+                <div class="col-12 col-md-4">
+                  <q-input v-model.trim="zeroTouchPreregisterForm.device_name" label="Device name" outlined dense />
+                </div>
+                <div class="col-12 col-md-4">
+                  <q-input v-model.trim="zeroTouchPreregisterForm.serial_number" label="Serial number" outlined dense />
+                </div>
+                <div class="col-12 col-md-4">
+                  <q-input v-model.trim="zeroTouchPreregisterForm.hardware_id" label="Hardware ID" outlined dense />
+                </div>
+              </div>
+              <q-input
+                v-model="zeroTouchPreregisterForm.bulk_text"
+                label="Bulk CSV"
+                outlined dense type="textarea" autogrow
+                placeholder="device_name,serial_number,hardware_id,user_id,site_id"
+              />
+            </q-card-section>
+            <q-card-actions align="right">
+              <q-btn flat label="Cancel" v-close-popup />
+              <q-btn color="primary" icon="playlist_add" label="Pre-register" :loading="zeroTouchPreregisterSaving" @click="submitZeroTouchPreregistration" />
             </q-card-actions>
           </q-card>
         </q-dialog>
@@ -1764,6 +1823,9 @@ const portalUserDialogOpen = ref(false);
 const portalUserForm = ref<any>(defaultPortalUserForm());
 const enrollmentPolicyDialogOpen = ref(false);
 const enrollmentPolicyForm = ref<any>(defaultEnrollmentPolicyForm());
+const zeroTouchPreregisterDialogOpen = ref(false);
+const zeroTouchPreregisterSaving = ref(false);
+const zeroTouchPreregisterForm = ref<any>(defaultZeroTouchPreregisterForm());
 const infoCategoryDialogOpen = ref(false);
 const infoArticleDialogOpen = ref(false);
 const editingInfoCategory = ref<any | null>(null);
@@ -2017,6 +2079,7 @@ const sspPortalUserColumns = [
 const sspColumns = [
   { name: "user", label: "User", field: (row: any) => row.user_display_name || row.username || row.user_id, align: "left", sortable: true },
   { name: "device_name", label: "Device Name", field: "device_name", align: "left", sortable: true },
+  { name: "identifiers", label: "Serial / Hardware ID", field: "serial_number", align: "left" },
   { name: "agent_id", label: "Agent", field: "agent_id", align: "left" },
   { name: "device_type", label: "Type", field: "device_type", align: "left" },
   { name: "os_info", label: "OS", field: "os_info", align: "left" },
@@ -2324,6 +2387,79 @@ async function markZeroTouchHandoff(row: any) {
     $q.notify({ message: "Zero-touch handoff marked complete", color: "positive" });
   } catch (e: any) {
     $q.notify({ message: e?.response?.data?.error || e?.message || "Failed to mark handoff", color: "negative" });
+  }
+}
+
+function showZeroTouchPreregisterDialog() {
+  zeroTouchPreregisterForm.value = {
+    ...defaultZeroTouchPreregisterForm(),
+    user_id: scopeUserAllOptions.value[0]?.value ?? null,
+    site_id: scopeDeviceGroupAllOptions.value[0]?.value ?? null,
+  };
+  zeroTouchPreregisterDialogOpen.value = true;
+}
+
+function zeroTouchPreregisterPayload() {
+  const form = zeroTouchPreregisterForm.value;
+  const source = String(form.source || "").trim();
+  const bulkText = String(form.bulk_text || "").trim();
+  if (bulkText) {
+    return {
+      source,
+      bulk_text: bulkText,
+      default_user_id: form.user_id || null,
+      default_site_id: form.site_id || null,
+    };
+  }
+  return {
+    source,
+    devices: [
+      {
+        user_id: form.user_id || null,
+        site_id: form.site_id || null,
+        device_name: String(form.device_name || "").trim(),
+        serial_number: String(form.serial_number || "").trim(),
+        hardware_id: String(form.hardware_id || "").trim(),
+        device_type: "workstation",
+        os_info: "Windows",
+      },
+    ],
+  };
+}
+
+async function submitZeroTouchPreregistration() {
+  const form = zeroTouchPreregisterForm.value;
+  const hasBulk = !!String(form.bulk_text || "").trim();
+  const hasSingleIdentity = [
+    form.device_name,
+    form.serial_number,
+    form.hardware_id,
+  ].some((value) => !!String(value || "").trim());
+  if (!hasBulk && !hasSingleIdentity) {
+    $q.notify({ message: "Enter a device name, serial number, Hardware ID, or CSV rows", color: "warning" });
+    return;
+  }
+  if (!hasBulk && !form.user_id) {
+    $q.notify({ message: "Select an employee for the preregistered device", color: "warning" });
+    return;
+  }
+  zeroTouchPreregisterSaving.value = true;
+  try {
+    const resp = await axios.post("/appmanagement/zero-touch/preregister/", zeroTouchPreregisterPayload());
+    const created = Number(resp.data?.created || 0);
+    const updated = Number(resp.data?.updated || 0);
+    const errors = Array.isArray(resp.data?.errors) ? resp.data.errors.length : 0;
+    zeroTouchPreregisterDialogOpen.value = false;
+    await loadSsp();
+    $q.notify({
+      message: `Zero-touch preregistration saved: ${created} created, ${updated} updated${errors ? `, ${errors} errors` : ""}`,
+      color: errors ? "warning" : "positive",
+      icon: errors ? "warning" : "check",
+    });
+  } catch (e: any) {
+    $q.notify({ message: apiErrorMessage(e, "Zero-touch preregistration failed"), color: "negative" });
+  } finally {
+    zeroTouchPreregisterSaving.value = false;
   }
 }
 
@@ -2698,6 +2834,18 @@ function defaultEnrollmentPolicyForm() {
     approved_serial_numbers_text: "",
     approved_device_names_text: "",
     notes: "",
+  };
+}
+
+function defaultZeroTouchPreregisterForm() {
+  return {
+    user_id: null,
+    site_id: null,
+    source: "supplier-list",
+    device_name: "",
+    serial_number: "",
+    hardware_id: "",
+    bulk_text: "",
   };
 }
 
