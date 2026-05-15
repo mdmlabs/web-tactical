@@ -48,6 +48,7 @@ const labelMap: Record<string, string> = {
   Workshop: "Workshop",
   DetectionCases: "Detection Cases",
   AgentCompliance: "Agent Compliance",
+  OssecConfig: "Manager Configuration",
 };
 
 const currentPageLabel = computed(() => {

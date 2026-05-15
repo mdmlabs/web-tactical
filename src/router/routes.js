@@ -332,6 +332,11 @@ const routes = [
             name: "AgentCompliance",
             component: () => import("@/views/security/WazuhComplianceView.vue"),
           },
+          {
+            path: "ossec-config",
+            name: "OssecConfig",
+            component: () => import("@/views/security/OssecConfigView.vue"),
+          },
         ],
       },
     ],
