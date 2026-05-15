@@ -54,10 +54,18 @@
           :selected-id="selectedUserId"
           :search="userSearch"
           :can-create="!!currentTarget"
+          :has-active-filters="hasUserListFilters"
+          :active-filters-count="userListFiltersCount"
+          :filter-manufacturer="userFilterState.manufacturer"
+          :filter-model="userFilterState.model"
+          :filter-minimal-os-version="userFilterState.minimalOsVersion"
+          :filter-minimal-os-label="userFilterOsLabel"
           @select="selectUser"
           @refresh="loadUsers"
           @create="showCreateUser = true"
           @update:search="userSearch = $event"
+          @open-filter="openUserFilterDialog"
+          @clear-filter="handleUserListFilterClear"
         />
 
         <q-separator vertical />
@@ -274,6 +282,18 @@
       :target-label="pendingAddAgentRef?.label"
       @confirm="handleSetUserAgentOptionsConfirm"
     />
+
+    <AgentListFiltersDialog
+      v-model="showUserFilterDialog"
+      v-model:draft="userFilterDraft"
+      title="Filter users"
+      :manufacturer-options="userFilterManufacturerOptions"
+      :model-options="userFilterModelOptions"
+      :options-loading="userFilterOptionsLoading"
+      :apply-loading="usersLoading"
+      @apply="handleUserListFilterApply"
+      @clear-all="resetUserFilterDraft"
+    />
   </div>
 </template>
 
@@ -283,6 +303,11 @@ import { useQuasar } from "quasar";
 import { useRouter } from "vue-router";
 import { useUserActions } from "@/gpo/composables/useUserActions";
 import type { CreateUserParams } from "@/gpo/composables/useUserActions";
+import {
+  useAgentListFilters,
+  type AgentListFilterField,
+} from "@/gpo/composables/useAgentListFilters";
+import AgentListFiltersDialog from "@/gpo/components/AgentListFiltersDialog.vue";
 import type { TargetRef } from "@/gpo/composables/useTargetSelection";
 import {
   createAgentTarget,
@@ -444,6 +469,22 @@ const addToGroupPickerOptions = computed(() =>
   })),
 );
 
+const userListFilters = useAgentListFilters();
+const {
+  filters: userFilterState,
+  draft: userFilterDraft,
+  showDialog: showUserFilterDialog,
+  optionsLoading: userFilterOptionsLoading,
+  manufacturerOptions: userFilterManufacturerOptions,
+  modelOptionsForDraft: userFilterModelOptions,
+  hasActiveFilters: hasUserListFilters,
+  activeFiltersCount: userListFiltersCount,
+  minimalOsLabel: userFilterOsLabel,
+  buildFilters: buildUserListFilters,
+  openDialog: openUserFilterDialog,
+  resetDraft: resetUserFilterDraft,
+} = userListFilters;
+
 const {
   usersLoading,
   usersError,
@@ -470,7 +511,25 @@ const {
   confirmDeleteUser,
   loadUserGroups,
   loadUserAgents,
-} = useUserActions();
+} = useUserActions({
+  getListFilters: () => buildUserListFilters(),
+});
+
+async function handleUserListFilterApply(): Promise<void> {
+  Object.assign(userFilterState, userFilterDraft);
+  showUserFilterDialog.value = false;
+  await loadUsers();
+}
+
+async function handleUserListFilterClear(
+  field: AgentListFilterField,
+): Promise<void> {
+  userFilterState[field] = "";
+  if (field === "manufacturer") {
+    userFilterState.model = "";
+  }
+  await loadUsers();
+}
 
 function downloadBlob(
   content: Uint8Array | string,

@@ -27,6 +27,24 @@
         flat
         dense
         round
+        icon="filter_alt"
+        :color="hasActiveFilters ? 'primary' : 'grey-7'"
+        title="Filter users"
+        @click="$emit('open-filter')"
+      >
+        <q-badge
+          v-if="activeFiltersCount > 0"
+          color="primary"
+          floating
+          transparent
+        >
+          {{ activeFiltersCount }}
+        </q-badge>
+      </q-btn>
+      <q-btn
+        flat
+        dense
+        round
         icon="refresh"
         color="grey-7"
         title="Refresh"
@@ -36,6 +54,42 @@
     </div>
 
     <q-separator />
+
+    <div
+      v-if="hasActiveFilters"
+      class="q-px-md q-pt-sm row items-center q-gutter-xs"
+    >
+      <q-chip
+        v-if="filterManufacturer"
+        dense
+        removable
+        color="primary"
+        text-color="white"
+        @remove="$emit('clear-filter', 'manufacturer')"
+      >
+        {{ filterManufacturer }}
+      </q-chip>
+      <q-chip
+        v-if="filterModel"
+        dense
+        removable
+        color="primary"
+        text-color="white"
+        @remove="$emit('clear-filter', 'model')"
+      >
+        {{ filterModel }}
+      </q-chip>
+      <q-chip
+        v-if="filterMinimalOsVersion"
+        dense
+        removable
+        color="primary"
+        text-color="white"
+        @remove="$emit('clear-filter', 'minimalOsVersion')"
+      >
+        {{ filterMinimalOsLabel }}
+      </q-chip>
+    </div>
 
     <div class="q-px-md q-py-sm">
       <q-input
@@ -149,6 +203,8 @@
 <script setup lang="ts">
 import type { UserWithIdInfo } from "@/generated/user_service_pb";
 
+import type { AgentListFilterField } from "@/gpo/composables/useAgentListFilters";
+
 defineProps<{
   users: UserWithIdInfo.AsObject[];
   loading: boolean;
@@ -156,6 +212,12 @@ defineProps<{
   selectedId: string | null;
   search: string;
   canCreate: boolean;
+  hasActiveFilters?: boolean;
+  activeFiltersCount?: number;
+  filterManufacturer?: string;
+  filterModel?: string;
+  filterMinimalOsVersion?: string;
+  filterMinimalOsLabel?: string;
 }>();
 
 defineEmits<{
@@ -163,6 +225,8 @@ defineEmits<{
   refresh: [];
   create: [];
   "update:search": [value: string];
+  "open-filter": [];
+  "clear-filter": [field: AgentListFilterField];
 }>();
 </script>
 
