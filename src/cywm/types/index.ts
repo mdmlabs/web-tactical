@@ -29,6 +29,7 @@ export interface DeployRecord {
   user: string;
   status: DeployStatus;
   durationMs: number;
+  wazuhGroup: string | null;
   log: string;
 }
 
@@ -60,6 +61,7 @@ export interface CreateFilePayload {
 
 export interface DeployRequest {
   agent_ids?: string[];
+  group?: string;
 }
 
 export const CATEGORY_LABELS: Record<FileCategory, string> = {
@@ -84,6 +86,9 @@ export function categoryToLanguage(
     if (filename.endsWith(".cmd") || filename.endsWith(".bat")) return "bat";
     if (filename.endsWith(".py")) return "python";
     return "plaintext";
+  }
+  if (category === "shared") {
+    if (filename.endsWith(".yml") || filename.endsWith(".yaml")) return "yaml";
   }
   return "xml";
 }
