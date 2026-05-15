@@ -31,6 +31,7 @@ import {
   SetGroupAgentRequest,
   ExportAllUsersRequest,
   ExportAllGroupRequest,
+  GetAllUsersRequest,
 } from "@/generated/user_service_pb";
 
 import target_pb from "@/generated/common/target_pb";
@@ -414,9 +415,16 @@ export const policyCatalogClient = {
   },
 };
 
+export type ListAgentsFilters = {
+  manufacturer?: string;
+  model?: string;
+  minimalOsVersion?: string;
+};
+
 export const agentServiceClientWrapper = {
   async listAgents(
     allowedAgentIds?: string[],
+    filters?: ListAgentsFilters,
   ): Promise<operator_pb_types.ListAgentsResponse.AsObject> {
     if (!operator_pb.ListAgentsRequest) {
       throw new Error(
@@ -424,6 +432,19 @@ export const agentServiceClientWrapper = {
       );
     }
     const request = new operator_pb.ListAgentsRequest();
+
+    const manufacturer = filters?.manufacturer?.trim();
+    if (manufacturer) {
+      request.setManufacturer(manufacturer);
+    }
+    const model = filters?.model?.trim();
+    if (model) {
+      request.setModel(model);
+    }
+    const minimalOsVersion = filters?.minimalOsVersion?.trim();
+    if (minimalOsVersion) {
+      request.setMinimalOsVersion(minimalOsVersion);
+    }
 
     const response = await agentServiceClient.listAgents(
       request,
@@ -495,6 +516,17 @@ export const agentServiceClientWrapper = {
       createGrpcMetadata(),
     );
     return resp.toObject();
+  },
+
+  async getUniqueManufacturers(): Promise<operator_pb_types.GetUniqueManufacturersResponse.AsObject> {
+    const request = new operator_pb.GetUniqueManufacturersRequest();
+
+    const response = await agentServiceClient.getUniqueManufacturers(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
   },
 };
 
@@ -1297,8 +1329,24 @@ export const userControlClient = {
     return response.toObject();
   },
 
-  async getAllUsers(): Promise<user_service_pb_types.UsersResponse.AsObject> {
-    const request = new empty_pb.Empty();
+  async getAllUsers(
+    filters?: ListAgentsFilters,
+  ): Promise<user_service_pb_types.UsersResponse.AsObject> {
+    const request = new GetAllUsersRequest();
+
+    const manufacturer = filters?.manufacturer?.trim();
+    if (manufacturer) {
+      request.setManufacturer(manufacturer);
+    }
+    const model = filters?.model?.trim();
+    if (model) {
+      request.setModel(model);
+    }
+    const minimalOsVersion = filters?.minimalOsVersion?.trim();
+    if (minimalOsVersion) {
+      request.setMinimalOsVersion(minimalOsVersion);
+    }
+
     const response = await operatorUserControlServiceClient.getAllUsers(
       request,
       createGrpcMetadata(),
@@ -2350,6 +2398,21 @@ export const policyAssignmentClient = {
     request.setTarget(target);
 
     const response = await policyAssignmentServiceClient.removePolicyCollection(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async restoreAllPolicies(
+    targetType: PolicyTargetType,
+    targetParams: PolicyTargetParams = {},
+  ): Promise<operator_pb_types.RestoreAllPoliciesResponse.AsObject> {
+    const request = new operator_pb.RestoreAllPoliciesRequest();
+    request.setTarget(createPolicyTargetFromParams(targetType, targetParams));
+
+    const response = await policyAssignmentServiceClient.restoreAllPolicies(
       request,
       createGrpcMetadata(),
     );
