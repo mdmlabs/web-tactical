@@ -24,16 +24,21 @@ function mapFile(d: Record<string, unknown>): ConfigFile {
   };
 }
 
+function sanitizeTarget(raw: string): string {
+  return raw.replace(/\bWazuh\b/gi, "MDM Security");
+}
+
 function mapDeploy(d: Record<string, unknown>): DeployRecord {
   return {
     id: String(d.id),
     startedAt: String(d.started_at),
-    target: String(d.target),
+    target: sanitizeTarget(String(d.target)),
     filename: String(d.filename),
     category: d.category as DeployRecord["category"],
     user: String(d.user),
     status: d.status as DeployRecord["status"],
     durationMs: Number(d.duration_ms ?? 0),
+    wazuhGroup: d.wazuh_group != null ? String(d.wazuh_group) : null,
     log: String(d.log ?? ""),
   };
 }

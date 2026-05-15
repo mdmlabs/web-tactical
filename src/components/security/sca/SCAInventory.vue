@@ -207,6 +207,19 @@
                     <div class="sca-detail-label">Reason</div>
                     <div class="sca-detail-value">{{ props.row.reason }}</div>
                   </div>
+
+                  <!-- Fix Compliance action (only for failed checks) -->
+                  <div v-if="props.row.result?.toLowerCase() === 'failed'" class="sca-detail-actions">
+                    <q-btn
+                      color="primary"
+                      no-caps
+                      unelevated
+                      size="sm"
+                      icon="build"
+                      label="Fix Compliance"
+                      @click.stop="openFixModal(props.row)"
+                    />
+                  </div>
                 </div>
               </q-td>
             </q-tr>
@@ -219,12 +232,21 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch } from "vue";
+import { useQuasar } from "quasar";
+import { useStore } from "vuex";
+import axios from "axios";
 import { useScaStore } from "@/stores/sca";
+import { useWazuhStore } from "@/stores/wazuh";
+import SCAFixComplianceModal from "@/components/security/sca/SCAFixComplianceModal.vue";
 import type { WazuhSCAPolicy, WazuhSCACheck } from "@/types/wazuh";
+import type { AgentPlatformType } from "@/types/agents";
 
 defineEmits<{ (e: "select-agent"): void }>();
 
+const $q = useQuasar();
+const store = useStore();
 const scaStore = useScaStore();
+const wazuhStore = useWazuhStore();
 
 const selectedPolicy = ref<string | null>(scaStore.selectedPolicyId);
 
@@ -339,6 +361,96 @@ function formatDate(dateStr: string): string {
   } catch {
     return dateStr;
   }
+}
+
+// === Fix Compliance ===
+
+/**
+ * Resolve the Wazuh agent to its MDM-labs tactical agent_id.
+ * Fetches from /agents/ API if the Vuex store hasn't been loaded yet.
+ */
+async function resolveTacticalAgent(): Promise<{
+  agentId: string;
+  hostname: string;
+  plat: AgentPlatformType;
+} | null> {
+  const wazuhAgentId = scaStore.selectedAgentId;
+  if (!wazuhAgentId) return null;
+
+  // Strategy 1: Use mergedAgents if available (populated by SecurityDashboard)
+  if (wazuhStore.mergedAgents.length) {
+    const merged = wazuhStore.mergedAgents.find(
+      (a) => a.wazuh_agent_id === wazuhAgentId,
+    );
+    if (merged) {
+      return {
+        agentId: merged.tactical_agent_id,
+        hostname: merged.hostname,
+        plat: (merged.plat || "linux") as AgentPlatformType,
+      };
+    }
+  }
+
+  // Get the Wazuh agent name to match against tactical agents
+  const wazuhAgent = wazuhStore.wazuhAgents.find((a) => a.id === wazuhAgentId);
+  if (!wazuhAgent) return null;
+
+  const wazuhName = wazuhAgent.name.toLowerCase();
+  let plat: AgentPlatformType = "linux";
+  if (wazuhAgent.os?.platform === "windows") plat = "windows";
+  else if (wazuhAgent.os?.platform === "darwin") plat = "darwin";
+
+  // Strategy 2: Check Vuex store agents (may already be loaded)
+  let tacticalAgents = store.state.agents ?? [];
+
+  // Strategy 3: If Vuex store is empty, fetch agents from REST API
+  if (!tacticalAgents.length) {
+    try {
+      const { data } = await axios.get("/agents/");
+      tacticalAgents = data;
+      store.commit("setAgents", data);
+    } catch (e) {
+      console.error("[SCA Fix] Failed to fetch agents:", e);
+      return null;
+    }
+  }
+
+  // Match Wazuh agent name → tactical agent hostname
+  const tacticalAgent = tacticalAgents.find(
+    (a: { hostname?: string }) => a.hostname?.toLowerCase() === wazuhName,
+  );
+
+  if (tacticalAgent) {
+    return {
+      agentId: tacticalAgent.agent_id,
+      hostname: tacticalAgent.hostname,
+      plat: (tacticalAgent.plat as AgentPlatformType) || plat,
+    };
+  }
+
+  return null;
+}
+
+async function openFixModal(check: WazuhSCACheck) {
+  const agent = await resolveTacticalAgent();
+  if (!agent) {
+    $q.notify({
+      type: "warning",
+      message: "Cannot resolve agent for script execution. Please ensure the agent is synced.",
+      timeout: 4000,
+    });
+    return;
+  }
+
+  $q.dialog({
+    component: SCAFixComplianceModal,
+    componentProps: {
+      check,
+      agentId: agent.agentId,
+      agentHostname: agent.hostname,
+      agentPlatform: agent.plat,
+    },
+  });
 }
 </script>
 
@@ -522,6 +634,15 @@ function formatDate(dateStr: string): string {
   color: var(--mdm-text-secondary, #444);
 }
 
+.sca-detail-actions {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--mdm-border-light, #e0e4ea);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .sca-checks-table :deep(.q-table__bottom) {
   border-top: 1px solid var(--mdm-border-light, #f0f0f0);
 }
@@ -584,5 +705,9 @@ function formatDate(dateStr: string): string {
 
 .body--dark .sca-expand-icon {
   color: var(--mdm-text-secondary, #94a3b8);
+}
+
+.body--dark .sca-detail-actions {
+  border-top-color: var(--mdm-border, #1e293b);
 }
 </style>

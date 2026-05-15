@@ -1225,7 +1225,7 @@
         </q-dialog>
 
         <q-dialog v-model="internalCatalogDialogOpen" persistent>
-          <q-card style="min-width: 520px">
+          <q-card style="width:820px; max-width:95vw">
             <q-bar>{{ editingInternalCatalogApp ? 'Edit internal app' : 'Add internal app' }}<q-space /><q-btn dense flat icon="close" v-close-popup /></q-bar>
             <q-card-section class="q-gutter-sm">
               <q-input v-model="internalCatalogForm.name" label="Name" outlined dense />
@@ -1242,15 +1242,121 @@
                 <div class="col-6"><q-input v-model="internalCatalogForm.retirement_date" label="Retirement date" outlined dense type="date" /></div>
               </div>
               <q-input v-model="internalCatalogForm.license_label" label="License label" outlined dense placeholder="Corporate / Freeware / Shareware" />
-              <div class="row q-col-gutter-sm">
-                <div class="col-6"><q-select v-model="internalCatalogForm.installer" :options="distributionInstallerOptions" label="Installer" outlined dense emit-value map-options clearable /></div>
-                <div class="col-6"><q-input v-model="internalCatalogForm.package_id" label="Package ID" outlined dense /></div>
-              </div>
+              
               <template v-if="String(internalCatalogForm.installer || '').toLowerCase() === 'rawcmd'">
                 <q-input v-model="internalCatalogForm.install_command" label="Install PowerShell command" outlined dense type="textarea" autogrow />
                 <q-input v-model="internalCatalogForm.upgrade_command" label="Upgrade PowerShell command" outlined dense type="textarea" autogrow />
                 <q-input v-model="internalCatalogForm.uninstall_command" label="Uninstall PowerShell command" outlined dense type="textarea" autogrow />
               </template>
+              
+                <div class="col-12 col-md-6">
+                  <q-select
+                    v-model="internalCatalogForm.installer"
+                    :options="distributionInstallerOptions"
+                    label="Installer"
+                    outlined
+                    dense
+                    emit-value
+                    map-options
+                    @update:model-value="onInternalCatalogInstallerChanged"
+                  />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-input
+                    v-model="internalCatalogForm.package_id"
+                    :label="internalCatalogForm.installer === 'choco' ? 'Selected Chocolatey package ID' : 'Package ID'"
+                    outlined
+                    dense
+                  >
+                    <template v-if="internalCatalogForm.installer === 'choco'" v-slot:append>
+                      <q-btn
+                        flat
+                        round
+                        dense
+                        icon="open_in_new"
+                        :disable="!internalCatalogForm.package_id"
+                        @click.stop="openChocolateyPackage(internalCatalogForm.package_id)"
+                      >
+                        <q-tooltip>Open Chocolatey package page</q-tooltip>
+                      </q-btn>
+                    </template>
+                  </q-input>
+                </div>
+              </div>
+              <q-card v-if="internalCatalogForm.installer === 'choco'" flat bordered class="distribution-choco-picker">
+                <q-card-section class="row items-center q-col-gutter-sm q-pb-sm">
+                  <div class="col-12 col-md-8">
+                    <q-input v-model="distributionChocoSearch" outlined dense clearable label="Search Chocolatey packages">
+                      <template v-slot:prepend>
+                        <q-icon name="search" />
+                      </template>
+                    </q-input>
+                  </div>
+                  <div class="col-12 col-md-4 text-right">
+                    <q-btn
+                      flat
+                      color="primary"
+                      icon="refresh"
+                      label="Refresh"
+                      :loading="loadingDistributionChocoPackages"
+                      @click="loadDistributionChocoPackages(true)"
+                    />
+                  </div>
+                </q-card-section>
+                <q-table
+                  class="distribution-choco-table"
+                  dense
+                  flat
+                  virtual-scroll
+                  row-key="name"
+                  :rows="filteredDistributionChocoPackages"
+                  :columns="distributionChocoColumns"
+                  :loading="loadingDistributionChocoPackages"
+                  v-model:pagination="distributionChocoPagination"
+                  :rows-per-page-options="[0]"
+                  hide-bottom
+                  binary-state-sort
+                >
+                  <template v-slot:body="props">
+                    <q-tr
+                      :props="props"
+                      :class="{ 'bg-blue-1': props.row.name === internalCatalogForm.package_id }"
+                    >
+                      <q-td auto-width>
+                        <q-btn
+                          dense
+                          flat
+                          round
+                          color="primary"
+                          icon="add"
+                          @click="selectInternalCatalogChocolateyPackage(props.row)"
+                        >
+                          <q-tooltip>Add package to internal app</q-tooltip>
+                        </q-btn>
+                      </q-td>
+                      <q-td key="name" :props="props">
+                        <span
+                          class="text-primary text-weight-medium cursor-pointer"
+                          @click="selectInternalCatalogChocolateyPackage(props.row)"
+                        >
+                          {{ props.row.name }}
+                        </span>
+                      </q-td>
+                      <q-td key="version" :props="props">{{ props.row.version || "-" }}</q-td>
+                      <q-td key="description" :props="props" class="distribution-choco-description">
+                        {{ props.row.description || "-" }}
+                      </q-td>
+                    </q-tr>
+                  </template>
+                  <template v-slot:no-data>
+                    <div class="full-width row flex-center q-gutter-sm text-grey-7 q-pa-md">
+                      <q-icon name="info" />
+                      <span>No Chocolatey packages found</span>
+                    </div>
+                  </template>
+                </q-table>
+              </q-card>
+
               <q-input v-model="internalCatalogForm.file_name" label="File name" outlined dense />
               <q-toggle v-model="internalCatalogForm.visible_in_ssp" label="Visible in SSP catalog" />
               <q-toggle v-model="internalCatalogForm.approval_required" label="Requires approval before install/update/uninstall" />
@@ -3326,6 +3432,20 @@ function selectDistributionChocolateyPackage(row: any) {
   }
 }
 
+function selectInternalCatalogChocolateyPackage(row: any) {
+  const pkg = normalizeChocolateyPackage(row);
+  if (!pkg.name) return;
+  internalCatalogForm.value.installer = "choco";
+  internalCatalogForm.value.package_id = pkg.name;
+  if (!internalCatalogForm.value.name) internalCatalogForm.value.name = pkg.name;
+  if (!internalCatalogForm.value.description && pkg.description) {
+    internalCatalogForm.value.description = pkg.description;
+  }
+  if (!internalCatalogForm.value.version && pkg.version) {
+    internalCatalogForm.value.version = pkg.version;
+  }
+}
+
 function openChocolateyPackage(packageId: string) {
   if (!packageId) return;
   window.open(`https://chocolatey.org/packages/${encodeURIComponent(packageId)}`, "_blank");
@@ -3340,6 +3460,12 @@ function onDistributionInstallerChanged(installer: string) {
     distributionForm.value.package_version = "";
   } else {
     distributionForm.value.command = "";
+  }
+}
+
+function onInternalCatalogInstallerChanged(installer: string) {
+  if (installer === "choco") {
+    void loadDistributionChocoPackages();
   }
 }
 
@@ -4158,6 +4284,10 @@ async function loadInternalCatalogApps() {
 function showInternalAppDialog(row?: any) {
   editingInternalCatalogApp.value = row || null;
   internalCatalogForm.value = row ? { ...defaultInternalCatalogForm(), ...row } : defaultInternalCatalogForm();
+  distributionChocoSearch.value = "";
+  if (internalCatalogForm.value.installer === "choco") {
+    void loadDistributionChocoPackages();
+  }
   internalCatalogDialogOpen.value = true;
 }
 

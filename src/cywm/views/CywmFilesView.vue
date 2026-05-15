@@ -8,7 +8,7 @@
       </div>
       <div class="cywm-topbar__spacer"></div>
       <div class="cywm-topbar__meta">
-        Wazuh manager:&nbsp;<strong>v4.14.4</strong>
+        MDM Security manager:&nbsp;<strong>v4.14.4</strong>
       </div>
       <div class="cywm-topbar__status">
         <span class="cywm-dot cywm-dot--ok"></span> API connected
@@ -23,7 +23,7 @@
             <span class="cywm-title__count">({{ store.files.length }})</span>
           </h1>
           <div class="cywm-subtitle">
-            Manage Wazuh manager and Windows agent configuration files. Deploy
+            Manage MDM Security manager and Windows agent configuration files. Deploy
             without SSH/RDP.
           </div>
         </div>
@@ -95,6 +95,7 @@ import UploadFileModal from "@/cywm/components/UploadFileModal.vue";
 import CreateFileModal from "@/cywm/components/CreateFileModal.vue";
 import DeployLogModal from "@/cywm/components/DeployLogModal.vue";
 import AgentSelectionDialog from "@/cywm/components/AgentSelectionDialog.vue";
+import GroupSelectionDialog from "@/cywm/components/GroupSelectionDialog.vue";
 import { notifySuccess, notifyError, notifyInfo } from "@/utils/notify";
 import type {
   ConfigFile,
@@ -162,7 +163,21 @@ function onDeploy() {
     return;
   }
 
-  // For manager files, deploy immediately
+  // For shared/ossec-snippets files, show group selection dialog
+  if (file.category === "shared" || file.category === "ossec-snippets") {
+    $q.dialog({
+      component: GroupSelectionDialog,
+      componentProps: { filename: file.filename },
+    }).onOk((body: DeployRequest) => {
+      $q.dialog({
+        component: DeployLogModal,
+        componentProps: { file, deployBody: body },
+      });
+    });
+    return;
+  }
+
+  // For rules/decoders, deploy immediately
   $q.dialog({
     component: DeployLogModal,
     componentProps: { file },

@@ -49,7 +49,7 @@ const VULN_SNIPPET = `<vulnerability-detection>
 <indexer>
   <enabled>yes</enabled>
   <hosts>
-    <host>https://wazuh-indexer:9200</host>
+    <host>https://security-indexer:9200</host>
   </hosts>
 </indexer>
 `;
@@ -207,13 +207,14 @@ export const fixtureHistory: DeployRecord[] = [
   {
     id: "d-001",
     startedAt: "2026-04-28T14:23:00Z",
-    target: "Wazuh manager",
+    target: "MDM Security manager",
     filename: "local_rules.xml",
     category: "rules",
     user: "admin",
     status: "success",
     durationMs: 3400,
-    log: "[14:23:00] Validating syntax... ok\n[14:23:01] Backing up current version... ok\n[14:23:02] Uploading new version to /var/ossec/etc/rules/local_rules.xml... ok\n[14:23:03] Setting permissions (ossec:ossec, 0640)... ok\n[14:23:03] Restarting wazuh-manager... ok\n[14:23:04] Deploy completed successfully.",
+    wazuhGroup: null,
+    log: "[14:23:00] Validating syntax... ok\n[14:23:01] Backing up current version... ok\n[14:23:02] Uploading new version to /var/ossec/etc/rules/local_rules.xml... ok\n[14:23:03] Setting permissions (ossec:ossec, 0640)... ok\n[14:23:03] Restarting mdm-security-manager... ok\n[14:23:04] Deploy completed successfully.",
   },
   {
     id: "d-002",
@@ -224,6 +225,7 @@ export const fixtureHistory: DeployRecord[] = [
     user: "admin",
     status: "success",
     durationMs: 2100,
+    wazuhGroup: null,
     log: "[14:18:00] Connecting to agent WIN11-DEMO... ok\n[14:18:00] Transferring file (2.4 KB)... ok\n[14:18:01] Setting ACL via icacls... ok\n[14:18:02] Deploy completed successfully.",
   },
   {
@@ -235,18 +237,20 @@ export const fixtureHistory: DeployRecord[] = [
     user: "admin",
     status: "success",
     durationMs: 1800,
+    wazuhGroup: null,
     log: "[14:18:00] Connecting to agent WIN11-DEMO... ok\n[14:18:00] Transferring file (0.5 KB)... ok\n[14:18:01] Setting ACL via icacls... ok\n[14:18:01] Deploy completed successfully.",
   },
   {
     id: "d-004",
     startedAt: "2026-04-28T13:55:00Z",
-    target: "Wazuh manager",
+    target: "MDM Security manager",
     filename: "20-active-response.xml",
     category: "ossec-snippets",
     user: "admin",
     status: "failed",
     durationMs: 1200,
-    log: "[13:55:00] Validating syntax... FAILED\n[13:55:01] /var/ossec/bin/wazuh-control configtest:\n  ERROR: (1226): Error parsing file '/var/ossec/etc/ossec.conf' line 47.\n  ERROR: (1202): Configuration error at '/var/ossec/etc/ossec.conf'.\n[13:55:01] Aborting deploy. Manager configuration NOT changed.",
+    wazuhGroup: null,
+    log: "[13:55:00] Validating syntax... FAILED\n[13:55:01] /var/ossec/bin/mdm-control configtest:\n  ERROR: (1226): Error parsing file '/var/ossec/etc/ossec.conf' line 47.\n  ERROR: (1202): Configuration error at '/var/ossec/etc/ossec.conf'.\n[13:55:01] Aborting deploy. Manager configuration NOT changed.",
   },
   {
     id: "d-005",
@@ -257,40 +261,44 @@ export const fixtureHistory: DeployRecord[] = [
     user: "admin",
     status: "success",
     durationMs: 800,
+    wazuhGroup: "cywm-high-risk",
     log: "[13:45:00] Validating XML syntax... ok\n[13:45:00] Uploading to /var/ossec/etc/shared/cywm-high-risk/agent.conf... ok\n[13:45:00] Setting permissions... ok\n[13:45:01] Group config will be auto-synced to agents (no restart needed).",
   },
   {
     id: "d-006",
     startedAt: "2026-04-28T12:30:00Z",
-    target: "Wazuh manager",
+    target: "MDM Security manager",
     filename: "10-vulnerability.xml",
     category: "ossec-snippets",
     user: "alex",
     status: "success",
     durationMs: 4200,
-    log: "[12:30:00] Validating syntax... ok\n[12:30:01] Backing up... ok\n[12:30:02] Uploading... ok\n[12:30:03] Restarting wazuh-manager... ok\n[12:30:04] Deploy completed successfully.",
+    wazuhGroup: null,
+    log: "[12:30:00] Validating syntax... ok\n[12:30:01] Backing up... ok\n[12:30:02] Uploading... ok\n[12:30:03] Restarting mdm-security-manager... ok\n[12:30:04] Deploy completed successfully.",
   },
   {
     id: "d-007",
     startedAt: "2026-04-28T11:42:00Z",
-    target: "Wazuh manager",
+    target: "MDM Security manager",
     filename: "local_decoder.xml",
     category: "decoders",
     user: "alex",
     status: "success",
     durationMs: 3100,
-    log: "[11:42:00] Validating syntax... ok\n[11:42:01] Backing up... ok\n[11:42:02] Uploading... ok\n[11:42:03] Restarting wazuh-manager... ok\n[11:42:03] Deploy completed successfully.",
+    wazuhGroup: null,
+    log: "[11:42:00] Validating syntax... ok\n[11:42:01] Backing up... ok\n[11:42:02] Uploading... ok\n[11:42:03] Restarting mdm-security-manager... ok\n[11:42:03] Deploy completed successfully.",
   },
   {
     id: "d-008",
     startedAt: "2026-04-28T10:15:00Z",
-    target: "Wazuh manager",
+    target: "MDM Security manager",
     filename: "local_rules.xml",
     category: "rules",
     user: "admin",
     status: "failed",
     durationMs: 900,
-    log: "[10:15:00] Validating syntax... FAILED\n[10:15:00] /var/ossec/bin/wazuh-control configtest:\n  ERROR: (1226): Error parsing file '/var/ossec/etc/rules/local_rules.xml' line 12.\n  ERROR: Unclosed tag <rule>.\n[10:15:00] Aborting deploy.",
+    wazuhGroup: null,
+    log: "[10:15:00] Validating syntax... FAILED\n[10:15:00] /var/ossec/bin/mdm-control configtest:\n  ERROR: (1226): Error parsing file '/var/ossec/etc/rules/local_rules.xml' line 12.\n  ERROR: Unclosed tag <rule>.\n[10:15:00] Aborting deploy.",
   },
 ];
 
@@ -366,12 +374,7 @@ try {
     label: "Group agent.conf",
     target: "manager",
     category: "shared",
-    filenameSuggestion: "my-group/agent.conf",
-    content: `<agent_config>
-  <syscheck>
-    <frequency>43200</frequency>
-  </syscheck>
-</agent_config>
-`,
+    filenameSuggestion: "",
+    content: "",
   },
 ];

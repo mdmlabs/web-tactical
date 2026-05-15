@@ -11,7 +11,7 @@
         :disable="loading || agents.length === 0"
         :loading="exportAgentStatusLoading"
         title="Export agents status"
-        @click="handleExportAgentStatus"
+        @click="openExportAgentStatusDialog"
       />
       <q-btn
         flat
@@ -114,6 +114,11 @@
         </q-td>
       </template>
     </q-table>
+
+    <ExportAgentStatusRangeDialog
+      v-model="exportAgentStatusRangeOpen"
+      @confirm="onExportAgentStatusRangeConfirm"
+    />
   </div>
 </template>
 
@@ -122,6 +127,8 @@ import { computed, ref } from "vue";
 import type { QTableColumn } from "quasar";
 import { formatDate } from "@/utils/format";
 import { agentServiceClientWrapper } from "@/gpo/api/grpc-client";
+import ExportAgentStatusRangeDialog from "@/gpo/components/ExportAgentStatusRangeDialog.vue";
+import type { ExportAgentStatusRangePayload } from "@/gpo/components/ExportAgentStatusRangeDialog.vue";
 import export_pb from "@/generated/common/export_pb";
 import { notifyError, notifySuccess } from "@/utils/notify";
 
@@ -154,6 +161,7 @@ defineEmits<{
 }>();
 
 const exportAgentStatusLoading = ref(false);
+const exportAgentStatusRangeOpen = ref(false);
 
 function exportMimeType(format: export_pb.ExportFormat | number | undefined): string {
   if (format === export_pb.ExportFormat.XLSX) {
@@ -183,15 +191,28 @@ function downloadBlob(content: Uint8Array | string, fileName: string, mimeType: 
   URL.revokeObjectURL(url);
 }
 
-async function handleExportAgentStatus() {
+function openExportAgentStatusDialog() {
+  const agentIds = (props.agents ?? []).map((a) => String(a.id || "").trim()).filter(Boolean);
+  if (agentIds.length === 0) return;
+  exportAgentStatusRangeOpen.value = true;
+}
+
+async function onExportAgentStatusRangeConfirm(
+  range: ExportAgentStatusRangePayload,
+) {
   const agentIds = (props.agents ?? []).map((a) => String(a.id || "").trim()).filter(Boolean);
   if (agentIds.length === 0) return;
 
   exportAgentStatusLoading.value = true;
   try {
-    const res = await agentServiceClientWrapper.exportAgentStatusFor("agents", {
-      agentIds,
-    });
+    const res = await agentServiceClientWrapper.exportAgentStatusFor(
+      "agents",
+      { agentIds },
+      {
+        fromUtc: range.fromUtc,
+        toUtc: range.toUtc,
+      },
+    );
     const ext = exportExtension(res.exportFormat);
     const fallbackName = `agent_status_${agentIds.length}_agents.${ext}`;
     downloadBlob(

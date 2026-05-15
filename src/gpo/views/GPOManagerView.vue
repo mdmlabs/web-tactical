@@ -4086,7 +4086,7 @@ function exportPolicies(category: "all" | "templates", format: "csv" | "xlsx") {
 
 .gpo-agents-list-items
   padding: 4px 0
-  height: 100%
+  height: 80vh
 
 .gpo-agent-item
   border-radius: 6px
