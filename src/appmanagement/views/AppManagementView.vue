@@ -457,9 +457,18 @@
                 <div class="text-subtitle2">Device registry</div>
                 <div class="text-caption text-grey">Employee SSP device records, installer state, and managed agent links.</div>
               </div>
-              <q-btn flat color="primary" icon="refresh" label="Refresh" @click="loadSsp" />
+              <div class="row q-gutter-sm">
+                <q-btn color="primary" icon="playlist_add" label="Pre-register" @click="showZeroTouchPreregisterDialog" />
+                <q-btn flat color="primary" icon="refresh" label="Refresh" @click="loadSsp" />
+              </div>
             </div>
             <q-table :rows="sspDevices" :columns="sspColumns" dense row-key="id" :loading="loadingSsp">
+              <template v-slot:body-cell-identifiers="props">
+                <q-td :props="props">
+                  <div>{{ props.row.serial_number || '-' }}</div>
+                  <div class="text-caption text-grey ellipsis">{{ props.row.hardware_id || '-' }}</div>
+                </q-td>
+              </template>
               <template v-slot:body-cell-is_active="props">
                 <q-td :props="props">
                   <q-chip dense :color="props.value ? 'positive' : 'grey'" text-color="white">
@@ -474,8 +483,28 @@
                   </q-chip>
                 </q-td>
               </template>
+              <template v-slot:body-cell-zero_touch="props">
+                <q-td :props="props">
+                  <q-chip dense :color="zeroTouchColor(props.row.zero_touch)" text-color="white">
+                    {{ zeroTouchLabel(props.row.zero_touch) }}
+                  </q-chip>
+                  <div v-if="props.row.zero_touch?.required_apps?.length" class="text-caption text-grey q-mt-xs">
+                    Apps {{ zeroTouchInstalledApps(props.row.zero_touch) }}/{{ props.row.zero_touch.required_apps.length }}
+                  </div>
+                  <div v-if="props.row.zero_touch?.health" class="text-caption text-grey">
+                    Health {{ props.row.zero_touch.health.status }}
+                  </div>
+                </q-td>
+              </template>
               <template v-slot:body-cell-actions="props">
                 <q-td :props="props">
+                  <q-btn
+                    flat dense round icon="how_to_reg" size="sm" color="positive"
+                    :disable="!props.row.zero_touch?.can_handoff"
+                    @click="markZeroTouchHandoff(props.row)"
+                  >
+                    <q-tooltip>Mark zero-touch handoff complete</q-tooltip>
+                  </q-btn>
                   <q-btn flat dense round icon="delete" size="sm" color="negative" @click="deleteItem('ssp', props.row.id)" :title="$t('appmanagement.views.AppManagementView.479e24')" />
                 </q-td>
               </template>
@@ -554,6 +583,39 @@
                       props.row.request_type === 'uninstall' ? 'removed' : 'installed'
                     )"
                   />
+                </q-td>
+              </template>
+            </q-table>
+          </q-card-section>
+        </q-card>
+
+        <q-card flat bordered class="q-mt-lg">
+          <q-card-section>
+            <div class="row items-center justify-between q-mb-md">
+              <div>
+                <div class="text-subtitle2">App feedback</div>
+                <div class="text-caption text-grey">Ratings, install issues, crash reports, and admin replies from the self-service catalog.</div>
+              </div>
+              <q-btn flat color="primary" icon="refresh" label="Refresh" @click="loadSspFeedback" />
+            </div>
+            <q-table :rows="sspFeedback" :columns="sspFeedbackColumns" dense row-key="id" :loading="loadingSspFeedback">
+              <template v-slot:body-cell-rating="props">
+                <q-td :props="props">
+                  <q-rating :model-value="Number(props.row.rating || 0)" readonly size="16px" color="amber" />
+                </q-td>
+              </template>
+              <template v-slot:body-cell-status="props">
+                <q-td :props="props">
+                  <q-chip dense :color="feedbackStatusColor(props.row.status)" text-color="white">
+                    {{ props.row.status }}
+                  </q-chip>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-actions="props">
+                <q-td :props="props">
+                  <q-btn flat dense round icon="reply" color="primary" @click="replySspFeedback(props.row)">
+                    <q-tooltip>Reply / update status</q-tooltip>
+                  </q-btn>
                 </q-td>
               </template>
             </q-table>
@@ -700,6 +762,56 @@
             <q-card-actions align="right">
               <q-btn flat label="Cancel" v-close-popup />
               <q-btn color="primary" label="Save" :loading="savingEnrollmentPolicy" @click="saveEnrollmentPolicy" />
+            </q-card-actions>
+          </q-card>
+        </q-dialog>
+
+        <q-dialog v-model="zeroTouchPreregisterDialogOpen" persistent>
+          <q-card style="width: 760px; max-width: 95vw">
+            <q-bar>Pre-register zero-touch devices<q-space /><q-btn dense flat icon="close" v-close-popup /></q-bar>
+            <q-card-section class="q-gutter-sm">
+              <div class="row q-col-gutter-sm">
+                <div class="col-12 col-md-6">
+                  <q-select
+                    v-model="zeroTouchPreregisterForm.user_id"
+                    :options="scopeUserOptions"
+                    label="Employee"
+                    outlined dense emit-value map-options clearable use-input hide-selected fill-input input-debounce="200"
+                    @filter="filterScopeUsers"
+                  />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-select
+                    v-model="zeroTouchPreregisterForm.site_id"
+                    :options="scopeDeviceGroupOptions"
+                    label="Site / device group"
+                    outlined dense emit-value map-options clearable use-input hide-selected fill-input input-debounce="200"
+                    @filter="filterScopeDeviceGroups"
+                  />
+                </div>
+              </div>
+              <q-input v-model.trim="zeroTouchPreregisterForm.source" label="Supplier / source" outlined dense />
+              <div class="row q-col-gutter-sm">
+                <div class="col-12 col-md-4">
+                  <q-input v-model.trim="zeroTouchPreregisterForm.device_name" label="Device name" outlined dense />
+                </div>
+                <div class="col-12 col-md-4">
+                  <q-input v-model.trim="zeroTouchPreregisterForm.serial_number" label="Serial number" outlined dense />
+                </div>
+                <div class="col-12 col-md-4">
+                  <q-input v-model.trim="zeroTouchPreregisterForm.hardware_id" label="Hardware ID" outlined dense />
+                </div>
+              </div>
+              <q-input
+                v-model="zeroTouchPreregisterForm.bulk_text"
+                label="Bulk CSV"
+                outlined dense type="textarea" autogrow
+                placeholder="device_name,serial_number,hardware_id,user_id,site_id"
+              />
+            </q-card-section>
+            <q-card-actions align="right">
+              <q-btn flat label="Cancel" v-close-popup />
+              <q-btn color="primary" icon="playlist_add" label="Pre-register" :loading="zeroTouchPreregisterSaving" @click="submitZeroTouchPreregistration" />
             </q-card-actions>
           </q-card>
         </q-dialog>
@@ -903,6 +1015,101 @@
 
         <q-card flat bordered class="q-mb-md">
           <q-card-section>
+            <div class="row items-center justify-between q-mb-sm">
+              <div class="text-subtitle2">App lifecycle</div>
+              <q-btn flat dense round icon="refresh" :loading="loadingAppLifecycle" @click="loadAppLifecycle">
+                <q-tooltip>Refresh lifecycle</q-tooltip>
+              </q-btn>
+            </div>
+            <q-table
+              :rows="appLifecycleManagedRows"
+              :columns="appLifecycleColumns"
+              dense
+              row-key="catalog_id"
+              :loading="loadingAppLifecycle"
+              :rows-per-page-options="[5,10,25]"
+            >
+              <template v-slot:body-cell-name="props">
+                <q-td :props="props">
+                  <div class="text-weight-medium">{{ props.row.name }}</div>
+                  <div class="text-caption text-grey">{{ props.row.category || props.row.source }}</div>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-lifecycle="props">
+                <q-td :props="props">
+                  <div class="row q-gutter-xs justify-center">
+                    <q-chip dense size="sm" color="blue-grey-2" text-color="dark">
+                      {{ props.row.lifecycle?.installed_agent_count || 0 }} installed
+                    </q-chip>
+                    <q-chip
+                      dense
+                      size="sm"
+                      :color="(props.row.lifecycle?.outdated_agent_count || 0) > 0 ? 'warning' : 'positive'"
+                      text-color="white"
+                    >
+                      {{ props.row.lifecycle?.outdated_agent_count || 0 }} outdated
+                    </q-chip>
+                  </div>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-license="props">
+                <q-td :props="props">
+                  <q-chip
+                    v-if="props.row.license?.managed"
+                    dense
+                    size="sm"
+                    :color="licenseStatusColor(props.row.license.compliance_status)"
+                    text-color="white"
+                  >
+                    {{ props.row.license.seats_used }}/{{ props.row.license.seats_total }}
+                  </q-chip>
+                  <span v-else class="text-grey">-</span>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-retirement="props">
+                <q-td :props="props">
+                  <q-chip
+                    v-if="props.row.retirement_date"
+                    dense
+                    size="sm"
+                    :color="props.row.lifecycle?.retired ? 'negative' : 'blue-grey'"
+                    text-color="white"
+                  >
+                    {{ props.row.retirement_date }}
+                  </q-chip>
+                  <span v-else class="text-grey">-</span>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-actions="props">
+                <q-td :props="props">
+                  <q-btn
+                    flat dense round size="sm"
+                    icon="system_update_alt"
+                    color="primary"
+                    :disable="!props.row.lifecycle?.force_update_ready || props.row.source !== 'internal'"
+                    :loading="lifecycleActionLoading === lifecycleActionKey(props.row, 'force_upgrade')"
+                    @click="runAppLifecycleAction(props.row, 'force_upgrade')"
+                  >
+                    <q-tooltip>Force upgrade outdated devices</q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    flat dense round size="sm"
+                    icon="delete_sweep"
+                    color="negative"
+                    :disable="!props.row.lifecycle?.retirement_ready || props.row.source !== 'internal'"
+                    :loading="lifecycleActionLoading === lifecycleActionKey(props.row, 'retire')"
+                    @click="runAppLifecycleAction(props.row, 'retire')"
+                  >
+                    <q-tooltip>Uninstall from installed devices</q-tooltip>
+                  </q-btn>
+                </q-td>
+              </template>
+            </q-table>
+          </q-card-section>
+        </q-card>
+
+        <q-card flat bordered class="q-mb-md">
+          <q-card-section>
             <div class="text-subtitle2 q-mb-sm">Internal app files</div>
             <q-table
               :rows="internalCatalogApps"
@@ -921,8 +1128,41 @@
                   />
                 </q-td>
               </template>
+              <template v-slot:body-cell-lifecycle="props">
+                <q-td :props="props">
+                  <div class="row q-gutter-xs justify-center">
+                    <q-chip dense size="sm" color="blue-grey-2" text-color="dark">
+                      {{ internalCatalogLifecycle(props.row).installed_agent_count || 0 }}
+                    </q-chip>
+                    <q-chip
+                      dense
+                      size="sm"
+                      :color="(internalCatalogLifecycle(props.row).outdated_agent_count || 0) > 0 ? 'warning' : 'positive'"
+                      text-color="white"
+                    >
+                      {{ internalCatalogLifecycle(props.row).outdated_agent_count || 0 }}
+                    </q-chip>
+                  </div>
+                </q-td>
+              </template>
               <template v-slot:body-cell-actions="props">
                 <q-td :props="props">
+                  <q-btn
+                    flat dense round icon="system_update_alt" size="sm" color="primary"
+                    :disable="!internalCatalogLifecycle(props.row).force_update_ready"
+                    :loading="lifecycleActionLoading === lifecycleActionKey(props.row, 'force_upgrade')"
+                    @click="runAppLifecycleAction(props.row, 'force_upgrade')"
+                  >
+                    <q-tooltip>Force upgrade outdated devices</q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    flat dense round icon="delete_sweep" size="sm" color="negative"
+                    :disable="!internalCatalogLifecycle(props.row).retirement_ready"
+                    :loading="lifecycleActionLoading === lifecycleActionKey(props.row, 'retire')"
+                    @click="runAppLifecycleAction(props.row, 'retire')"
+                  >
+                    <q-tooltip>Uninstall from installed devices</q-tooltip>
+                  </q-btn>
                   <q-btn flat dense round icon="edit" size="sm" @click="showInternalAppDialog(props.row)" />
                   <q-btn flat dense round icon="delete" size="sm" color="negative" @click="removeInternalCatalogApp(props.row.id)" />
                 </q-td>
@@ -989,20 +1229,28 @@
             <q-bar>{{ editingInternalCatalogApp ? 'Edit internal app' : 'Add internal app' }}<q-space /><q-btn dense flat icon="close" v-close-popup /></q-bar>
             <q-card-section class="q-gutter-sm">
               <q-input v-model="internalCatalogForm.name" label="Name" outlined dense />
-              <q-input v-model="internalCatalogForm.description" label="Description" outlined dense />
+              <q-input v-model="internalCatalogForm.description" label="Description" outlined dense type="textarea" autogrow />
               <q-input v-model="internalCatalogForm.category" label="Category" outlined dense />
               <div class="row q-col-gutter-sm">
                 <div class="col-6"><q-input v-model="internalCatalogForm.version" label="Version" outlined dense /></div>
                 <div class="col-6"><q-input v-model="internalCatalogForm.latest_version" label="Latest version" outlined dense /></div>
               </div>
+              <q-input v-model="internalCatalogForm.changelog" label="Update changelog / release notes" outlined dense type="textarea" autogrow />
+              <q-input v-model="internalCatalogForm.system_requirements" label="System requirements" outlined dense type="textarea" autogrow />
               <div class="row q-col-gutter-sm">
                 <div class="col-6"><q-input v-model="internalCatalogForm.platform" label="Platform" outlined dense /></div>
                 <div class="col-6"><q-input v-model="internalCatalogForm.retirement_date" label="Retirement date" outlined dense type="date" /></div>
               </div>
+              <q-input v-model="internalCatalogForm.license_label" label="License label" outlined dense placeholder="Corporate / Freeware / Shareware" />
               <div class="row q-col-gutter-sm">
-                <div class="col-6"><q-input v-model="internalCatalogForm.installer" label="Installer" outlined dense placeholder="choco / winget / rawcmd" /></div>
+                <div class="col-6"><q-select v-model="internalCatalogForm.installer" :options="distributionInstallerOptions" label="Installer" outlined dense emit-value map-options clearable /></div>
                 <div class="col-6"><q-input v-model="internalCatalogForm.package_id" label="Package ID" outlined dense /></div>
               </div>
+              <template v-if="String(internalCatalogForm.installer || '').toLowerCase() === 'rawcmd'">
+                <q-input v-model="internalCatalogForm.install_command" label="Install PowerShell command" outlined dense type="textarea" autogrow />
+                <q-input v-model="internalCatalogForm.upgrade_command" label="Upgrade PowerShell command" outlined dense type="textarea" autogrow />
+                <q-input v-model="internalCatalogForm.uninstall_command" label="Uninstall PowerShell command" outlined dense type="textarea" autogrow />
+              </template>
               <q-input v-model="internalCatalogForm.file_name" label="File name" outlined dense />
               <q-toggle v-model="internalCatalogForm.visible_in_ssp" label="Visible in SSP catalog" />
               <q-toggle v-model="internalCatalogForm.approval_required" label="Requires approval before install/update/uninstall" />
@@ -1621,6 +1869,7 @@ const sspDevices = ref<any[]>([]);
 const sspPortalUsers = ref<any[]>([]);
 const sspEnrollmentPolicies = ref<any[]>([]);
 const sspInstallRequests = ref<any[]>([]);
+const sspFeedback = ref<any[]>([]);
 const sspSettings = ref<any>(defaultSspSettings());
 const sspExtraProfilesText = ref("{}");
 const sspRightRequests = ref<any[]>([]);
@@ -1646,6 +1895,7 @@ const loadingSsp = ref(false);
 const loadingPortalUsers = ref(false);
 const loadingEnrollmentPolicies = ref(false);
 const loadingSspInstallRequests = ref(false);
+const loadingSspFeedback = ref(false);
 const savingSspSettings = ref(false);
 const loadingSspRights = ref(false);
 const loadingSspActions = ref(false);
@@ -1744,6 +1994,9 @@ const portalUserDialogOpen = ref(false);
 const portalUserForm = ref<any>(defaultPortalUserForm());
 const enrollmentPolicyDialogOpen = ref(false);
 const enrollmentPolicyForm = ref<any>(defaultEnrollmentPolicyForm());
+const zeroTouchPreregisterDialogOpen = ref(false);
+const zeroTouchPreregisterSaving = ref(false);
+const zeroTouchPreregisterForm = ref<any>(defaultZeroTouchPreregisterForm());
 const infoCategoryDialogOpen = ref(false);
 const infoArticleDialogOpen = ref(false);
 const editingInfoCategory = ref<any | null>(null);
@@ -1901,6 +2154,24 @@ function enrollmentTargetLabel(row: any) {
   return "All users";
 }
 
+function zeroTouchLabel(zt: any) {
+  const stage = String(zt?.stage || "pending").replace(/_/g, " ");
+  return stage.charAt(0).toUpperCase() + stage.slice(1);
+}
+
+function zeroTouchColor(zt: any) {
+  const stage = zt?.stage;
+  if (stage === "handed_off" || zt?.ready) return "positive";
+  if (stage === "failed") return "negative";
+  if (["configured", "apps_installed", "compliant"].includes(stage)) return "primary";
+  if (["linked", "enrolled", "installer_ready"].includes(stage)) return "warning";
+  return "grey";
+}
+
+function zeroTouchInstalledApps(zt: any) {
+  return (zt?.required_apps || []).filter((row: any) => row.installed).length;
+}
+
 const installedAppColumns = [
   { name: "name", label: "Application", field: "name", align: "left", sortable: true },
   { name: "version", label: "Version", field: "version", align: "left", sortable: true },
@@ -1979,10 +2250,12 @@ const sspPortalUserColumns = [
 const sspColumns = [
   { name: "user", label: "User", field: (row: any) => row.user_display_name || row.username || row.user_id, align: "left", sortable: true },
   { name: "device_name", label: "Device Name", field: "device_name", align: "left", sortable: true },
+  { name: "identifiers", label: "Serial / Hardware ID", field: "serial_number", align: "left" },
   { name: "agent_id", label: "Agent", field: "agent_id", align: "left" },
   { name: "device_type", label: "Type", field: "device_type", align: "left" },
   { name: "os_info", label: "OS", field: "os_info", align: "left" },
   { name: "enrollment_status", label: "Enrollment", field: "enrollment_status", align: "center" },
+  { name: "zero_touch", label: "Zero Touch", field: "zero_touch", align: "left" },
   { name: "is_active", label: "Status", field: "is_active", align: "center" },
   { name: "enrolled_at", label: "Enrolled", field: "enrolled_at", align: "left", sortable: true },
   { name: "actions", label: "", field: "actions", align: "right" },
@@ -2002,6 +2275,16 @@ const sspInstallRequestColumns = [
   { name: "user_id", label: "User ID", field: "user_id", align: "center" },
   { name: "status", label: "Status", field: "status", align: "left" },
   { name: "requested_at", label: "Requested", field: "requested_at", align: "left", sortable: true },
+  { name: "actions", label: "", field: "actions", align: "right" },
+];
+const sspFeedbackColumns = [
+  { name: "app_name", label: "App", field: "app_name", align: "left", sortable: true },
+  { name: "feedback_type", label: "Type", field: "feedback_type", align: "left" },
+  { name: "rating", label: "Rating", field: "rating", align: "center" },
+  { name: "message", label: "Message", field: "message", align: "left" },
+  { name: "status", label: "Status", field: "status", align: "center" },
+  { name: "admin_reply", label: "Reply", field: "admin_reply", align: "left" },
+  { name: "submitted_at", label: "Submitted", field: "submitted_at", align: "left", sortable: true },
   { name: "actions", label: "", field: "actions", align: "right" },
 ];
 const sspRightRequestColumns = [
@@ -2208,7 +2491,7 @@ async function loadAppInventory() {
 }
 
 async function refreshAppManagement() {
-  await Promise.all([loadApps(), loadAppInventory(), loadAppDistributions(), loadInternalCatalogApps(), loadAppStoreLinks()]);
+  await Promise.all([loadApps(), loadAppInventory(), loadAppDistributions(), loadInternalCatalogApps(), loadAppLifecycle(), loadAppStoreLinks()]);
 }
 
 async function refreshInstalledApps() {
@@ -2221,6 +2504,7 @@ async function refreshInstalledApps() {
     const data = (await axios.post("/appmanagement/app-inventory/", { agent_id: selectedAppAgentId.value })).data || {};
     appInventory.value = { ...appInventory.value, installed: data.installed || [] };
     $q.notify({ message: `Inventory refreshed: ${(data.installed || []).length} app(s)`, color: "positive", icon: "check" });
+    await loadAppLifecycle();
   } catch (e: any) {
     $q.notify({ message: e?.response?.data?.error || e?.message || "Inventory refresh failed", color: "negative" });
   } finally {
@@ -2276,6 +2560,91 @@ async function loadSsp() {
   } finally { loadingSsp.value = false; }
 }
 
+async function markZeroTouchHandoff(row: any) {
+  try {
+    const resp = await axios.post(`/appmanagement/zero-touch/devices/${row.id}/handoff/`);
+    const updated = resp.data;
+    const idx = sspDevices.value.findIndex((item: any) => item.id === row.id);
+    if (idx >= 0) sspDevices.value.splice(idx, 1, { ...sspDevices.value[idx], ...updated });
+    $q.notify({ message: "Zero-touch handoff marked complete", color: "positive" });
+  } catch (e: any) {
+    $q.notify({ message: e?.response?.data?.error || e?.message || "Failed to mark handoff", color: "negative" });
+  }
+}
+
+function showZeroTouchPreregisterDialog() {
+  zeroTouchPreregisterForm.value = {
+    ...defaultZeroTouchPreregisterForm(),
+    user_id: scopeUserAllOptions.value[0]?.value ?? null,
+    site_id: scopeDeviceGroupAllOptions.value[0]?.value ?? null,
+  };
+  zeroTouchPreregisterDialogOpen.value = true;
+}
+
+function zeroTouchPreregisterPayload() {
+  const form = zeroTouchPreregisterForm.value;
+  const source = String(form.source || "").trim();
+  const bulkText = String(form.bulk_text || "").trim();
+  if (bulkText) {
+    return {
+      source,
+      bulk_text: bulkText,
+      default_user_id: form.user_id || null,
+      default_site_id: form.site_id || null,
+    };
+  }
+  return {
+    source,
+    devices: [
+      {
+        user_id: form.user_id || null,
+        site_id: form.site_id || null,
+        device_name: String(form.device_name || "").trim(),
+        serial_number: String(form.serial_number || "").trim(),
+        hardware_id: String(form.hardware_id || "").trim(),
+        device_type: "workstation",
+        os_info: "Windows",
+      },
+    ],
+  };
+}
+
+async function submitZeroTouchPreregistration() {
+  const form = zeroTouchPreregisterForm.value;
+  const hasBulk = !!String(form.bulk_text || "").trim();
+  const hasSingleIdentity = [
+    form.device_name,
+    form.serial_number,
+    form.hardware_id,
+  ].some((value) => !!String(value || "").trim());
+  if (!hasBulk && !hasSingleIdentity) {
+    $q.notify({ message: "Enter a device name, serial number, Hardware ID, or CSV rows", color: "warning" });
+    return;
+  }
+  if (!hasBulk && !form.user_id) {
+    $q.notify({ message: "Select an employee for the preregistered device", color: "warning" });
+    return;
+  }
+  zeroTouchPreregisterSaving.value = true;
+  try {
+    const resp = await axios.post("/appmanagement/zero-touch/preregister/", zeroTouchPreregisterPayload());
+    const created = Number(resp.data?.created || 0);
+    const updated = Number(resp.data?.updated || 0);
+    const errors = Array.isArray(resp.data?.errors) ? resp.data.errors.length : 0;
+    zeroTouchPreregisterDialogOpen.value = false;
+    await loadSsp();
+    $q.notify({
+      message: `Zero-touch preregistration saved: ${created} created, ${updated} updated${errors ? `, ${errors} errors` : ""}`,
+      color: errors ? "warning" : "positive",
+      icon: errors ? "warning" : "check",
+    });
+  } catch (e: any) {
+    $q.notify({ message: apiErrorMessage(e, "Zero-touch preregistration failed"), color: "negative" });
+  } finally {
+    zeroTouchPreregisterSaving.value = false;
+  }
+}
+
 async function loadPortalUsers() {
   loadingPortalUsers.value = true;
   try {
@@ -2306,6 +2675,18 @@ async function loadSspInstallRequests() {
     sspInstallRequests.value = [];
     $q.notify({ message: e?.response?.data?.error || e?.message || "Failed to load SSP install requests", color: "negative" });
   } finally { loadingSspInstallRequests.value = false; }
+}
+
+async function loadSspFeedback() {
+  loadingSspFeedback.value = true;
+  try {
+    sspFeedback.value = (await axios.get("/appmanagement/ssp/feedback/")).data || [];
+  } catch (e: any) {
+    sspFeedback.value = [];
+    $q.notify({ message: e?.response?.data?.error || e?.message || "Failed to load SSP feedback", color: "negative" });
+  } finally {
+    loadingSspFeedback.value = false;
+  }
 }
 
 function defaultSspExtraProfiles() {
@@ -2443,10 +2824,20 @@ function installRequestStatusColor(status: string) {
   return {
     pending: "warning",
     approved: "info",
+    scheduled: "secondary",
     installing: "primary",
     denied: "negative",
     installed: "positive",
     failed: "negative",
+  }[status] || "grey";
+}
+
+function feedbackStatusColor(status: string) {
+  return {
+    open: "warning",
+    acknowledged: "info",
+    resolved: "positive",
+    closed: "grey",
   }[status] || "grey";
 }
 
@@ -2556,6 +2947,37 @@ async function reviewSspInstallRequest(row: any, status: string) {
   }
 }
 
+function replySspFeedback(row: any) {
+  $q.dialog({
+    title: `Reply to ${row.app_name}`,
+    message: row.message || "User feedback",
+    prompt: { model: row.admin_reply || "", label: "Admin reply", type: "textarea" },
+    options: {
+      type: "radio",
+      model: row.status || "acknowledged",
+      items: [
+        { label: "Acknowledged", value: "acknowledged" },
+        { label: "Resolved", value: "resolved" },
+        { label: "Closed", value: "closed" },
+      ],
+    },
+    cancel: true,
+    ok: { label: "Save", color: "primary" },
+  }).onOk(async (data: any) => {
+    try {
+      const resp = await axios.patch(`/appmanagement/ssp/feedback/${row.id}/`, {
+        admin_reply: data.prompt,
+        status: data.opt,
+      });
+      Object.assign(row, resp.data || {});
+      $q.notify({ message: "Feedback updated", color: "positive", icon: "check" });
+      await loadSspFeedback();
+    } catch (e: any) {
+      $q.notify({ message: e?.response?.data?.error || e?.message || "Feedback update failed", color: "negative" });
+    }
+  });
+}
+
 async function reviewSspRightRequest(row: any, status: string) {
   $q.dialog({
     title: `Mark request ${status}?`,
@@ -2647,6 +3069,18 @@ function defaultEnrollmentPolicyForm() {
     approved_serial_numbers_text: "",
     approved_device_names_text: "",
     notes: "",
+  };
+}
+
+function defaultZeroTouchPreregisterForm() {
+  return {
+    user_id: null,
+    site_id: null,
+    source: "supplier-list",
+    device_name: "",
+    serial_number: "",
+    hardware_id: "",
+    bulk_text: "",
   };
 }
 
@@ -3449,12 +3883,14 @@ onMounted(() => {
   loadPortalUsers();
   loadEnrollmentPolicies();
   loadSspInstallRequests();
+  loadSspFeedback();
   loadSspRightRequests();
   loadSspActions();
   loadSspInfoPortalAdmin();
   loadScopeTargetOptions();
   loadUserGroups();
   loadInternalCatalogApps();
+  loadAppLifecycle();
   loadAppStoreLinks();
   loadContainerTransfers();
   loadAgentsForContainers();
@@ -3541,9 +3977,21 @@ const internalCatalogForm = ref<any>(defaultInternalCatalogForm());
 const showAddAppStore = ref(false);
 const newStore = ref({ name: "", url: "", description: "", category: "Other", visible_in_ssp: true });
 const appStoreLinks = ref<any[]>([]);
+const appLifecycleRows = ref<any[]>([]);
+const loadingAppLifecycle = ref(false);
+const lifecycleActionLoading = ref("");
 const catalogCategoryForToggle = ref("");
 const catalogCategoryVisible = ref(true);
 const savingCatalogCategory = ref(false);
+
+const appLifecycleColumns = [
+  { name: "name", label: "App", field: "name", align: "left" },
+  { name: "target_version", label: "Target", field: (row: any) => row.lifecycle?.target_version || row.latest_version || row.version || "-", align: "left" },
+  { name: "lifecycle", label: "Installations", field: "lifecycle", align: "center" },
+  { name: "license", label: "License", field: "license", align: "center" },
+  { name: "retirement", label: "Retirement", field: "retirement_date", align: "center" },
+  { name: "actions", label: "Actions", field: "actions", align: "right" },
+];
 
 const internalCatalogColumns = [
   { name: "name", label: "Name", field: "name", align: "left" },
@@ -3554,8 +4002,23 @@ const internalCatalogColumns = [
   { name: "package_id", label: "Package ID", field: "package_id", align: "left" },
   { name: "approval_required", label: "Approval", field: (row: any) => row.approval_required ? "Required" : "Auto", align: "center" },
   { name: "visible_in_ssp", label: "SSP", field: "visible_in_ssp", align: "center" },
+  { name: "lifecycle", label: "Inst/Out", field: "lifecycle", align: "center" },
   { name: "actions", label: "Actions", field: "actions", align: "right" },
 ];
+
+const appLifecycleManagedRows = computed(() => appLifecycleRows.value.filter((row) => (
+  row.source === "internal"
+  || row.installable
+  || row.license?.managed
+)));
+
+const appLifecycleByCatalogId = computed(() => {
+  const rows: Record<string, any> = {};
+  for (const row of appLifecycleRows.value) {
+    if (row.catalog_id) rows[row.catalog_id] = row;
+  }
+  return rows;
+});
 
 const catalogCategoryOptions = computed(() => {
   const values = [
@@ -3574,13 +4037,110 @@ function defaultInternalCatalogForm() {
     platform: "windows",
     installer: "",
     package_id: "",
+    command: "",
+    install_command: "",
+    upgrade_command: "",
+    uninstall_command: "",
     file_name: "",
     visible_in_ssp: true,
     approval_required: true,
     latest_version: "",
     force_update_required: false,
     retirement_date: "",
+    changelog: "",
+    license_label: "",
+    system_requirements: "",
   };
+}
+
+function internalCatalogId(row: any) {
+  return row.catalog_id || (row.id ? `internal:${row.id}` : "");
+}
+
+function internalCatalogLifecycle(row: any) {
+  return appLifecycleByCatalogId.value[internalCatalogId(row)]?.lifecycle || {};
+}
+
+function lifecycleActionKey(row: any, action: string) {
+  return `${internalCatalogId(row) || row.catalog_id || row.id}:${action}`;
+}
+
+function licenseStatusColor(status: string) {
+  return {
+    compliant: "positive",
+    freeware: "blue-grey",
+    expiring_soon: "warning",
+    over_limit: "negative",
+    expired: "negative",
+  }[status] || "grey";
+}
+
+async function loadAppLifecycle() {
+  loadingAppLifecycle.value = true;
+  try {
+    const data = (await axios.get("/appmanagement/app-lifecycle/")).data || {};
+    appLifecycleRows.value = Array.isArray(data) ? data : data.results || [];
+  } catch (e: any) {
+    appLifecycleRows.value = [];
+    $q.notify({ message: e?.response?.data?.error || e?.message || "Failed to load app lifecycle", color: "negative" });
+  } finally {
+    loadingAppLifecycle.value = false;
+  }
+}
+
+function lifecycleActionLabel(action: string) {
+  return action === "force_upgrade" ? "force upgrade" : "retire";
+}
+
+async function runAppLifecycleAction(row: any, action: "force_upgrade" | "retire") {
+  const catalogId = internalCatalogId(row);
+  if (!catalogId) {
+    $q.notify({ message: "Catalog id is missing", color: "warning" });
+    return;
+  }
+  const key = lifecycleActionKey(row, action);
+  lifecycleActionLoading.value = key;
+  try {
+    const preview = (await axios.post("/appmanagement/app-lifecycle/action/", {
+      catalog_id: catalogId,
+      action,
+      dry_run: true,
+    })).data || {};
+    const count = preview.target_count || 0;
+    if (count < 1) {
+      $q.notify({ message: `No devices need ${lifecycleActionLabel(action)}`, color: "info" });
+      lifecycleActionLoading.value = "";
+      return;
+    }
+    lifecycleActionLoading.value = "";
+    $q.dialog({
+      title: action === "force_upgrade" ? "Force app upgrade?" : "Retire app from devices?",
+      message: `${row.name || "App"}: ${count} device(s) will receive a ${lifecycleActionLabel(action)} policy.`,
+      cancel: true,
+      ok: { color: action === "retire" ? "negative" : "primary" },
+    }).onOk(async () => {
+      lifecycleActionLoading.value = key;
+      try {
+        const response = (await axios.post("/appmanagement/app-lifecycle/action/", {
+          catalog_id: catalogId,
+          action,
+        })).data || {};
+        $q.notify({
+          message: `${response.created || 0} policy(s) created; dispatched to ${response.triggered || 0} device(s)`,
+          color: "positive",
+          icon: "check",
+        });
+        await Promise.all([loadAppLifecycle(), loadAppDistributions(), loadAppInventory()]);
+      } catch (e: any) {
+        $q.notify({ message: e?.response?.data?.error || e?.message || "Lifecycle action failed", color: "negative" });
+      } finally {
+        lifecycleActionLoading.value = "";
+      }
+    });
+  } catch (e: any) {
+    $q.notify({ message: e?.response?.data?.error || e?.message || "Lifecycle action failed", color: "negative" });
+    lifecycleActionLoading.value = "";
+  }
 }
 
 async function loadInternalCatalogApps() {
@@ -3615,7 +4175,7 @@ async function saveInternalCatalogApp() {
     }
     internalCatalogDialogOpen.value = false;
     $q.notify({ message: "Internal app saved", color: "positive", icon: "check" });
-    await loadInternalCatalogApps();
+    await Promise.all([loadInternalCatalogApps(), loadAppLifecycle()]);
   } catch (e: any) {
     $q.notify({ message: e?.response?.data?.error || e?.message || "Save failed", color: "negative" });
   } finally {
@@ -3628,6 +4188,7 @@ async function patchInternalCatalogApp(row: any, patch: Record<string, any>) {
   Object.assign(row, patch);
   try {
     await axios.patch(`/appmanagement/ssp/catalog/internal-files/${row.id}/`, patch);
+    await loadAppLifecycle();
   } catch (e: any) {
     Object.assign(row, prev);
     $q.notify({ message: e?.response?.data?.error || e?.message || "Update failed", color: "negative" });
@@ -3638,7 +4199,7 @@ async function removeInternalCatalogApp(id: number) {
   $q.dialog({ title: "Remove internal app?", cancel: true, ok: { color: "negative" } }).onOk(async () => {
     try {
       await axios.delete(`/appmanagement/ssp/catalog/internal-files/${id}/`);
-      await loadInternalCatalogApps();
+      await Promise.all([loadInternalCatalogApps(), loadAppLifecycle()]);
       $q.notify({ message: "Removed", color: "positive" });
     } catch (e: any) {
       $q.notify({ message: e?.response?.data?.error || e?.message || "Delete failed", color: "negative" });

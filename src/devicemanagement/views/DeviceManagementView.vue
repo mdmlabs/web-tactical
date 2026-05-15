@@ -724,6 +724,13 @@
                 <span class="text-caption text-grey-7 q-ml-xs">{{ ws.disk_quota_mb }} MB</span>
               </div>
               <!-- Phase-4 DLP chips -->
+              <div v-if="ws.encrypt_storage || (ws.export_behavior && ws.export_behavior !== 'free') || (ws.clipboard_behavior && ws.clipboard_behavior !== 'free')" class="q-mt-xs">
+                <q-badge color="indigo">WIP analog</q-badge>
+                <q-badge color="blue-grey" class="q-ml-xs">agent sync</q-badge>
+              </div>
+              <div v-if="ws.encrypt_storage" class="q-mt-xs">
+                <q-badge color="deep-purple">at-rest encryption</q-badge>
+              </div>
               <div v-if="ws.export_behavior && ws.export_behavior !== 'free'" class="q-mt-xs">
                 <q-badge :color="ws.export_behavior === 'block' ? 'negative' : 'orange'">
                   Export: {{ ws.export_behavior }}
@@ -1094,6 +1101,13 @@
           <div v-if="currentActionType === 'wipe_full'" class="text-negative text-weight-bold">
             {{ $t('devicemanagement.views.DeviceManagementView.892525') }}
           </div>
+          <q-input
+            v-if="currentActionType === 'wipe_selective'"
+            v-model="actionForm.extra_paths"
+            label="Corporate data paths"
+            outlined dense type="textarea" rows="4"
+            placeholder="D:\\CompanyVault&#10;C:\\Users\\%USERNAME%\\Company"
+          />
           <div v-if="currentActionType === 'factory_reset'" class="text-negative text-weight-bold">
             {{ $t('devicemanagement.views.DeviceManagementView.b410c2') }}
           </div>
@@ -1466,8 +1480,8 @@
         </q-bar>
         <q-card-section class="q-gutter-md">
           <div class="text-caption text-grey-7">
-            Enforced by LaboratoGuard running in each end-user's desktop session.
-            Changes take effect on next <em>{{ $t('devicemanagement.views.DeviceManagementView.ab1e82') }}</em> {{ $t('devicemanagement.views.DeviceManagementView.f58326') }}
+            Enforced by the Windows agent WIP syncer and LaboratoGuard in the end-user desktop session.
+            Changes apply on the next agent poll or manual <em>{{ $t('devicemanagement.views.DeviceManagementView.ab1e82') }}</em>.
           </div>
           <q-select
             v-model="dlpEditForm.export_behavior"
@@ -1651,7 +1665,7 @@ const submittingAction = ref(false);
 const savingEncryption = ref(false);
 const editingEncryption = ref<any>(null);
 
-const actionForm = ref({ agent_id: "", reason: "" });
+const actionForm = ref({ agent_id: "", reason: "", extra_paths: "" });
 const encryptionForm = ref<any>({ name: "", encryption_type: "bitlocker", algorithm: "AES-256", encrypt_system_drive: true, encrypt_removable: false, escrow_keys: true, enabled: true });
 
 const actionTypeOptions = [
@@ -2274,7 +2288,7 @@ async function loadInventoryFilters() {
 
 function showActionDialog(type: string) {
   currentActionType.value = type;
-  actionForm.value = { agent_id: "", reason: "" };
+  actionForm.value = { agent_id: "", reason: "", extra_paths: "" };
   actionDialogOpen.value = true;
 }
 
@@ -2282,10 +2296,18 @@ async function submitAction() {
   if (!actionForm.value.agent_id) { $q.notify({ message: "Agent ID required", color: "warning" }); return; }
   submittingAction.value = true;
   try {
+    const params: any = {};
+    if (currentActionType.value === "wipe_selective") {
+      params.extra_paths = actionForm.value.extra_paths
+        .split(/\r?\n|,/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
     await axios.post("/devicemanagement/actions/", {
       agent_id: actionForm.value.agent_id,
       action_type: currentActionType.value,
       reason: actionForm.value.reason,
+      params,
     });
     actionDialogOpen.value = false;
     $q.notify({ message: `${actionTypeLabel(currentActionType.value)} initiated`, color: "positive", icon: "check" });

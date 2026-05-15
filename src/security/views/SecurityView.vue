@@ -14,10 +14,19 @@
         editingDLP = null;
       "
       @saved="loadDLP"
-      @open-graph-setup="openDLPGraphSetup"
+      @open-email-test="openEmailDLPTest"
     />
 
-    <q-tabs v-model="tab" dense class="q-mb-md" align="left" :breakpoint="0">
+    <q-tabs
+      v-model="tab"
+      dense
+      no-caps
+      outside-arrows
+      mobile-arrows
+      class="q-mb-md"
+      align="left"
+      :breakpoint="0"
+    >
       <q-tab
         name="health"
         :label="$t('security.views.SecurityView.767b92')"
@@ -459,6 +468,30 @@
             :label="$t('security.views.SecurityView.78d02f')"
             @click="showUSBDialog()"
           />
+          <q-btn
+            color="negative"
+            outline
+            icon="emergency"
+            label="Emergency block storage"
+            @click="emergencyUSB"
+          />
+          <q-btn
+            color="primary"
+            outline
+            icon="schedule"
+            label="USB schedules"
+            @click="tab = 'peripheral-requests'"
+          />
+          <q-btn
+            flat
+            round
+            dense
+            icon="refresh"
+            @click="
+              loadUSB();
+              loadUSBEvents();
+            "
+          />
         </div>
         <q-table
           :rows="usbPolicies"
@@ -491,6 +524,16 @@
                 flat
                 dense
                 round
+                icon="send"
+                size="sm"
+                color="primary"
+                @click="deployUSB(props.row)"
+                title="Deploy now"
+              />
+              <q-btn
+                flat
+                dense
+                round
                 icon="undo"
                 size="sm"
                 color="warning"
@@ -506,6 +549,87 @@
                 color="negative"
                 @click="deleteUSB(props.row.id)"
               />
+            </q-td>
+              </template>
+              <template v-slot:body-cell-device_classes="props">
+                <q-td :props="props">
+                  <q-chip
+                    v-for="cls in props.value"
+                    :key="cls"
+                    dense
+                    size="sm"
+                    color="blue-grey"
+                    text-color="white"
+                    class="q-mr-xs"
+                  >
+                    {{ cls }}
+                  </q-chip>
+                  <span v-if="!props.value?.length">—</span>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-encrypt_required="props">
+                <q-td :props="props">
+                  <q-chip
+                    dense
+                    size="sm"
+                    :color="props.value ? 'warning' : 'grey'"
+                    text-color="white"
+                  >
+                    {{ props.value ? "BitLocker required" : "Optional" }}
+                  </q-chip>
+                </q-td>
+              </template>
+        </q-table>
+
+        <q-separator class="q-my-md" />
+
+        <div class="row q-gutter-sm q-mb-sm items-center">
+          <div class="text-subtitle2">USB usage alerts</div>
+          <q-space />
+          <q-select
+            v-model="usbEventAgentFilter"
+            :options="agentOptions"
+            label="Agent"
+            dense
+            outlined
+            clearable
+            emit-value
+            map-options
+            style="min-width: 260px"
+            @update:model-value="loadUSBEvents"
+          />
+          <q-btn flat round dense icon="refresh" @click="loadUSBEvents" />
+        </div>
+        <q-table
+          :rows="usbEvents"
+          :columns="usbEventColumns"
+          dense
+          row-key="id"
+          :loading="loadingUSBEvents"
+          :rows-per-page-options="[10, 25, 50]"
+        >
+          <template v-slot:body-cell-severity="props">
+            <q-td :props="props">
+              <q-chip
+                dense
+                size="sm"
+                :color="severityColor(props.value)"
+                text-color="white"
+              >
+                {{ props.value }}
+              </q-chip>
+            </q-td>
+          </template>
+          <template v-slot:body-cell-status="props">
+            <q-td :props="props">
+              <q-chip
+                dense
+                size="sm"
+                :color="incidentStatusColor(props.value)"
+                text-color="white"
+              >
+                {{ props.value }}
+              </q-chip>
             </q-td>
           </template>
         </q-table>
@@ -532,6 +656,7 @@
             icon="policy"
             :label="$t('security.views.SecurityView.8d6118')"
           />
+          <q-tab name="email" icon="email" label="Email DLP" />
           <q-tab
             name="violations"
             icon="warning"
@@ -640,6 +765,216 @@
                 </q-td>
               </template>
             </q-table>
+          </q-tab-panel>
+
+          <!-- Internal Email DLP analog -->
+          <q-tab-panel name="email">
+            <q-banner
+              dense
+              class="bg-blue-1 text-blue-10 q-mb-md rounded-borders"
+            >
+              <template v-slot:avatar>
+                <q-icon name="email" color="primary" />
+              </template>
+              Internal Email DLP scans message bodies and attachments through the
+              same DLP classification pipeline used by Windows agents. Use this
+              panel to verify policy behavior without Microsoft Graph.
+            </q-banner>
+
+            <div class="row q-col-gutter-md">
+              <div class="col-12 col-lg-5">
+                <q-card flat bordered>
+                  <q-card-section>
+                    <div class="text-subtitle2 q-mb-md">
+                      Email sample
+                    </div>
+                    <div class="row q-col-gutter-sm">
+                      <div class="col-12">
+                        <q-input
+                          v-model="emailDLPForm.sender"
+                          label="Sender"
+                          outlined
+                          dense
+                        />
+                      </div>
+                      <div class="col-12">
+                        <q-input
+                          v-model="emailDLPForm.recipients"
+                          label="Recipients"
+                          hint="Comma-separated"
+                          outlined
+                          dense
+                        />
+                      </div>
+                      <div class="col-12">
+                        <q-input
+                          v-model="emailDLPForm.subject"
+                          label="Subject"
+                          outlined
+                          dense
+                        />
+                      </div>
+                      <div class="col-12">
+                        <q-input
+                          v-model="emailDLPForm.body"
+                          label="Message body"
+                          type="textarea"
+                          rows="4"
+                          outlined
+                          dense
+                        />
+                      </div>
+                      <div class="col-12 col-md-5">
+                        <q-input
+                          v-model="emailDLPForm.attachment_name"
+                          label="Attachment name"
+                          outlined
+                          dense
+                        />
+                      </div>
+                      <div class="col-12 col-md-7">
+                        <q-input
+                          v-model="emailDLPForm.attachment_content"
+                          label="Attachment text"
+                          outlined
+                          dense
+                        />
+                      </div>
+                    </div>
+                  </q-card-section>
+                  <q-card-actions align="right">
+                    <q-btn
+                      color="primary"
+                      icon="science"
+                      label="Run scan only"
+                      :loading="emailDLPTesting"
+                      @click="runInternalEmailDLPTest(false)"
+                    />
+                    <q-btn
+                      color="negative"
+                      outline
+                      icon="outgoing_mail"
+                      label="Send live SMTP test"
+                      :loading="emailDLPLiveSending"
+                      @click="runInternalEmailDLPTest(true)"
+                    />
+                  </q-card-actions>
+                </q-card>
+              </div>
+
+              <div class="col-12 col-lg-7">
+                <q-card flat bordered>
+                  <q-card-section>
+                    <div class="row items-center q-mb-md">
+                      <div class="text-subtitle2">Scan result</div>
+                      <q-space />
+                      <q-chip
+                        v-if="emailDLPResult"
+                        dense
+                        :color="emailDLPResult.allowed ? 'positive' : 'negative'"
+                        text-color="white"
+                      >
+                        {{ emailDLPResult.allowed ? "Allowed" : "Blocked" }}
+                      </q-chip>
+                    </div>
+
+                    <div v-if="!emailDLPResult" class="text-grey-7">
+                      Run a sample message to see policy match, action, severity,
+                      and the created DLP incident.
+                    </div>
+
+                    <template v-else>
+                      <q-list dense separator>
+                        <q-item>
+                          <q-item-section>
+                            <q-item-label caption>Action</q-item-label>
+                            <q-item-label>
+                              <q-chip
+                                dense
+                                :color="dlpActionColor(emailDLPResult.action)"
+                                text-color="white"
+                                size="sm"
+                              >
+                                {{ emailDLPResult.action }}
+                              </q-chip>
+                            </q-item-label>
+                          </q-item-section>
+                          <q-item-section>
+                            <q-item-label caption>Policies evaluated</q-item-label>
+                            <q-item-label>{{
+                              emailDLPResult.policies_evaluated
+                            }}</q-item-label>
+                          </q-item-section>
+                          <q-item-section>
+                            <q-item-label caption>Incident</q-item-label>
+                            <q-item-label>{{
+                              emailDLPResult.incident_id || "—"
+                            }}</q-item-label>
+                          </q-item-section>
+                        </q-item>
+                        <q-item>
+                          <q-item-section>
+                            <q-item-label caption>Message</q-item-label>
+                            <q-item-label>{{
+                              emailDLPResult.message || "—"
+                            }}</q-item-label>
+                          </q-item-section>
+                        </q-item>
+                        <q-item v-if="emailDLPResult.delivery">
+                          <q-item-section>
+                            <q-item-label caption>SMTP delivery</q-item-label>
+                            <q-item-label>
+                              {{ emailDLPResult.delivery.delivery || "—" }}
+                              <span v-if="emailDLPResult.delivery.recipients">
+                                to {{ emailDLPResult.delivery.recipients.join(", ") }}
+                              </span>
+                            </q-item-label>
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+
+                      <q-table
+                        class="q-mt-md"
+                        :rows="emailDLPResult.violations || []"
+                        :columns="emailDLPViolationColumns"
+                        dense
+                        flat
+                        row-key="source"
+                        :rows-per-page-options="[5, 10]"
+                      >
+                        <template v-slot:body-cell-action_taken="props">
+                          <q-td :props="props">
+                            <q-chip
+                              dense
+                              :color="dlpActionColor(props.value)"
+                              text-color="white"
+                              size="sm"
+                            >
+                              {{ props.value }}
+                            </q-chip>
+                          </q-td>
+                        </template>
+                      </q-table>
+
+                      <div class="q-mt-md">
+                        <q-btn
+                          v-if="emailDLPResult.incident_id"
+                          outline
+                          color="primary"
+                          icon="warning"
+                          label="Open DLP violations"
+                          @click="
+                            dlpViolationFilter = 'email_dlp';
+                            dlpSubTab = 'violations';
+                            loadDLPViolations();
+                          "
+                        />
+                      </div>
+                    </template>
+                  </q-card-section>
+                </q-card>
+              </div>
+            </div>
           </q-tab-panel>
 
           <!-- Violations (DLP incidents) -->
@@ -958,6 +1293,13 @@
               @click="promptIsolateDevice"
             />
             <q-btn
+              color="deep-orange"
+              outline
+              icon="rule"
+              label="Non-compliance carve"
+              @click="showNonComplianceForensicWizard"
+            />
+            <q-btn
               color="warning"
               icon="collecting_bag"
               :label="$t('security.views.SecurityView.4d9904')"
@@ -1046,6 +1388,32 @@
                   >
                 </q-td>
               </template>
+              <template v-slot:body-cell-only_non_compliant="props">
+                <q-td :props="props">
+                  <q-chip
+                    dense
+                    size="sm"
+                    :color="props.value ? 'deep-orange' : 'grey'"
+                    text-color="white"
+                  >
+                    {{ props.value ? "Non-compliant only" : "Any status" }}
+                  </q-chip>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-artifact_count="props">
+                <q-td :props="props">
+                  {{ props.row.artifacts?.length || 0 }}
+                </q-td>
+              </template>
+              <template v-slot:body-cell-manifest_sha256="props">
+                <q-td :props="props">
+                  <span v-if="props.value">
+                    {{ props.value.slice(0, 12) }}...
+                    <q-tooltip>{{ props.value }}</q-tooltip>
+                  </span>
+                  <span v-else>—</span>
+                </q-td>
+              </template>
               <template v-slot:body-cell-actions="props">
                 <q-td :props="props">
                   <q-btn
@@ -1055,6 +1423,36 @@
                     size="sm"
                     @click="openIRCase(props.row)"
                   />
+                  <q-btn
+                    flat
+                    dense
+                    icon="download"
+                    size="sm"
+                    color="primary"
+                    @click="downloadForensicToolExport(props.row, 'generic')"
+                  >
+                    <q-tooltip>Download tool export manifest</q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    flat
+                    dense
+                    icon="biotech"
+                    size="sm"
+                    color="secondary"
+                    @click="downloadForensicToolExport(props.row, 'autopsy')"
+                  >
+                    <q-tooltip>Download Autopsy manifest</q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    flat
+                    dense
+                    icon="verified_user"
+                    size="sm"
+                    color="positive"
+                    @click="downloadForensicToolExport(props.row, 'chain_of_custody')"
+                  >
+                    <q-tooltip>Download chain-of-custody manifest</q-tooltip>
+                  </q-btn>
                   <q-btn
                     flat
                     dense
@@ -1311,6 +1709,54 @@
                     @click="saveScanPolicy"
                   />
                 </div>
+                <q-separator class="q-my-md" />
+                <div class="text-subtitle2 q-mb-sm">
+                  Credential breach response
+                </div>
+                <q-select
+                  v-model="credentialRiskForm.agent_id"
+                  :options="agentOptions"
+                  emit-value
+                  map-options
+                  label="Device"
+                  outlined
+                  dense
+                />
+                <q-input
+                  v-model="credentialRiskForm.username"
+                  label="User"
+                  outlined
+                  dense
+                  class="q-mt-sm"
+                />
+                <q-input
+                  v-model.number="credentialRiskForm.risk_score"
+                  type="number"
+                  min="0"
+                  max="100"
+                  label="Risk score"
+                  outlined
+                  dense
+                  class="q-mt-sm"
+                />
+                <q-select
+                  v-model="credentialRiskForm.response_action"
+                  :options="credentialRiskActionOptions"
+                  emit-value
+                  map-options
+                  label="Response"
+                  outlined
+                  dense
+                  class="q-mt-sm"
+                />
+                <q-btn
+                  color="negative"
+                  icon="lock"
+                  label="Send credential risk event"
+                  class="q-mt-sm"
+                  :disable="!credentialRiskForm.agent_id"
+                  @click="sendCredentialRiskEvent"
+                />
               </div>
             </div>
           </q-card-section>
@@ -1616,6 +2062,13 @@
                   dense
                   class="q-mb-sm"
                 />
+                <q-input
+                  v-model="micMeetingReason"
+                  label="Meeting / incident reason"
+                  outlined
+                  dense
+                  class="q-mb-sm"
+                />
                 <q-btn
                   color="warning"
                   :label="$t('security.views.SecurityView.0ae271')"
@@ -1768,9 +2221,60 @@
             emit-value
             map-options
           />
+          <q-select
+            v-model="usbForm.blocked_device_classes"
+            :options="usbClassOptions"
+            label="Blocked device classes"
+            outlined
+            dense
+            multiple
+            use-chips
+            emit-value
+            map-options
+          />
+          <q-select
+            v-model="usbForm.allowed_device_classes"
+            :options="usbClassOptions"
+            label="Allowed device classes"
+            outlined
+            dense
+            multiple
+            use-chips
+            emit-value
+            map-options
+          />
+          <q-input
+            v-model="usbAllowedIdsInput"
+            label="Allowed USB IDs"
+            hint="One VID/PID, hardware ID, or instance prefix per line"
+            type="textarea"
+            rows="2"
+            outlined
+            dense
+          />
+          <q-input
+            v-model="usbBlockedIdsInput"
+            label="Blocked USB IDs"
+            hint="One VID/PID, hardware ID, or instance prefix per line"
+            type="textarea"
+            rows="2"
+            outlined
+            dense
+          />
           <q-toggle
             v-model="usbForm.encrypt_required"
             :label="$t('security.views.SecurityView.273ef9')"
+          />
+          <q-toggle
+            v-model="usbForm.emergency_mode"
+            label="Emergency policy"
+          />
+          <q-input
+            v-if="usbForm.emergency_mode"
+            v-model="usbForm.emergency_reason"
+            label="Emergency reason"
+            outlined
+            dense
           />
           <q-toggle
             v-model="usbForm.log_usage"
@@ -2071,13 +2575,9 @@
                 v-model="forensicWizardForm.job_types"
                 multiple
                 use-chips
-                :options="[
-                  'filesystem',
-                  'memory',
-                  'processes',
-                  'registry',
-                  'network',
-                ]"
+                :options="forensicJobTypeOptions"
+                emit-value
+                map-options
                 :label="$t('security.views.SecurityView.46c4fc')"
                 outlined
                 dense
@@ -2137,8 +2637,18 @@
             <div class="col-12 col-md-4">
               <q-select
                 v-model="forensicWizardForm.engine"
-                :options="['builtin']"
+                :options="forensicEngineOptions"
+                emit-value
+                map-options
                 :label="$t('security.views.SecurityView.c1f65d')"
+                outlined
+                dense
+              />
+            </div>
+            <div class="col-12" v-if="forensicWizardForm.engine !== 'builtin'">
+              <q-input
+                v-model="forensicWizardForm.external_ref"
+                label="External case / flow reference"
                 outlined
                 dense
               />
@@ -2420,73 +2930,12 @@
       </q-card>
     </q-dialog>
 
-    <q-dialog v-model="dlpGraphSetupOpen" persistent>
-      <q-card style="min-width: 560px; max-width: 92vw">
-        <q-bar
-          >Email DLP Graph setup<q-space /><q-btn
-            dense
-            flat
-            icon="close"
-            v-close-popup
-        /></q-bar>
-        <q-card-section class="q-gutter-md">
-          <q-input
-            v-model="dlpGraphForm.tenant_id"
-            label="Tenant ID"
-            outlined
-            dense
-          />
-          <q-input
-            v-model="dlpGraphForm.client_id"
-            label="Client ID"
-            outlined
-            dense
-          />
-          <q-input
-            v-model="dlpGraphForm.client_secret"
-            label="Client secret"
-            type="password"
-            outlined
-            dense
-          />
-          <q-input
-            v-model="dlpGraphForm.notification_url"
-            label="Webhook URL"
-            outlined
-            dense
-          />
-          <q-input
-            v-model="dlpGraphEmailsInput"
-            label="Mailboxes, comma-separated"
-            outlined
-            dense
-            type="textarea"
-            rows="2"
-          />
-          <div
-            v-if="dlpGraphSubscriptions.length"
-            class="text-caption text-grey"
-          >
-            Active subscriptions: {{ dlpGraphSubscriptions.length }}
-          </div>
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn
-            color="primary"
-            label="Save subscriptions"
-            :loading="savingDLPGraph"
-            @click="saveDLPGraphSetup"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
   </q-page>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from "vue";
-import { useQuasar, copyToClipboard } from "quasar";
+import { useQuasar, copyToClipboard, exportFile } from "quasar";
 import { useRoute } from "vue-router";
 import axios from "axios";
 import HealthChart from "@/security/components/HealthChart.vue";
@@ -2506,6 +2955,16 @@ const $q = useQuasar();
 const route = useRoute();
 const tab = ref("health");
 const fimTab = ref("policies");
+const tabByRouteName: Record<string, string> = {
+  SecurityCenter: "health",
+  SecurityEmailDLP: "dlp",
+  SecurityPeripheralControls: "peripheral-requests",
+  SecurityPeripheralRequests: "peripheral-requests",
+  SecurityUsbControls: "usb",
+  SecurityMicrophoneControls: "mic-control",
+  Forensics: "forensics",
+  UEBA: "ueba",
+};
 
 // Performance chart data
 const chartAgentId = ref("");
@@ -2552,13 +3011,23 @@ async function loadAgentOptions() {
   }
 }
 
-function syncTabFromRoute(path: string) {
-  if (path.endsWith("/security/forensics")) {
-    tab.value = "forensics";
-  } else if (path.endsWith("/security/ueba")) {
-    tab.value = "ueba";
-  } else if (path.endsWith("/security")) {
-    tab.value = "health";
+function syncTabFromRoute() {
+  const routeName = String(route.name ?? "");
+  if (tabByRouteName[routeName]) {
+    tab.value = tabByRouteName[routeName];
+    if (routeName === "SecurityEmailDLP") {
+      dlpSubTab.value = "email";
+    }
+    return;
+  }
+
+  const queryTab = route.query.tab;
+  if (typeof queryTab === "string" && queryTab) {
+    tab.value = queryTab;
+  }
+  const queryDlpTab = route.query.dlp;
+  if (typeof queryDlpTab === "string" && queryDlpTab) {
+    dlpSubTab.value = queryDlpTab;
   }
 }
 
@@ -2568,6 +3037,8 @@ const selectedIncidents = ref<any[]>([]);
 const fimPolicies = ref<any[]>([]);
 const fimEvents = ref<any[]>([]);
 const usbPolicies = ref<any[]>([]);
+const usbEvents = ref<any[]>([]);
+const usbEventAgentFilter = ref<string | null>(null);
 const dlpPolicies = ref<any[]>([]);
 const healthSummary = ref<Record<string, number>>({});
 const incidentSummary = ref<any>({
@@ -2581,6 +3052,7 @@ const loadingIncidents = ref(false);
 const loadingFIM = ref(false);
 const loadingFIMEvents = ref(false);
 const loadingUSB = ref(false);
+const loadingUSBEvents = ref(false);
 const loadingDLP = ref(false);
 const dlpDialogOpen = ref(false);
 const editingDLP = ref<any>(null);
@@ -2608,15 +3080,16 @@ const dlpTestForm = ref({
 const dlpQuarantine = ref<any[]>([]);
 const loadingDLPQuarantine = ref(false);
 const quarantineActiveOnly = ref(true);
-const dlpGraphSetupOpen = ref(false);
-const savingDLPGraph = ref(false);
-const dlpGraphEmailsInput = ref("");
-const dlpGraphSubscriptions = ref<any[]>([]);
-const dlpGraphForm = ref<any>({
-  tenant_id: "",
-  client_id: "",
-  client_secret: "",
-  notification_url: "",
+const emailDLPTesting = ref(false);
+const emailDLPLiveSending = ref(false);
+const emailDLPResult = ref<any>(null);
+const emailDLPForm = ref({
+  sender: "noreply@it-laborato.ru",
+  recipients: "",
+  subject: "Secret export",
+  body: "password=Secret123!",
+  attachment_name: "secret.txt",
+  attachment_content: "api_key=ABCDEFGHIJKLMNOP123456",
 });
 
 const dlpViolationTypeOptions = [
@@ -2628,8 +3101,21 @@ const dlpViolationTypeOptions = [
   { label: "Cloud sync", value: "cloud_sync" },
   { label: "Network upload", value: "network_upload" },
   { label: "USB transfer", value: "usb_transfer" },
+  { label: "Email DLP", value: "email_dlp" },
   { label: "Auto encrypt", value: "auto_encrypt" },
   { label: "Network DLP health", value: "network_dlp_health" },
+];
+const emailDLPViolationColumns = [
+  { name: "source", label: "Source", field: "source", align: "left" as const },
+  { name: "policy_name", label: "Policy", field: "policy_name", align: "left" as const },
+  { name: "level", label: "Level", field: "level", align: "center" as const },
+  { name: "score", label: "Score", field: "score", align: "center" as const },
+  {
+    name: "action_taken",
+    label: "Action",
+    field: "action_taken",
+    align: "center" as const,
+  },
 ];
 const violationColumns = [
   {
@@ -2741,6 +3227,8 @@ const editingFIM = ref<any>(null);
 const savingIncident = ref(false);
 const savingUSB = ref(false);
 const savingFIM = ref(false);
+const usbAllowedIdsInput = ref("");
+const usbBlockedIdsInput = ref("");
 
 const monitoredPathsInput = ref("");
 const excludedPathsInput = ref("");
@@ -2759,9 +3247,15 @@ const incidentForm = ref<any>({
 const usbForm = ref<any>({
   name: "",
   policy_type: "read_only",
+  allowed_device_ids: [],
+  blocked_device_ids: [],
+  allowed_device_classes: [],
+  blocked_device_classes: [],
   encrypt_required: false,
   log_usage: true,
   alert_on_connect: false,
+  emergency_mode: false,
+  emergency_reason: "",
   enabled: true,
 });
 const fimForm = ref<any>({
@@ -2807,6 +3301,17 @@ const incidentTypeOptions = [
   { label: "DLP Violation", value: "dlp_violation" },
   { label: "Brute Force", value: "brute_force" },
   { label: "Other", value: "other" },
+];
+const usbClassOptions = [
+  { label: "Mass storage", value: "mass_storage" },
+  { label: "HID keyboard/mouse", value: "hid" },
+  { label: "Printer", value: "printer" },
+  { label: "Imaging / camera", value: "imaging" },
+  { label: "Audio", value: "audio" },
+  { label: "Smart card", value: "smart_card" },
+  { label: "MTP / portable device", value: "mtp" },
+  { label: "Network adapter", value: "network" },
+  { label: "Serial / modem", value: "serial" },
 ];
 const fimEventTypeOptions = [
   { label: "Created", value: "created" },
@@ -2882,6 +3387,8 @@ function dlpSearchText(row: any) {
     dlpDetail(row, "policy_name"),
     dlpDetail(row, "policy_id"),
     dlpDetail(row, "action_taken"),
+    dlpDetail(row, "sender"),
+    dlpDetail(row, "subject"),
   ]
     .filter(Boolean)
     .join(" ")
@@ -3047,9 +3554,43 @@ const fimEventColumns = [
 const usbColumns = [
   { name: "name", label: "Name", field: "name", align: "left", sortable: true },
   { name: "policy_type", label: "Type", field: "policy_type", align: "center" },
+  {
+    name: "device_classes",
+    label: "Classes",
+    field: (row: any) => [
+      ...(row.blocked_device_classes || []).map((c: string) => `block:${c}`),
+      ...(row.allowed_device_classes || []).map((c: string) => `allow:${c}`),
+    ],
+    align: "left",
+  },
+  {
+    name: "encrypt_required",
+    label: "Encryption",
+    field: "encrypt_required",
+    align: "center",
+  },
   { name: "scope", label: "Scope", field: "scope", align: "center" },
   { name: "enabled", label: "Status", field: "enabled", align: "center" },
   { name: "actions", label: "", field: "actions", align: "right" },
+];
+const usbEventColumns = [
+  { name: "occurred_at", label: "Occurred", field: "occurred_at", align: "left" },
+  { name: "agent_id", label: "Agent", field: "agent_id", align: "left" },
+  { name: "severity", label: "Severity", field: "severity", align: "center" },
+  {
+    name: "violation_type",
+    label: "Violation",
+    field: (row: any) => row.details?.violation_type || "usb_usage",
+    align: "center",
+  },
+  {
+    name: "device_class",
+    label: "Class",
+    field: (row: any) => row.details?.device_class || row.details?.pnp_class || "—",
+    align: "center",
+  },
+  { name: "title", label: "Title", field: "title", align: "left" },
+  { name: "status", label: "Status", field: "status", align: "center" },
 ];
 const dlpColumns = [
   {
@@ -3171,6 +3712,18 @@ async function loadUSB() {
     loadingUSB.value = false;
   }
 }
+async function loadUSBEvents() {
+  loadingUSBEvents.value = true;
+  try {
+    const params: Record<string, string> = { incident_type: "unauthorized_usb" };
+    if (usbEventAgentFilter.value) {
+      params.agent_id = usbEventAgentFilter.value;
+    }
+    usbEvents.value = (await axios.get("/security/incidents/", { params })).data || [];
+  } finally {
+    loadingUSBEvents.value = false;
+  }
+}
 async function loadDLP() {
   loadingDLP.value = true;
   try {
@@ -3245,42 +3798,62 @@ async function remediateQuarantine(
   });
 }
 
-async function openDLPGraphSetup() {
-  dlpGraphSetupOpen.value = true;
-  await loadDLPGraphSubscriptions();
+function openEmailDLPTest() {
+  dlpDialogOpen.value = false;
+  editingDLP.value = null;
+  tab.value = "dlp";
+  dlpSubTab.value = "email";
 }
 
-async function loadDLPGraphSubscriptions() {
-  try {
-    const data = (await axios.get("/security/dlp/email/setup/")).data;
-    dlpGraphSubscriptions.value = Array.isArray(data) ? data : [];
-  } catch {
-    dlpGraphSubscriptions.value = [];
+function emailDLPRecipients() {
+  return emailDLPForm.value.recipients
+    .split(",")
+    .map((value: string) => value.trim())
+    .filter(Boolean);
+}
+
+function emailDLPPayload() {
+  const attachmentContent = emailDLPForm.value.attachment_content.trim();
+  const attachments = attachmentContent
+    ? [
+        {
+          name: emailDLPForm.value.attachment_name || "attachment.txt",
+          content: attachmentContent,
+        },
+      ]
+    : [];
+  return {
+    sender: emailDLPForm.value.sender,
+    recipients: emailDLPRecipients(),
+    subject: emailDLPForm.value.subject,
+    body: emailDLPForm.value.body,
+    attachments,
+  };
+}
+
+async function runInternalEmailDLPTest(live = false) {
+  if (live && !emailDLPRecipients().length) {
+    $q.notify({ type: "warning", message: "Recipient is required for live SMTP test" });
+    return;
   }
-}
-
-async function saveDLPGraphSetup() {
-  savingDLPGraph.value = true;
+  emailDLPTesting.value = !live;
+  emailDLPLiveSending.value = live;
   try {
-    const user_emails = dlpGraphEmailsInput.value
-      .split(",")
-      .map((v: string) => v.trim())
-      .filter(Boolean);
-    const result = (
-      await axios.post("/security/dlp/email/setup/", {
-        ...dlpGraphForm.value,
-        user_emails,
-      })
+    const endpoint = live
+      ? "/security/dlp/email/live-test/"
+      : "/security/dlp/email/internal-test/";
+    emailDLPResult.value = (
+      await axios.post(endpoint, emailDLPPayload())
     ).data;
     $q.notify({
-      color: "positive",
-      icon: "check",
-      message: `Graph subscriptions created: ${result?.total ?? 0}`,
+      color: emailDLPResult.value.allowed ? "positive" : "negative",
+      icon: emailDLPResult.value.allowed ? "check" : "block",
+      message: emailDLPResult.value.message || "Email DLP scan finished",
     });
-    dlpGraphSetupOpen.value = false;
-    await loadDLPGraphSubscriptions();
+    await loadDLPViolations();
   } finally {
-    savingDLPGraph.value = false;
+    emailDLPTesting.value = false;
+    emailDLPLiveSending.value = false;
   }
 }
 
@@ -3423,16 +3996,34 @@ function showUSBDialog(item?: any) {
     : {
         name: "",
         policy_type: "read_only",
+        allowed_device_ids: [],
+        blocked_device_ids: [],
+        allowed_device_classes: [],
+        blocked_device_classes: [],
         encrypt_required: false,
         log_usage: true,
         alert_on_connect: false,
+        emergency_mode: false,
+        emergency_reason: "",
         enabled: true,
       };
+  usbAllowedIdsInput.value = (usbForm.value.allowed_device_ids || []).join("\n");
+  usbBlockedIdsInput.value = (usbForm.value.blocked_device_ids || []).join("\n");
   usbDialogOpen.value = true;
 }
+
+function splitLines(value: string) {
+  return (value || "")
+    .split(/[\n,]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 async function saveUSB() {
   savingUSB.value = true;
   try {
+    usbForm.value.allowed_device_ids = splitLines(usbAllowedIdsInput.value);
+    usbForm.value.blocked_device_ids = splitLines(usbBlockedIdsInput.value);
     if (editingUSB.value) {
       await axios.put(`/security/usb/${editingUSB.value.id}/`, usbForm.value);
     } else {
@@ -3449,6 +4040,25 @@ async function saveUSB() {
     savingUSB.value = false;
   }
 }
+async function deployUSB(policy: any) {
+  try {
+    const resp = await axios.post(`/security/usb/${policy.id}/deploy/`, {
+      wait: true,
+    });
+    const count = resp.data?.agents_triggered ?? 0;
+    $q.notify({
+      message: `USB policy deployed to ${count} agent(s)`,
+      color: "positive",
+      icon: "send",
+    });
+    await loadUSBEvents();
+  } catch (e: any) {
+    $q.notify({
+      message: _apiErrMessage(e, "USB deploy failed"),
+      color: "negative",
+    });
+  }
+}
 async function deleteUSB(id: number) {
   $q.dialog({
     title: "Delete USB policy?",
@@ -3457,6 +4067,41 @@ async function deleteUSB(id: number) {
   }).onOk(async () => {
     await axios.delete(`/security/usb/${id}/`);
     await loadUSB();
+  });
+}
+function emergencyUSB() {
+  $q.dialog({
+    title: "Emergency USB block",
+    message: "Block USB mass-storage class on all matching Windows agents now.",
+    prompt: {
+      model: "Incident response emergency",
+      type: "text",
+      label: "Reason",
+    },
+    cancel: true,
+    ok: { color: "negative", label: "Dispatch" },
+  }).onOk(async (reason: string) => {
+    try {
+      const resp = await axios.post("/security/usb/emergency/", {
+        reason,
+        policy_type: "block_all",
+        blocked_device_classes: ["mass_storage"],
+        wait: true,
+      });
+      const count = resp.data?.agents_triggered ?? 0;
+      $q.notify({
+        message: `Emergency USB block sent to ${count} agent(s)`,
+        color: "negative",
+        icon: "emergency",
+      });
+      await loadUSB();
+      await loadUSBEvents();
+    } catch (e: any) {
+      $q.notify({
+        message: _apiErrMessage(e, "Emergency USB dispatch failed"),
+        color: "negative",
+      });
+    }
   });
 }
 async function revokeUSB(policy: any) {
@@ -3612,9 +4257,11 @@ onMounted(() => {
   loadFIMPolicies();
   loadFIMEvents();
   loadUSB();
+  loadUSBEvents();
   loadDLP();
   loadDLPViolations();
   loadDLPQuarantine();
+  loadForensicJobTypes();
   loadForensics();
   loadForensicsAudit();
   loadUEBA();
@@ -3629,7 +4276,7 @@ onUnmounted(() => {
   stopDLPTestWatch();
 });
 
-watch(() => route.path, syncTabFromRoute, { immediate: true });
+watch(() => route.fullPath, syncTabFromRoute, { immediate: true });
 
 // ===== Forensics & IR (func #765-773, #782-791) =====
 const showIsolateDialog = ref(false);
@@ -3655,11 +4302,30 @@ const forensicWizardForm = ref({
   min_size_bytes: null as number | null,
   max_size_bytes: null as number | null,
   engine: "builtin",
+  external_ref: "",
   approval_status: "not_required",
   only_non_compliant: false,
 });
 const forensicKeywordsInput = ref("");
 const forensicPathGlobsInput = ref("");
+const forensicJobTypeOptions = ref<any[]>([
+  { label: "File collection", value: "file_collection" },
+  { label: "Keyword carve", value: "keyword_carve" },
+  { label: "Crash dumps", value: "crash_dumps" },
+  { label: "Event logs", value: "event_log" },
+  { label: "Prefetch", value: "prefetch" },
+  { label: "Filesystem timeline", value: "filesystem_timeline" },
+  { label: "Registry hives", value: "registry" },
+  { label: "Memory lite", value: "memory_lite" },
+  { label: "YARA scan", value: "yara" },
+  { label: "Triage bundle", value: "triage_bundle" },
+  { label: "External tool export", value: "tool_export" },
+]);
+const forensicEngineOptions = [
+  { label: "Built-in collectors", value: "builtin" },
+  { label: "Velociraptor handoff", value: "velociraptor" },
+  { label: "Bulk Extractor handoff", value: "bulk_extractor" },
+];
 
 const forensicColumns = [
   { name: "agent_id", label: "Device", field: "agent_id", align: "left" },
@@ -3669,6 +4335,24 @@ const forensicColumns = [
     name: "approval_status",
     label: "Approval",
     field: "approval_status",
+    align: "left",
+  },
+  {
+    name: "only_non_compliant",
+    label: "Trigger",
+    field: "only_non_compliant",
+    align: "center",
+  },
+  {
+    name: "artifact_count",
+    label: "Artifacts",
+    field: (row: any) => row.artifacts?.length || 0,
+    align: "center",
+  },
+  {
+    name: "manifest_sha256",
+    label: "Manifest SHA-256",
+    field: "manifest_sha256",
     align: "left",
   },
   { name: "created_at", label: "Created", field: "created_at", align: "left" },
@@ -3725,6 +4409,24 @@ async function loadForensics() {
   loadingForensics.value = false;
 }
 
+async function loadForensicJobTypes() {
+  try {
+    const r = await axios.get("/security/forensics/job-types/");
+    const groups = Array.isArray(r.data?.groups) ? r.data.groups : [];
+    if (groups.length) {
+      forensicJobTypeOptions.value = groups.map((row: any) => ({
+        label: row.label || row.kind,
+        value: row.kind,
+      }));
+    }
+  } catch (e: any) {
+    $q.notify({
+      message: _apiErrMessage(e, "Failed to load forensic job types"),
+      color: "warning",
+    });
+  }
+}
+
 async function loadForensicsAudit() {
   loadingForensicsAudit.value = true;
   forensicsAuditError.value = "";
@@ -3740,6 +4442,26 @@ async function loadForensicsAudit() {
   } finally {
     loadingForensicsAudit.value = false;
   }
+}
+
+function showNonComplianceForensicWizard() {
+  forensicWizardForm.value = {
+    agent_id: agentOptions.value.length === 1 ? agentOptions.value[0].value : "",
+    title: "Non-compliance forensic carve",
+    reason: "Automatic collection gated to non-compliant devices",
+    job_types: ["keyword_carve", "crash_dumps", "tool_export"],
+    keywords: ["password", "secret", "token", "credential"],
+    path_globs: ["C:\\Users\\**\\Documents\\*", "C:\\Users\\**\\Desktop\\*"],
+    min_size_bytes: null,
+    max_size_bytes: 268435456,
+    engine: "builtin",
+    external_ref: "",
+    approval_status: "not_required",
+    only_non_compliant: true,
+  };
+  forensicKeywordsInput.value = forensicWizardForm.value.keywords.join(", ");
+  forensicPathGlobsInput.value = forensicWizardForm.value.path_globs.join(", ");
+  showForensicWizard.value = true;
 }
 
 async function submitForensicJob() {
@@ -3762,6 +4484,7 @@ async function submitForensicJob() {
       min_size_bytes: null,
       max_size_bytes: null,
       engine: "builtin",
+      external_ref: "",
       approval_status: "not_required",
       only_non_compliant: false,
     };
@@ -3826,6 +4549,31 @@ function openIRCase(row: any) {
     message: `Agent: ${row.agent_id}\nStatus: ${row.status}\nArtifacts: ${row.artifacts?.length ?? 0}`,
     ok: true,
   });
+}
+
+async function downloadForensicToolExport(row: any, format = "generic") {
+  try {
+    const r = await axios.get(`/security/forensics/jobs/${row.id}/tool-export/`, {
+      params: { tool: format },
+    });
+    const payload = JSON.stringify(r.data, null, 2);
+    const filename = `forensics-${row.id}-${format}-manifest.json`;
+    const status = exportFile(filename, payload, "application/json");
+    if (status !== true) {
+      throw new Error("browser blocked file export");
+    }
+    $q.notify({
+      message: `Forensic ${format} manifest exported`,
+      color: "positive",
+      icon: "download",
+    });
+    await loadForensicsAudit();
+  } catch (e: any) {
+    $q.notify({
+      message: _apiErrMessage(e, "Failed to export forensic manifest"),
+      color: "negative",
+    });
+  }
 }
 
 function escalateCase(row: any) {
@@ -4021,6 +4769,19 @@ const scanPolicy = ref({
   autoAlert: true,
   autoBlock: false,
 });
+const credentialRiskForm = ref({
+  agent_id: "",
+  username: "",
+  risk_score: 95,
+  response_action: "lock",
+});
+const credentialRiskActionOptions = [
+  { label: "Monitor only", value: "monitor" },
+  { label: "Lock device", value: "lock" },
+  { label: "Block org access", value: "block_access" },
+  { label: "Selective wipe", value: "wipe_selective" },
+  { label: "Full wipe", value: "wipe_full" },
+];
 
 async function loadUEBA() {
   loadingUEBA.value = true;
@@ -4101,6 +4862,29 @@ async function saveScanPolicy() {
   } catch (e: any) {
     $q.notify({
       message: _apiErrMessage(e, "Failed to save scan policy"),
+      color: "negative",
+    });
+  }
+}
+
+async function sendCredentialRiskEvent() {
+  try {
+    const response = await axios.post("/security/credential-risk/events/", {
+      ...credentialRiskForm.value,
+      source: "admin_live_test",
+      event_count: 1,
+      window: "manual",
+    });
+    $q.notify({
+      message: `Credential risk handled: ${response.data.action}`,
+      color: response.data.dispatched ? "positive" : "warning",
+      icon: response.data.dispatched ? "lock" : "visibility",
+    });
+    await loadIncidents();
+    await loadUEBA();
+  } catch (e: any) {
+    $q.notify({
+      message: _apiErrMessage(e, "Failed to send credential risk event"),
       color: "negative",
     });
   }
@@ -4329,6 +5113,7 @@ const showAddMicRule = ref(false);
 const micLoggingEnabled = ref(false);
 const micMeetingDevices = ref([]);
 const micMeetingDuration = ref("1 hour");
+const micMeetingReason = ref("Confidential meeting");
 const emergencyMicDevice = ref("");
 const emergencyMicReason = ref("");
 const deviceOptions = computed(() =>
@@ -4352,6 +5137,12 @@ const micEventColumns = [
   { name: "device", label: "Device", field: "agent_id", align: "left" },
   { name: "app", label: "Application", field: "app", align: "left" },
   { name: "action", label: "Action", field: "action", align: "left" },
+  {
+    name: "source",
+    label: "Source",
+    field: (row: any) => row.details?.source || "server",
+    align: "left",
+  },
 ];
 
 async function loadMicRulesFromServer() {
@@ -4480,6 +5271,7 @@ async function applyMeetingMode() {
     const { data } = await axios.post("/security/mic-control/meeting-mode/", {
       devices: micMeetingDevices.value,
       duration: micMeetingDuration.value,
+      reason: micMeetingReason.value,
     });
     $q.notify({
       message: `Meeting mode sent to ${data?.dispatched ?? micMeetingDevices.value.length} device(s).`,
@@ -4513,6 +5305,7 @@ function muteMeetingMode() {
       const { data } = await axios.post("/security/mic-control/meeting-mode/", {
         devices: all,
         duration: micMeetingDuration.value,
+        reason: micMeetingReason.value,
       });
       $q.notify({
         message: `Meeting mode sent to ${data?.dispatched ?? all.length} devices.`,
