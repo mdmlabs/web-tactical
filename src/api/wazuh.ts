@@ -145,6 +145,32 @@ class WazuhApiClient {
     return data;
   }
 
+  async getManagerConfiguration(params?: Record<string, unknown>) {
+    const { data } = await this.client.get("/manager/configuration", {
+      params,
+      // When raw=true the API may return plain text XML
+      ...(params?.raw
+        ? {
+            responseType: "text" as const,
+            transformResponse: [(d: string) => d],
+          }
+        : {}),
+    });
+    return data;
+  }
+
+  async putManagerConfiguration(xmlContent: string) {
+    const { data } = await this.client.put(
+      "/manager/configuration",
+      xmlContent,
+      {
+        headers: { "Content-Type": "application/octet-stream" },
+        transformRequest: [(d: string) => d],
+      },
+    );
+    return data;
+  }
+
   // === Agent security data ===
   async getVulnerabilities(agentId: string, params?: Record<string, unknown>) {
     const { data } = await this.client.get<

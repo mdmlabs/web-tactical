@@ -98,6 +98,13 @@ const columns: QTableProps["columns"] = [
   { name: "target", label: "Target", field: "target", align: "left" },
   { name: "filename", label: "File", field: "filename", align: "left" },
   { name: "category", label: "Category", field: "category", align: "left" },
+  {
+    name: "wazuhGroup",
+    label: "Group",
+    field: "wazuhGroup",
+    align: "left",
+    format: (val: string | null) => val ?? "\u2014",
+  },
   { name: "user", label: "By", field: "user", align: "left" },
   { name: "status", label: "Status", field: "status", align: "left" },
   {

@@ -1226,6 +1226,18 @@
                       /></q-item-section>
                       <q-item-section>Agent SCA</q-item-section>
                     </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="navigateToSecurity('ossec-config')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="settings_applications" size="sm"
+                      /></q-item-section>
+                      <q-item-section>Manager Config</q-item-section>
+                    </q-item>
                   </q-list>
                 </q-menu>
               </q-item>
@@ -1497,6 +1509,23 @@
                     ><q-icon name="verified"
                   /></q-item-section>
                   <q-item-section>Agent SCA</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="navigateToSecurity('ossec-config')"
+                  :class="[
+                    'filebar-menu-item',
+                    {
+                      'active-menu-item':
+                        isActiveSecurityTab('ossec-config'),
+                    },
+                  ]"
+                >
+                  <q-item-section avatar
+                    ><q-icon name="settings_applications"
+                  /></q-item-section>
+                  <q-item-section>Manager Config</q-item-section>
                 </q-item>
               </q-list>
             </q-expansion-item>
@@ -2481,6 +2510,7 @@ export default {
         workshop: "Workshop",
         "use-cases": "DetectionCases",
         "agent-compliance": "AgentCompliance",
+        "ossec-config": "OssecConfig",
       };
       this.$router.push({ name: routeMap[tab] || "SecurityAgents" });
     },
@@ -2528,6 +2558,8 @@ export default {
       if (tab === "use-cases") return path.startsWith("/security/use-cases");
       if (tab === "agent-compliance")
         return path.startsWith("/security/agent-compliance");
+      if (tab === "ossec-config")
+        return path.startsWith("/security/ossec-config");
       return false;
     },
     clearCache() {
