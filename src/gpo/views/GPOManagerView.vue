@@ -188,6 +188,14 @@
                           label="Applied policies"
                           @click="openAppliedPoliciesDialog"
                         />
+                        <q-btn
+                          color="negative"
+                          outline
+                          icon="restore"
+                          label="Restore policies"
+                          :loading="restorePoliciesLoading"
+                          @click="confirmRestoreAllPoliciesForAgent"
+                        />
                       </q-card-actions>
                     </q-card>
                   </div>
@@ -1033,20 +1041,76 @@
                       class="q-ml-sm"
                     />
                   </div>
-                  <q-btn
-                    round
-                    dense
-                    flat
-                    icon="refresh"
-                    :loading="agentsLoading"
-                    @click="loadAgents"
-                    size="sm"
-                  >
-                    <q-tooltip>Update the list of agents</q-tooltip>
-                  </q-btn>
+                  <div class="row items-center no-wrap q-gutter-xs">
+                    <q-btn
+                      round
+                      dense
+                      flat
+                      icon="filter_alt"
+                      size="sm"
+                      :color="hasActiveAgentFilters ? 'primary' : undefined"
+                      @click="openAgentFilterDialog"
+                    >
+                      <q-badge
+                        v-if="activeAgentFiltersCount > 0"
+                        color="primary"
+                        floating
+                        transparent
+                      >
+                        {{ activeAgentFiltersCount }}
+                      </q-badge>
+                      <q-tooltip>Filter devices</q-tooltip>
+                    </q-btn>
+                    <q-btn
+                      round
+                      dense
+                      flat
+                      icon="refresh"
+                      :loading="agentsLoading"
+                      @click="loadAgents"
+                      size="sm"
+                    >
+                      <q-tooltip>Update the list of agents</q-tooltip>
+                    </q-btn>
+                  </div>
                 </div>
               </div>
-              <div v-if="agentsList.length > 0" class="q-mt-sm">
+              <div
+                v-if="hasActiveAgentFilters"
+                class="q-mt-xs row items-center q-gutter-xs"
+              >
+                <q-chip
+                  v-if="agentListFilters.manufacturer"
+                  dense
+                  removable
+                  color="primary"
+                  text-color="white"
+                  @remove="clearAgentFilterField('manufacturer')"
+                >
+                  {{ agentListFilters.manufacturer }}
+                </q-chip>
+                <q-chip
+                  v-if="agentListFilters.model"
+                  dense
+                  removable
+                  color="primary"
+                  text-color="white"
+                  @remove="clearAgentFilterField('model')"
+                >
+                  {{ agentListFilters.model }}
+                </q-chip>
+                <q-chip
+                  v-if="agentListFilters.minimalOsVersion"
+                  dense
+                  removable
+                  color="primary"
+                  text-color="white"
+                  @remove="clearAgentFilterField('minimalOsVersion')"
+                >
+                  {{ agentListFiltersOsLabel }}
+                </q-chip>
+              </div>
+              <div class="q-mt-sm">
                 <q-input
                   v-model="agentSearch"
                   dense
@@ -2140,12 +2204,69 @@
         :agent="selectedAgent"
         :user="wslDialogUser"
       />
+
+      <q-dialog v-model="showAgentFilterDialog" persistent>
+        <q-card style="min-width: 400px; max-width: 95vw">
+          <q-card-section>
+            <div class="text-h6">Filter devices</div>
+          </q-card-section>
+          <q-card-section class="q-pt-none q-gutter-sm">
+            <q-select
+              v-model="agentListFiltersDraft.manufacturer"
+              :options="manufacturerFilterOptions"
+              label="Manufacturer"
+              dense
+              outlined
+              clearable
+              emit-value
+              map-options
+              :loading="agentFilterOptionsLoading"
+              :disable="agentFilterOptionsLoading"
+            />
+            <q-select
+              v-model="agentListFiltersDraft.model"
+              :options="modelFilterOptionsForDraft"
+              label="Model"
+              dense
+              outlined
+              clearable
+              emit-value
+              map-options
+              :disable="!agentListFiltersDraft.manufacturer"
+              :loading="agentFilterOptionsLoading"
+            />
+            <OsVersionSelect
+              v-model="agentListFiltersDraft.minimalOsVersion"
+              label="Minimum OS version"
+            />
+          </q-card-section>
+          <q-card-actions align="between">
+            <q-btn
+              flat
+              label="Clear all"
+              color="negative"
+              :disable="agentFilterOptionsLoading"
+              @click="resetAgentFiltersDraft"
+            />
+            <div>
+              <q-btn flat label="Cancel" color="primary" v-close-popup />
+              <q-btn
+                unelevated
+                label="Apply"
+                color="primary"
+                :loading="agentsLoading"
+                @click="applyAgentListFilters"
+              />
+            </div>
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
     </div>
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch, reactive } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { formatDate } from "@/utils/format";
 import { exportTableToCSV, exportTableToXLSX } from "@/utils/csv";
@@ -2159,7 +2280,9 @@ import {
   createAgentTarget,
   // userServiceClient,
   policyCatalogClient,
+  policyAssignmentClient,
   policyStateClient,
+  type ListAgentsFilters,
 } from "../api/grpc-client";
 import { fetchAgents as fetchTacticalAgents } from "@/api/agents";
 import GPOPolicyForm from "../components/GPOPolicyForm.vue";
@@ -2175,6 +2298,7 @@ import AgentAlertsTab from "../components/AgentAlertsTab.vue";
 import GpoVhdAgentTab from "../components/GpoVhdAgentTab.vue";
 import WslUserDialog from "../components/WslUserDialog.vue";
 import OsVersionSelect from "@/components/ui/OsVersionSelect.vue";
+import { buildHumanOperatingSystemDisplay } from "../utils/supportedOsHumanLabel";
 import type {
   GPOPolicy,
   CreateGPOPolicyRequest,
@@ -2368,6 +2492,7 @@ const removeUserFromGroupSelectedUser = ref("");
 const appliedDialogAssignments = ref<Array<Record<string, unknown>>>([]);
 const appliedDialogEffective = ref<Array<Record<string, unknown>>>([]);
 const showAppliedPoliciesLoading = ref(false);
+const restorePoliciesLoading = ref(false);
 
 const policyForForm = computed(() => {
   return policyToEdit.value || undefined;
@@ -2377,6 +2502,68 @@ const agentsLoading = ref(false);
 const agentsError = ref(false);
 const gpoAgents = ref<Agent[]>([]);
 const agentSearch = ref("");
+
+type AgentListFilterField = "manufacturer" | "model" | "minimalOsVersion";
+
+interface AgentListFilters {
+  manufacturer: string;
+  model: string;
+  minimalOsVersion: string;
+}
+
+function emptyAgentListFilters(): AgentListFilters {
+  return { manufacturer: "", model: "", minimalOsVersion: "" };
+}
+
+const agentListFilters = reactive<AgentListFilters>(emptyAgentListFilters());
+const agentListFiltersDraft = reactive<AgentListFilters>(emptyAgentListFilters());
+const showAgentFilterDialog = ref(false);
+const agentFilterOptionsLoading = ref(false);
+const manufacturerCatalog = ref<Array<{ name: string; models: string[] }>>([]);
+const manufacturerFilterOptions = ref<Array<{ label: string; value: string }>>(
+  [],
+);
+const hasActiveAgentFilters = computed(
+  () =>
+    !!agentListFilters.manufacturer.trim() ||
+    !!agentListFilters.model.trim() ||
+    !!agentListFilters.minimalOsVersion.trim(),
+);
+
+const activeAgentFiltersCount = computed(() => {
+  let count = 0;
+  if (agentListFilters.manufacturer.trim()) count += 1;
+  if (agentListFilters.model.trim()) count += 1;
+  if (agentListFilters.minimalOsVersion.trim()) count += 1;
+  return count;
+});
+
+const agentListFiltersOsLabel = computed(() => {
+  const value = agentListFilters.minimalOsVersion.trim();
+  if (!value) return "";
+  return buildHumanOperatingSystemDisplay(value);
+});
+
+const modelFilterOptionsForDraft = computed(() => {
+  const mfr = agentListFiltersDraft.manufacturer.trim();
+  if (!mfr) return [];
+  const entry = manufacturerCatalog.value.find((m) => m.name === mfr);
+  return (entry?.models ?? []).map((model) => ({ label: model, value: model }));
+});
+
+watch(
+  () => agentListFiltersDraft.manufacturer,
+  (mfr) => {
+    const models =
+      manufacturerCatalog.value.find((m) => m.name === mfr.trim())?.models ?? [];
+    if (
+      agentListFiltersDraft.model &&
+      !models.includes(agentListFiltersDraft.model)
+    ) {
+      agentListFiltersDraft.model = "";
+    }
+  },
+);
 
 const agentsList = computed<Agent[]>(() => {
   return gpoAgents.value;
@@ -2394,12 +2581,89 @@ const filteredAgentsList = computed<Agent[]>(() => {
   });
 });
 
+function buildListAgentsFilters(): ListAgentsFilters | undefined {
+  const manufacturer = agentListFilters.manufacturer.trim();
+  const model = agentListFilters.model.trim();
+  const minimalOsVersion = agentListFilters.minimalOsVersion.trim();
+  if (!manufacturer && !model && !minimalOsVersion) return undefined;
+  return {
+    manufacturer: manufacturer || undefined,
+    model: model || undefined,
+    minimalOsVersion: minimalOsVersion || undefined,
+  };
+}
+
+async function loadAgentFilterOptions(): Promise<void> {
+  agentFilterOptionsLoading.value = true;
+  try {
+    const mfrRes = await agentServiceClientWrapper.getUniqueManufacturers();
+    const raw = mfrRes as {
+      manufacturersList?: Array<{
+        name?: string;
+        modelsList?: string[];
+        models?: string[];
+      }>;
+      manufacturers?: Array<{
+        name?: string;
+        modelsList?: string[];
+        models?: string[];
+      }>;
+    };
+    const list = raw.manufacturersList ?? raw.manufacturers ?? [];
+    const catalog: Array<{ name: string; models: string[] }> = [];
+    for (const item of list) {
+      const name = String(item?.name ?? "").trim();
+      if (!name) continue;
+      const models = (item.modelsList ?? item.models ?? [])
+        .map((m) => String(m ?? "").trim())
+        .filter(Boolean);
+      catalog.push({ name, models });
+    }
+    catalog.sort((a, b) => a.name.localeCompare(b.name));
+    manufacturerCatalog.value = catalog;
+    manufacturerFilterOptions.value = catalog.map((m) => ({
+      label: m.name,
+      value: m.name,
+    }));
+  } catch (e) {
+    const msg = (e as { message?: string })?.message || String(e);
+    notifyError(`Failed to load filter options: ${msg}`);
+  } finally {
+    agentFilterOptionsLoading.value = false;
+  }
+}
+
+function openAgentFilterDialog(): void {
+  Object.assign(agentListFiltersDraft, agentListFilters);
+  showAgentFilterDialog.value = true;
+  if (!manufacturerCatalog.value.length) {
+    void loadAgentFilterOptions();
+  }
+}
+
+function resetAgentFiltersDraft(): void {
+  Object.assign(agentListFiltersDraft, emptyAgentListFilters());
+}
+
+async function applyAgentListFilters(): Promise<void> {
+  Object.assign(agentListFilters, agentListFiltersDraft);
+  showAgentFilterDialog.value = false;
+  await loadAgents();
+}
+
+async function clearAgentFilterField(field: AgentListFilterField): Promise<void> {
+  agentListFilters[field] = "";
+  if (field === "manufacturer") {
+    agentListFilters.model = "";
+  }
+  await loadAgents();
+}
+
 async function loadAgents() {
   agentsLoading.value = true;
   agentsError.value = false;
 
   try {
-    agentSearch.value = "";
     const tacticalAgents = await fetchTacticalAgents({ detail: false });
 
     const allowedAgentIds = Array.isArray(tacticalAgents)
@@ -2410,6 +2674,7 @@ async function loadAgents() {
 
     const response = await agentServiceClientWrapper.listAgents(
       allowedAgentIds.length > 0 ? allowedAgentIds : undefined,
+      buildListAgentsFilters(),
     );
 
     let agents: Array<{
@@ -3937,6 +4202,53 @@ async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
       scope: scope || undefined,
     };
   });
+}
+
+function confirmRestoreAllPoliciesForAgent() {
+  if (!selectedAgent.value?.id) {
+    notifyError("No agent selected");
+    return;
+  }
+  const hostname =
+    selectedAgent.value.hostname || selectedAgent.value.id || "this agent";
+  $q.dialog({
+    title: "Restore all policies",
+    message: `Restore all Group Policy assignments on "${hostname}" to their default state? All current policy overrides on this agent will be removed.`,
+    cancel: { label: "Cancel", flat: true },
+    ok: { label: "Restore", color: "negative", unelevated: true },
+    persistent: true,
+    focus: "cancel",
+  }).onOk(() => {
+    void runRestoreAllPoliciesForAgent();
+  });
+}
+
+async function runRestoreAllPoliciesForAgent() {
+  let agentId: string;
+  try {
+    agentId = getAgentId();
+  } catch {
+    return;
+  }
+  restorePoliciesLoading.value = true;
+  try {
+    const res = await policyAssignmentClient.restoreAllPolicies("agent", {
+      agentId,
+    });
+    if (res.status !== 0) {
+      notifyError("Failed to restore policies on this agent");
+      return;
+    }
+    notifySuccess("All policies restored to default state");
+    if (showAppliedPoliciesDialog.value) {
+      await refreshAppliedPoliciesDialog();
+    }
+  } catch (e) {
+    const msg = (e as { message?: string })?.message || String(e);
+    notifyError(msg);
+  } finally {
+    restorePoliciesLoading.value = false;
+  }
 }
 
 const openAppliedPoliciesDialog = () => {
