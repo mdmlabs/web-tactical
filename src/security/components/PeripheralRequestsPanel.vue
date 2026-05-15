@@ -1,6 +1,6 @@
 <template>
   <div class="q-pa-md">
-    <div class="text-subtitle1 q-mb-md">Camera and Microphone Control</div>
+    <div class="text-subtitle1 q-mb-md">Camera, Microphone, and USB Control</div>
 
     <div class="row q-col-gutter-md q-mb-md">
       <div class="col-12 col-md-6">
@@ -22,6 +22,15 @@
             </q-item-section>
             <q-item-section side>
               <q-toggle v-model="globals.mic_global_disabled" @update:model-value="saveGlobals" />
+            </q-item-section>
+          </q-item>
+          <q-item tag="label">
+            <q-item-section avatar><q-icon name="usb" color="negative" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Block USB storage on non-compliance</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-toggle v-model="globals.usb_block_on_non_compliance" @update:model-value="saveGlobals" />
             </q-item-section>
           </q-item>
           <q-item tag="label">
@@ -63,7 +72,7 @@
                 <div class="col-6">
                   <q-select
                     v-model="actionForm.device_type"
-                    :options="deviceTypeOptions"
+                    :options="deviceTypeOptionsWithUsb"
                     label="Peripheral"
                     outlined
                     dense
@@ -265,6 +274,7 @@ const globals = ref<any>({
   camera_block_on_non_compliance: false,
   mic_global_disabled: false,
   mic_block_on_non_compliance: false,
+  usb_block_on_non_compliance: false,
 });
 const actionForm = ref<any>({
   agent_id: "",
