@@ -1,7 +1,11 @@
 import { ref, computed, watch } from "vue";
 import { useQuasar } from "quasar";
-import { userControlClient, agentServiceClientWrapper } from "@/gpo/api/grpc-client";
-import type { Target } from "@/gpo/api/grpc-client";
+import {
+  userControlClient,
+  agentServiceClientWrapper,
+  type ListAgentsFilters,
+  type Target,
+} from "@/gpo/api/grpc-client";
 import type { UserWithIdInfo } from "@/generated/user_service_pb";
 import type { GroupInfo } from "@/generated/common/user_pb";
 
@@ -196,7 +200,9 @@ export async function fetchAgentRowsForIds(
   return agentsWithNames;
 }
 
-export function useUserActions() {
+export function useUserActions(options?: {
+  getListFilters?: () => ListAgentsFilters | undefined;
+}) {
   const $q = useQuasar();
 
   const allUsers = ref<UserWithIdInfo.AsObject[]>([]);
@@ -232,7 +238,7 @@ export function useUserActions() {
     usersLoading.value = true;
     usersError.value = null;
     try {
-      const res = await userControlClient.getAllUsers();
+      const res = await userControlClient.getAllUsers(options?.getListFilters?.());
       const list =
         res.usersList ??
         (res as { users?: UserWithIdInfo.AsObject[] }).users ??
