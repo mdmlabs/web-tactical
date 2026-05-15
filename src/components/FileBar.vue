@@ -689,6 +689,17 @@
                       <q-item-section avatar><q-icon name="security" /></q-item-section>
                       <q-item-section>Security Center</q-item-section>
                     </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      dense
+                      class="filebar-popup-item"
+                      v-close-popup
+                      @click="navigateToMdmExtras('SecurityPeripheralControls')"
+                    >
+                      <q-item-section avatar><q-icon name="devices_other" /></q-item-section>
+                      <q-item-section>Peripheral Controls</q-item-section>
+                    </q-item>
                   </q-list>
                 </q-menu>
               </q-item>
@@ -899,6 +910,17 @@
                     ><q-icon name="security"
                   /></q-item-section>
                   <q-item-section>Security Center</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  dense
+                  @click="navigateToMdmExtras('SecurityPeripheralControls')"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="devices_other" />
+                  </q-item-section>
+                  <q-item-section>Peripheral Controls</q-item-section>
                 </q-item>
                 <q-item
                   clickable
