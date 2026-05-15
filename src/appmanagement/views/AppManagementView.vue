@@ -393,6 +393,9 @@
                       <q-toggle v-model="sspSettings.extra_profiles.zero_touch.require_serial" label="Require serial/device ID pre-registration" />
                       <q-input v-model="sspSettings.extra_profiles.zero_touch.required_apps" label="Required app IDs/packages" outlined dense autogrow type="textarea" />
                       <q-input v-model.number="sspSettings.extra_profiles.zero_touch.compliance_interval_minutes" label="Compliance interval minutes" type="number" outlined dense />
+                      <q-input v-model="sspSettings.extra_profiles.zero_touch.bootstrap_token" label="Bootstrap image shared token" outlined dense type="password" autocomplete="new-password" />
+                      <q-input v-model.number="sspSettings.extra_profiles.zero_touch.bootstrap_certificate_days" label="Device certificate validity days" type="number" outlined dense />
+                      <q-input v-model="sspSettings.extra_profiles.zero_touch.bootstrap_agent_url" label="Bootstrap agent download URL" outlined dense />
                     </div>
                     <div class="col-12 col-md-6">
                       <div class="text-subtitle2">BYOD profile</div>
@@ -467,6 +470,11 @@
                 <q-td :props="props">
                   <div>{{ props.row.serial_number || '-' }}</div>
                   <div class="text-caption text-grey ellipsis">{{ props.row.hardware_id || '-' }}</div>
+                  <div class="text-caption text-grey ellipsis">BIOS {{ props.row.bios_uuid || '-' }}</div>
+                  <div class="text-caption text-grey ellipsis">TPM {{ props.row.tpm_identity || '-' }}</div>
+                  <div class="text-caption text-grey ellipsis">
+                    {{ [props.row.hardware_manufacturer, props.row.hardware_model].filter(Boolean).join(' ') || '-' }}
+                  </div>
                 </q-td>
               </template>
               <template v-slot:body-cell-is_active="props">
@@ -493,6 +501,12 @@
                   </div>
                   <div v-if="props.row.zero_touch?.health" class="text-caption text-grey">
                     Health {{ props.row.zero_touch.health.status }}
+                  </div>
+                  <div v-if="props.row.zero_touch?.bootstrap?.status" class="text-caption text-grey">
+                    Bootstrap {{ props.row.zero_touch.bootstrap.status }}
+                  </div>
+                  <div v-if="props.row.zero_touch?.bootstrap?.certificate_fingerprint" class="text-caption text-grey ellipsis" style="max-width: 220px">
+                    Cert {{ props.row.zero_touch.bootstrap.certificate_fingerprint }}
                   </div>
                 </q-td>
               </template>
@@ -802,11 +816,25 @@
                   <q-input v-model.trim="zeroTouchPreregisterForm.hardware_id" label="Hardware ID" outlined dense />
                 </div>
               </div>
+              <div class="row q-col-gutter-sm">
+                <div class="col-12 col-md-4">
+                  <q-input v-model.trim="zeroTouchPreregisterForm.bios_uuid" label="BIOS UUID" outlined dense />
+                </div>
+                <div class="col-12 col-md-4">
+                  <q-input v-model.trim="zeroTouchPreregisterForm.tpm_identity" label="TPM identity / EK hash" outlined dense />
+                </div>
+                <div class="col-12 col-md-4">
+                  <q-input v-model.trim="zeroTouchPreregisterForm.hardware_model" label="Model" outlined dense />
+                </div>
+                <div class="col-12 col-md-6">
+                  <q-input v-model.trim="zeroTouchPreregisterForm.hardware_manufacturer" label="Manufacturer" outlined dense />
+                </div>
+              </div>
               <q-input
                 v-model="zeroTouchPreregisterForm.bulk_text"
                 label="Bulk CSV"
                 outlined dense type="textarea" autogrow
-                placeholder="device_name,serial_number,hardware_id,user_id,site_id"
+                placeholder="device_name,serial_number,hardware_id,bios_uuid,tpm_identity,model,manufacturer,user_id,site_id"
               />
             </q-card-section>
             <q-card-actions align="right">
@@ -2357,7 +2385,7 @@ const sspPortalUserColumns = [
 const sspColumns = [
   { name: "user", label: "User", field: (row: any) => row.user_display_name || row.username || row.user_id, align: "left", sortable: true },
   { name: "device_name", label: "Device Name", field: "device_name", align: "left", sortable: true },
-  { name: "identifiers", label: "Serial / Hardware ID", field: "serial_number", align: "left" },
+  { name: "identifiers", label: "Serial / HW / TPM", field: "serial_number", align: "left" },
   { name: "agent_id", label: "Agent", field: "agent_id", align: "left" },
   { name: "device_type", label: "Type", field: "device_type", align: "left" },
   { name: "os_info", label: "OS", field: "os_info", align: "left" },
@@ -2709,6 +2737,10 @@ function zeroTouchPreregisterPayload() {
         device_name: String(form.device_name || "").trim(),
         serial_number: String(form.serial_number || "").trim(),
         hardware_id: String(form.hardware_id || "").trim(),
+        bios_uuid: String(form.bios_uuid || "").trim(),
+        tpm_identity: String(form.tpm_identity || "").trim(),
+        model: String(form.hardware_model || "").trim(),
+        manufacturer: String(form.hardware_manufacturer || "").trim(),
         device_type: "workstation",
         os_info: "Windows",
       },
@@ -2723,9 +2755,11 @@ async function submitZeroTouchPreregistration() {
     form.device_name,
     form.serial_number,
     form.hardware_id,
+    form.bios_uuid,
+    form.tpm_identity,
   ].some((value) => !!String(value || "").trim());
   if (!hasBulk && !hasSingleIdentity) {
-    $q.notify({ message: "Enter a device name, serial number, Hardware ID, or CSV rows", color: "warning" });
+    $q.notify({ message: "Enter a device name, serial number, Hardware ID, BIOS UUID, TPM identity, or CSV rows", color: "warning" });
     return;
   }
   if (!hasBulk && !form.user_id) {
@@ -2815,6 +2849,9 @@ function defaultSspExtraProfiles() {
       require_serial: true,
       required_apps: "",
       compliance_interval_minutes: 240,
+      bootstrap_token: "",
+      bootstrap_certificate_days: 365,
+      bootstrap_agent_url: "",
     },
     byod: {
       enabled: true,
@@ -3187,6 +3224,10 @@ function defaultZeroTouchPreregisterForm() {
     device_name: "",
     serial_number: "",
     hardware_id: "",
+    bios_uuid: "",
+    tpm_identity: "",
+    hardware_model: "",
+    hardware_manufacturer: "",
     bulk_text: "",
   };
 }
