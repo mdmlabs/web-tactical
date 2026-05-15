@@ -1242,13 +1242,14 @@
                 <div class="col-6"><q-input v-model="internalCatalogForm.retirement_date" label="Retirement date" outlined dense type="date" /></div>
               </div>
               <q-input v-model="internalCatalogForm.license_label" label="License label" outlined dense placeholder="Corporate / Freeware / Shareware" />
-              
+
               <template v-if="String(internalCatalogForm.installer || '').toLowerCase() === 'rawcmd'">
                 <q-input v-model="internalCatalogForm.install_command" label="Install PowerShell command" outlined dense type="textarea" autogrow />
                 <q-input v-model="internalCatalogForm.upgrade_command" label="Upgrade PowerShell command" outlined dense type="textarea" autogrow />
                 <q-input v-model="internalCatalogForm.uninstall_command" label="Uninstall PowerShell command" outlined dense type="textarea" autogrow />
               </template>
-              
+
+              <div class="row q-col-gutter-sm">
                 <div class="col-12 col-md-6">
                   <q-select
                     v-model="internalCatalogForm.installer"

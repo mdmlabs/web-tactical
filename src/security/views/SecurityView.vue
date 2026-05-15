@@ -4794,24 +4794,6 @@ async function loadForensics() {
   loadingForensics.value = false;
 }
 
-async function loadForensicJobTypes() {
-  try {
-    const r = await axios.get("/security/forensics/job-types/");
-    const groups = Array.isArray(r.data?.groups) ? r.data.groups : [];
-    if (groups.length) {
-      forensicJobTypeOptions.value = groups.map((row: any) => ({
-        label: row.label || row.kind,
-        value: row.kind,
-      }));
-    }
-  } catch (e: any) {
-    $q.notify({
-      message: _apiErrMessage(e, "Failed to load forensic job types"),
-      color: "warning",
-    });
-  }
-}
-
 async function loadForensicsAudit() {
   loadingForensicsAudit.value = true;
   forensicsAuditError.value = "";
