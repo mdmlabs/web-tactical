@@ -48,7 +48,22 @@
     <div class="row items-center q-mt-lg q-mb-sm">
       <div class="text-subtitle2">Maintenance Report</div>
       <q-space />
+      <q-btn flat color="primary" icon="download" label="CSV" :loading="exportingTasks" @click="exportTaskRunsCsv" />
       <q-btn flat color="primary" icon="refresh" label="Refresh report" :loading="reportLoading" @click="loadReport" />
+    </div>
+    <div class="row q-col-gutter-md q-mb-md">
+      <div class="col-6 col-md-3">
+        <q-card flat bordered><q-card-section><div class="text-h6">{{ taskSummary.total || 0 }}</div><div class="text-caption text-grey">Tasks</div></q-card-section></q-card>
+      </div>
+      <div class="col-6 col-md-3">
+        <q-card flat bordered><q-card-section><div class="text-h6 text-positive">{{ taskSummary.completed || 0 }}</div><div class="text-caption text-grey">Completed</div></q-card-section></q-card>
+      </div>
+      <div class="col-6 col-md-3">
+        <q-card flat bordered><q-card-section><div class="text-h6 text-warning">{{ taskSummary.interrupted || 0 }}</div><div class="text-caption text-grey">Interrupted</div></q-card-section></q-card>
+      </div>
+      <div class="col-6 col-md-3">
+        <q-card flat bordered><q-card-section><div class="text-h6">{{ taskSummary.compliance_rate || 0 }}%</div><div class="text-caption text-grey">Success rate</div></q-card-section></q-card>
+      </div>
     </div>
     <q-table
       :rows="reportRows"
@@ -62,11 +77,12 @@
         <q-td :props="props">
           <q-chip
             dense
-            :color="props.value === 'active' ? 'positive' : props.value === 'scheduled' ? 'warning' : 'grey'"
+            :color="props.value === 'active' ? 'positive' : props.value === 'paused' ? 'negative' : props.value === 'scheduled' ? 'warning' : 'grey'"
             text-color="white"
           >
             {{ props.value }}
           </q-chip>
+          <div v-if="props.row.pause_reason" class="text-caption text-grey">{{ props.row.pause_reason }}</div>
         </q-td>
       </template>
       <template v-slot:body-cell-active_windows="props">
@@ -80,6 +96,60 @@
           <q-chip v-if="props.row.allow_reboot" dense color="orange" text-color="white" size="sm">Reboot</q-chip>
           <q-chip v-if="props.row.allow_scripts" dense color="teal" text-color="white" size="sm">Scripts</q-chip>
           <q-chip v-if="props.row.allow_agent_update" dense color="purple" text-color="white" size="sm">Agent update</q-chip>
+        </q-td>
+      </template>
+      <template v-slot:body-cell-history="props">
+        <q-td :props="props">
+          {{ props.row.recent_completed || 0 }}/{{ props.row.recent_total || 0 }}
+          <q-chip v-if="props.row.recent_interrupted" dense color="warning" text-color="white" size="sm">
+            {{ props.row.recent_interrupted }} interrupted
+          </q-chip>
+        </q-td>
+      </template>
+      <template v-slot:body-cell-actions="props">
+        <q-td :props="props">
+          <q-btn
+            v-if="props.row.status !== 'paused'"
+            flat
+            dense
+            round
+            icon="pause_circle"
+            color="warning"
+            @click="pauseMaintenance(props.row)"
+          >
+            <q-tooltip>Pause maintenance</q-tooltip>
+          </q-btn>
+          <q-btn
+            v-else
+            flat
+            dense
+            round
+            icon="play_circle"
+            color="positive"
+            @click="resumeMaintenance(props.row)"
+          >
+            <q-tooltip>Resume maintenance</q-tooltip>
+          </q-btn>
+        </q-td>
+      </template>
+    </q-table>
+
+    <div class="row items-center q-mt-lg q-mb-sm">
+      <div class="text-subtitle2">Maintenance Task History</div>
+      <q-space />
+      <q-btn flat color="primary" icon="refresh" :loading="taskLoading" @click="loadTaskRuns" />
+    </div>
+    <q-table
+      :rows="taskRuns"
+      :columns="taskColumns"
+      dense
+      row-key="id"
+      :loading="taskLoading"
+      :rows-per-page-options="[5, 10, 25]"
+    >
+      <template v-slot:body-cell-status="props">
+        <q-td :props="props">
+          <q-chip dense :color="taskStatusColor(props.value)" text-color="white">{{ props.value }}</q-chip>
         </q-td>
       </template>
     </q-table>
@@ -169,10 +239,14 @@ import axios from "axios";
 const $q = useQuasar();
 const windows = ref<any[]>([]);
 const reportRows = ref<any[]>([]);
+const taskRuns = ref<any[]>([]);
+const taskSummary = ref<any>({});
 const agentOptions = ref<{ label: string; value: string }[]>([]);
 const siteOptions = ref<{ label: string; value: number }[]>([]);
 const loading = ref(false);
 const reportLoading = ref(false);
+const taskLoading = ref(false);
+const exportingTasks = ref(false);
 const dialogOpen = ref(false);
 const editing = ref<any>(null);
 const saving = ref(false);
@@ -220,6 +294,7 @@ const reportColumns = [
   { name: "windows_total", label: "Matched", field: "windows_total", align: "center" as const },
   { name: "active_windows", label: "Active windows", field: "active_windows", align: "left" as const },
   { name: "allowed", label: "Allowed now", field: "allowed", align: "left" as const },
+  { name: "history", label: "Recent", field: "recent_total", align: "center" as const },
   {
     name: "last_seen",
     label: "Last seen",
@@ -227,6 +302,23 @@ const reportColumns = [
     align: "left" as const,
     format: (value: string) => (value ? new Date(value).toLocaleString() : "-"),
   },
+  { name: "actions", label: "", field: "actions", align: "right" as const },
+];
+
+const taskColumns = [
+  {
+    name: "created_at",
+    label: "Time",
+    field: "created_at",
+    align: "left" as const,
+    format: (value: string) => (value ? new Date(value).toLocaleString() : "-"),
+  },
+  { name: "hostname", label: "Device", field: (row: any) => row.hostname || row.agent_id, align: "left" as const },
+  { name: "task_type", label: "Task", field: "task_type", align: "left" as const },
+  { name: "status", label: "Status", field: "status", align: "center" as const },
+  { name: "summary", label: "Summary", field: "summary", align: "left" as const },
+  { name: "reason", label: "Reason", field: "reason", align: "left" as const },
+  { name: "used_minutes", label: "Minutes", field: "used_minutes", align: "center" as const },
 ];
 
 const canSave = computed(() => {
@@ -324,6 +416,73 @@ async function loadReport() {
   }
 }
 
+async function loadTaskRuns() {
+  taskLoading.value = true;
+  try {
+    const [runsResp, summaryResp] = await Promise.all([
+      axios.get("/winadvanced/maintenance-windows/task-runs/", { params: { days: 30 } }),
+      axios.get("/winadvanced/maintenance-windows/task-summary/", { params: { days: 30 } }),
+    ]);
+    taskRuns.value = runsResp.data || [];
+    taskSummary.value = summaryResp.data || {};
+  } catch {
+    taskRuns.value = [];
+    taskSummary.value = {};
+  } finally {
+    taskLoading.value = false;
+  }
+}
+
+function taskStatusColor(status: string) {
+  if (status === "completed") return "positive";
+  if (["failed", "cancelled"].includes(status)) return "negative";
+  if (["partial_success", "deferred", "rescheduled"].includes(status)) return "warning";
+  return "blue-grey";
+}
+
+async function pauseMaintenance(row: any) {
+  $q.dialog({
+    title: `Pause maintenance on ${row.hostname || row.agent_id}?`,
+    message: "Pause for 24 hours",
+    cancel: true,
+    ok: { color: "warning" },
+  }).onOk(async () => {
+    await axios.post("/winadvanced/maintenance-windows/pauses/", {
+      agent_id: row.agent_id,
+      action: "pause",
+      minutes: 1440,
+      reason: "Paused by administrator",
+    });
+    await loadReport();
+  });
+}
+
+async function resumeMaintenance(row: any) {
+  await axios.post("/winadvanced/maintenance-windows/pauses/", {
+    agent_id: row.agent_id,
+    action: "resume",
+  });
+  await loadReport();
+}
+
+async function exportTaskRunsCsv() {
+  exportingTasks.value = true;
+  try {
+    const response = await axios.get("/winadvanced/maintenance-windows/task-runs/", {
+      params: { format: "csv", days: 30 },
+      responseType: "blob",
+    });
+    const url = URL.createObjectURL(new Blob([response.data], { type: "text/csv" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "maintenance-task-runs.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  } finally {
+    exportingTasks.value = false;
+  }
+}
+
 function showDialog(item?: any) {
   editing.value = item || null;
   form.value = item
@@ -378,6 +537,6 @@ async function deleteWindow(id: number) {
 
 onMounted(async () => {
   await loadOptions();
-  await Promise.all([load(), loadReport()]);
+  await Promise.all([load(), loadReport(), loadTaskRuns()]);
 });
 </script>
