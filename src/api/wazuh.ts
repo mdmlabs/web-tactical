@@ -6,6 +6,7 @@ import type {
   WazuhAgent,
   WazuhAuthResponse,
   WazuhRule,
+  WazuhRuleFile,
   WazuhVulnerability,
   WazuhSyscheckEntry,
   WazuhSCAPolicy,
@@ -127,6 +128,75 @@ class WazuhApiClient {
       { params },
     );
     return data;
+  }
+
+  async getRuleGroups(params?: Record<string, unknown>) {
+    const { data } = await this.client.get<WazuhListResponse<string>>(
+      "/rules/groups",
+      { params: { limit: 500, ...params } },
+    );
+    return data;
+  }
+
+  async getRuleRequirement(
+    requirement: string,
+    params?: Record<string, unknown>,
+  ) {
+    const { data } = await this.client.get<WazuhListResponse<string>>(
+      `/rules/requirement/${requirement}`,
+      { params: { limit: 500, ...params } },
+    );
+    return data;
+  }
+
+  async getRuleFiles(params?: Record<string, unknown>) {
+    const { data } = await this.client.get<WazuhListResponse<WazuhRuleFile>>(
+      "/rules/files",
+      { params: { limit: 500, ...params } },
+    );
+    return data;
+  }
+
+  async getRuleFileContent(filename: string): Promise<string> {
+    const { data } = await this.client.get(`/rules/files/${filename}`, {
+      params: { raw: true },
+      responseType: "text",
+      transformResponse: [(d: string) => d],
+    });
+    if (typeof data === "string") {
+      const trimmed = data.trimStart();
+      if (trimmed.startsWith("{")) {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed?.data?.affected_items?.[0] !== undefined) {
+            const item = parsed.data.affected_items[0];
+            return typeof item === "string" ? item : JSON.stringify(item, null, 2);
+          }
+          if (typeof parsed?.data === "string") return parsed.data;
+        } catch {
+          // raw text — return as-is
+        }
+      }
+      return data;
+    }
+    return JSON.stringify(data, null, 2);
+  }
+
+  async putRuleFile(
+    filename: string,
+    content: string,
+    options?: { overwrite?: boolean },
+  ): Promise<void> {
+    const overwrite = options?.overwrite ?? true;
+    await this.client.put(`/rules/files/${filename}`, content, {
+      params: { overwrite },
+      headers: { "Content-Type": "application/octet-stream" },
+      transformRequest: [(d: string) => d],
+    });
+  }
+
+  async deleteRuleFile(filename: string): Promise<void> {
+    await this.client.delete(`/rules/files/${filename}`);
   }
 
   // === Manager ===

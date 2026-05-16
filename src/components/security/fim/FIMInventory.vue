@@ -48,7 +48,22 @@
         </span>
         <div class="table-actions">
           <q-btn flat dense no-caps icon="refresh" label="Refresh" class="action-btn" :loading="fimStore.inventoryLoading" @click="fimStore.fetchInventory()" />
-          <q-btn flat dense no-caps icon="download" label="Export formatted" class="action-btn" @click="exportCsv" />
+          <q-btn-dropdown flat dense no-caps icon="download" label="Export formatted" class="action-btn">
+            <q-list dense style="min-width: 160px">
+              <q-item clickable v-close-popup @click="exportAs('csv')">
+                <q-item-section avatar><q-icon name="description" size="sm" /></q-item-section>
+                <q-item-section>CSV</q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="exportAs('json')">
+                <q-item-section avatar><q-icon name="data_object" size="sm" /></q-item-section>
+                <q-item-section>JSON</q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="exportAs('cef')">
+                <q-item-section avatar><q-icon name="security" size="sm" /></q-item-section>
+                <q-item-section>CEF</q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
           <q-btn flat round dense icon="settings" size="sm" />
         </div>
       </div>
@@ -190,25 +205,71 @@ function onFileRowClick(_: Event, row: WazuhSyscheckEntry) {
   fimStore.selectedFile = row;
 }
 
-function exportCsv() {
+function exportAs(format: "csv" | "json" | "cef") {
   const rows = fimStore.inventorySubTab === "files" ? filteredFiles.value : filteredRegistry.value;
   const isFiles = fimStore.inventorySubTab === "files";
-  const header = isFiles ? "File,Last modified,User,User ID,Size\n" : "Registry,Last modified\n";
-  const csv = rows
-    .map((r) =>
-      isFiles
-        ? [r.file, r.mtime ?? "", r.uname ?? "", r.uid ?? "", r.size ?? ""].join(",")
-        : [r.file, r.mtime ?? ""].join(","),
-    )
-    .join("\n");
+  const baseName = `fim-inventory-${fimStore.inventorySubTab}`;
 
-  const blob = new Blob([header + csv], { type: "text/csv" });
+  let content: string;
+  let mimeType: string;
+  let extension: string;
+
+  switch (format) {
+    case "json": {
+      const data = rows.map((r) =>
+        isFiles
+          ? { file: r.file, mtime: r.mtime ?? null, uname: r.uname ?? null, uid: r.uid ?? null, size: r.size ?? null }
+          : { file: r.file, mtime: r.mtime ?? null },
+      );
+      content = JSON.stringify(data, null, 2);
+      mimeType = "application/json";
+      extension = "json";
+      break;
+    }
+    case "cef": {
+      content = rows
+        .map((r) => {
+          const ext = isFiles
+            ? `fname=${escapeCefValue(r.file)} fileModificationTime=${escapeCefValue(r.mtime ?? "")} suser=${escapeCefValue(r.uname ?? "")} suid=${escapeCefValue(r.uid ?? "")} fsize=${r.size ?? 0}`
+            : `fname=${escapeCefValue(r.file)} fileModificationTime=${escapeCefValue(r.mtime ?? "")}`;
+          return `CEF:0|Wazuh|Wazuh|4.x|550|File integrity monitoring - inventory|3|${ext}`;
+        })
+        .join("\n");
+      mimeType = "text/plain";
+      extension = "cef";
+      break;
+    }
+    default: {
+      const header = isFiles ? "File,Last modified,User,User ID,Size\n" : "Registry,Last modified\n";
+      const csv = rows
+        .map((r) =>
+          isFiles
+            ? [r.file, r.mtime ?? "", r.uname ?? "", r.uid ?? "", r.size ?? ""]
+                .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+                .join(",")
+            : [r.file, r.mtime ?? ""]
+                .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+                .join(","),
+        )
+        .join("\n");
+      content = header + csv;
+      mimeType = "text/csv";
+      extension = "csv";
+      break;
+    }
+  }
+
+  const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `fim-inventory-${fimStore.inventorySubTab}.csv`;
+  link.download = `${baseName}.${extension}`;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+function escapeCefValue(val: string): string {
+  return val.replace(/\\/g, "\\\\").replace(/=/g, "\\=").replace(/\n/g, "\\n");
 }
 </script>
 

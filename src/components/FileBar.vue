@@ -1227,6 +1227,18 @@
                     <q-item
                       clickable
                       v-ripple
+                      @click="navigateToSecurity('rules')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="rule" size="sm"
+                      /></q-item-section>
+                      <q-item-section>Rules Management</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
                       @click="navigateToSecurity('use-cases')"
                       class="filebar-popup-item"
                       v-close-popup
@@ -1500,6 +1512,20 @@
                     ><q-icon name="construction"
                   /></q-item-section>
                   <q-item-section>Workshop</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="navigateToSecurity('rules')"
+                  :class="[
+                    'filebar-menu-item',
+                    { 'active-menu-item': isActiveSecurityTab('rules') },
+                  ]"
+                >
+                  <q-item-section avatar
+                    ><q-icon name="rule"
+                  /></q-item-section>
+                  <q-item-section>Rules Management</q-item-section>
                 </q-item>
                 <q-item
                   clickable
@@ -2530,6 +2556,7 @@ export default {
         "threat-hunting": "ThreatHunting",
         "vulnerability-detection": "VulnerabilityDetection",
         workshop: "Workshop",
+        rules: "RulesManagement",
         "use-cases": "DetectionCases",
         "agent-compliance": "AgentCompliance",
         "ossec-config": "OssecConfig",
@@ -2577,6 +2604,7 @@ export default {
       if (tab === "reports") return path === "/security/reports";
       if (tab === "reporting") return path === "/security/reporting";
       if (tab === "workshop") return path.startsWith("/security/workshop");
+      if (tab === "rules") return path.startsWith("/security/rules");
       if (tab === "use-cases") return path.startsWith("/security/use-cases");
       if (tab === "agent-compliance")
         return path.startsWith("/security/agent-compliance");

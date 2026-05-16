@@ -42,7 +42,22 @@
 
     <!-- Table toolbar -->
     <div class="table-toolbar q-mx-md q-mt-sm">
-      <q-btn flat dense no-caps icon="download" label="Export Formatted" class="toolbar-btn" @click="exportCsv" />
+      <q-btn-dropdown flat dense no-caps icon="download" label="Export Formatted" class="toolbar-btn">
+        <q-list dense style="min-width: 160px">
+          <q-item clickable v-close-popup @click="exportAs('csv')">
+            <q-item-section avatar><q-icon name="description" size="sm" /></q-item-section>
+            <q-item-section>CSV</q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="exportAs('json')">
+            <q-item-section avatar><q-icon name="data_object" size="sm" /></q-item-section>
+            <q-item-section>JSON</q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="exportAs('cef')">
+            <q-item-section avatar><q-icon name="security" size="sm" /></q-item-section>
+            <q-item-section>CEF</q-item-section>
+          </q-item>
+        </q-list>
+      </q-btn-dropdown>
       <q-btn flat dense no-caps icon="restart_alt" label="Reset view" class="toolbar-btn" />
       <span class="text-caption text-grey q-ml-sm">{{ availableFieldsCount }} available fields</span>
 
@@ -290,32 +305,85 @@ function formatDate(dateStr?: string): string {
   }
 }
 
-function exportCsv() {
+function exportAs(format: "csv" | "json" | "cef") {
   const rows = fimStore.events;
-  const header = "timestamp,agent.name,syscheck.path,syscheck.event,rule.description,rule.level,rule.id\n";
-  const csv = rows
-    .map((r) =>
-      [
-        r._source["@timestamp"] ?? "",
-        r._source.agent?.name ?? "",
-        r._source.syscheck?.path ?? "",
-        r._source.syscheck?.event ?? "",
-        r._source.rule?.description ?? "",
-        r._source.rule?.level ?? "",
-        r._source.rule?.id ?? "",
-      ]
-        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-        .join(","),
-    )
-    .join("\n");
 
-  const blob = new Blob([header + csv], { type: "text/csv" });
+  let content: string;
+  let mimeType: string;
+  let extension: string;
+
+  switch (format) {
+    case "json": {
+      const data = rows.map((r) => ({
+        timestamp: r._source["@timestamp"] ?? r._source.timestamp ?? null,
+        "agent.name": r._source.agent?.name ?? null,
+        "syscheck.path": r._source.syscheck?.path ?? null,
+        "syscheck.event": r._source.syscheck?.event ?? null,
+        "rule.description": r._source.rule?.description ?? null,
+        "rule.level": r._source.rule?.level ?? null,
+        "rule.id": r._source.rule?.id ?? null,
+      }));
+      content = JSON.stringify(data, null, 2);
+      mimeType = "application/json";
+      extension = "json";
+      break;
+    }
+    case "cef": {
+      content = rows
+        .map((r) => {
+          const src = r._source;
+          const severity = Math.min(10, src.rule?.level ?? 3);
+          const ext = [
+            `rt=${escapeCefValue(src["@timestamp"] ?? src.timestamp ?? "")}`,
+            `dhost=${escapeCefValue(src.agent?.name ?? "")}`,
+            `fname=${escapeCefValue(src.syscheck?.path ?? "")}`,
+            `act=${escapeCefValue(src.syscheck?.event ?? "")}`,
+            `msg=${escapeCefValue(src.rule?.description ?? "")}`,
+            `cs1=${escapeCefValue(src.rule?.id ?? "")}`,
+            "cs1Label=RuleID",
+          ].join(" ");
+          return `CEF:0|Wazuh|Wazuh|4.x|${src.rule?.id ?? "550"}|${escapeCefValue(src.rule?.description ?? "FIM Event")}|${severity}|${ext}`;
+        })
+        .join("\n");
+      mimeType = "text/plain";
+      extension = "cef";
+      break;
+    }
+    default: {
+      const header = "timestamp,agent.name,syscheck.path,syscheck.event,rule.description,rule.level,rule.id\n";
+      const csv = rows
+        .map((r) =>
+          [
+            r._source["@timestamp"] ?? "",
+            r._source.agent?.name ?? "",
+            r._source.syscheck?.path ?? "",
+            r._source.syscheck?.event ?? "",
+            r._source.rule?.description ?? "",
+            r._source.rule?.level ?? "",
+            r._source.rule?.id ?? "",
+          ]
+            .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+            .join(","),
+        )
+        .join("\n");
+      content = header + csv;
+      mimeType = "text/csv";
+      extension = "csv";
+      break;
+    }
+  }
+
+  const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "fim-events.csv";
+  link.download = `fim-events.${extension}`;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+function escapeCefValue(val: string | number): string {
+  return String(val).replace(/\\/g, "\\\\").replace(/=/g, "\\=").replace(/\n/g, "\\n");
 }
 </script>
 

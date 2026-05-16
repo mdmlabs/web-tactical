@@ -109,11 +109,21 @@ export interface WazuhRule {
   gdpr?: string[];
   hipaa?: string[];
   nist_800_53?: string[];
+  gpg13?: string[];
+  tsc?: string[];
   mitre?: {
     id: string[];
     tactic: string[];
     technique: string[];
   };
+  relative_dirname?: string;
+}
+
+// === Wazuh Rule File ===
+export interface WazuhRuleFile {
+  filename: string;
+  relative_dirname: string;
+  status: "enabled" | "disabled";
 }
 
 // === Merged Agent (Tactical + Wazuh) ===
