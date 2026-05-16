@@ -1114,6 +1114,10 @@
           <div v-if="currentActionType === 'geolockmode'" class="text-warning text-weight-bold">
             Device will be locked and asked to report geolocation for lost-mode tracking.
           </div>
+          <template v-if="currentActionType === 'geolockmode'">
+            <q-input v-model="actionForm.lost_message" label="Lost mode message" outlined dense type="textarea" rows="3" />
+            <q-input v-model="actionForm.lost_contact" label="Return contact" outlined dense />
+          </template>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat :label="$t('devicemanagement.views.DeviceManagementView.77dfd2')" v-close-popup />
@@ -2288,7 +2292,13 @@ async function loadInventoryFilters() {
 
 function showActionDialog(type: string) {
   currentActionType.value = type;
-  actionForm.value = { agent_id: "", reason: "", extra_paths: "" };
+  actionForm.value = {
+    agent_id: "",
+    reason: "",
+    extra_paths: "",
+    lost_message: "This device is in Lost Mode. Please contact the organization.",
+    lost_contact: "",
+  };
   actionDialogOpen.value = true;
 }
 
@@ -2302,6 +2312,10 @@ async function submitAction() {
         .split(/\r?\n|,/)
         .map((item) => item.trim())
         .filter(Boolean);
+    }
+    if (currentActionType.value === "geolockmode") {
+      params.lost_message = actionForm.value.lost_message;
+      params.lost_contact = actionForm.value.lost_contact;
     }
     await axios.post("/devicemanagement/actions/", {
       agent_id: actionForm.value.agent_id,
