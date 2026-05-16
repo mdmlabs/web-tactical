@@ -2270,7 +2270,7 @@
 
     <!-- USB Policy Dialog -->
     <q-dialog v-model="usbDialogOpen" persistent>
-      <q-card style="min-width: 460px">
+      <q-card style="min-width: 620px; max-width: 92vw">
         <q-bar
           >{{ editingUSB ? "Edit" : "New" }} USB Policy<q-space /><q-btn
             dense
@@ -2300,6 +2300,79 @@
             emit-value
             map-options
           />
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-sm-5">
+              <q-select
+                v-model="usbForm.scope"
+                :options="usbScopeOptions"
+                label="Scope"
+                outlined
+                dense
+                emit-value
+                map-options
+                @update:model-value="onUSBScopeChanged"
+              />
+            </div>
+            <div class="col-12 col-sm-7">
+              <q-select
+                v-if="usbForm.scope === 'device'"
+                v-model="usbForm.target_agent_id"
+                :options="agentOptions"
+                label="Target device"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+                use-input
+                input-debounce="200"
+              />
+              <q-select
+                v-else-if="usbForm.scope === 'device_group'"
+                v-model="usbForm.target_device_group_id"
+                :options="forensicDeviceGroupOptions"
+                label="Target device group"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+                use-input
+                input-debounce="200"
+              />
+              <q-select
+                v-else-if="usbForm.scope === 'user'"
+                v-model="usbForm.target_user_id"
+                :options="usbUserOptions"
+                label="Target user"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+                use-input
+                input-debounce="200"
+              />
+              <q-select
+                v-else-if="usbForm.scope === 'user_group'"
+                v-model="usbForm.target_user_group_id"
+                :options="usbUserGroupOptions"
+                label="Target user group"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+                use-input
+                input-debounce="200"
+              />
+              <q-field v-else outlined dense label="Target" stack-label>
+                <template #control>
+                  <div class="self-center text-grey-7">All Windows devices</div>
+                </template>
+              </q-field>
+            </div>
+          </div>
           <q-select
             v-model="usbForm.blocked_device_classes"
             :options="usbClassOptions"
@@ -3278,6 +3351,51 @@ async function loadAgentOptions() {
   }
 }
 
+async function loadUSBScopeOptions() {
+  const [usersResp, groupsResp] = await Promise.allSettled([
+    axios.get("/accounts/users/"),
+    axios.get("/accounts/user-groups/"),
+  ]);
+
+  if (usersResp.status === "fulfilled") {
+    const list = Array.isArray(usersResp.value.data)
+      ? usersResp.value.data
+      : (usersResp.value.data?.results ?? []);
+    usbUserOptions.value = list
+      .filter((user: any) => user?.id !== undefined && user?.id !== null)
+      .map((user: any) => ({
+        value: user.id,
+        label:
+          user.display_name ||
+          user.full_name ||
+          user.username ||
+          user.sam_account_name ||
+          user.email ||
+          `User #${user.id}`,
+      }));
+  } else {
+    usbUserOptions.value = [];
+  }
+
+  if (groupsResp.status === "fulfilled") {
+    const list = Array.isArray(groupsResp.value.data)
+      ? groupsResp.value.data
+      : (groupsResp.value.data?.results ?? []);
+    usbUserGroupOptions.value = list
+      .filter((group: any) => group?.id !== undefined && group?.id !== null)
+      .map((group: any) => ({
+        value: group.id,
+        label:
+          group.display_name ||
+          group.name ||
+          group.sam_account_name ||
+          `User group #${group.id}`,
+      }));
+  } else {
+    usbUserGroupOptions.value = [];
+  }
+}
+
 function syncTabFromRoute() {
   const routeName = String(route.name ?? "");
   if (tabByRouteName[routeName]) {
@@ -3518,6 +3636,11 @@ const usbForm = ref<any>({
   blocked_device_ids: [],
   allowed_device_classes: [],
   blocked_device_classes: [],
+  scope: "global",
+  target_agent_id: "",
+  target_device_group_id: null,
+  target_user_id: null,
+  target_user_group_id: null,
   encrypt_required: false,
   log_usage: true,
   alert_on_connect: false,
@@ -3580,6 +3703,15 @@ const usbClassOptions = [
   { label: "Network adapter", value: "network" },
   { label: "Serial / modem", value: "serial" },
 ];
+const usbScopeOptions = [
+  { label: "Global (all devices)", value: "global" },
+  { label: "Specific device", value: "device" },
+  { label: "Device group", value: "device_group" },
+  { label: "Specific user", value: "user" },
+  { label: "User group", value: "user_group" },
+];
+const usbUserOptions = ref<{ label: string; value: number }[]>([]);
+const usbUserGroupOptions = ref<{ label: string; value: number }[]>([]);
 const fimEventTypeOptions = [
   { label: "Created", value: "created" },
   { label: "Modified", value: "modified" },
@@ -3837,6 +3969,12 @@ const usbColumns = [
     align: "center",
   },
   { name: "scope", label: "Scope", field: "scope", align: "center" },
+  {
+    name: "target",
+    label: "Target",
+    field: (row: any) => formatUSBPolicyTarget(row),
+    align: "left",
+  },
   { name: "enabled", label: "Status", field: "enabled", align: "center" },
   { name: "actions", label: "", field: "actions", align: "right" },
 ];
@@ -3913,6 +4051,46 @@ function formatDLPPolicyTarget(row: any) {
       : "No user group selected";
   }
   return "All devices";
+}
+
+function optionLabelByValue(
+  options: { label: string; value: string | number | null }[],
+  value: string | number | null,
+) {
+  return options.find((option) => option.value === value)?.label || "";
+}
+
+function formatUSBPolicyTarget(row: any) {
+  if (row.scope === "device") {
+    return (
+      optionLabelByValue(agentOptions.value, row.target_agent_id) ||
+      row.target_agent_id ||
+      "No device selected"
+    );
+  }
+  if (row.scope === "device_group") {
+    return (
+      optionLabelByValue(forensicDeviceGroupOptions.value, row.target_device_group_id) ||
+      (row.target_device_group_id
+        ? `Device group #${row.target_device_group_id}`
+        : "No device group selected")
+    );
+  }
+  if (row.scope === "user") {
+    return (
+      optionLabelByValue(usbUserOptions.value, row.target_user_id) ||
+      (row.target_user_id ? `User #${row.target_user_id}` : "No user selected")
+    );
+  }
+  if (row.scope === "user_group") {
+    return (
+      optionLabelByValue(usbUserGroupOptions.value, row.target_user_group_id) ||
+      (row.target_user_group_id
+        ? `User group #${row.target_user_group_id}`
+        : "No user group selected")
+    );
+  }
+  return "All Windows devices";
 }
 
 function formatDLPPolicyPaths(row: any) {
@@ -4258,22 +4436,26 @@ async function remediateFIMEvent(id: number) {
 
 function showUSBDialog(item?: any) {
   editingUSB.value = item || null;
-  usbForm.value = item
-    ? { ...item }
-    : {
-        name: "",
-        policy_type: "read_only",
-        allowed_device_ids: [],
-        blocked_device_ids: [],
-        allowed_device_classes: [],
-        blocked_device_classes: [],
-        encrypt_required: false,
-        log_usage: true,
-        alert_on_connect: false,
-        emergency_mode: false,
-        emergency_reason: "",
-        enabled: true,
-      };
+  const defaults = {
+    name: "",
+    policy_type: "read_only",
+    allowed_device_ids: [],
+    blocked_device_ids: [],
+    allowed_device_classes: [],
+    blocked_device_classes: [],
+    scope: "global",
+    target_agent_id: "",
+    target_device_group_id: null,
+    target_user_id: null,
+    target_user_group_id: null,
+    encrypt_required: false,
+    log_usage: true,
+    alert_on_connect: false,
+    emergency_mode: false,
+    emergency_reason: "",
+    enabled: true,
+  };
+  usbForm.value = item ? { ...defaults, ...item } : defaults;
   usbAllowedIdsInput.value = (usbForm.value.allowed_device_ids || []).join("\n");
   usbBlockedIdsInput.value = (usbForm.value.blocked_device_ids || []).join("\n");
   usbDialogOpen.value = true;
@@ -4286,15 +4468,60 @@ function splitLines(value: string) {
     .filter(Boolean);
 }
 
+function onUSBScopeChanged(scope: string) {
+  usbForm.value.scope = scope || "global";
+  usbForm.value.target_agent_id = "";
+  usbForm.value.target_device_group_id = null;
+  usbForm.value.target_user_id = null;
+  usbForm.value.target_user_group_id = null;
+}
+
+function normalizeUSBPayload(payload: any) {
+  const normalized = { ...payload };
+  normalized.scope = normalized.scope || "global";
+  if (normalized.scope !== "device") normalized.target_agent_id = "";
+  if (normalized.scope !== "device_group")
+    normalized.target_device_group_id = null;
+  if (normalized.scope !== "user") normalized.target_user_id = null;
+  if (normalized.scope !== "user_group") normalized.target_user_group_id = null;
+  for (const key of [
+    "target_device_group_id",
+    "target_user_id",
+    "target_user_group_id",
+  ]) {
+    if (normalized[key] === "" || normalized[key] === undefined)
+      normalized[key] = null;
+  }
+  return normalized;
+}
+
+function validateUSBPayload(payload: any) {
+  if (payload.scope === "device" && !payload.target_agent_id)
+    return "Select target device";
+  if (payload.scope === "device_group" && !payload.target_device_group_id)
+    return "Select target device group";
+  if (payload.scope === "user" && !payload.target_user_id)
+    return "Select target user";
+  if (payload.scope === "user_group" && !payload.target_user_group_id)
+    return "Select target user group";
+  return "";
+}
+
 async function saveUSB() {
   savingUSB.value = true;
   try {
     usbForm.value.allowed_device_ids = splitLines(usbAllowedIdsInput.value);
     usbForm.value.blocked_device_ids = splitLines(usbBlockedIdsInput.value);
+    const payload = normalizeUSBPayload(usbForm.value);
+    const validation = validateUSBPayload(payload);
+    if (validation) {
+      $q.notify({ message: validation, color: "warning" });
+      return;
+    }
     if (editingUSB.value) {
-      await axios.put(`/security/usb/${editingUSB.value.id}/`, usbForm.value);
+      await axios.put(`/security/usb/${editingUSB.value.id}/`, payload);
     } else {
-      await axios.post("/security/usb/", usbForm.value);
+      await axios.post("/security/usb/", payload);
     }
     usbDialogOpen.value = false;
     $q.notify({
@@ -4538,6 +4765,7 @@ onMounted(() => {
   refreshThreatIntelAll();
   loadThreatIntelStats();
   loadAgentOptions();
+  loadUSBScopeOptions();
   loadMicControlAll();
 });
 
