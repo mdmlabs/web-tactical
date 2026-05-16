@@ -320,6 +320,12 @@ const routes = [
             component: () => import("@/views/security/WazuhWorkshop.vue"),
           },
           {
+            path: "rules",
+            name: "RulesManagement",
+            component: () =>
+              import("@/views/security/RulesManagementView.vue"),
+          },
+          {
             path: "use-cases",
             name: "DetectionCases",
             component: () => import("@/views/security/UseCaseRunner.vue"),

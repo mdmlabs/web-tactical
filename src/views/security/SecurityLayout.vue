@@ -46,6 +46,7 @@ const labelMap: Record<string, string> = {
   SecurityReports: "My Reports",
   SecurityReporting: "Reporting",
   Workshop: "Workshop",
+  RulesManagement: "Rules Management",
   DetectionCases: "Detection Cases",
   AgentCompliance: "Agent Compliance",
   OssecConfig: "Manager Configuration",
