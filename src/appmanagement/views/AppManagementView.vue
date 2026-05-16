@@ -271,6 +271,13 @@
               </q-chip>
             </q-td>
           </template>
+          <template v-slot:body-cell-run_as_user="props">
+            <q-td :props="props">
+              <q-chip dense :color="props.row.run_as_user ? 'deep-purple' : 'grey-7'" text-color="white">
+                {{ props.row.run_as_user ? 'User' : 'System' }}
+              </q-chip>
+            </q-td>
+          </template>
           <template v-slot:body-cell-actions="props">
             <q-td :props="props">
               <q-btn flat dense round icon="sync" size="sm" color="teal" @click="refreshDistribution(props.row)" title="Dispatch now" />
@@ -1390,6 +1397,7 @@
               <q-toggle v-model="internalCatalogForm.visible_in_ssp" label="Visible in SSP catalog" />
               <q-toggle v-model="internalCatalogForm.approval_required" label="Requires approval before install/update/uninstall" />
               <q-toggle v-model="internalCatalogForm.force_update_required" label="Upgrade required when latest version is newer" />
+              <q-toggle v-model="internalCatalogForm.run_as_user" label="Run installer as signed-in user" />
             </q-card-section>
             <q-card-actions align="right">
               <q-btn flat label="Cancel" v-close-popup />
@@ -1768,6 +1776,7 @@
           <div class="row q-gutter-md">
             <q-toggle v-model="distributionForm.enabled" label="Enabled" />
             <q-toggle v-model="distributionForm.dry_run" label="Dry run" />
+            <q-toggle v-model="distributionForm.run_as_user" label="Run as signed-in user" />
           </div>
         </q-card-section>
         <q-card-actions align="right">
@@ -2122,6 +2131,7 @@ const distributionForm = ref<any>({
   required_app_policy_ids: [],
   enabled: true,
   dry_run: false,
+  run_as_user: false,
 });
 const wlanForm = ref<any>({ name: "", ssid: "", security_type: "wpa2", password: "", auto_connect: true, hidden_network: false, scope: "global", ...emptyScopedTargets, enabled: true });
 const vpnForm = ref<any>({ name: "", vpn_type: "openvpn", server: "", port: 1194, scope: "global", ...emptyScopedTargets, enabled: true });
@@ -2340,6 +2350,7 @@ const distributionColumns = [
   { name: "package_version", label: "Version", field: "package_version", align: "left" },
   { name: "scope", label: "Scope", field: (row: any) => scopeLabel(row.scope), align: "left", sortable: true },
   { name: "target", label: "Target", field: (row: any) => scopeTargetLabel(row), align: "left" },
+  { name: "run_as_user", label: "Context", field: (row: any) => row.run_as_user ? "User" : "System", align: "center" },
   { name: "enabled", label: "Enabled", field: "enabled", align: "center" },
   { name: "dry_run", label: "Mode", field: "dry_run", align: "center" },
   { name: "actions", label: "", field: "actions", align: "right" },
@@ -3441,6 +3452,7 @@ function defaultDistributionForm() {
     required_app_policy_ids: [],
     enabled: true,
     dry_run: false,
+    run_as_user: false,
   };
 }
 async function loadDistributionChocoPackages(force = false) {
@@ -3839,6 +3851,7 @@ function distributionPayloadForApp(row: any) {
     target_agent_id: selectedAppAgentId.value,
     enabled: true,
     dry_run: false,
+    run_as_user: Boolean(row.run_as_user),
   };
 }
 
@@ -3903,6 +3916,7 @@ function normalizeDistributionPayload() {
     payload.package_id = payload.package_id || "rawcmd";
     payload.package_version = "";
   }
+  payload.run_as_user = Boolean(payload.run_as_user);
   return payload;
 }
 async function saveDistribution() {
@@ -4168,6 +4182,7 @@ const internalCatalogColumns = [
   { name: "latest_version", label: "Latest", field: "latest_version", align: "left" },
   { name: "installer", label: "Installer", field: "installer", align: "left" },
   { name: "package_id", label: "Package ID", field: "package_id", align: "left" },
+  { name: "run_as_user", label: "Context", field: (row: any) => row.run_as_user ? "User" : "System", align: "center" },
   { name: "approval_required", label: "Approval", field: (row: any) => row.approval_required ? "Required" : "Auto", align: "center" },
   { name: "visible_in_ssp", label: "SSP", field: "visible_in_ssp", align: "center" },
   { name: "lifecycle", label: "Inst/Out", field: "lifecycle", align: "center" },
@@ -4214,6 +4229,7 @@ function defaultInternalCatalogForm() {
     approval_required: true,
     latest_version: "",
     force_update_required: false,
+    run_as_user: false,
     retirement_date: "",
     changelog: "",
     license_label: "",
