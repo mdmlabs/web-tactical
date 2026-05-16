@@ -36,7 +36,7 @@ service OperatorUserControlService {
 
     // USER READ
     rpc GetUser(UserIdRequest) returns (UserResponse);
-    rpc GetAllUsers(google.protobuf.Empty) returns (UsersResponse);
+    rpc GetAllUsers(GetAllUsersRequest) returns (UsersResponse);
     rpc ExportAllUsers(ExportAllUsersRequest) returns (laborato.common.export.ExportResponse);
     rpc GetUserGroups(UserIdRequest) returns (GroupListResponse);
     rpc GetUserAgents(UserIdRequest) returns (UserAgentsResponse);
@@ -144,7 +144,11 @@ message UserAgentsResponse {
     repeated string agent_ids = 2;
     optional string error_message = 3;
 }
-
+message GetAllUsersRequest {
+  optional string manufacturer = 1;
+  optional string model = 2;
+  optional string minimal_os_version = 3;
+}
 message UserResponse {
     ResponseStatus status = 1;
     UserWithIdInfo user = 2;

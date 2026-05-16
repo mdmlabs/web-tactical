@@ -3,6 +3,9 @@
     <div class="row q-mb-md">
       <div class="text-subtitle1">{{ $t('security.components.RemediationPanel.7130ec') }}</div>
       <q-space />
+      <q-btn flat dense round icon="refresh" :loading="loading || loadingInc || loadingAudit" @click="load">
+        <q-tooltip>Refresh</q-tooltip>
+      </q-btn>
       <q-btn color="primary" icon="add" :label="$t('security.components.RemediationPanel.c1418c')" @click="showWorkflowDialog()" />
     </div>
     <div class="text-caption text-grey q-mb-md">
@@ -42,9 +45,44 @@
           <template v-slot:body-cell-actions="props">
             <q-td :props="props">
               <q-btn flat dense size="sm" color="positive" icon="check"
-                :label="$t('security.components.RemediationPanel.b8d3d8')"
-                @click="resolveIncident(props.row.id)"
+                @click="remediationAction(props.row, 'resolve')"
                 v-if="props.row.stage !== 'resolved'" />
+              <q-btn flat dense round size="sm" color="primary" icon="play_arrow"
+                :loading="actionLoading === actionKey(props.row, 'run_action')"
+                @click="remediationAction(props.row, 'run_action')">
+                <q-tooltip>Run remediation action</q-tooltip>
+              </q-btn>
+              <q-btn flat dense round size="sm" color="secondary" icon="person"
+                :loading="actionLoading === actionKey(props.row, 'request_user_action')"
+                @click="promptRemediationAction(props.row, 'request_user_action')">
+                <q-tooltip>Request user action</q-tooltip>
+              </q-btn>
+              <q-btn flat dense round size="sm" color="warning" icon="priority_high"
+                :loading="actionLoading === actionKey(props.row, 'escalate')"
+                @click="promptRemediationAction(props.row, 'escalate')">
+                <q-tooltip>Escalate</q-tooltip>
+              </q-btn>
+              <q-btn flat dense round size="sm" color="positive" icon="fact_check"
+                :loading="actionLoading === actionKey(props.row, 'verify')"
+                @click="remediationAction(props.row, 'verify')">
+                <q-tooltip>Verify remediation</q-tooltip>
+              </q-btn>
+              <q-btn flat dense round size="sm" color="negative" icon="close"
+                :loading="actionLoading === actionKey(props.row, 'fail')"
+                @click="promptRemediationAction(props.row, 'fail')">
+                <q-tooltip>Mark failed</q-tooltip>
+              </q-btn>
+            </q-td>
+          </template>
+        </q-table>
+      </div>
+
+      <div class="col-12">
+        <div class="text-subtitle2 q-mb-sm">Remediation audit</div>
+        <q-table :rows="auditEvents" :columns="auditColumns" dense row-key="id" :loading="loadingAudit" :rows-per-page-options="[10,25,50]">
+          <template v-slot:body-cell-stage="props">
+            <q-td :props="props">
+              <q-chip dense :color="stageColor(props.value)" text-color="white" size="sm">{{ props.value || props.row.status }}</q-chip>
             </q-td>
           </template>
         </q-table>
@@ -85,10 +123,13 @@ import axios from "axios";
 const $q = useQuasar();
 const workflows = ref<any[]>([]);
 const incidents = ref<any[]>([]);
+const auditEvents = ref<any[]>([]);
 const loading = ref(false);
 const loadingInc = ref(false);
+const loadingAudit = ref(false);
 const wfDialogOpen = ref(false);
 const savingWf = ref(false);
+const actionLoading = ref("");
 
 const wfForm = ref<any>({
   name: "", trigger_type: "compliance_fail", auto_action: "notify_only",
@@ -107,6 +148,7 @@ const actionOptions = [
   { label: "Run Script", value: "run_script" },
   { label: "Lock Device", value: "lock_device" },
   { label: "Selective Wipe", value: "wipe_selective" },
+  { label: "Request User Action", value: "request_user_action" },
 ];
 
 const wfColumns = [
@@ -123,9 +165,18 @@ const incColumns = [
   { name: "created_at", label: "Started", field: "created_at", align: "left" as const },
   { name: "actions", label: "", field: "actions", align: "right" as const },
 ];
+const auditColumns = [
+  { name: "event_type", label: "Type", field: "event_type", align: "left" as const },
+  { name: "agent_id", label: "Agent", field: "agent_id", align: "left" as const },
+  { name: "action", label: "Action", field: "action", align: "left" as const },
+  { name: "stage", label: "Stage", field: "stage", align: "center" as const },
+  { name: "actor", label: "Actor", field: "actor", align: "left" as const },
+  { name: "title", label: "Title", field: "title", align: "left" as const, classes: "ellipsis", style: "max-width:260px" },
+  { name: "created_at", label: "Time", field: "created_at", align: "left" as const },
+];
 
 function stageColor(s: string) {
-  return { detected: "warning", acting: "primary", escalated: "negative", verifying: "orange", resolved: "positive", failed: "negative" }[s] ?? "grey";
+  return { detected: "warning", acting: "primary", user_action: "secondary", escalated: "negative", verifying: "orange", resolved: "positive", failed: "negative", open: "warning" }[s] ?? "grey";
 }
 
 async function load() {
@@ -135,6 +186,12 @@ async function load() {
   loadingInc.value = true;
   try { incidents.value = (await axios.get("/security/remediation/incidents/")).data || []; } catch { incidents.value = []; }
   finally { loadingInc.value = false; }
+  loadingAudit.value = true;
+  try {
+    const data = (await axios.get("/security/remediation/audit/")).data || {};
+    auditEvents.value = data.events || [];
+  } catch { auditEvents.value = []; }
+  finally { loadingAudit.value = false; }
 }
 
 function showWorkflowDialog() {
@@ -157,10 +214,36 @@ async function deleteWorkflow(id: number) {
   await load();
 }
 
-async function resolveIncident(id: number) {
-  await axios.patch(`/security/remediation/incidents/${id}/`, { stage: "resolved" });
-  $q.notify({ message: "Marked as resolved", color: "positive", icon: "check" });
-  await load();
+function actionKey(row: any, action: string) {
+  return `${row.id}:${action}`;
+}
+
+function promptRemediationAction(row: any, action: string) {
+  const titles: Record<string, string> = {
+    request_user_action: "Request user action",
+    escalate: "Escalate remediation",
+    fail: "Mark remediation failed",
+  };
+  $q.dialog({
+    title: titles[action] || "Remediation action",
+    prompt: { model: "", type: "textarea", label: "Note" },
+    cancel: true,
+  }).onOk((note) => remediationAction(row, action, note));
+}
+
+async function remediationAction(row: any, action: string, note = "") {
+  actionLoading.value = actionKey(row, action);
+  try {
+    const response = await axios.post(`/security/remediation/incidents/${row.id}/action/`, { action, note });
+    const ok = response.data?.ok !== false;
+    $q.notify({ message: `Remediation ${action} saved`, color: ok ? "positive" : "warning", icon: ok ? "check" : "warning" });
+    await load();
+  } catch (e: any) {
+    $q.notify({ message: e?.response?.data?.error || e?.message || `Remediation ${action} failed`, color: "negative" });
+    await load();
+  } finally {
+    actionLoading.value = "";
+  }
 }
 
 onMounted(load);

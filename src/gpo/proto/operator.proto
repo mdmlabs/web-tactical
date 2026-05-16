@@ -49,6 +49,19 @@ service AgentService {
 
   rpc UpdateAgent(UpdateAgentRequest)
       returns(UpdateAgentResponse);
+
+  rpc GetUniqueManufacturers(GetUniqueManufacturersRequest)
+      returns (GetUniqueManufacturersResponse);
+}
+message GetUniqueManufacturersRequest {
+
+}
+message GetUniqueManufacturersResponse {
+   repeated ManufacturerModels manufacturers = 1;
+}
+message ManufacturerModels {
+  string name = 1;
+  repeated string models = 2;
 }
 
 message ExportAgentStatusRequest {
@@ -67,7 +80,11 @@ message UpdateAgentRequest{
     int32 max_policies = 3;
 }
 
-message ListAgentsRequest {}
+message ListAgentsRequest {
+  optional string manufacturer = 1;
+  optional string model = 2;
+  optional string minimal_os_version = 3;
+}
 
 message GetAgentRequest {
   string agent_id = 1;
@@ -339,7 +356,7 @@ service PolicyCatalogService {
   rpc GetPolicy (GetPolicyRequest)
       returns (PolicyDescriptor);
 
-  rpc ListPoliciesGroupedByScope (ListPoliciesGroupedByScopeRequest)
+  rpc ListPoliciesGroupedByScope(ListPoliciesGroupedByScopeRequest)
       returns (ListPoliciesGroupedByScopeResponse);
 
   rpc ExportAllPolicies(ExportAllPoliciesRequest)
@@ -357,19 +374,14 @@ service PolicyCatalogService {
   rpc GetPoliciesByAdmx(GetPoliciesByAdmxRequest)
       returns (GetPoliciesByAdmxResponse);
 
-  rpc GetPolicyDetails (GetPolicyDetailsRequest)
+  rpc GetPolicyDetails(GetPolicyDetailsRequest)
       returns (PolicyDetails);
 
-  rpc SearchPolicyShort (SearchPolicyShortRequest)
+  rpc SearchPolicyShort(SearchPolicyShortRequest)
       returns (SearchPolicyShortResponse);
 
   rpc GetAllSupportedOs(GetAllSupportedOsRequest)
       returns (GetAllSupportedOsResponse);
-}
-
-message SearchPolicyShortRequest {
-    string search = 1;
-    string lang_code = 2;
 }
 
 message GetPoliciesBySupportedOsRequest {
@@ -386,6 +398,11 @@ message GetAllSupportedOsRequest {}
 
 message GetAllSupportedOsResponse {
     repeated laborato.common.node.OsBuild os_builds = 1;
+}
+
+message SearchPolicyShortRequest {
+    string search = 1;
+    string lang_code = 2;
 }
 
 message SearchPolicyShortResponse {
@@ -591,7 +608,7 @@ service PolicyAssignmentService {
  rpc RemovePolicyCollection(RemovePolicyCollectionRequest)
     returns (RemovePolicyCollectionResponse);
 
- rpc RestoreAllPolicies(RestoreAllPoliciesRequest)
+rpc RestoreAllPolicies(RestoreAllPoliciesRequest)
     returns (RestoreAllPoliciesResponse);
 }
 

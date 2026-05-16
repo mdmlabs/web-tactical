@@ -18,12 +18,27 @@
           <div class="row items-center q-gutter-xs">
             <q-linear-progress
               :value="props.row.seats_total > 0 ? (props.value / props.row.seats_total) : 0"
-              :color="props.value > props.row.seats_total ? 'negative' : 'positive'"
+              :color="props.row.over_limit ? 'negative' : 'positive'"
               style="width:60px"
             />
-            <span :class="props.value > props.row.seats_total ? 'text-negative' : ''">
+            <span :class="props.row.over_limit ? 'text-negative' : ''">
               {{ props.value }} / {{ props.row.seats_total }}
             </span>
+          </div>
+        </q-td>
+      </template>
+      <template v-slot:body-cell-compliance_status="props">
+        <q-td :props="props">
+          <q-chip dense size="sm" :color="licenseStatusColor(props.value)" text-color="white">
+            {{ props.value || 'unknown' }}
+          </q-chip>
+        </q-td>
+      </template>
+      <template v-slot:body-cell-installations="props">
+        <q-td :props="props">
+          <div class="row items-center q-gutter-xs justify-center">
+            <q-icon name="devices" />
+            <span>{{ props.row.installations?.length || 0 }}</span>
           </div>
         </q-td>
       </template>
@@ -118,7 +133,10 @@ const columns = [
   { name: "name", label: "Name", field: "name", align: "left" as const, sortable: true },
   { name: "vendor", label: "Vendor", field: "vendor", align: "left" as const },
   { name: "license_type", label: "Type", field: "license_type", align: "center" as const },
+  { name: "compliance_status", label: "Status", field: "compliance_status", align: "center" as const },
   { name: "seats_used", label: "Seats Used", field: "seats_used", align: "center" as const },
+  { name: "seats_available", label: "Available", field: "seats_available", align: "center" as const },
+  { name: "installations", label: "Devices", field: "installations", align: "center" as const },
   { name: "expiry_date", label: "Expires", field: "expiry_date", align: "center" as const },
   { name: "cost_per_seat", label: "$/Seat", field: "cost_per_seat", align: "right" as const },
   { name: "actions", label: "", field: "actions", align: "right" as const },
@@ -154,6 +172,16 @@ function reqStatusColor(s: string) {
     removed: "grey",
     failed: "negative",
   }[s] ?? "grey";
+}
+
+function licenseStatusColor(status: string) {
+  return {
+    compliant: "positive",
+    freeware: "blue-grey",
+    expiring_soon: "warning",
+    over_limit: "negative",
+    expired: "negative",
+  }[status] ?? "grey";
 }
 
 async function load() {

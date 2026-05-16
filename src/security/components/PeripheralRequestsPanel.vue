@@ -1,6 +1,6 @@
 <template>
   <div class="q-pa-md">
-    <div class="text-subtitle1 q-mb-md">Camera and Microphone Control</div>
+    <div class="text-subtitle1 q-mb-md">Camera, Microphone, and USB Control</div>
 
     <div class="row q-col-gutter-md q-mb-md">
       <div class="col-12 col-md-6">
@@ -16,12 +16,57 @@
             </q-item-section>
           </q-item>
           <q-item tag="label">
+            <q-item-section avatar><q-icon name="support_agent" color="primary" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Allow camera during remote support</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-toggle v-model="globals.camera_remote_allow" @update:model-value="saveGlobals" />
+            </q-item-section>
+          </q-item>
+          <q-item tag="label">
             <q-item-section avatar><q-icon name="mic_off" color="negative" /></q-item-section>
             <q-item-section>
               <q-item-label>Mute microphone globally</q-item-label>
             </q-item-section>
             <q-item-section side>
               <q-toggle v-model="globals.mic_global_disabled" @update:model-value="saveGlobals" />
+            </q-item-section>
+          </q-item>
+          <q-item tag="label">
+            <q-item-section avatar><q-icon name="record_voice_over" color="primary" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Allow microphone during remote support</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-toggle v-model="globals.mic_remote_allow" @update:model-value="saveGlobals" />
+            </q-item-section>
+          </q-item>
+          <q-item tag="label">
+            <q-item-section avatar><q-icon name="usb_off" color="negative" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Disable USB storage globally</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-toggle v-model="globals.usb_global_disabled" @update:model-value="saveGlobals" />
+            </q-item-section>
+          </q-item>
+          <q-item tag="label">
+            <q-item-section avatar><q-icon name="usb" color="negative" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Block USB storage on non-compliance</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-toggle v-model="globals.usb_block_on_non_compliance" @update:model-value="saveGlobals" />
+            </q-item-section>
+          </q-item>
+          <q-item tag="label">
+            <q-item-section avatar><q-icon name="gpp_bad" color="negative" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Block USB storage on malware detection</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-toggle v-model="globals.usb_block_on_threat" @update:model-value="saveGlobals" />
             </q-item-section>
           </q-item>
           <q-item tag="label">
@@ -63,7 +108,7 @@
                 <div class="col-6">
                   <q-select
                     v-model="actionForm.device_type"
-                    :options="deviceTypeOptions"
+                    :options="deviceTypeOptionsWithUsb"
                     label="Peripheral"
                     outlined
                     dense
@@ -263,8 +308,13 @@ const sendingAction = ref(false);
 const globals = ref<any>({
   camera_global_disabled: false,
   camera_block_on_non_compliance: false,
+  camera_remote_allow: true,
   mic_global_disabled: false,
   mic_block_on_non_compliance: false,
+  mic_remote_allow: true,
+  usb_global_disabled: false,
+  usb_block_on_non_compliance: false,
+  usb_block_on_threat: false,
 });
 const actionForm = ref<any>({
   agent_id: "",
