@@ -191,6 +191,14 @@ module.exports = configure(function (/* ctx */) {
                           proxyReq.setHeader("osd-xsrf", "true");
                         }
                       });
+                      proxy.on("proxyRes", (proxyRes) => {
+                        // Prevent browser from caching dashboard responses
+                        proxyRes.headers["cache-control"] =
+                          "no-store, no-cache, must-revalidate";
+                        proxyRes.headers["pragma"] = "no-cache";
+                        delete proxyRes.headers["etag"];
+                        delete proxyRes.headers["last-modified"];
+                      });
                     },
                   },
                 }
@@ -210,6 +218,16 @@ module.exports = configure(function (/* ctx */) {
               secure: !insecure, // false для самоподписанных сертификатов
               agent: httpsAgent, // использовать agent для игнорирования SSL ошибок
               rewrite: (path) => path.replace(/^\/api/, ""),
+              configure: (proxy) => {
+                proxy.on("proxyRes", (proxyRes) => {
+                  // Prevent browser from caching API responses (especially Wazuh data)
+                  proxyRes.headers["cache-control"] =
+                    "no-store, no-cache, must-revalidate";
+                  proxyRes.headers["pragma"] = "no-cache";
+                  delete proxyRes.headers["etag"];
+                  delete proxyRes.headers["last-modified"];
+                });
+              },
             },
           };
         }

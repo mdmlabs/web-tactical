@@ -88,6 +88,11 @@ export const useScaStore = defineStore("sca", () => {
   });
 
   const dateRangeQuery = computed(() => {
+    return getDateRangeNow();
+  });
+
+  /** Compute fresh date range at call time (avoids stale computed cache) */
+  function getDateRangeNow() {
     const now = new Date();
     const to = now.toISOString();
     const presetMs: Record<string, number> = {
@@ -100,7 +105,7 @@ export const useScaStore = defineStore("sca", () => {
     const ms = presetMs[eventsDateRange.value] ?? presetMs["24h"];
     const from = new Date(now.getTime() - ms).toISOString();
     return { from, to };
-  });
+  }
 
   // === Actions ===
   function setAgent(agentId: string | null) {
@@ -202,13 +207,14 @@ export const useScaStore = defineStore("sca", () => {
 
   // === Shared query builder for events ===
   function buildEventsMusts(): Record<string, unknown>[] {
+    const range = getDateRangeNow();
     const must: Record<string, unknown>[] = [
       { match: { "rule.groups": "sca" } },
       {
         range: {
           "@timestamp": {
-            gte: dateRangeQuery.value.from,
-            lte: dateRangeQuery.value.to,
+            gte: range.from,
+            lte: range.to,
           },
         },
       },
@@ -273,6 +279,7 @@ export const useScaStore = defineStore("sca", () => {
   // === Histogram: fetch 30-minute aggregation from Wazuh Indexer ===
   async function fetchEventsHistogram() {
     eventsHistogramLoading.value = true;
+    const range = getDateRangeNow();
     try {
       const must = buildEventsMusts();
 
@@ -286,8 +293,8 @@ export const useScaStore = defineStore("sca", () => {
               fixed_interval: "30m",
               min_doc_count: 0,
               extended_bounds: {
-                min: dateRangeQuery.value.from,
-                max: dateRangeQuery.value.to,
+                min: range.from,
+                max: range.to,
               },
             },
           },

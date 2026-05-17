@@ -70,6 +70,11 @@ export const useGdprStore = defineStore("gdpr", () => {
 
   // === Getters ===
   const dateRangeQuery = computed(() => {
+    return getDateRangeNow();
+  });
+
+  /** Compute fresh date range at call time (avoids stale computed cache) */
+  function getDateRangeNow() {
     const now = new Date();
     const to = now.toISOString();
     const presetMs: Record<string, number> = {
@@ -82,7 +87,7 @@ export const useGdprStore = defineStore("gdpr", () => {
     const ms = presetMs[dateRange.value] ?? presetMs["24h"];
     const from = new Date(now.getTime() - ms).toISOString();
     return { from, to };
-  });
+  }
 
   const groupedArticleCounts = computed(() => {
     const map = new Map<string, number>();
@@ -107,13 +112,14 @@ export const useGdprStore = defineStore("gdpr", () => {
 
   // === Shared query builder ===
   function buildBaseMusts(): Record<string, unknown>[] {
+    const range = getDateRangeNow();
     const must: Record<string, unknown>[] = [
       { exists: { field: "rule.gdpr" } },
       {
         range: {
           "@timestamp": {
-            gte: dateRangeQuery.value.from,
-            lte: dateRangeQuery.value.to,
+            gte: range.from,
+            lte: range.to,
           },
         },
       },
@@ -215,6 +221,7 @@ export const useGdprStore = defineStore("gdpr", () => {
   // === Dashboard fetch ===
   async function fetchDashboard() {
     dashboardLoading.value = true;
+    const range = getDateRangeNow();
     try {
       const must = buildBaseMusts();
       const agentId = selectedAgent.value?.id ?? null;
@@ -230,8 +237,8 @@ export const useGdprStore = defineStore("gdpr", () => {
             fixed_interval: "30m",
             min_doc_count: 0,
             extended_bounds: {
-              min: dateRangeQuery.value.from,
-              max: dateRangeQuery.value.to,
+              min: range.from,
+              max: range.to,
             },
           },
           aggs: {
@@ -468,6 +475,7 @@ export const useGdprStore = defineStore("gdpr", () => {
   // === Events histogram ===
   async function fetchEventsHistogram() {
     eventsHistogramLoading.value = true;
+    const range = getDateRangeNow();
     try {
       const must = buildEventsMusts();
 
@@ -481,8 +489,8 @@ export const useGdprStore = defineStore("gdpr", () => {
               fixed_interval: "30m",
               min_doc_count: 0,
               extended_bounds: {
-                min: dateRangeQuery.value.from,
-                max: dateRangeQuery.value.to,
+                min: range.from,
+                max: range.to,
               },
             },
           },
@@ -505,14 +513,15 @@ export const useGdprStore = defineStore("gdpr", () => {
   async function fetchDetailEvents() {
     if (!selectedArticle.value) return;
     detailEventsLoading.value = true;
+    const range = getDateRangeNow();
     try {
       const must: Record<string, unknown>[] = [
         { match: { "rule.gdpr": selectedArticle.value } },
         {
           range: {
             "@timestamp": {
-              gte: dateRangeQuery.value.from,
-              lte: dateRangeQuery.value.to,
+              gte: range.from,
+              lte: range.to,
             },
           },
         },

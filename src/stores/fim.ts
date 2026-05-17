@@ -52,6 +52,11 @@ export const useFimStore = defineStore("fim", () => {
   const hasAgent = computed(() => !!selectedAgentId.value);
 
   const dateRangeQuery = computed(() => {
+    return getDateRangeNow();
+  });
+
+  /** Compute fresh date range at call time (avoids stale computed cache) */
+  function getDateRangeNow() {
     const now = new Date();
     const to = now.toISOString();
 
@@ -69,16 +74,22 @@ export const useFimStore = defineStore("fim", () => {
     const ms = presetMs[dateRange.value.preset ?? "24h"] ?? presetMs["24h"];
     const from = new Date(now.getTime() - ms).toISOString();
     return { from, to };
-  });
+  }
 
   const baseQuery = computed(() => {
+    return buildQuery();
+  });
+
+  /** Build query with fresh timestamps (for use in fetch functions) */
+  function buildQuery() {
+    const range = getDateRangeNow();
     const must: Record<string, unknown>[] = [
       { match: { "rule.groups": "syscheck" } },
       {
         range: {
           "@timestamp": {
-            gte: dateRangeQuery.value.from,
-            lte: dateRangeQuery.value.to,
+            gte: range.from,
+            lte: range.to,
           },
         },
       },
@@ -100,7 +111,7 @@ export const useFimStore = defineStore("fim", () => {
     }
 
     return { bool: { must } };
-  });
+  }
 
   // === Helpers ===
   function filterToClause(f: FIMFilter): Record<string, unknown> | null {
@@ -238,8 +249,9 @@ export const useFimStore = defineStore("fim", () => {
   async function fetchDashboardAggs() {
     dashboardLoading.value = true;
     try {
+      const range = getDateRangeNow();
       const body: OpenSearchQueryBody = {
-        query: baseQuery.value,
+        query: buildQuery(),
         size: 0,
         aggs: {
           active_users: {
@@ -254,8 +266,8 @@ export const useFimStore = defineStore("fim", () => {
               fixed_interval: "30m",
               min_doc_count: 0,
               extended_bounds: {
-                min: dateRangeQuery.value.from,
-                max: dateRangeQuery.value.to,
+                min: range.from,
+                max: range.to,
               },
             },
             aggs: {
@@ -404,9 +416,10 @@ export const useFimStore = defineStore("fim", () => {
     try {
       const from =
         (eventsPagination.value.page - 1) * eventsPagination.value.rowsPerPage;
+      const range = getDateRangeNow();
 
       const body: OpenSearchQueryBody = {
-        query: baseQuery.value,
+        query: buildQuery(),
         size: eventsPagination.value.rowsPerPage,
         from,
         sort: [{ "@timestamp": { order: "desc" } }] as Record<string, unknown>[],
@@ -417,8 +430,8 @@ export const useFimStore = defineStore("fim", () => {
               fixed_interval: "30m",
               min_doc_count: 0,
               extended_bounds: {
-                min: dateRangeQuery.value.from,
-                max: dateRangeQuery.value.to,
+                min: range.from,
+                max: range.to,
               },
             },
           },
