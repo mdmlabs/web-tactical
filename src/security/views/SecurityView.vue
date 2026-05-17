@@ -1314,6 +1314,13 @@
             <q-btn
               outline
               color="primary"
+              icon="settings"
+              label="Forensics settings"
+              @click="openForensicSettingsDialog"
+            />
+            <q-btn
+              outline
+              color="primary"
               icon="picture_as_pdf"
               label="Export PDF"
               :disable="!forensicsReport"
@@ -1360,6 +1367,22 @@
               <div class="text-caption">
                 {{ $t("security.views.SecurityView.09fef5") }}
               </div>
+            </q-card-section>
+          </q-card>
+          <q-card flat bordered class="col">
+            <q-card-section class="text-center">
+              <div class="text-h5">
+                {{ forensicsReport.stats.evidence_bundles ?? 0 }}
+              </div>
+              <div class="text-caption">Evidence bundles</div>
+            </q-card-section>
+          </q-card>
+          <q-card flat bordered class="col">
+            <q-card-section class="text-center">
+              <div class="text-h5">
+                {{ forensicsReport.stats.encrypted_bundles ?? 0 }}
+              </div>
+              <div class="text-caption">Encrypted</div>
             </q-card-section>
           </q-card>
         </div>
@@ -1454,13 +1477,7 @@
                 <q-td :props="props">
                   <q-chip
                     dense
-                    :color="
-                      props.value === 'Isolated'
-                        ? 'negative'
-                        : props.value === 'Investigating'
-                          ? 'warning'
-                          : 'positive'
-                    "
+                    :color="forensicStatusColor(props.value)"
                     text-color="white"
                     size="sm"
                     >{{ props.value }}</q-chip
@@ -1493,6 +1510,30 @@
                   <span v-else>—</span>
                 </q-td>
               </template>
+              <template v-slot:body-cell-evidence_bundle_encrypted="props">
+                <q-td :props="props">
+                  <q-chip
+                    dense
+                    size="sm"
+                    :color="props.value ? 'positive' : 'grey'"
+                    text-color="white"
+                  >
+                    {{ props.value ? "Encrypted" : "Plain" }}
+                  </q-chip>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-av_scan_status="props">
+                <q-td :props="props">
+                  <q-chip
+                    dense
+                    size="sm"
+                    :color="forensicAvColor(props.value)"
+                    text-color="white"
+                  >
+                    {{ props.value || "not scanned" }}
+                  </q-chip>
+                </q-td>
+              </template>
               <template v-slot:body-cell-actions="props">
                 <q-td :props="props">
                   <q-btn
@@ -1511,6 +1552,17 @@
                     @click="downloadForensicToolExport(props.row, 'generic')"
                   >
                     <q-tooltip>Download tool export manifest</q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    flat
+                    dense
+                    icon="archive"
+                    size="sm"
+                    color="primary"
+                    :disable="!props.row.evidence_bundle_path"
+                    @click="downloadForensicEvidence(props.row)"
+                  >
+                    <q-tooltip>Download evidence ZIP</q-tooltip>
                   </q-btn>
                   <q-btn
                     flat
@@ -3011,6 +3063,64 @@
             color="primary"
             :label="editingForensicPolicy ? 'Save policy' : 'Create policy'"
             @click="submitForensicPolicy"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="showForensicSettingsDialog" persistent>
+      <q-card style="min-width: 760px; max-width: 94vw">
+        <q-bar>
+          Forensics settings
+          <q-space />
+          <q-btn dense flat icon="close" v-close-popup />
+        </q-bar>
+        <q-card-section class="q-gutter-md">
+          <q-toggle
+            v-model="forensicSettingsForm.evidence_encryption_enabled"
+            label="Encrypt evidence bundles before upload"
+          />
+          <q-input
+            v-model="forensicSettingsForm.evidence_public_key_pem"
+            label="Corporate public key or certificate PEM"
+            hint="Paste an RSA public key or certificate. The Windows agent encrypts the ZIP with AES-256-GCM and wraps the key with RSA-OAEP."
+            outlined
+            dense
+            type="textarea"
+            rows="8"
+          />
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-4">
+              <q-toggle
+                v-model="forensicSettingsForm.velociraptor_enabled"
+                label="Velociraptor sync"
+              />
+            </div>
+            <div class="col-12 col-md-8">
+              <q-input
+                v-model="forensicSettingsForm.velociraptor_api_url"
+                label="Velociraptor API URL"
+                outlined
+                dense
+              />
+            </div>
+          </div>
+          <q-input
+            v-model="forensicSettingsForm.notes"
+            label="Notes"
+            outlined
+            dense
+            type="textarea"
+            rows="2"
+          />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn
+            color="primary"
+            label="Save settings"
+            :loading="savingForensicSettings"
+            @click="saveForensicSettings"
           />
         </q-card-actions>
       </q-card>
@@ -4758,6 +4868,7 @@ onMounted(() => {
   loadForensicJobTypes();
   loadForensicPolicies();
   loadForensicDeviceGroups();
+  loadForensicSettings();
   loadForensics();
   loadForensicsAudit();
   loadUEBA();
@@ -4779,9 +4890,11 @@ watch(() => route.fullPath, syncTabFromRoute, { immediate: true });
 const showIsolateDialog = ref(false);
 const showForensicWizard = ref(false);
 const showForensicPolicyDialog = ref(false);
+const showForensicSettingsDialog = ref(false);
 const loadingForensics = ref(false);
 const loadingForensicsAudit = ref(false);
 const loadingForensicPolicies = ref(false);
+const savingForensicSettings = ref(false);
 const forensicCases = ref<any[]>([]);
 const forensicPolicies = ref<any[]>([]);
 const forensicAuditTrail = ref<any[]>([]);
@@ -4791,6 +4904,18 @@ const forensicsAuditError = ref("");
 const uebaError = ref("");
 const threatIntelError = ref("");
 const editingForensicPolicy = ref<any | null>(null);
+
+function defaultForensicSettingsForm() {
+  return {
+    label: "default",
+    evidence_encryption_enabled: false,
+    evidence_public_key_pem: "",
+    velociraptor_enabled: false,
+    velociraptor_api_url: "",
+    velociraptor_ca_cert_pem: "",
+    notes: "",
+  };
+}
 
 const defaultForensicJobTypeOptions = [
   { label: "Extract files by path", value: "file_collection" },
@@ -4861,6 +4986,7 @@ const forensicEngineOptions = [
 
 const forensicWizardForm = ref(defaultForensicWizardForm());
 const forensicPolicyForm = ref(defaultForensicPolicyForm());
+const forensicSettingsForm = ref(defaultForensicSettingsForm());
 const forensicKeywordsInput = ref("");
 const forensicPathGlobsInput = ref("");
 const forensicPolicyKeywordsInput = ref("");
@@ -4887,6 +5013,24 @@ const forensicColumns = [
     name: "artifact_count",
     label: "Artifacts",
     field: (row: any) => row.artifacts?.length || 0,
+    align: "center",
+  },
+  {
+    name: "evidence_bundle_size",
+    label: "Bundle",
+    field: (row: any) => formatBytes(row.evidence_bundle_size),
+    align: "right",
+  },
+  {
+    name: "evidence_bundle_encrypted",
+    label: "Encryption",
+    field: "evidence_bundle_encrypted",
+    align: "center",
+  },
+  {
+    name: "av_scan_status",
+    label: "AV",
+    field: "av_scan_status",
     align: "center",
   },
   {
@@ -4998,6 +5142,46 @@ async function loadForensicPolicies() {
   }
 }
 
+async function loadForensicSettings() {
+  try {
+    const r = await axios.get("/security/forensics/settings/");
+    forensicSettingsForm.value = {
+      ...defaultForensicSettingsForm(),
+      ...(r.data || {}),
+    };
+  } catch (e: any) {
+    $q.notify({
+      message: _apiErrMessage(e, "Failed to load forensics settings"),
+      color: "negative",
+    });
+  }
+}
+
+async function openForensicSettingsDialog() {
+  await loadForensicSettings();
+  showForensicSettingsDialog.value = true;
+}
+
+async function saveForensicSettings() {
+  savingForensicSettings.value = true;
+  try {
+    await axios.put("/security/forensics/settings/", forensicSettingsForm.value);
+    $q.notify({
+      message: "Forensics settings saved",
+      color: "positive",
+      icon: "check",
+    });
+    showForensicSettingsDialog.value = false;
+  } catch (e: any) {
+    $q.notify({
+      message: _apiErrMessage(e, "Failed to save forensics settings"),
+      color: "negative",
+    });
+  } finally {
+    savingForensicSettings.value = false;
+  }
+}
+
 async function loadForensics() {
   loadingForensics.value = true;
   forensicsError.value = "";
@@ -5103,7 +5287,19 @@ async function exportForensicsPdf() {
   autoTable(doc, {
     startY: (doc as any).lastAutoTable.finalY + 18,
     head: [
-      ["ID", "Device", "Title", "Status", "Collectors", "SHA256", "Updated"],
+      [
+        "ID",
+        "Device",
+        "Title",
+        "Status",
+        "Collectors",
+        "Artifacts",
+        "Bundle",
+        "Encrypted",
+        "AV",
+        "SHA256",
+        "Updated",
+      ],
     ],
     body: jobs.map((row: any) => [
       row.id,
@@ -5111,6 +5307,10 @@ async function exportForensicsPdf() {
       row.title,
       row.status,
       Array.isArray(row.job_types) ? row.job_types.join(", ") : "",
+      Array.isArray(row.artifacts) ? row.artifacts.length : 0,
+      formatBytes(row.evidence_bundle_size),
+      row.evidence_bundle_encrypted ? "yes" : "no",
+      row.av_scan_status || "-",
       row.manifest_sha256 || "-",
       row.updated_at || "",
     ]),
@@ -5168,6 +5368,36 @@ function formatForensicJobTypes(row: any) {
     return found?.label || value;
   });
   return labels.join(", ");
+}
+
+function formatBytes(value: any) {
+  const bytes = Number(value || 0);
+  if (!bytes) return "—";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let size = bytes;
+  let idx = 0;
+  while (size >= 1024 && idx < units.length - 1) {
+    size /= 1024;
+    idx += 1;
+  }
+  return `${size.toFixed(idx === 0 ? 0 : 1)} ${units[idx]}`;
+}
+
+function forensicAvColor(status: string) {
+  if (status === "clean") return "positive";
+  if (status === "detected") return "negative";
+  if (status === "error") return "warning";
+  if (status === "unavailable") return "grey";
+  return "grey";
+}
+
+function forensicStatusColor(status: string) {
+  if (status === "failed") return "negative";
+  if (status === "partial") return "warning";
+  if (status === "running" || status === "queued") return "primary";
+  if (status === "skipped" || status === "cancelled") return "grey";
+  if (status === "completed") return "positive";
+  return "grey";
 }
 
 function openForensicJobDialog() {
@@ -5385,7 +5615,15 @@ async function cancelForensicJob(row: any) {
 function openIRCase(row: any) {
   $q.dialog({
     title: `Forensic Job: ${row.title}`,
-    message: `Agent: ${row.agent_id}\nStatus: ${row.status}\nArtifacts: ${row.artifacts?.length ?? 0}`,
+    message: [
+      `Agent: ${row.agent_id}`,
+      `Status: ${row.status}`,
+      `Artifacts: ${row.artifacts?.length ?? 0}`,
+      `Evidence bundle: ${row.evidence_bundle_name || "not uploaded"}`,
+      `Bundle SHA-256: ${row.evidence_bundle_sha256 || row.manifest_sha256 || "—"}`,
+      `Encrypted: ${row.evidence_bundle_encrypted ? "yes" : "no"}`,
+      `AV scan: ${row.av_scan_status || "not scanned"}`,
+    ].join("\n"),
     ok: true,
   });
 }
@@ -5410,6 +5648,42 @@ async function downloadForensicToolExport(row: any, format = "generic") {
   } catch (e: any) {
     $q.notify({
       message: _apiErrMessage(e, "Failed to export forensic manifest"),
+      color: "negative",
+    });
+  }
+}
+
+async function downloadForensicEvidence(row: any) {
+  try {
+    const r = await axios.get(`/security/forensics/jobs/${row.id}/evidence/`, {
+      responseType: "blob",
+    });
+    const disposition = String(r.headers?.["content-disposition"] || "");
+    const match = disposition.match(/filename="?([^";]+)"?/i);
+    const filename =
+      match?.[1] ||
+      row.evidence_bundle_name ||
+      `forensics-${row.id}-evidence.zip`;
+    const blob = new Blob([r.data], {
+      type: r.headers?.["content-type"] || "application/octet-stream",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    $q.notify({
+      message: "Evidence bundle download started",
+      color: "positive",
+      icon: "archive",
+    });
+    await loadForensicsAudit();
+  } catch (e: any) {
+    $q.notify({
+      message: _apiErrMessage(e, "Failed to download evidence bundle"),
       color: "negative",
     });
   }
