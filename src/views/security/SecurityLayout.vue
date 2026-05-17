@@ -85,7 +85,13 @@ watch(
   () => route.name,
   async () => {
     showRefreshBtn.value = false;
-    await nextTick();
+    // Child component ref may not be available after a single nextTick;
+    // wait for it to mount (up to ~300ms) before checking loadData.
+    for (let i = 0; i < 6; i++) {
+      await nextTick();
+      if (childView.value?.loadData) break;
+      await new Promise((r) => setTimeout(r, 50));
+    }
     showRefreshBtn.value = typeof childView.value?.loadData === "function";
   },
   { immediate: true },
