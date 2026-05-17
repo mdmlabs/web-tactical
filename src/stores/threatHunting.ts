@@ -106,6 +106,11 @@ export const useThreatHuntingStore = defineStore("threatHunting", () => {
 
   // === Getters ===
   const dateRangeQuery = computed(() => {
+    return getDateRangeNow();
+  });
+
+  /** Compute fresh date range at call time (avoids stale computed cache) */
+  function getDateRangeNow() {
     const now = new Date();
     const to = now.toISOString();
     const presetMs: Record<string, number> = {
@@ -118,7 +123,7 @@ export const useThreatHuntingStore = defineStore("threatHunting", () => {
     const ms = presetMs[dateRange.value] ?? presetMs["24h"];
     const from = new Date(now.getTime() - ms).toISOString();
     return { from, to };
-  });
+  }
 
   const histogramInterval = computed(() => {
     switch (dateRange.value) {
@@ -133,12 +138,13 @@ export const useThreatHuntingStore = defineStore("threatHunting", () => {
 
   // === Shared query builder ===
   function buildBaseMusts(): Record<string, unknown>[] {
+    const range = getDateRangeNow();
     return [
       {
         range: {
           "@timestamp": {
-            gte: dateRangeQuery.value.from,
-            lte: dateRangeQuery.value.to,
+            gte: range.from,
+            lte: range.to,
           },
         },
       },
@@ -191,6 +197,7 @@ export const useThreatHuntingStore = defineStore("threatHunting", () => {
   // === Dashboard fetch ===
   async function fetchDashboard() {
     dashboardLoading.value = true;
+    const range = getDateRangeNow();
     try {
       const must = buildBaseMusts();
 
@@ -235,8 +242,8 @@ export const useThreatHuntingStore = defineStore("threatHunting", () => {
               fixed_interval: histogramInterval.value,
               min_doc_count: 0,
               extended_bounds: {
-                min: dateRangeQuery.value.from,
-                max: dateRangeQuery.value.to,
+                min: range.from,
+                max: range.to,
               },
             },
             aggs: {
@@ -256,8 +263,8 @@ export const useThreatHuntingStore = defineStore("threatHunting", () => {
               fixed_interval: histogramInterval.value,
               min_doc_count: 0,
               extended_bounds: {
-                min: dateRangeQuery.value.from,
-                max: dateRangeQuery.value.to,
+                min: range.from,
+                max: range.to,
               },
             },
             aggs: {
@@ -344,6 +351,7 @@ export const useThreatHuntingStore = defineStore("threatHunting", () => {
   // === Events histogram ===
   async function fetchEventsHistogram() {
     eventsHistogramLoading.value = true;
+    const range = getDateRangeNow();
     try {
       const must = buildEventsMusts();
 
@@ -357,8 +365,8 @@ export const useThreatHuntingStore = defineStore("threatHunting", () => {
               fixed_interval: histogramInterval.value,
               min_doc_count: 0,
               extended_bounds: {
-                min: dateRangeQuery.value.from,
-                max: dateRangeQuery.value.to,
+                min: range.from,
+                max: range.to,
               },
             },
           },

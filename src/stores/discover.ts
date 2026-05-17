@@ -102,6 +102,11 @@ export const useDiscoverStore = defineStore("discover", () => {
 
   // === Computed ===
   const dateRangeQuery = computed(() => {
+    return getDateRangeNow();
+  });
+
+  /** Compute fresh date range at call time (avoids stale computed cache) */
+  function getDateRangeNow() {
     const now = new Date();
     const to = now.toISOString();
     const presetMs: Record<string, number> = {
@@ -114,7 +119,7 @@ export const useDiscoverStore = defineStore("discover", () => {
     const ms = presetMs[timeRange.value] ?? presetMs["24h"];
     const from = new Date(now.getTime() - ms).toISOString();
     return { from, to };
-  });
+  }
 
   /** Histogram interval adapts to selected time range */
   const histogramInterval = computed(() => {
@@ -129,12 +134,18 @@ export const useDiscoverStore = defineStore("discover", () => {
   });
 
   const baseQuery = computed(() => {
+    return buildQuery();
+  });
+
+  /** Build query with fresh timestamps */
+  function buildQuery() {
+    const range = getDateRangeNow();
     const must: Record<string, unknown>[] = [
       {
         range: {
           "@timestamp": {
-            gte: dateRangeQuery.value.from,
-            lte: dateRangeQuery.value.to,
+            gte: range.from,
+            lte: range.to,
           },
         },
       },
@@ -150,7 +161,7 @@ export const useDiscoverStore = defineStore("discover", () => {
     }
 
     return { bool: { must } };
-  });
+  }
 
   // === Actions ===
   async function fetchEvents() {
@@ -159,9 +170,10 @@ export const useDiscoverStore = defineStore("discover", () => {
 
     try {
       const from = (pagination.value.page - 1) * pagination.value.rowsPerPage;
+      const range = getDateRangeNow();
 
       const body: OpenSearchQueryBody = {
-        query: baseQuery.value,
+        query: buildQuery(),
         size: pagination.value.rowsPerPage,
         from,
         sort: [{ "@timestamp": { order: "desc" } }] as Record<string, unknown>[],
@@ -173,8 +185,8 @@ export const useDiscoverStore = defineStore("discover", () => {
               fixed_interval: histogramInterval.value,
               min_doc_count: 0,
               extended_bounds: {
-                min: dateRangeQuery.value.from,
-                max: dateRangeQuery.value.to,
+                min: range.from,
+                max: range.to,
               },
             },
           },

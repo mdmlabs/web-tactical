@@ -14,7 +14,9 @@
 
     <!-- Page content -->
     <div class="sec-content">
-      <router-view ref="childView" />
+      <router-view v-slot="{ Component }">
+        <component :is="Component" ref="childView" />
+      </router-view>
     </div>
   </q-page>
 </template>

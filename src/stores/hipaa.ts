@@ -70,6 +70,11 @@ export const useHipaaStore = defineStore("hipaa", () => {
 
   // === Getters ===
   const dateRangeQuery = computed(() => {
+    return getDateRangeNow();
+  });
+
+  /** Compute fresh date range at call time (avoids stale computed cache) */
+  function getDateRangeNow() {
     const now = new Date();
     const to = now.toISOString();
     const presetMs: Record<string, number> = {
@@ -82,14 +87,15 @@ export const useHipaaStore = defineStore("hipaa", () => {
     const ms = presetMs[dateRange.value] ?? presetMs["24h"];
     const from = new Date(now.getTime() - ms).toISOString();
     return { from, to };
-  });
+  }
 
   const groupedStandardCounts = computed(() => {
     const map = new Map<string, number>();
     for (const rc of standardCounts.value) {
       // Parent ID is first two dot-segments: "164.312" from "164.312.a.1"
       const parts = rc.standard.split(".");
-      const parentId = parts.length >= 2 ? `${parts[0]}.${parts[1]}` : rc.standard;
+      const parentId =
+        parts.length >= 2 ? `${parts[0]}.${parts[1]}` : rc.standard;
       map.set(parentId, (map.get(parentId) ?? 0) + rc.doc_count);
     }
     return [...map.entries()]
@@ -109,13 +115,14 @@ export const useHipaaStore = defineStore("hipaa", () => {
 
   // === Shared query builder ===
   function buildBaseMusts(): Record<string, unknown>[] {
+    const range = getDateRangeNow();
     const must: Record<string, unknown>[] = [
       { exists: { field: "rule.hipaa" } },
       {
         range: {
           "@timestamp": {
-            gte: dateRangeQuery.value.from,
-            lte: dateRangeQuery.value.to,
+            gte: range.from,
+            lte: range.to,
           },
         },
       },
@@ -217,6 +224,7 @@ export const useHipaaStore = defineStore("hipaa", () => {
   // === Dashboard fetch ===
   async function fetchDashboard() {
     dashboardLoading.value = true;
+    const range = getDateRangeNow();
     try {
       const must = buildBaseMusts();
       const agentId = selectedAgent.value?.id ?? null;
@@ -232,8 +240,8 @@ export const useHipaaStore = defineStore("hipaa", () => {
             fixed_interval: "30m",
             min_doc_count: 0,
             extended_bounds: {
-              min: dateRangeQuery.value.from,
-              max: dateRangeQuery.value.to,
+              min: range.from,
+              max: range.to,
             },
           },
           aggs: {
@@ -405,12 +413,12 @@ export const useHipaaStore = defineStore("hipaa", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const aggs = resp.aggregations as any;
 
-      standardCounts.value = (
-        aggs?.all_standards?.buckets ?? []
-      ).map((b: { key: string; doc_count: number }) => ({
-        standard: b.key,
-        doc_count: b.doc_count,
-      }));
+      standardCounts.value = (aggs?.all_standards?.buckets ?? []).map(
+        (b: { key: string; doc_count: number }) => ({
+          standard: b.key,
+          doc_count: b.doc_count,
+        }),
+      );
 
       indexerAvailable.value = true;
     } catch (e) {
@@ -470,6 +478,7 @@ export const useHipaaStore = defineStore("hipaa", () => {
   // === Events histogram ===
   async function fetchEventsHistogram() {
     eventsHistogramLoading.value = true;
+    const range = getDateRangeNow();
     try {
       const must = buildEventsMusts();
 
@@ -483,8 +492,8 @@ export const useHipaaStore = defineStore("hipaa", () => {
               fixed_interval: "30m",
               min_doc_count: 0,
               extended_bounds: {
-                min: dateRangeQuery.value.from,
-                max: dateRangeQuery.value.to,
+                min: range.from,
+                max: range.to,
               },
             },
           },
@@ -507,14 +516,15 @@ export const useHipaaStore = defineStore("hipaa", () => {
   async function fetchDetailEvents() {
     if (!selectedStandard.value) return;
     detailEventsLoading.value = true;
+    const range = getDateRangeNow();
     try {
       const must: Record<string, unknown>[] = [
         { match: { "rule.hipaa": selectedStandard.value } },
         {
           range: {
             "@timestamp": {
-              gte: dateRangeQuery.value.from,
-              lte: dateRangeQuery.value.to,
+              gte: range.from,
+              lte: range.to,
             },
           },
         },
@@ -590,8 +600,7 @@ export const useHipaaStore = defineStore("hipaa", () => {
               if (check.compliance) {
                 const hasHipaaMatch = check.compliance.some(
                   (c) =>
-                    c.key === "hipaa" &&
-                    c.value === selectedStandard.value,
+                    c.key === "hipaa" && c.value === selectedStandard.value,
                 );
                 if (hasHipaaMatch) {
                   agentChecks.push(check);
@@ -653,10 +662,7 @@ export const useHipaaStore = defineStore("hipaa", () => {
         wazuhIndexerApi.search<HIPAAEvent>("wazuh-alerts-*", {
           query: {
             bool: {
-              must: [
-                ...must,
-                { range: { "@timestamp": { lt: ts } } },
-              ],
+              must: [...must, { range: { "@timestamp": { lt: ts } } }],
             },
           },
           size: 5,
@@ -665,10 +671,7 @@ export const useHipaaStore = defineStore("hipaa", () => {
         wazuhIndexerApi.search<HIPAAEvent>("wazuh-alerts-*", {
           query: {
             bool: {
-              must: [
-                ...must,
-                { range: { "@timestamp": { gt: ts } } },
-              ],
+              must: [...must, { range: { "@timestamp": { gt: ts } } }],
             },
           },
           size: 5,
