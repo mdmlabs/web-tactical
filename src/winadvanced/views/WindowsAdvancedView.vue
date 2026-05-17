@@ -202,6 +202,15 @@
           </template>
           <template v-slot:body-cell-actions="props">
             <q-td :props="props">
+              <q-btn flat dense round icon="send" size="sm" color="primary" @click="deployWSLPolicy(props.row)">
+                <q-tooltip>Apply WSL policy now</q-tooltip>
+              </q-btn>
+              <q-btn flat dense round icon="fact_check" size="sm" color="info" @click="probeWSL('status')">
+                <q-tooltip>Check WSL status on device</q-tooltip>
+              </q-btn>
+              <q-btn flat dense round icon="monitor_heart" size="sm" color="secondary" @click="probeWSL('activity')">
+                <q-tooltip>Collect WSL activity log</q-tooltip>
+              </q-btn>
               <q-btn flat dense round icon="edit" size="sm" @click="showWSLDialog(props.row)" />
               <q-btn flat dense round icon="undo" size="sm" color="warning" @click="revokeWinAdvancedPolicy('wsl', props.row)">
                 <q-tooltip>Revoke WSL restrictions without uninstalling WSL</q-tooltip>
@@ -758,6 +767,20 @@
                   :label="field.label"
                   outlined dense emit-value map-options clearable
                 />
+                <q-select
+                  v-else-if="field.type === 'user-select'"
+                  v-model="genericForm[field.key]"
+                  :options="genericUserOptions"
+                  :label="field.label"
+                  outlined dense emit-value map-options clearable
+                />
+                <q-select
+                  v-else-if="field.type === 'user-group-select'"
+                  v-model="genericForm[field.key]"
+                  :options="genericUserGroupOptions"
+                  :label="field.label"
+                  outlined dense emit-value map-options clearable
+                />
                 <q-toggle v-else-if="field.type === 'toggle'" v-model="genericForm[field.key]" :label="field.label" />
               </div>
             </template>
@@ -838,6 +861,8 @@ const extraFields = ref<any[]>([]);
 const currentEndpoint = ref("");
 const genericAgentOptions = ref<{ label: string; value: string }[]>([]);
 const genericSiteOptions = ref<{ label: string; value: number }[]>([]);
+const genericUserOptions = ref<{ label: string; value: number }[]>([]);
+const genericUserGroupOptions = ref<{ label: string; value: number }[]>([]);
 
 function vulnSevColor(sev: string) { return { critical: "negative", high: "deep-orange", medium: "warning", low: "info", info: "grey" }[sev] ?? "grey"; }
 function logLevelColor(level: string) { return { critical: "negative", error: "negative", warning: "warning", information: "info", verbose: "grey" }[level] ?? "grey"; }
@@ -901,6 +926,8 @@ const wslColumns = [
   { name: "name", label: "Name", field: "name", align: "left" },
   { name: "wsl_enabled", label: "WSL", field: "wsl_enabled", align: "center" },
   { name: "scope", label: "Scope", field: "scope", align: "center" },
+  { name: "target", label: "Target", field: wslTargetLabel, align: "left" },
+  { name: "limits", label: "Limits", field: wslLimitsLabel, align: "left" },
   { name: "actions", label: "", field: "actions", align: "right" },
 ];
 const wdacColumns = [
@@ -975,7 +1002,10 @@ async function loadAutopilot() {
 }
 async function loadWSL() {
   loadingWSL.value = true;
-  try { wslPolicies.value = (await axios.get("/winadvanced/wsl/")).data; }
+  try {
+    await loadGenericTargetOptions();
+    wslPolicies.value = (await axios.get("/winadvanced/wsl/")).data;
+  }
   finally { loadingWSL.value = false; }
 }
 async function loadWindowsHello() {
@@ -1007,7 +1037,12 @@ function openDialog(title: string, endpoint: string, item: any | null, form: any
   editingGeneric.value = item;
   genericForm.value = item ? { ...item } : { ...form };
   extraFields.value = fields;
-  if (fields.some((field) => field.type === "agent-select" || field.type === "site-select")) {
+  if (currentEndpoint.value.includes("wsl")) {
+    genericForm.value.allowed_distros_text = Array.isArray(genericForm.value.allowed_distros)
+      ? genericForm.value.allowed_distros.join("\n")
+      : String(genericForm.value.allowed_distros || "");
+  }
+  if (fields.some((field) => ["agent-select", "site-select", "user-select", "user-group-select"].includes(field.type))) {
     loadGenericTargetOptions();
   }
   genericDialogOpen.value = true;
@@ -1022,12 +1057,16 @@ function handleGenericFieldUpdate(key: string) {
   if (key !== "scope") return;
   if (genericForm.value.scope !== "device") genericForm.value.target_agent_id = "";
   if (genericForm.value.scope !== "device_group") genericForm.value.target_device_group_id = null;
+  if (genericForm.value.scope !== "user") genericForm.value.target_user_id = null;
+  if (genericForm.value.scope !== "user_group") genericForm.value.target_user_group_id = null;
 }
 
 async function loadGenericTargetOptions() {
-  const [agentsResp, sitesResp] = await Promise.allSettled([
+  const [agentsResp, sitesResp, usersResp, userGroupsResp] = await Promise.allSettled([
     axios.get("/agents/", { params: { detail: "false" } }),
     axios.get("/clients/sites/?leaf=true"),
+    axios.get("/accounts/users/"),
+    axios.get("/accounts/user-groups/"),
   ]);
   if (agentsResp.status === "fulfilled") {
     const list = Array.isArray(agentsResp.value.data) ? agentsResp.value.data : (agentsResp.value.data?.results ?? []);
@@ -1045,6 +1084,24 @@ async function loadGenericTargetOptions() {
       .map((site: any) => ({
         value: site.id,
         label: site.ancestors ? `${site.ancestors} / ${site.name}` : site.name || `Device group #${site.id}`,
+      }));
+  }
+  if (usersResp.status === "fulfilled") {
+    const list = Array.isArray(usersResp.value.data) ? usersResp.value.data : (usersResp.value.data?.results ?? []);
+    genericUserOptions.value = list
+      .filter((user: any) => user?.id !== undefined && user?.id !== null)
+      .map((user: any) => ({
+        value: user.id,
+        label: user.display_name || user.name || user.username || user.email || `User #${user.id}`,
+      }));
+  }
+  if (userGroupsResp.status === "fulfilled") {
+    const list = Array.isArray(userGroupsResp.value.data) ? userGroupsResp.value.data : (userGroupsResp.value.data?.results ?? []);
+    genericUserGroupOptions.value = list
+      .filter((group: any) => group?.id !== undefined && group?.id !== null)
+      .map((group: any) => ({
+        value: group.id,
+        label: group.display_name || group.name || group.sam_account_name || `User group #${group.id}`,
       }));
   }
 }
@@ -1083,9 +1140,34 @@ async function saveGeneric() {
       delete payload.log_names_csv;
       delete payload.levels_csv;
     }
+    if (currentEndpoint.value.includes("wsl")) {
+      payload.allowed_distros = String(payload.allowed_distros_text || "")
+        .split(/[\n,]+/)
+        .map((item: string) => item.trim())
+        .filter(Boolean);
+      delete payload.allowed_distros_text;
+    }
     if (Object.prototype.hasOwnProperty.call(payload, "scope")) {
       if (payload.scope !== "device") payload.target_agent_id = "";
       if (payload.scope !== "device_group") payload.target_device_group_id = null;
+      if (payload.scope !== "user") payload.target_user_id = null;
+      if (payload.scope !== "user_group") payload.target_user_group_id = null;
+      if (payload.scope === "device" && !payload.target_agent_id) {
+        $q.notify({ message: "Select a target device.", color: "negative", icon: "error" });
+        return;
+      }
+      if (payload.scope === "device_group" && !payload.target_device_group_id) {
+        $q.notify({ message: "Select a target device group.", color: "negative", icon: "error" });
+        return;
+      }
+      if (payload.scope === "user" && !payload.target_user_id) {
+        $q.notify({ message: "Select a target user.", color: "negative", icon: "error" });
+        return;
+      }
+      if (payload.scope === "user_group" && !payload.target_user_group_id) {
+        $q.notify({ message: "Select a target user group.", color: "negative", icon: "error" });
+        return;
+      }
     }
     if (editingGeneric.value) {
       await axios.put(`${currentEndpoint.value}${editingGeneric.value.id}/`, payload);
@@ -1183,10 +1265,69 @@ function showAutopilotDialog(item?: any) {
 }
 function showWSLDialog(item?: any) {
   openDialog(item ? "Edit WSL Policy" : "New WSL Policy", "/winadvanced/wsl/", item || null,
-    { name: "", enabled: true, wsl_enabled: true },
-    [{ key: "wsl_enabled", label: "WSL Enabled", type: "toggle" }]
+    {
+      name: "",
+      enabled: true,
+      wsl_enabled: true,
+      allowed_distros: [],
+      allowed_distros_text: "",
+      max_memory_mb: null,
+      max_cpu_count: null,
+      network_access: true,
+      monitor_activity: true,
+      scope: "global",
+      target_agent_id: "",
+      target_device_group_id: null,
+      target_user_id: null,
+      target_user_group_id: null,
+    },
+    [
+      { key: "wsl_enabled", label: "WSL Enabled", type: "toggle" },
+      { key: "allowed_distros_text", label: "Allowed distributions (one per line; empty = any)", type: "textarea" },
+      { key: "max_memory_mb", label: "Max memory MB (.wslconfig)", type: "number" },
+      { key: "max_cpu_count", label: "Max CPU count (.wslconfig)", type: "number" },
+      { key: "network_access", label: "Allow WSL network access", type: "toggle" },
+      { key: "monitor_activity", label: "Monitor WSL activity", type: "toggle" },
+      { key: "scope", label: "Scope", type: "select", options: [
+        { label: "Global", value: "global" },
+        { label: "Specific Device", value: "device" },
+        { label: "Device Group", value: "device_group" },
+        { label: "Specific User", value: "user" },
+        { label: "User Group", value: "user_group" },
+      ]},
+      { key: "target_agent_id", label: "Target device", type: "agent-select", showWhen: { key: "scope", value: "device" } },
+      { key: "target_device_group_id", label: "Target device group", type: "site-select", showWhen: { key: "scope", value: "device_group" } },
+      { key: "target_user_id", label: "Target user", type: "user-select", showWhen: { key: "scope", value: "user" } },
+      { key: "target_user_group_id", label: "Target user group", type: "user-group-select", showWhen: { key: "scope", value: "user_group" } },
+    ]
   );
 }
+
+function wslTargetLabel(row: any) {
+  if (row.scope === "device") {
+    return genericAgentOptions.value.find((option) => option.value === row.target_agent_id)?.label || row.target_agent_id || "No device";
+  }
+  if (row.scope === "device_group") {
+    return genericSiteOptions.value.find((option) => option.value === row.target_device_group_id)?.label || `Device group #${row.target_device_group_id || "-"}`;
+  }
+  if (row.scope === "user") {
+    return genericUserOptions.value.find((option) => option.value === row.target_user_id)?.label || `User #${row.target_user_id || "-"}`;
+  }
+  if (row.scope === "user_group") {
+    return genericUserGroupOptions.value.find((option) => option.value === row.target_user_group_id)?.label || `User group #${row.target_user_group_id || "-"}`;
+  }
+  return "All matching Windows devices";
+}
+
+function wslLimitsLabel(row: any) {
+  const parts: string[] = [];
+  if (row.max_memory_mb) parts.push(`${row.max_memory_mb} MB`);
+  if (row.max_cpu_count) parts.push(`${row.max_cpu_count} CPU`);
+  parts.push(row.network_access ? "network on" : "network off");
+  if (Array.isArray(row.allowed_distros) && row.allowed_distros.length) parts.push(`distros: ${row.allowed_distros.join(", ")}`);
+  return parts.join(" | ");
+}
+
 function showWindowsHelloDialog(item?: any) {
   openDialog(item ? "Edit Windows Hello Policy" : "New Windows Hello Policy", "/winadvanced/windows-hello/", item || null,
     {
@@ -1472,6 +1613,58 @@ async function runWSLDistroAction(action: "deploy" | "update") {
       } finally {
         wslDistroBusy.value = false;
       }
+    }
+  );
+}
+
+async function deployWSLPolicy(policy: any) {
+  await openAgentPicker(
+    `Apply WSL Policy — ${policy.name}`,
+    "Select devices. Leave all unchecked to use the policy scope.",
+    async (ids: string[]) => {
+      const resp = await axios.post(`/winadvanced/wsl/${policy.id}/deploy/`, {
+        agent_ids: ids,
+        wait: true,
+        timeout: 180,
+      });
+      const results = resp.data?.results || [];
+      const errors = results.filter((r: any) => r.error || (typeof r.result === "string" && r.result !== "ok"));
+      $q.notify({
+        message: `WSL policy applied to ${resp.data.agents_triggered ?? results.length ?? 0} device(s)${errors.length ? `, ${errors.length} warning(s)` : ""}`,
+        color: errors.length ? "warning" : "positive",
+        icon: errors.length ? "warning" : "terminal",
+      });
+    }
+  );
+}
+
+async function probeWSL(probe: "status" | "activity") {
+  await openAgentPicker(
+    probe === "status" ? "Check WSL Status" : "Collect WSL Activity",
+    "Select one or more Windows devices.",
+    async (ids: string[]) => {
+      const targets = ids.length > 0 ? ids : agentPickerList.value.map((a) => a.value);
+      if (targets.length === 0) {
+        $q.notify({ message: "No Windows devices selected.", color: "warning", icon: "warning" });
+        return;
+      }
+      const results = await Promise.all(targets.map((agentId) =>
+        axios.get(`/winadvanced/wsl/${agentId}/${probe}/`, { params: { timeout: 60 } })
+          .then((resp) => ({ agentId, ok: true, result: resp.data?.result }))
+          .catch((err) => ({ agentId, ok: false, result: err?.response?.data || err?.message }))
+      ));
+      const lines = results.map((row) => {
+        if (!row.ok) return `${row.agentId}: error`;
+        if (probe === "activity") return `${row.agentId}: ${(row.result?.count ?? 0)} event(s)`;
+        const distros = Array.isArray(row.result?.distros) ? row.result.distros.join(", ") : "none";
+        return `${row.agentId}: WSL ${row.result?.wsl_enabled ? "enabled" : "disabled"}, distros: ${distros}`;
+      });
+      $q.dialog({
+        title: probe === "status" ? "WSL status" : "WSL activity",
+        message: lines.join("<br>"),
+        html: true,
+        ok: "Close",
+      });
     }
   );
 }
