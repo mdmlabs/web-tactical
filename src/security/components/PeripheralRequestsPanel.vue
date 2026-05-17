@@ -246,6 +246,36 @@
               />
             </div>
           </div>
+          <q-select
+            v-if="schedForm.scope === 'device_group'"
+            v-model="schedForm.target_device_group_id"
+            :options="siteOptions"
+            label="Target device group"
+            outlined
+            dense
+            emit-value
+            map-options
+          />
+          <q-select
+            v-if="schedForm.scope === 'user'"
+            v-model="schedForm.target_user_id"
+            :options="userOptions"
+            label="Target user"
+            outlined
+            dense
+            emit-value
+            map-options
+          />
+          <q-select
+            v-if="schedForm.scope === 'user_group'"
+            v-model="schedForm.target_user_group_id"
+            :options="userGroupOptions"
+            label="Target user group"
+            outlined
+            dense
+            emit-value
+            map-options
+          />
           <div class="row q-col-gutter-sm">
             <div class="col-6">
               <q-select
@@ -289,6 +319,141 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <div class="row items-center q-mt-lg q-mb-sm">
+      <div class="text-subtitle2">Application privacy policies</div>
+      <q-space />
+      <q-btn flat dense color="primary" icon="add" label="New policy" @click="showPrivacyDialog()" />
+    </div>
+    <q-table
+      :rows="appPrivacyPolicies"
+      :columns="privacyColumns"
+      dense
+      row-key="id"
+      :rows-per-page-options="[5, 10, 25]"
+    >
+      <template v-slot:body-cell-defaults="props">
+        <q-td :props="props">
+          <q-chip dense color="blue-grey" text-color="white" size="sm">Mic: {{ props.row.global_mic_default }}</q-chip>
+          <q-chip dense color="blue-grey" text-color="white" size="sm">Camera: {{ props.row.global_cam_default }}</q-chip>
+        </q-td>
+      </template>
+      <template v-slot:body-cell-scope="props">
+        <q-td :props="props">{{ displayScope(props.row) }}</q-td>
+      </template>
+      <template v-slot:body-cell-enabled="props">
+        <q-td :props="props">
+          <q-chip dense :color="props.value ? 'positive' : 'grey'" text-color="white">
+            {{ props.value ? "Active" : "Disabled" }}
+          </q-chip>
+        </q-td>
+      </template>
+      <template v-slot:body-cell-actions="props">
+        <q-td :props="props">
+          <q-btn flat dense round icon="edit" @click="showPrivacyDialog(props.row)" />
+          <q-btn flat dense round icon="delete" color="negative" @click="deletePrivacyPolicy(props.row.id)" />
+        </q-td>
+      </template>
+    </q-table>
+
+    <q-dialog v-model="privacyDialogOpen" persistent>
+      <q-card style="min-width: 720px">
+        <q-bar>
+          {{ editingPrivacy ? "Edit" : "New" }} application privacy policy
+          <q-space />
+          <q-btn dense flat icon="close" v-close-popup />
+        </q-bar>
+        <q-card-section class="q-gutter-md">
+          <q-input v-model="privacyForm.name" label="Name" outlined dense />
+          <div class="row q-col-gutter-sm">
+            <div class="col-12 col-md-6">
+              <q-select
+                v-model="privacyForm.global_mic_default"
+                :options="privacyDefaultOptions"
+                label="Default microphone access"
+                outlined
+                dense
+                emit-value
+                map-options
+              />
+            </div>
+            <div class="col-12 col-md-6">
+              <q-select
+                v-model="privacyForm.global_cam_default"
+                :options="privacyDefaultOptions"
+                label="Default camera access"
+                outlined
+                dense
+                emit-value
+                map-options
+              />
+            </div>
+          </div>
+          <q-select
+            v-model="privacyForm.scope"
+            :options="scopeOptions"
+            label="Scope"
+            outlined
+            dense
+            emit-value
+            map-options
+          />
+          <q-select
+            v-if="privacyForm.scope === 'device'"
+            v-model="privacyForm.target_agent_id"
+            :options="agentOptions"
+            label="Target device"
+            outlined
+            dense
+            emit-value
+            map-options
+          />
+          <q-select
+            v-if="privacyForm.scope === 'device_group'"
+            v-model="privacyForm.target_device_group_id"
+            :options="siteOptions"
+            label="Target device group"
+            outlined
+            dense
+            emit-value
+            map-options
+          />
+          <q-select
+            v-if="privacyForm.scope === 'user'"
+            v-model="privacyForm.target_user_id"
+            :options="userOptions"
+            label="Target user"
+            outlined
+            dense
+            emit-value
+            map-options
+          />
+          <q-select
+            v-if="privacyForm.scope === 'user_group'"
+            v-model="privacyForm.target_user_group_id"
+            :options="userGroupOptions"
+            label="Target user group"
+            outlined
+            dense
+            emit-value
+            map-options
+          />
+          <q-input
+            v-model="privacyAppPoliciesText"
+            label="Per-app rules JSON"
+            outlined
+            dense
+            type="textarea"
+            rows="8"
+          />
+          <q-toggle v-model="privacyForm.enabled" label="Enabled" />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn color="primary" :label="editingPrivacy ? 'Save' : 'Create'" @click="savePrivacyPolicy" :loading="savingPrivacy" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
@@ -300,10 +465,18 @@ import axios from "axios";
 const $q = useQuasar();
 const requests = ref<any[]>([]);
 const schedules = ref<any[]>([]);
+const appPrivacyPolicies = ref<any[]>([]);
 const agentOptions = ref<{ label: string; value: string }[]>([]);
+const siteOptions = ref<{ label: string; value: number }[]>([]);
+const userOptions = ref<{ label: string; value: number }[]>([]);
+const userGroupOptions = ref<{ label: string; value: number }[]>([]);
 const scheduleDialogOpen = ref(false);
+const privacyDialogOpen = ref(false);
+const editingPrivacy = ref<any>(null);
 const savingSched = ref(false);
+const savingPrivacy = ref(false);
 const sendingAction = ref(false);
+const privacyAppPoliciesText = ref("[]");
 
 const globals = ref<any>({
   camera_global_disabled: false,
@@ -350,8 +523,17 @@ const actionOptions = [
 const scopeOptions = [
   { label: "All devices", value: "global" },
   { label: "Specific device", value: "device" },
+  { label: "Device group", value: "device_group" },
+  { label: "User", value: "user" },
+  { label: "User group", value: "user_group" },
+];
+const privacyDefaultOptions = [
+  { label: "User controlled", value: "user_controlled" },
+  { label: "Force allow", value: "allow" },
+  { label: "Force deny", value: "deny" },
 ];
 const schedForm = ref<any>(defaultScheduleForm());
+const privacyForm = ref<any>(defaultPrivacyForm());
 
 const pendingRequests = computed(() => requests.value.filter((r) => r.status === "pending"));
 const pendingCount = computed(() => pendingRequests.value.length);
@@ -365,9 +547,41 @@ function defaultScheduleForm() {
     disabled_hours_end: 18,
     scope: "global",
     target_agent_id: "",
+    target_device_group_id: null,
+    target_user_id: null,
+    target_user_group_id: null,
     enabled: true,
   };
 }
+
+function defaultPrivacyForm() {
+  return {
+    name: "",
+    enabled: true,
+    global_mic_default: "user_controlled",
+    global_cam_default: "user_controlled",
+    app_policies: [],
+    scope: "global",
+    target_agent_id: "",
+    target_device_group_id: null,
+    target_user_id: null,
+    target_user_group_id: null,
+  };
+}
+
+const privacyColumns = [
+  { name: "name", label: "Name", field: "name", align: "left" as const, sortable: true },
+  { name: "defaults", label: "Defaults", field: "defaults", align: "left" as const },
+  { name: "scope", label: "Scope", field: "scope", align: "left" as const },
+  {
+    name: "rules",
+    label: "App rules",
+    field: (row: any) => (Array.isArray(row.app_policies) ? row.app_policies.length : 0),
+    align: "center" as const,
+  },
+  { name: "enabled", label: "Status", field: "enabled", align: "center" as const },
+  { name: "actions", label: "", field: "actions", align: "right" as const },
+];
 
 function scheduleIcon(t: string) {
   return { camera: "videocam", mic: "mic", usb: "usb" }[t] ?? "device_unknown";
@@ -381,8 +595,16 @@ function displayAgent(agentId: string) {
   return agentOptions.value.find((a) => a.value === agentId)?.label || agentId;
 }
 
+function optionLabel(options: { label: string; value: any }[], value: any, fallback: string) {
+  return options.find((option) => String(option.value) === String(value))?.label || fallback;
+}
+
 function displayScope(row: any) {
-  return row.scope === "device" ? displayAgent(row.target_agent_id) : "All devices";
+  if (row.scope === "device") return displayAgent(row.target_agent_id);
+  if (row.scope === "device_group") return optionLabel(siteOptions.value, row.target_device_group_id, `Device group #${row.target_device_group_id || "-"}`);
+  if (row.scope === "user") return optionLabel(userOptions.value, row.target_user_id, `User #${row.target_user_id || "-"}`);
+  if (row.scope === "user_group") return optionLabel(userGroupOptions.value, row.target_user_group_id, `User group #${row.target_user_group_id || "-"}`);
+  return "All devices";
 }
 
 function displayDays(days: number[] | null | undefined) {
@@ -390,18 +612,51 @@ function displayDays(days: number[] | null | undefined) {
   return dayOptions.filter((d) => days.includes(d.value)).map((d) => d.label).join(", ");
 }
 
-async function loadAgents() {
+async function loadOptions() {
   try {
-    const response = await axios.get("/agents/", { params: { detail: "false" } });
-    const list = Array.isArray(response.data) ? response.data : response.data?.agents ?? [];
+    const [agentsResp, sitesResp, usersResp, groupsResp] = await Promise.allSettled([
+      axios.get("/agents/", { params: { detail: "false" } }),
+      axios.get("/clients/sites/?leaf=true"),
+      axios.get("/accounts/users/"),
+      axios.get("/accounts/user-groups/"),
+    ]);
+    const agents = agentsResp.status === "fulfilled" ? agentsResp.value.data : [];
+    const list = Array.isArray(agents) ? agents : agents?.agents ?? agents?.results ?? [];
     agentOptions.value = list
       .filter((agent: any) => agent?.agent_id)
       .map((agent: any) => ({
         label: `${agent.hostname || agent.agent_id} (${agent.agent_id})`,
         value: agent.agent_id,
       }));
+    const sites = sitesResp.status === "fulfilled" ? sitesResp.value.data : [];
+    const siteList = Array.isArray(sites) ? sites : sites?.results ?? [];
+    siteOptions.value = siteList
+      .filter((site: any) => site?.id !== undefined && site?.id !== null)
+      .map((site: any) => ({
+        label: site.ancestors ? `${site.ancestors} / ${site.name}` : site.name || `Device group #${site.id}`,
+        value: site.id,
+      }));
+    const users = usersResp.status === "fulfilled" ? usersResp.value.data : [];
+    const userList = Array.isArray(users) ? users : users?.results ?? [];
+    userOptions.value = userList
+      .filter((user: any) => user?.id !== undefined && user?.id !== null)
+      .map((user: any) => ({
+        label: user.display_name || user.full_name || user.username || user.sam_account_name || user.email || `User #${user.id}`,
+        value: user.id,
+      }));
+    const groups = groupsResp.status === "fulfilled" ? groupsResp.value.data : [];
+    const groupList = Array.isArray(groups) ? groups : groups?.results ?? [];
+    userGroupOptions.value = groupList
+      .filter((group: any) => group?.id !== undefined && group?.id !== null)
+      .map((group: any) => ({
+        label: group.display_name || group.name || group.sam_account_name || `User group #${group.id}`,
+        value: group.id,
+      }));
   } catch {
     agentOptions.value = [];
+    siteOptions.value = [];
+    userOptions.value = [];
+    userGroupOptions.value = [];
   }
 }
 
@@ -426,9 +681,10 @@ async function saveGlobals() {
 }
 
 async function load() {
-  await Promise.all([loadAgents(), loadGlobals()]);
+  await Promise.all([loadOptions(), loadGlobals()]);
   try { requests.value = (await axios.get("/security/peripheral-requests/")).data || []; } catch {}
   try { schedules.value = (await axios.get("/security/peripheral-schedules/")).data || []; } catch {}
+  try { appPrivacyPolicies.value = (await axios.get("/appmanagement/app-privacy-policies/")).data || []; } catch {}
 }
 
 async function sendAction() {
@@ -459,11 +715,35 @@ function showScheduleDialog() {
   scheduleDialogOpen.value = true;
 }
 
+function normalizeScopedPayload(form: any) {
+  const payload = { ...form };
+  if (payload.scope !== "device") payload.target_agent_id = "";
+  if (payload.scope !== "device_group") payload.target_device_group_id = null;
+  if (payload.scope !== "user") payload.target_user_id = null;
+  if (payload.scope !== "user_group") payload.target_user_group_id = null;
+  for (const key of ["target_device_group_id", "target_user_id", "target_user_group_id"]) {
+    if (payload[key] === "" || payload[key] === undefined) payload[key] = null;
+  }
+  return payload;
+}
+
+function validateScopedTarget(form: any) {
+  if (form.scope === "device" && !form.target_agent_id) return "Select a target device";
+  if (form.scope === "device_group" && !form.target_device_group_id) return "Select a target device group";
+  if (form.scope === "user" && !form.target_user_id) return "Select a target user";
+  if (form.scope === "user_group" && !form.target_user_group_id) return "Select a target user group";
+  return "";
+}
+
 async function createSchedule() {
+  const error = validateScopedTarget(schedForm.value);
+  if (error) {
+    $q.notify({ message: error, color: "warning" });
+    return;
+  }
   savingSched.value = true;
   try {
-    const payload = { ...schedForm.value };
-    if (payload.scope !== "device") payload.target_agent_id = "";
+    const payload = normalizeScopedPayload(schedForm.value);
     await axios.post("/security/peripheral-schedules/", payload);
     scheduleDialogOpen.value = false;
     $q.notify({ message: "Schedule created", color: "positive", icon: "check" });
@@ -474,6 +754,50 @@ async function createSchedule() {
 async function deleteSchedule(id: number) {
   await axios.delete(`/security/peripheral-schedules/${id}/`);
   await load();
+}
+
+function showPrivacyDialog(row?: any) {
+  editingPrivacy.value = row || null;
+  privacyForm.value = row ? { ...defaultPrivacyForm(), ...row } : defaultPrivacyForm();
+  privacyAppPoliciesText.value = JSON.stringify(privacyForm.value.app_policies || [], null, 2);
+  privacyDialogOpen.value = true;
+}
+
+async function savePrivacyPolicy() {
+  const error = validateScopedTarget(privacyForm.value);
+  if (error) {
+    $q.notify({ message: error, color: "warning" });
+    return;
+  }
+  let appPolicies: any[] = [];
+  try {
+    const parsed = JSON.parse(privacyAppPoliciesText.value || "[]");
+    appPolicies = Array.isArray(parsed) ? parsed : [];
+  } catch {
+    $q.notify({ message: "Per-app rules must be valid JSON array", color: "warning" });
+    return;
+  }
+  savingPrivacy.value = true;
+  try {
+    const payload = normalizeScopedPayload({ ...privacyForm.value, app_policies: appPolicies });
+    if (editingPrivacy.value?.id) {
+      await axios.put(`/appmanagement/app-privacy-policies/${editingPrivacy.value.id}/`, payload);
+    } else {
+      await axios.post("/appmanagement/app-privacy-policies/", payload);
+    }
+    privacyDialogOpen.value = false;
+    $q.notify({ message: "Application privacy policy saved", color: "positive", icon: "check" });
+    await load();
+  } finally {
+    savingPrivacy.value = false;
+  }
+}
+
+function deletePrivacyPolicy(id: number) {
+  $q.dialog({ title: "Delete application privacy policy?", cancel: true, ok: { color: "negative" } }).onOk(async () => {
+    await axios.delete(`/appmanagement/app-privacy-policies/${id}/`);
+    await load();
+  });
 }
 
 onMounted(load);
