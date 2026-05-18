@@ -1118,8 +1118,8 @@
               v-model="actionForm.blocked_targets"
               label="Organization resources to block"
               outlined dense type="textarea" rows="4"
-              placeholder="10.10.10.0/24&#10;172.16.1.50&#10;203.0.113.10"
-              hint="One IP or CIDR per line. Leave empty only when you intentionally want the legacy all-TCP block."
+              placeholder="10.10.10.0/24&#10;172.16.1.50&#10;grab.com&#10;https://www.grab.com/"
+              hint="One IP, CIDR, domain, or URL per line. Domains/URLs are resolved by the agent before firewall rules are applied."
             />
             <q-input
               v-model="actionForm.allow_targets"
