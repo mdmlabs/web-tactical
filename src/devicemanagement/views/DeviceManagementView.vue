@@ -49,6 +49,7 @@
               <q-item clickable v-close-popup @click="showActionDialog('reset_password')"><q-item-section>{{ $t('devicemanagement.views.DeviceManagementView.3fb75e') }}</q-item-section></q-item>
               <q-item clickable v-close-popup @click="showActionDialog('block_access')"><q-item-section>{{ $t('devicemanagement.views.DeviceManagementView.9ee317') }}</q-item-section></q-item>
               <q-item clickable v-close-popup @click="showActionDialog('allow_access')"><q-item-section>{{ $t('devicemanagement.views.DeviceManagementView.a8347d') }}</q-item-section></q-item>
+              <q-item clickable v-close-popup @click="showActionDialog('clear_policies')"><q-item-section>Clear policies and profiles</q-item-section></q-item>
               <q-item clickable v-close-popup @click="showActionDialog('geolockmode')"><q-item-section class="text-warning">Lost Mode + Geolocation</q-item-section></q-item>
               <q-item clickable v-close-popup @click="showActionDialog('remove_agent')"><q-item-section>{{ $t('devicemanagement.views.DeviceManagementView.193a6f') }}</q-item-section></q-item>
               <q-item clickable v-close-popup @click="showActionDialog('createrestorepoint')">
@@ -82,6 +83,10 @@
               <q-item clickable v-close-popup @click="bulkAction('allow_access')">
                 <q-item-section avatar><q-icon name="check_circle" /></q-item-section>
                 <q-item-section>{{ $t('devicemanagement.views.DeviceManagementView.a8347d') }}</q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="bulkAction('clear_policies')">
+                <q-item-section avatar><q-icon name="policy" /></q-item-section>
+                <q-item-section>Clear policies and profiles</q-item-section>
               </q-item>
               <q-item clickable v-close-popup @click="bulkAction('geolockmode')">
                 <q-item-section avatar><q-icon name="travel_explore" /></q-item-section>
@@ -1108,8 +1113,26 @@
             outlined dense type="textarea" rows="4"
             placeholder="D:\\CompanyVault&#10;C:\\Users\\%USERNAME%\\Company"
           />
+          <template v-if="currentActionType === 'block_access'">
+            <q-input
+              v-model="actionForm.blocked_targets"
+              label="Organization resources to block"
+              outlined dense type="textarea" rows="4"
+              placeholder="10.10.10.0/24&#10;172.16.1.50&#10;203.0.113.10"
+              hint="One IP or CIDR per line. Leave empty only when you intentionally want the legacy all-TCP block."
+            />
+            <q-input
+              v-model="actionForm.allow_targets"
+              label="Allowed exceptions"
+              outlined dense type="textarea" rows="2"
+              placeholder="Optional IP/CIDR exceptions"
+            />
+          </template>
           <div v-if="currentActionType === 'factory_reset'" class="text-negative text-weight-bold">
             {{ $t('devicemanagement.views.DeviceManagementView.b410c2') }}
+          </div>
+          <div v-if="currentActionType === 'clear_policies'" class="text-negative text-weight-bold">
+            This removes MDM-managed policies, profiles, cached policy data, USB/app privacy restrictions, WLAN/VPN profiles, and kiosk settings from the device.
           </div>
           <div v-if="currentActionType === 'geolockmode'" class="text-warning text-weight-bold">
             Device will be locked and asked to report geolocation for lost-mode tracking.
@@ -1605,7 +1628,7 @@ async function bulkAction(actionType: string) {
       cancel: true,
       ok: {
         label: "Confirm",
-        color: ["wipe_full", "wipe_selective", "factory_reset"].includes(actionType)
+        color: ["wipe_full", "wipe_selective", "factory_reset", "clear_policies"].includes(actionType)
           ? "negative"
           : "primary",
       },
@@ -1669,7 +1692,15 @@ const submittingAction = ref(false);
 const savingEncryption = ref(false);
 const editingEncryption = ref<any>(null);
 
-const actionForm = ref({ agent_id: "", reason: "", extra_paths: "" });
+const actionForm = ref({
+  agent_id: "",
+  reason: "",
+  extra_paths: "",
+  blocked_targets: "",
+  allow_targets: "",
+  lost_message: "",
+  lost_contact: "",
+});
 const encryptionForm = ref<any>({ name: "", encryption_type: "bitlocker", algorithm: "AES-256", encrypt_system_drive: true, encrypt_removable: false, escrow_keys: true, enabled: true });
 
 const actionTypeOptions = [
@@ -1678,6 +1709,7 @@ const actionTypeOptions = [
   { label: "Reset Password", value: "reset_password" }, { label: "Block Access", value: "block_access" },
   { label: "Allow Access", value: "allow_access" }, { label: "Remove Agent", value: "remove_agent" },
   { label: "Factory Reset", value: "factory_reset" },
+  { label: "Clear Policies", value: "clear_policies" },
   { label: "Lost Mode + Geolocation", value: "geolockmode" },
 ];
 const statusOptions = [
@@ -1742,10 +1774,10 @@ function actionTypeLabel(type: string) {
   return actionTypeOptions.find(o => o.value === type)?.label ?? type;
 }
 function actionTypeIcon(type: string) {
-  return { lock: "lock", unlock: "lock_open", wipe_full: "delete_forever", wipe_selective: "delete", reset_password: "password", block_access: "block", allow_access: "check_circle", remove_agent: "remove_circle", factory_reset: "restart_alt", geolockmode: "travel_explore" }[type] ?? "settings_remote";
+  return { lock: "lock", unlock: "lock_open", wipe_full: "delete_forever", wipe_selective: "delete", reset_password: "password", block_access: "block", allow_access: "check_circle", remove_agent: "remove_circle", factory_reset: "restart_alt", clear_policies: "policy", geolockmode: "travel_explore" }[type] ?? "settings_remote";
 }
 function actionSubmitColor(type: string) {
-  if (["wipe_full", "factory_reset"].includes(type)) return "negative";
+  if (["wipe_full", "factory_reset", "clear_policies"].includes(type)) return "negative";
   if (type === "geolockmode") return "warning";
   return "primary";
 }
@@ -2296,6 +2328,8 @@ function showActionDialog(type: string) {
     agent_id: "",
     reason: "",
     extra_paths: "",
+    blocked_targets: "",
+    allow_targets: "",
     lost_message: "This device is in Lost Mode. Please contact the organization.",
     lost_contact: "",
   };
@@ -2309,6 +2343,16 @@ async function submitAction() {
     const params: any = {};
     if (currentActionType.value === "wipe_selective") {
       params.extra_paths = actionForm.value.extra_paths
+        .split(/\r?\n|,/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+    if (currentActionType.value === "block_access") {
+      params.blocked_targets = actionForm.value.blocked_targets
+        .split(/\r?\n|,/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+      params.allow_targets = actionForm.value.allow_targets
         .split(/\r?\n|,/)
         .map((item) => item.trim())
         .filter(Boolean);

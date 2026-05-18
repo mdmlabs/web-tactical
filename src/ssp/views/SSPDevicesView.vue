@@ -489,6 +489,15 @@
                     <q-btn
                       color="negative"
                       outline
+                      icon="policy"
+                      label="Clear policies and profiles"
+                      class="full-width"
+                      :loading="actionSubmitting === 'clear_policies'"
+                      @click="runDeviceAction('clear_policies')"
+                    />
+                    <q-btn
+                      color="negative"
+                      outline
                       icon="delete_forever"
                       label="Full wipe"
                       class="full-width"
@@ -984,6 +993,7 @@ async function runDeviceAction(
     "wipe_selective",
     "wipe_full",
     "clear_org_data",
+    "clear_policies",
     "uninstall_agent",
   ].includes(actionType);
   $q.dialog({
