@@ -111,7 +111,7 @@ function renderDeviceLocations(L: any) {
         `Lon: ${lon.toFixed(6)}`,
         location.accuracy ? `Accuracy: +/- ${Number(location.accuracy).toFixed(0)} m` : "",
         location.recorded_at ? `Updated: ${new Date(location.recorded_at).toLocaleString()}` : "",
-        isInsideSelectedZone ? `<span style="color:#2E7D32"><b>Inside selected zone</b></span>` : "",
+        isInsideSelectedZone ? "<span style=\"color:#2E7D32\"><b>Inside selected zone</b></span>" : "",
       ].filter(Boolean).join("<br>")
     );
     markers.push(marker);

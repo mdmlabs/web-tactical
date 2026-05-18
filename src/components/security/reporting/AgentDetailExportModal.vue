@@ -145,7 +145,7 @@ async function onGenerate() {
     });
     notifySuccess(
       format.value === "pdf"
-        ? `Agent report exported`
+        ? "Agent report exported"
         : `Agent report exported (${rows.toLocaleString()} FIM rows)`,
     );
     open.value = false;

@@ -1598,7 +1598,7 @@ async function saveLevel() {
 function confirmDeleteLevel(level: any) {
   $q.dialog({
     title: `Delete "${level.name}"?`,
-    message: `This will permanently delete the compliance level and all its requirements. Devices assigned to this level will lose their compliance status.`,
+    message: "This will permanently delete the compliance level and all its requirements. Devices assigned to this level will lose their compliance status.",
     cancel: { label: "Cancel", flat: true },
     ok: { label: "Delete", color: "negative" },
     persistent: true,
