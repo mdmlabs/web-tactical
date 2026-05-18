@@ -1041,6 +1041,9 @@ function openDialog(title: string, endpoint: string, item: any | null, form: any
     genericForm.value.allowed_distros_text = Array.isArray(genericForm.value.allowed_distros)
       ? genericForm.value.allowed_distros.join("\n")
       : String(genericForm.value.allowed_distros || "");
+    genericForm.value.allowed_packages_text = Array.isArray(genericForm.value.allowed_packages)
+      ? genericForm.value.allowed_packages.join("\n")
+      : String(genericForm.value.allowed_packages || "");
   }
   if (fields.some((field) => ["agent-select", "site-select", "user-select", "user-group-select"].includes(field.type))) {
     loadGenericTargetOptions();
@@ -1145,7 +1148,12 @@ async function saveGeneric() {
         .split(/[\n,]+/)
         .map((item: string) => item.trim())
         .filter(Boolean);
+      payload.allowed_packages = String(payload.allowed_packages_text || "")
+        .split(/[\n,]+/)
+        .map((item: string) => item.trim())
+        .filter(Boolean);
       delete payload.allowed_distros_text;
+      delete payload.allowed_packages_text;
     }
     if (Object.prototype.hasOwnProperty.call(payload, "scope")) {
       if (payload.scope !== "device") payload.target_agent_id = "";
@@ -1275,6 +1283,13 @@ function showWSLDialog(item?: any) {
       max_cpu_count: null,
       network_access: true,
       monitor_activity: true,
+      cpu_alert_percent: 90,
+      memory_alert_mb: null,
+      package_monitoring_enabled: true,
+      allowed_packages: [],
+      allowed_packages_text: "",
+      block_unapproved_packages: false,
+      malware_auto_block: true,
       scope: "global",
       target_agent_id: "",
       target_device_group_id: null,
@@ -1288,6 +1303,12 @@ function showWSLDialog(item?: any) {
       { key: "max_cpu_count", label: "Max CPU count (.wslconfig)", type: "number" },
       { key: "network_access", label: "Allow WSL network access", type: "toggle" },
       { key: "monitor_activity", label: "Monitor WSL activity", type: "toggle" },
+      { key: "cpu_alert_percent", label: "CPU alert threshold %", type: "number", showWhen: { key: "monitor_activity", value: true } },
+      { key: "memory_alert_mb", label: "Memory alert threshold MB", type: "number", showWhen: { key: "monitor_activity", value: true } },
+      { key: "package_monitoring_enabled", label: "Monitor package installs", type: "toggle", showWhen: { key: "monitor_activity", value: true } },
+      { key: "allowed_packages_text", label: "Allowed packages (one per line; empty = any)", type: "textarea", showWhen: { key: "package_monitoring_enabled", value: true } },
+      { key: "block_unapproved_packages", label: "Block WSL when unapproved package is detected", type: "toggle", showWhen: { key: "package_monitoring_enabled", value: true } },
+      { key: "malware_auto_block", label: "Block WSL automatically on malware/trojan detection", type: "toggle", showWhen: { key: "monitor_activity", value: true } },
       { key: "scope", label: "Scope", type: "select", options: [
         { label: "Global", value: "global" },
         { label: "Specific Device", value: "device" },
@@ -1324,6 +1345,18 @@ function wslLimitsLabel(row: any) {
   if (row.max_memory_mb) parts.push(`${row.max_memory_mb} MB`);
   if (row.max_cpu_count) parts.push(`${row.max_cpu_count} CPU`);
   parts.push(row.network_access ? "network on" : "network off");
+  if (row.monitor_activity) {
+    const alerts: string[] = [];
+    if (row.cpu_alert_percent) alerts.push(`CPU ${row.cpu_alert_percent}%`);
+    if (row.memory_alert_mb) alerts.push(`RAM ${row.memory_alert_mb} MB`);
+    parts.push(alerts.length ? `monitor alerts: ${alerts.join(", ")}` : "monitor on");
+  }
+  if (row.package_monitoring_enabled) {
+    const pkgMode = row.block_unapproved_packages ? "package block" : "package monitor";
+    const allow = Array.isArray(row.allowed_packages) && row.allowed_packages.length ? `: ${row.allowed_packages.join(", ")}` : "";
+    parts.push(`${pkgMode}${allow}`);
+  }
+  if (row.malware_auto_block) parts.push("malware auto-block");
   if (Array.isArray(row.allowed_distros) && row.allowed_distros.length) parts.push(`distros: ${row.allowed_distros.join(", ")}`);
   return parts.join(" | ");
 }
@@ -1638,6 +1671,15 @@ async function deployWSLPolicy(policy: any) {
   );
 }
 
+function escapeHtml(value: string) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 async function probeWSL(probe: "status" | "activity") {
   await openAgentPicker(
     probe === "status" ? "Check WSL Status" : "Collect WSL Activity",
@@ -1654,10 +1696,23 @@ async function probeWSL(probe: "status" | "activity") {
           .catch((err) => ({ agentId, ok: false, result: err?.response?.data || err?.message }))
       ));
       const lines = results.map((row) => {
-        if (!row.ok) return `${row.agentId}: error`;
-        if (probe === "activity") return `${row.agentId}: ${(row.result?.count ?? 0)} event(s)`;
+        if (!row.ok) return `${escapeHtml(row.agentId)}: error`;
+        if (probe === "activity") {
+          const events = Array.isArray(row.result?.events) ? row.result.events.slice(0, 10) : [];
+          const details = events.map((event: any) => {
+            const severity = escapeHtml(event?.severity || "info");
+            const type = escapeHtml(event?.event_type || "event");
+            const msg = escapeHtml(event?.message || "");
+            const distro = event?.distro ? ` (${escapeHtml(event.distro)})` : "";
+            return `&nbsp;&nbsp;<span class="text-grey-7">[${severity}]</span> ${type}${distro}: ${msg}`;
+          });
+          return `${escapeHtml(row.agentId)}: ${(row.result?.count ?? 0)} event(s)${details.length ? `<br>${details.join("<br>")}` : ""}`;
+        }
         const distros = Array.isArray(row.result?.distros) ? row.result.distros.join(", ") : "none";
-        return `${row.agentId}: WSL ${row.result?.wsl_enabled ? "enabled" : "disabled"}, distros: ${distros}`;
+        const config = row.result?.wslconfig_text
+          ? `, .wslconfig: ${escapeHtml(String(row.result.wslconfig_text).replace(/\s+/g, " ").trim()).slice(0, 180)}`
+          : "";
+        return `${escapeHtml(row.agentId)}: WSL ${row.result?.wsl_enabled ? "enabled" : "disabled"}, distros: ${escapeHtml(distros)}${config}`;
       });
       $q.dialog({
         title: probe === "status" ? "WSL status" : "WSL activity",
