@@ -4,6 +4,7 @@
     :options="filteredOptions"
     option-label="label"
     option-value="value"
+    :multiple="isMultiple"
     use-input input-debounce="0"
     emit-value map-options
     @filter="onFilter"
@@ -29,7 +30,14 @@
             {{ scope.opt.subline }}
           </q-item-label>
         </q-item-section>
-        <q-item-section side v-if="scope.opt.value">
+        <q-item-section side v-if="scope.opt.value" class="row no-wrap items-center q-gutter-xs">
+          <q-checkbox
+            v-if="isMultiple"
+            dense
+            :model-value="scope.selected"
+            @click.stop
+            @update:model-value="scope.toggleOption(scope.opt)"
+          />
           <q-btn flat dense round icon="content_copy" size="xs"
                  @click.stop.prevent="copyId(scope.opt.value, scope.opt.hostname)"
                  :title="$t('devicemanagement.components.AgentPicker.4bd238')">
@@ -94,12 +102,19 @@ const emit = defineEmits<{ (e: "update:modelValue", v: string | string[] | null)
 
 const $q = useQuasar();
 
+const isMultiple = computed(() => !!props.multiple);
+
 const inner = computed({
   get: () => props.modelValue,
-  set: (v) => emit("update:modelValue", v),
+  set: (v) => {
+    if (isMultiple.value) {
+      const values = Array.isArray(v) ? v : (v ? [String(v)] : []);
+      emit("update:modelValue", values);
+      return;
+    }
+    emit("update:modelValue", v);
+  },
 });
-
-const isMultiple = computed(() => !!props.multiple);
 
 // Local filter — matches hostname, agent_id (full or short), and subline case-insensitively.
 const filterText = ref("");
