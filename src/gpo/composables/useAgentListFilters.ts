@@ -18,6 +18,16 @@ export function emptyAgentListFilters(): AgentListFilters {
   return { manufacturer: "", model: "", minimalOsVersion: "" };
 }
 
+export function trimFilterValue(value: string | null | undefined): string {
+  return (value ?? "").trim();
+}
+
+export function normalizeAgentListFilters(target: AgentListFilters): void {
+  target.manufacturer = trimFilterValue(target.manufacturer);
+  target.model = trimFilterValue(target.model);
+  target.minimalOsVersion = trimFilterValue(target.minimalOsVersion);
+}
+
 export function useAgentListFilters(options?: {
   onFiltersChange?: () => void | Promise<void>;
 }) {
@@ -30,27 +40,27 @@ export function useAgentListFilters(options?: {
 
   const hasActiveFilters = computed(
     () =>
-      !!filters.manufacturer.trim() ||
-      !!filters.model.trim() ||
-      !!filters.minimalOsVersion.trim(),
+      !!trimFilterValue(filters.manufacturer) ||
+      !!trimFilterValue(filters.model) ||
+      !!trimFilterValue(filters.minimalOsVersion),
   );
 
   const activeFiltersCount = computed(() => {
     let count = 0;
-    if (filters.manufacturer.trim()) count += 1;
-    if (filters.model.trim()) count += 1;
-    if (filters.minimalOsVersion.trim()) count += 1;
+    if (trimFilterValue(filters.manufacturer)) count += 1;
+    if (trimFilterValue(filters.model)) count += 1;
+    if (trimFilterValue(filters.minimalOsVersion)) count += 1;
     return count;
   });
 
   const minimalOsLabel = computed(() => {
-    const value = filters.minimalOsVersion.trim();
+    const value = trimFilterValue(filters.minimalOsVersion);
     if (!value) return "";
     return buildHumanOperatingSystemDisplay(value);
   });
 
   const modelOptionsForDraft = computed(() => {
-    const mfr = draft.manufacturer.trim();
+    const mfr = trimFilterValue(draft.manufacturer);
     if (!mfr) return [];
     const entry = manufacturerCatalog.value.find((m) => m.name === mfr);
     return (entry?.models ?? []).map((model) => ({ label: model, value: model }));
@@ -59,19 +69,21 @@ export function useAgentListFilters(options?: {
   watch(
     () => draft.manufacturer,
     (mfr) => {
+      const mfrTrimmed = trimFilterValue(mfr);
       const models =
-        manufacturerCatalog.value.find((m) => m.name === mfr.trim())?.models ??
+        manufacturerCatalog.value.find((m) => m.name === mfrTrimmed)?.models ??
         [];
-      if (draft.model && !models.includes(draft.model)) {
+      const model = trimFilterValue(draft.model);
+      if (model && !models.includes(model)) {
         draft.model = "";
       }
     },
   );
 
   function buildFilters(): ListAgentsFilters | undefined {
-    const manufacturer = filters.manufacturer.trim();
-    const model = filters.model.trim();
-    const minimalOsVersion = filters.minimalOsVersion.trim();
+    const manufacturer = trimFilterValue(filters.manufacturer);
+    const model = trimFilterValue(filters.model);
+    const minimalOsVersion = trimFilterValue(filters.minimalOsVersion);
     if (!manufacturer && !model && !minimalOsVersion) return undefined;
     return {
       manufacturer: manufacturer || undefined,
@@ -133,6 +145,7 @@ export function useAgentListFilters(options?: {
   }
 
   async function apply(): Promise<void> {
+    normalizeAgentListFilters(draft);
     Object.assign(filters, draft);
     showDialog.value = false;
     await options?.onFiltersChange?.();

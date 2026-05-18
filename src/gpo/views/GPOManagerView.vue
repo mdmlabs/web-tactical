@@ -101,6 +101,23 @@
                                   </div>
                                 </div>
                                 <div class="system-info-kv">
+                                  <div class="system-info-k">Kiosk mode</div>
+                                  <div class="system-info-v row items-center q-gutter-xs">
+                                    <q-spinner
+                                      v-if="kioskModeLoading"
+                                      color="primary"
+                                      size="1.2em"
+                                    />
+                                    <template v-else>
+                                      <q-badge
+                                        :color="kioskModeBadgeColor"
+                                        :label="kioskModeBadgeLabel"
+                                        rounded
+                                      />
+                                    </template>
+                                  </div>
+                                </div>
+                                <div class="system-info-kv">
                                   <div class="system-info-k">Last answer</div>
                                   <div class="system-info-v">
                                     {{
@@ -2299,6 +2316,17 @@ import GpoVhdAgentTab from "../components/GpoVhdAgentTab.vue";
 import WslUserDialog from "../components/WslUserDialog.vue";
 import OsVersionSelect from "@/components/ui/OsVersionSelect.vue";
 import { buildHumanOperatingSystemDisplay } from "../utils/supportedOsHumanLabel";
+import {
+  trimFilterValue,
+  normalizeAgentListFilters,
+  emptyAgentListFilters,
+  type AgentListFilterField,
+  type AgentListFilters,
+} from "@/gpo/composables/useAgentListFilters";
+import {
+  resolveKioskModeFromAssignments,
+  type KioskModeInfo,
+} from "@/gpo/utils/kioskModePolicy";
 import type {
   GPOPolicy,
   CreateGPOPolicyRequest,
@@ -2491,6 +2519,12 @@ const removeUserFromGroupGroupRow = ref<{
 const removeUserFromGroupSelectedUser = ref("");
 const appliedDialogAssignments = ref<Array<Record<string, unknown>>>([]);
 const appliedDialogEffective = ref<Array<Record<string, unknown>>>([]);
+const kioskModeInfo = ref<KioskModeInfo>({
+  status: "off",
+  assigned: false,
+  applied: false,
+});
+const kioskModeLoading = ref(false);
 const showAppliedPoliciesLoading = ref(false);
 const restorePoliciesLoading = ref(false);
 
@@ -2503,18 +2537,6 @@ const agentsError = ref(false);
 const gpoAgents = ref<Agent[]>([]);
 const agentSearch = ref("");
 
-type AgentListFilterField = "manufacturer" | "model" | "minimalOsVersion";
-
-interface AgentListFilters {
-  manufacturer: string;
-  model: string;
-  minimalOsVersion: string;
-}
-
-function emptyAgentListFilters(): AgentListFilters {
-  return { manufacturer: "", model: "", minimalOsVersion: "" };
-}
-
 const agentListFilters = reactive<AgentListFilters>(emptyAgentListFilters());
 const agentListFiltersDraft = reactive<AgentListFilters>(emptyAgentListFilters());
 const showAgentFilterDialog = ref(false);
@@ -2525,27 +2547,27 @@ const manufacturerFilterOptions = ref<Array<{ label: string; value: string }>>(
 );
 const hasActiveAgentFilters = computed(
   () =>
-    !!agentListFilters.manufacturer.trim() ||
-    !!agentListFilters.model.trim() ||
-    !!agentListFilters.minimalOsVersion.trim(),
+    !!trimFilterValue(agentListFilters.manufacturer) ||
+    !!trimFilterValue(agentListFilters.model) ||
+    !!trimFilterValue(agentListFilters.minimalOsVersion),
 );
 
 const activeAgentFiltersCount = computed(() => {
   let count = 0;
-  if (agentListFilters.manufacturer.trim()) count += 1;
-  if (agentListFilters.model.trim()) count += 1;
-  if (agentListFilters.minimalOsVersion.trim()) count += 1;
+  if (trimFilterValue(agentListFilters.manufacturer)) count += 1;
+  if (trimFilterValue(agentListFilters.model)) count += 1;
+  if (trimFilterValue(agentListFilters.minimalOsVersion)) count += 1;
   return count;
 });
 
 const agentListFiltersOsLabel = computed(() => {
-  const value = agentListFilters.minimalOsVersion.trim();
+  const value = trimFilterValue(agentListFilters.minimalOsVersion);
   if (!value) return "";
   return buildHumanOperatingSystemDisplay(value);
 });
 
 const modelFilterOptionsForDraft = computed(() => {
-  const mfr = agentListFiltersDraft.manufacturer.trim();
+  const mfr = trimFilterValue(agentListFiltersDraft.manufacturer);
   if (!mfr) return [];
   const entry = manufacturerCatalog.value.find((m) => m.name === mfr);
   return (entry?.models ?? []).map((model) => ({ label: model, value: model }));
@@ -2554,12 +2576,11 @@ const modelFilterOptionsForDraft = computed(() => {
 watch(
   () => agentListFiltersDraft.manufacturer,
   (mfr) => {
+    const mfrTrimmed = trimFilterValue(mfr);
     const models =
-      manufacturerCatalog.value.find((m) => m.name === mfr.trim())?.models ?? [];
-    if (
-      agentListFiltersDraft.model &&
-      !models.includes(agentListFiltersDraft.model)
-    ) {
+      manufacturerCatalog.value.find((m) => m.name === mfrTrimmed)?.models ?? [];
+    const model = trimFilterValue(agentListFiltersDraft.model);
+    if (model && !models.includes(model)) {
       agentListFiltersDraft.model = "";
     }
   },
@@ -2582,9 +2603,9 @@ const filteredAgentsList = computed<Agent[]>(() => {
 });
 
 function buildListAgentsFilters(): ListAgentsFilters | undefined {
-  const manufacturer = agentListFilters.manufacturer.trim();
-  const model = agentListFilters.model.trim();
-  const minimalOsVersion = agentListFilters.minimalOsVersion.trim();
+  const manufacturer = trimFilterValue(agentListFilters.manufacturer);
+  const model = trimFilterValue(agentListFilters.model);
+  const minimalOsVersion = trimFilterValue(agentListFilters.minimalOsVersion);
   if (!manufacturer && !model && !minimalOsVersion) return undefined;
   return {
     manufacturer: manufacturer || undefined,
@@ -2646,6 +2667,7 @@ function resetAgentFiltersDraft(): void {
 }
 
 async function applyAgentListFilters(): Promise<void> {
+  normalizeAgentListFilters(agentListFiltersDraft);
   Object.assign(agentListFilters, agentListFiltersDraft);
   showAgentFilterDialog.value = false;
   await loadAgents();
@@ -2969,6 +2991,13 @@ interface AgentDetails {
 
 const agentDetails = ref<AgentDetails | null>(null);
 
+const kioskModeBadgeColor = computed(() =>
+  kioskModeInfo.value.status === "on" ? "positive" : "negative",
+);
+const kioskModeBadgeLabel = computed(() =>
+  kioskModeInfo.value.status === "on" ? "On" : "Off",
+);
+
 const agentOsVersion = computed(() => {
   const details = agentDetails.value;
   return (
@@ -3165,6 +3194,7 @@ const selectAgent = async (
     loadUsersForAgent(agent.id);
     loadGroupsForAgent(agent.id);
     loadAgentDetails(agent.id);
+    void loadKioskModeStatus(agent.id);
   }
 };
 
@@ -3199,7 +3229,27 @@ const clearAgentSelection = () => {
   usersList.value = [];
   groupsList.value = [];
   agentDetails.value = null;
+  kioskModeInfo.value = { status: "off", assigned: false, applied: false };
+  kioskModeLoading.value = false;
 };
+
+async function loadKioskModeStatus(agentId: string): Promise<void> {
+  kioskModeLoading.value = true;
+  try {
+    const resp = await policyStateClient.getAssignmentsFor("agent", {
+      agentId,
+    });
+    const assignments = (resp.assignmentsList ?? []) as Array<
+      Record<string, unknown>
+    >;
+    kioskModeInfo.value = resolveKioskModeFromAssignments(assignments);
+  } catch (e) {
+    console.error("Load kiosk mode status failed:", e);
+    kioskModeInfo.value = { status: "off", assigned: false, applied: false };
+  } finally {
+    kioskModeLoading.value = false;
+  }
+}
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 // async function openPolicyDetails(policyHash: string) {
@@ -4113,6 +4163,10 @@ async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
     (effectiveResp["policies"] as unknown) ||
     []) as Array<Record<string, unknown>>;
 
+  kioskModeInfo.value = resolveKioskModeFromAssignments(
+    assignments as Array<Record<string, unknown>>,
+  );
+
   appliedDialogAssignments.value = await Promise.all(
     assignments.map(async (a, index) => {
       const policyHash = String(a["policyHash"] || "");
@@ -4242,6 +4296,8 @@ async function runRestoreAllPoliciesForAgent() {
     notifySuccess("All policies restored to default state");
     if (showAppliedPoliciesDialog.value) {
       await refreshAppliedPoliciesDialog();
+    } else if (selectedAgent.value?.id) {
+      await loadKioskModeStatus(selectedAgent.value.id);
     }
   } catch (e) {
     const msg = (e as { message?: string })?.message || String(e);
