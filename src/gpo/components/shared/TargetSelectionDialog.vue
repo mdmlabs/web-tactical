@@ -52,6 +52,20 @@
                   <q-spinner color="primary" size="1.5em" />
                 </div>
                 <template v-else-if="agentsPanelList.length > 0">
+                  <q-input
+                    v-if="selectedUngroupedAgents"
+                    v-model="agentPanelSearch"
+                    dense
+                    outlined
+                    clearable
+                    :debounce="200"
+                    placeholder="Search agents..."
+                    class="q-mb-sm"
+                  >
+                    <template #prepend>
+                      <q-icon name="search" />
+                    </template>
+                  </q-input>
                   <q-scroll-area style="height: min(360px, 50vh)" class="rounded-borders">
                     <template v-if="!selectedUngroupedAgents && agentsOthers.length > 0">
                       <div v-if="agentsInCategory.length > 0" class="q-px-sm q-pt-sm">
@@ -99,9 +113,14 @@
                         </q-list>
                       </div>
                     </template>
-                    <q-list v-else bordered separator dense>
+                    <q-list
+                      v-else-if="displayedAgentsPanelList.length > 0"
+                      bordered
+                      separator
+                      dense
+                    >
                       <q-item
-                        v-for="item in agentsPanelList"
+                        v-for="item in displayedAgentsPanelList"
                         :key="item.agentId"
                         v-ripple
                         clickable
@@ -118,6 +137,12 @@
                         </q-item-section>
                       </q-item>
                     </q-list>
+                    <div
+                      v-else
+                      class="text-grey-7 text-body2 q-pa-md text-center"
+                    >
+                      No agents match your search.
+                    </div>
                   </q-scroll-area>
                   <div v-if="!selectedUngroupedAgents" class="q-pt-xs">
                     <q-btn
@@ -212,7 +237,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { useTargetSelection } from "@/gpo/composables/useTargetSelection";
 import type { TargetRef } from "@/gpo/composables/useTargetSelection";
 
@@ -246,6 +271,8 @@ const {
   selectAgentInPanel,
 } = useTargetSelection();
 
+const agentPanelSearch = ref("");
+
 const agentsInCategory = computed(() =>
   agentsPanelList.value.filter((a) => agentsInCategoryIds.value.has(a.agentId)),
 );
@@ -253,11 +280,27 @@ const agentsOthers = computed(() =>
   agentsPanelList.value.filter((a) => !agentsInCategoryIds.value.has(a.agentId)),
 );
 
+const displayedAgentsPanelList = computed(() => {
+  if (!selectedUngroupedAgents.value) return agentsPanelList.value;
+  const q = (agentPanelSearch.value ?? "").trim().toLowerCase();
+  if (!q) return agentsPanelList.value;
+  return agentsPanelList.value.filter((a) => {
+    const label = (a.label ?? "").toLowerCase();
+    const agentId = (a.agentId ?? "").toLowerCase();
+    return label.includes(q) || agentId.includes(q);
+  });
+});
+
+watch(selectedUngroupedAgents, (isAllAgents) => {
+  if (!isAllAgents) agentPanelSearch.value = "";
+});
+
 const canApplyInDialog = computed(() =>
   props.agentsOnly ? selectedAgentInPanel.value != null : canApplyTarget.value,
 );
 
 function onShow() {
+  agentPanelSearch.value = "";
   onDialogShow();
   if (props.agentsOnly) {
     loadAllAgents();
