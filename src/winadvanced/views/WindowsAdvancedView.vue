@@ -1143,6 +1143,9 @@ function openDialog(title: string, endpoint: string, item: any | null, form: any
     genericForm.value.allowed_packages_text = Array.isArray(genericForm.value.allowed_packages)
       ? genericForm.value.allowed_packages.join("\n")
       : String(genericForm.value.allowed_packages || "");
+    genericForm.value.trusted_repositories_text = Array.isArray(genericForm.value.trusted_repositories)
+      ? genericForm.value.trusted_repositories.join("\n")
+      : String(genericForm.value.trusted_repositories || "");
   }
   if (fields.some((field) => ["agent-select", "site-select", "user-select", "user-group-select"].includes(field.type))) {
     loadGenericTargetOptions();
@@ -1251,8 +1254,13 @@ async function saveGeneric() {
         .split(/[\n,]+/)
         .map((item: string) => item.trim())
         .filter(Boolean);
+      payload.trusted_repositories = String(payload.trusted_repositories_text || "")
+        .split(/[\n,]+/)
+        .map((item: string) => item.trim())
+        .filter(Boolean);
       delete payload.allowed_distros_text;
       delete payload.allowed_packages_text;
+      delete payload.trusted_repositories_text;
     }
     if (Object.prototype.hasOwnProperty.call(payload, "scope")) {
       if (payload.scope !== "device") payload.target_agent_id = "";
@@ -1389,6 +1397,10 @@ function showWSLDialog(item?: any) {
       allowed_packages_text: "",
       block_unapproved_packages: false,
       malware_auto_block: true,
+      enforce_trusted_repositories: false,
+      trusted_repositories: [],
+      trusted_repositories_text: "",
+      scan_downloaded_packages: true,
       scope: "global",
       target_agent_id: "",
       target_device_group_id: null,
@@ -1407,6 +1419,9 @@ function showWSLDialog(item?: any) {
       { key: "package_monitoring_enabled", label: "Monitor package installs", type: "toggle", showWhen: { key: "monitor_activity", value: true } },
       { key: "allowed_packages_text", label: "Allowed packages (one per line; empty = any)", type: "textarea", showWhen: { key: "package_monitoring_enabled", value: true } },
       { key: "block_unapproved_packages", label: "Block WSL when unapproved package is detected", type: "toggle", showWhen: { key: "package_monitoring_enabled", value: true } },
+      { key: "enforce_trusted_repositories", label: "Enforce trusted repositories", type: "toggle", showWhen: { key: "package_monitoring_enabled", value: true } },
+      { key: "trusted_repositories_text", label: "Trusted repositories/domains (one per line; empty = any)", type: "textarea", showWhen: { key: "enforce_trusted_repositories", value: true } },
+      { key: "scan_downloaded_packages", label: "Scan downloaded package artifacts", type: "toggle", showWhen: { key: "package_monitoring_enabled", value: true } },
       { key: "malware_auto_block", label: "Block WSL automatically on malware/trojan detection", type: "toggle", showWhen: { key: "monitor_activity", value: true } },
       { key: "scope", label: "Scope", type: "select", options: [
         { label: "Global", value: "global" },
@@ -1455,6 +1470,11 @@ function wslLimitsLabel(row: any) {
     const allow = Array.isArray(row.allowed_packages) && row.allowed_packages.length ? `: ${row.allowed_packages.join(", ")}` : "";
     parts.push(`${pkgMode}${allow}`);
   }
+  if (row.enforce_trusted_repositories) {
+    const repos = Array.isArray(row.trusted_repositories) && row.trusted_repositories.length ? `: ${row.trusted_repositories.join(", ")}` : "";
+    parts.push(`trusted repos${repos}`);
+  }
+  if (row.scan_downloaded_packages) parts.push("package scan");
   if (row.malware_auto_block) parts.push("malware auto-block");
   if (Array.isArray(row.allowed_distros) && row.allowed_distros.length) parts.push(`distros: ${row.allowed_distros.join(", ")}`);
   return parts.join(" | ");
