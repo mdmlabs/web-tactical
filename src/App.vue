@@ -5,6 +5,16 @@
 <script>
 export default {
   name: "App",
+  mounted() {
+    const reloadKey = "mdm_login_redirect_reload_once";
+    if (
+      window.sessionStorage.getItem(reloadKey) === "1" &&
+      window.location.pathname !== "/login"
+    ) {
+      window.sessionStorage.removeItem(reloadKey);
+      window.setTimeout(() => window.location.reload(), 8000);
+    }
+  },
 };
 </script>
 

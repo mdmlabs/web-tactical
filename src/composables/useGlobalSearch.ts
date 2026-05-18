@@ -43,7 +43,7 @@ export function useGlobalSearch() {
     loading.value = true;
     try {
       const [agentsRes] = await Promise.allSettled([
-        axios.get(`/agents/?detail=false`),
+        axios.get("/agents/?detail=false"),
       ]);
 
       if (agentsRes.status === "fulfilled") {
