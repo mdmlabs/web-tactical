@@ -4936,6 +4936,20 @@ const forensicScopeOptions = [
   { label: "Specific device", value: "device" },
   { label: "Device group", value: "device_group" },
 ];
+const dumpCollectorsRequireMaxSize = new Set([
+  "crash_dumps",
+  "memory_dump",
+  "memory_lite",
+  "triage_bundle",
+]);
+
+function forensicDumpCollectorsNeedMaxSize(jobTypes: string[]) {
+  return jobTypes.some((jobType) => dumpCollectorsRequireMaxSize.has(jobType));
+}
+
+function hasPositiveForensicMaxSize(value: number | null) {
+  return Number(value || 0) > 0;
+}
 
 function defaultForensicWizardForm() {
   return {
@@ -5088,6 +5102,7 @@ const forensicPolicyColumns = [
 
 function _apiErrMessage(e: any, fallback: string) {
   const d = e?.response?.data;
+  if (typeof d === "string") return d;
   if (typeof d?.detail === "string") return d.detail;
   if (typeof d?.error === "string") return d.error;
   if (Array.isArray(d?.detail) && d.detail[0]) return String(d.detail[0]);
@@ -5459,6 +5474,16 @@ async function submitForensicJob() {
       $q.notify({ message: "Select at least one collector", color: "warning" });
       return;
     }
+    if (
+      forensicDumpCollectorsNeedMaxSize(forensicWizardForm.value.job_types) &&
+      !hasPositiveForensicMaxSize(forensicWizardForm.value.max_size_bytes)
+    ) {
+      $q.notify({
+        message: "Enter Max size bytes for crash or memory dump collectors",
+        color: "warning",
+      });
+      return;
+    }
     const payload = normalizeForensicPayload({ ...forensicWizardForm.value });
     await axios.post("/security/forensics/jobs/", payload);
     $q.notify({
@@ -5489,6 +5514,16 @@ async function submitForensicPolicy() {
   }
   if (!forensicPolicyForm.value.job_types.length) {
     $q.notify({ message: "Select at least one collector", color: "warning" });
+    return;
+  }
+  if (
+    forensicDumpCollectorsNeedMaxSize(forensicPolicyForm.value.job_types) &&
+    !hasPositiveForensicMaxSize(forensicPolicyForm.value.max_size_bytes)
+  ) {
+    $q.notify({
+      message: "Enter Max size bytes for crash or memory dump collectors",
+      color: "warning",
+    });
     return;
   }
   if (
