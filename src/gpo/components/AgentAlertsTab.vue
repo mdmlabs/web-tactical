@@ -54,10 +54,15 @@
 
         <template v-slot:body-cell-status="props">
           <q-td :props="props">
-            <q-badge
-              :color="statusColor(props.row.status)"
-              :label="statusLabel(props.row.status)"
-            />
+            <div class="column">
+              <q-badge
+                :color="statusColor(props.row.status)"
+                :label="statusLabel(props.row.status)"
+              />
+              <span v-if="takenByMap[props.row.id]" class="text-caption text-grey-7 q-mt-xs">
+                by {{ takenByMap[props.row.id] }}
+              </span>
+            </div>
           </q-td>
         </template>
 
@@ -142,14 +147,15 @@
                 dense
                 size="sm"
                 color="primary"
-                icon="done"
+                icon="front_hand"
+                label="Take"
                 :disable="
                   props.row.status !==
                   alertsClient.AlertStatus.ALERT_STATUS_OPEN
                 "
-                @click="ackAndReload(props.row.id)"
+                @click="takeAlert(props.row.id)"
               >
-                <q-tooltip>Acknowledge</q-tooltip>
+                <q-tooltip>Take alert (assign to me)</q-tooltip>
               </q-btn>
               <q-btn
                 flat
@@ -190,12 +196,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, ref, reactive, watch } from "vue";
 import type { QTableColumn } from "quasar";
 import { formatDate } from "@/utils/format";
 import { notifyError, notifySuccess } from "@/utils/notify";
 import { connectivityBytesToGuidString } from "@/utils/guid-bytes";
 import { alertsClient } from "../api/grpc-client";
+import { useAuthStore } from "@/stores/auth";
 
 const props = defineProps<{
   agentId?: string | null;
@@ -236,7 +243,7 @@ const statusOptions: Array<{ label: string; value: number | null }> = [
   { label: "All", value: null },
   { label: "Open", value: alertsClient.AlertStatus.ALERT_STATUS_OPEN },
   {
-    label: "Acknowledged",
+    label: "Taken",
     value: alertsClient.AlertStatus.ALERT_STATUS_ACKNOWLEDGED,
   },
   { label: "Resolved", value: alertsClient.AlertStatus.ALERT_STATUS_RESOLVED },
@@ -245,6 +252,10 @@ const statusOptions: Array<{ label: string; value: number | null }> = [
 
 const rows = ref<AlertRow[]>([]);
 const loadedForListKey = ref<string | null>(null);
+const authStore = useAuthStore();
+
+// Client-side tracking of who took each alert: alertId → username
+const takenByMap = reactive<Record<number, string>>({});
 
 const hasAlertScope = computed(() => {
   if (props.agentId) return true;
@@ -414,7 +425,7 @@ function statusLabel(status: number): string {
     case alertsClient.AlertStatus.ALERT_STATUS_OPEN:
       return "Open";
     case alertsClient.AlertStatus.ALERT_STATUS_ACKNOWLEDGED:
-      return "Acknowledged";
+      return "Taken";
     case alertsClient.AlertStatus.ALERT_STATUS_RESOLVED:
       return "Resolved";
     case alertsClient.AlertStatus.ALERT_STATUS_CLOSED:
@@ -565,13 +576,15 @@ async function reload() {
   }
 }
 
-async function ackAndReload(id: number) {
+async function takeAlert(id: number) {
   try {
     await alertsClient.acknowledgeAlert(id);
-    notifySuccess("Alert acknowledged");
+    const username = authStore.displayName || authStore.username || "Unknown";
+    takenByMap[id] = username;
+    notifySuccess("Alert taken by " + username);
     await reload();
   } catch (e) {
-    notifyError(e instanceof Error ? e.message : "Couldn't confirm alert");
+    notifyError(e instanceof Error ? e.message : "Couldn't take alert");
   }
 }
 

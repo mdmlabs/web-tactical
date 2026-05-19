@@ -64,7 +64,16 @@
             <q-icon name="search" color="primary" />
           </template>
         </q-input>
-        <export-table-btn :data="updates" :columns="columns" />
+        <q-btn-dropdown dense color="primary" icon-right="archive" no-caps label="Export">
+          <q-list dense>
+            <q-item clickable v-close-popup @click="exportWinUpdateHistory('csv')">
+              <q-item-section>Export CSV</q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="exportWinUpdateHistory('pdf')">
+              <q-item-section>Export PDF</q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
       </template>
 
       <template v-slot:loading>
@@ -199,9 +208,9 @@ import {
 } from "@/api/winupdates";
 import { notifySuccess } from "@/utils/notify";
 import { truncateText } from "@/utils/format";
+import { exportWinUpdates } from "@/utils/winUpdateExport";
 
 // ui imports
-import ExportTableBtn from "@/components/ui/ExportTableBtn.vue";
 import WinUpdateDialog from "@/components/ui/WinUpdateDialog.vue";
 
 // static data
@@ -248,7 +257,7 @@ const columns = [
 
 export default {
   name: "WindowsUpdates",
-  components: { ExportTableBtn },
+  components: {},
   setup() {
     // setup vuex
     const store = useStore();
@@ -317,6 +326,31 @@ export default {
       loading.value = false;
     }
 
+    const exporting = ref(false);
+
+    async function exportWinUpdateHistory(format) {
+      if (!updates.value.length) {
+        $q.notify({ message: "No data to export", color: "warning", icon: "warning" });
+        return;
+      }
+      exporting.value = true;
+      try {
+        const agentHostname = selectedAgent.value?.hostname || selectedAgent.value?.agent_id || "agent";
+        const timestamp = new Date().toISOString().slice(0, 10);
+        await exportWinUpdates({
+          updates: updates.value,
+          format,
+          filename: `win-maintenance-${agentHostname}-${timestamp}`,
+          agentHostname,
+        });
+        $q.notify({ message: `Exported ${format.toUpperCase()} successfully`, color: "positive", icon: "check" });
+      } catch (e) {
+        $q.notify({ message: `Export failed: ${e?.message || e}`, color: "negative" });
+      } finally {
+        exporting.value = false;
+      }
+    }
+
     function showUpdateDetails(update) {
       $q.dialog({
         component: WinUpdateDialog,
@@ -362,6 +396,7 @@ export default {
       editWinUpdate,
       updateScan,
       installUpdates,
+      exportWinUpdateHistory,
       showUpdateDetails,
       notifySuccess,
       truncateText,
