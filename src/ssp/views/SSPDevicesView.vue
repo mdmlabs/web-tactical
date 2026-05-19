@@ -198,6 +198,16 @@
             @click="openActionsDialog(device)"
           />
           <q-btn
+            v-if="device.managed && settings.extra_profiles?.software_inventory?.allow_user_view"
+            flat
+            dense
+            size="sm"
+            color="primary"
+            icon="inventory_2"
+            label="Software"
+            @click="openSoftwareInventory(device)"
+          />
+          <q-btn
             flat
             dense
             size="sm"
@@ -552,6 +562,31 @@
       </q-card>
     </q-dialog>
 
+    <q-dialog v-model="softwareInventoryDialogOpen">
+      <q-card style="min-width: min(900px, 95vw)">
+        <q-bar>
+          Software inventory
+          <q-space />
+          <q-btn dense flat icon="close" v-close-popup />
+        </q-bar>
+        <q-card-section>
+          <q-table
+            :rows="softwareInventoryRows"
+            :columns="softwareInventoryColumns"
+            row-key="name"
+            dense
+            flat
+            bordered
+            :loading="loadingSoftwareInventory"
+            :rows-per-page-options="[10, 25, 50]"
+          />
+          <div class="text-caption text-grey q-mt-sm">
+            {{ softwareInventoryNote }}
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
     <q-dialog v-model="passwordDialogOpen" persistent>
       <q-card style="min-width: 420px">
         <q-bar>
@@ -624,6 +659,11 @@ const loadingActions = ref(false);
 const actionSubmitting = ref("");
 const passwordDialogOpen = ref(false);
 const passwordAction = ref({ username: "", password: "" });
+const softwareInventoryDialogOpen = ref(false);
+const loadingSoftwareInventory = ref(false);
+const softwareInventoryRows = ref<any[]>([]);
+const softwareInventoryFields = ref<string[]>(["name", "version", "publisher", "category"]);
+const softwareInventoryNote = ref("");
 
 const enrollForm = ref({
   device_name: "",
@@ -672,6 +712,15 @@ const actionColumns = [
   },
   { name: "result", label: "Result", field: "result", align: "left" },
 ];
+const softwareInventoryColumns = computed(() =>
+  softwareInventoryFields.value.map((field) => ({
+    name: field,
+    label: field.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase()),
+    field,
+    align: "left" as const,
+    sortable: true,
+  })),
+);
 
 const canEnroll = computed(() => {
   if (!enrollForm.value.device_name) return false;
@@ -982,6 +1031,26 @@ function openActionsDialog(device: any) {
   deviceActions.value = [];
   actionsDialogOpen.value = true;
   loadDeviceActions(device.id);
+}
+
+async function openSoftwareInventory(device: any) {
+  softwareInventoryDialogOpen.value = true;
+  softwareInventoryRows.value = [];
+  softwareInventoryNote.value = "";
+  loadingSoftwareInventory.value = true;
+  try {
+    const data =
+      (await axios.get(`/appmanagement/ssp/devices/${device.id}/software-inventory/`))
+        .data || {};
+    softwareInventoryFields.value = data.visible_fields || softwareInventoryFields.value;
+    softwareInventoryRows.value = data.installed || [];
+    softwareInventoryNote.value = data.note || "";
+  } catch (e: any) {
+    softwareInventoryRows.value = [];
+    softwareInventoryNote.value = e?.response?.data?.error || "Software inventory is not available";
+  } finally {
+    loadingSoftwareInventory.value = false;
+  }
 }
 
 async function runDeviceAction(

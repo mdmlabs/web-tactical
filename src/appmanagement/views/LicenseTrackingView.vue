@@ -12,6 +12,78 @@
       </q-input>
     </div>
 
+    <q-card flat bordered class="q-mb-lg">
+      <q-card-section>
+        <div class="row items-center justify-between q-col-gutter-sm">
+          <div>
+            <div class="text-subtitle2">Inventory history and compliance evidence</div>
+            <div class="text-caption text-grey">Historical snapshots, deltas, stale endpoints, duplicate keys, CMDB/SIEM exports.</div>
+          </div>
+          <div class="row q-gutter-sm">
+            <q-btn outline color="primary" icon="refresh" label="Load evidence" :loading="loadingInventory" @click="loadInventoryEvidence" />
+            <q-btn outline color="primary" icon="table_view" label="CSV" @click="downloadInventoryExport('csv')" />
+            <q-btn outline color="secondary" icon="hub" label="CMDB" @click="downloadInventoryExport('cmdb')" />
+            <q-btn outline color="secondary" icon="security" label="SIEM" @click="downloadInventoryExport('siem')" />
+          </div>
+        </div>
+        <div class="row q-col-gutter-sm q-mt-sm">
+          <div class="col-12 col-md-4">
+            <q-select
+              v-model="selectedInventoryAgentId"
+              :options="agentOptions"
+              label="Device for real-time inventory"
+              emit-value
+              map-options
+              outlined
+              dense
+              clearable
+            />
+          </div>
+          <div class="col-12 col-md-3">
+            <q-btn color="primary" icon="sync" label="Refresh device inventory" class="full-width" :disable="!selectedInventoryAgentId" :loading="refreshingInventory" @click="refreshSelectedInventory" />
+          </div>
+          <div class="col-12 col-md-5">
+            <div class="row q-gutter-xs">
+              <q-chip dense color="primary" text-color="white">Snapshots {{ inventorySummary.snapshots || 0 }}</q-chip>
+              <q-chip dense color="info" text-color="white">Assets {{ inventorySummary.latest_assets || 0 }}</q-chip>
+              <q-chip dense :color="Object.keys(duplicateLicenseKeys).length ? 'negative' : 'positive'" text-color="white">
+                Duplicate keys {{ Object.keys(duplicateLicenseKeys).length }}
+              </q-chip>
+              <q-chip dense :color="(inventorySummary.risk_devices || []).length ? 'warning' : 'positive'" text-color="white">
+                At risk {{ (inventorySummary.risk_devices || []).length }}
+              </q-chip>
+              <q-chip dense :color="(inventorySummary.stale_agents || []).length ? 'warning' : 'positive'" text-color="white">
+                No recent data {{ (inventorySummary.stale_agents || []).length }}
+              </q-chip>
+            </div>
+          </div>
+        </div>
+        <q-table
+          class="q-mt-md"
+          :rows="inventorySnapshots"
+          :columns="inventoryColumns"
+          dense
+          flat
+          row-key="id"
+          :loading="loadingInventory"
+          :rows-per-page-options="[5, 10, 25]"
+        >
+          <template v-slot:body-cell-delta="props">
+            <q-td :props="props">
+              +{{ props.row.metadata?.delta_added || 0 }} / -{{ props.row.metadata?.delta_removed || 0 }}
+            </q-td>
+          </template>
+          <template v-slot:body-cell-risk="props">
+            <q-td :props="props">
+              <q-chip dense size="sm" :color="props.row.metadata?.risk_status === 'at_risk' ? 'warning' : 'positive'" text-color="white">
+                {{ props.row.metadata?.risk_status || 'ok' }}
+              </q-chip>
+            </q-td>
+          </template>
+        </q-table>
+      </q-card-section>
+    </q-card>
+
     <q-table :rows="filteredLicenses" :columns="columns" dense row-key="id" :loading="loading">
       <template v-slot:body-cell-seats_used="props">
         <q-td :props="props">
@@ -120,6 +192,13 @@ const dialogOpen = ref(false);
 const editing = ref<any>(null);
 const saving = ref(false);
 const search = ref("");
+const loadingInventory = ref(false);
+const refreshingInventory = ref(false);
+const inventorySnapshots = ref<any[]>([]);
+const inventorySummary = ref<any>({});
+const duplicateLicenseKeys = ref<Record<string, string[]>>({});
+const agentOptions = ref<any[]>([]);
+const selectedInventoryAgentId = ref("");
 
 const form = ref<any>({ name: "", product_name: "", vendor: "", seats_total: 1, license_type: "perpetual", expiry_date: "", cost_per_seat: null, notes: "" });
 
@@ -149,6 +228,14 @@ const requestColumns = [
   { name: "status", label: "Status", field: "status", align: "center" as const },
   { name: "requested_at", label: "Requested", field: "requested_at", align: "left" as const },
   { name: "actions", label: "Actions", field: "actions", align: "center" as const },
+];
+const inventoryColumns = [
+  { name: "created_at", label: "Snapshot", field: "created_at", align: "left" as const, sortable: true },
+  { name: "hostname", label: "Device", field: "hostname", align: "left" as const, sortable: true },
+  { name: "total", label: "Apps", field: (row: any) => row.metadata?.total || 0, align: "center" as const, sortable: true },
+  { name: "delta", label: "Delta", field: "delta", align: "center" as const },
+  { name: "source", label: "Source", field: "source", align: "left" as const },
+  { name: "risk", label: "Risk", field: "risk", align: "center" as const },
 ];
 
 function isExpiringSoon(date: string): boolean {
@@ -194,6 +281,46 @@ async function load() {
   finally { loading.value = false; }
 }
 
+async function loadInventoryEvidence() {
+  loadingInventory.value = true;
+  try {
+    const resp = await axios.get("/software/inventory-snapshots/");
+    inventorySnapshots.value = resp.data?.results || [];
+    inventorySummary.value = resp.data?.summary || {};
+    duplicateLicenseKeys.value = resp.data?.duplicate_license_keys || {};
+    const agents = (await axios.get("/appmanagement/app-inventory/")).data?.agents || [];
+    agentOptions.value = agents.map((a: any) => ({ label: `${a.hostname} (${a.agent_id})`, value: a.agent_id }));
+  } catch (e: any) {
+    $q.notify({ message: e?.response?.data?.error || e?.message || "Failed to load inventory evidence", color: "negative" });
+  } finally {
+    loadingInventory.value = false;
+  }
+}
+
+async function refreshSelectedInventory() {
+  if (!selectedInventoryAgentId.value) return;
+  refreshingInventory.value = true;
+  try {
+    await axios.post("/appmanagement/app-inventory/", { agent_id: selectedInventoryAgentId.value });
+    $q.notify({ message: "Inventory refresh requested and snapshot recorded", color: "positive", icon: "check" });
+    await loadInventoryEvidence();
+  } catch (e: any) {
+    $q.notify({ message: e?.response?.data?.error || e?.message || "Inventory refresh failed", color: "negative" });
+  } finally {
+    refreshingInventory.value = false;
+  }
+}
+
+async function downloadInventoryExport(format: "csv" | "cmdb" | "siem") {
+  const resp = await axios.get(`/software/inventory-snapshots/?format=${format}`, { responseType: "blob" });
+  const url = window.URL.createObjectURL(resp.data);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = format === "siem" ? "software-inventory-siem.ndjson" : format === "cmdb" ? "software-inventory-cmdb.json" : "software-inventory.csv";
+  a.click();
+  window.URL.revokeObjectURL(url);
+}
+
 async function loadRequests() {
   loadingReqs.value = true;
   try { installRequests.value = (await axios.get("/appmanagement/ssp/install-requests/admin/")).data || []; }
@@ -234,5 +361,5 @@ async function reviewRequest(id: number, status: string) {
   await loadRequests();
 }
 
-onMounted(() => { load(); loadRequests(); });
+onMounted(() => { load(); loadRequests(); loadInventoryEvidence(); });
 </script>

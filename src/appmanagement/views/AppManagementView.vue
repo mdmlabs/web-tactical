@@ -403,6 +403,20 @@
                       <q-toggle v-model="sspSettings.extra_profiles.byod.allow_unsubscribe" label="Allow selective deletion / unsubscribe" />
                       <q-input v-model="sspSettings.extra_profiles.byod.container_name" label="Container name" outlined dense />
                     </div>
+                    <div class="col-12 col-md-6">
+                      <div class="text-subtitle2">User software inventory</div>
+                      <div class="text-caption text-grey q-mb-sm">Controls whether SSP users can see a limited installed-app list for their own device.</div>
+                      <q-toggle v-model="sspSettings.extra_profiles.software_inventory.allow_user_view" label="Allow user-visible inventory subset" />
+                      <q-select
+                        v-model="sspSettings.extra_profiles.software_inventory.visible_fields"
+                        :options="['name', 'version', 'publisher', 'install_date', 'category', 'metadata_source']"
+                        label="Visible fields"
+                        outlined
+                        dense
+                        multiple
+                        use-chips
+                      />
+                    </div>
                   </div>
                 </q-card>
               </div>
@@ -2823,6 +2837,10 @@ function defaultSspExtraProfiles() {
       allow_unsubscribe: true,
       container_name: "Organization Data",
     },
+    software_inventory: {
+      allow_user_view: false,
+      visible_fields: ["name", "version", "publisher", "category"],
+    },
   };
 }
 
@@ -2835,6 +2853,7 @@ function normaliseSspExtraProfiles(value: any = {}) {
     backend: { ...defaults.backend, ...(value?.cywm_backend || {}), ...(value?.backend || {}) },
     zero_touch: { ...defaults.zero_touch, ...(value?.zero_touch || {}) },
     byod: { ...defaults.byod, ...(value?.byod || {}) },
+    software_inventory: { ...defaults.software_inventory, ...(value?.software_inventory || {}) },
   };
 }
 
