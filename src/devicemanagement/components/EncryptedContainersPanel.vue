@@ -519,8 +519,8 @@ function promptMount(row: any) {
   if (row.password_owner === "user") {
     const isInitial = row.state === "awaiting_user_password";
     const title = isInitial
-      ? `Trigger setup on the endpoint?`
-      : `Trigger mount on the endpoint?`;
+      ? "Trigger setup on the endpoint?"
+      : "Trigger mount on the endpoint?";
     const message = isInitial
       ? `The end-user on this device will be prompted in a desktop dialog to set a password for "${row.label}". Officer Shamir shares will be generated locally and escrowed back to the server. Continue?`
       : `The end-user on this device will be prompted for the container password${row.tpm_bound ? " (with Windows Hello if required by policy)" : ""}. Continue?`;

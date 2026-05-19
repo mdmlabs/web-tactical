@@ -510,7 +510,7 @@
 import { ref, reactive, onMounted, computed } from "vue";
 import { type QForm, useQuasar } from "quasar";
 import { useAuthStore } from "@/stores/auth";
-import { useRoute, useRouter } from "vue-router";
+import { type RouteLocationRaw, useRoute, useRouter } from "vue-router";
 import axios from "axios";
 import {
   openSSOProviderRedirect,
@@ -584,24 +584,34 @@ const passwordResetConfirm = reactive({
   loading: false,
 });
 
+async function navigateAfterLogin(target: RouteLocationRaw) {
+  const href = router.resolve(target).href || "/";
+  sessionStorage.setItem("mdm_login_redirect_reload_once", "1");
+  window.setTimeout(() => window.location.replace(href), 3000);
+}
+
 async function checkCreds() {
+  let redirectTarget: RouteLocationRaw | null = null;
   try {
     await auth.checkCredentials(credentials, rememberMe.value);
     await auth.login(credentials, rememberMe.value);
     if (auth.isSspOnly) {
-      const target = auth.next && auth.next.startsWith("/ssp") ? auth.next : "/ssp/devices";
-      router.push(target);
+      redirectTarget = auth.next && auth.next.startsWith("/ssp") ? auth.next : "/ssp/devices";
       auth.next = null;
     } else if (auth.next) {
-      router.push(auth.next);
+      redirectTarget = auth.next;
       auth.next = null;
     } else {
-      router.push({ name: "Dashboard" });
+      redirectTarget = { name: "Dashboard" };
     }
   } catch (err) {
     console.error(err);
   } finally {
     form.value?.reset();
+  }
+
+  if (redirectTarget) {
+    await navigateAfterLogin(redirectTarget);
   }
 }
 

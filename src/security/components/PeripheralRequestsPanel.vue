@@ -143,6 +143,89 @@
       </div>
     </div>
 
+    <q-list bordered class="q-mb-md">
+      <q-item-label header>Effective policy diagnostics</q-item-label>
+      <q-item>
+        <q-item-section>
+          <div class="row q-col-gutter-sm items-center">
+            <div class="col-12 col-md-5">
+              <q-select
+                v-model="diagnosticsAgentId"
+                :options="agentOptions"
+                label="Target device"
+                outlined
+                dense
+                emit-value
+                map-options
+                @update:model-value="loadDiagnostics"
+              />
+            </div>
+            <div class="col-auto">
+              <q-btn
+                outline
+                color="primary"
+                icon="rule"
+                label="Apply now"
+                :loading="applyingNow"
+                :disable="!diagnosticsAgentId"
+                @click="applyPeripheralNow"
+              />
+            </div>
+            <div class="col-auto">
+              <q-btn
+                flat
+                round
+                color="primary"
+                icon="refresh"
+                :loading="loadingDiagnostics"
+                :disable="!diagnosticsAgentId"
+                @click="loadDiagnostics"
+              />
+            </div>
+            <div class="col text-caption text-grey-7">
+              Shows overlapping policies before a demo so you can cancel the one that would mask the test.
+            </div>
+          </div>
+
+          <div v-if="diagnostics" class="row q-col-gutter-sm q-mt-sm">
+            <div v-for="item in diagnosticsDeviceEntries" :key="item.type" class="col-12 col-md-4">
+              <q-card flat bordered>
+                <q-card-section class="q-pa-sm">
+                  <div class="row items-center q-gutter-xs">
+                    <q-icon :name="scheduleIcon(item.type)" />
+                    <div class="text-weight-medium">{{ displayPeripheral(item.type) }}</div>
+                    <q-space />
+                    <q-chip dense :color="stateColor(item.data.state)" text-color="white">
+                      {{ item.data.state }}
+                    </q-chip>
+                  </div>
+                  <q-list dense>
+                    <q-item v-for="src in item.data.sources" :key="`${src.type}-${src.id || src.label}`">
+                      <q-item-section>
+                        <q-item-label>{{ src.label }}</q-item-label>
+                        <q-item-label caption>
+                          {{ src.type }}<span v-if="src.window"> · {{ src.window }}</span><span v-if="src.detail"> · {{ src.detail }}</span>
+                        </q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item v-if="item.data.sources.length === 0">
+                      <q-item-section class="text-grey">No active restrictions</q-item-section>
+                    </q-item>
+                  </q-list>
+                  <q-banner v-for="msg in item.data.conflicts" :key="msg" dense rounded class="bg-amber-1 text-brown-9 q-mt-xs">
+                    {{ msg }}
+                  </q-banner>
+                  <div v-for="msg in item.data.recommended_actions" :key="msg" class="text-caption text-primary q-mt-xs">
+                    {{ msg }}
+                  </div>
+                </q-card-section>
+              </q-card>
+            </div>
+          </div>
+        </q-item-section>
+      </q-item>
+    </q-list>
+
     <div class="row q-col-gutter-md">
       <div class="col-12 col-md-6">
         <div class="text-subtitle2 q-mb-sm">
@@ -188,7 +271,7 @@
               <q-item-label>{{ s.name }}</q-item-label>
               <q-item-label caption>
                 {{ displayPeripheral(s.device_type) }} · {{ displayScope(s) }} ·
-                {{ s.disabled_hours_start }}:00-{{ s.disabled_hours_end }}:00
+                {{ formatScheduleWindow(s) }} · {{ timeBasisLabel(s.time_basis) }}
               </q-item-label>
               <q-item-label caption>{{ displayDays(s.disabled_days) }}</q-item-label>
             </q-item-section>
@@ -278,28 +361,36 @@
           />
           <div class="row q-col-gutter-sm">
             <div class="col-6">
-              <q-select
-                v-model.number="schedForm.disabled_hours_start"
-                :options="hours"
+              <q-input
+                v-model="schedForm.start_time"
                 label="Start"
                 outlined
                 dense
-                emit-value
-                map-options
+                type="time"
+                step="60"
               />
             </div>
             <div class="col-6">
-              <q-select
-                v-model.number="schedForm.disabled_hours_end"
-                :options="hours"
+              <q-input
+                v-model="schedForm.end_time"
                 label="End"
                 outlined
                 dense
-                emit-value
-                map-options
+                type="time"
+                step="60"
               />
             </div>
           </div>
+          <div class="row q-gutter-xs">
+            <q-btn flat dense color="primary" icon="timer" label="Next 5 min" @click="setDemoWindow(5)" />
+            <q-btn flat dense color="primary" icon="timer" label="Next 15 min" @click="setDemoWindow(15)" />
+          </div>
+          <q-option-group
+            v-model="schedForm.time_basis"
+            :options="timeBasisOptions"
+            type="radio"
+            dense
+          />
           <q-select
             v-model="schedForm.disabled_days"
             :options="dayOptions"
@@ -476,6 +567,10 @@ const editingPrivacy = ref<any>(null);
 const savingSched = ref(false);
 const savingPrivacy = ref(false);
 const sendingAction = ref(false);
+const diagnosticsAgentId = ref("");
+const diagnostics = ref<any>(null);
+const loadingDiagnostics = ref(false);
+const applyingNow = ref(false);
 const privacyAppPoliciesText = ref("[]");
 
 const globals = ref<any>({
@@ -495,10 +590,6 @@ const actionForm = ref<any>({
   enabled: false,
   reason: "",
 });
-const hours = Array.from({ length: 24 }, (_, i) => ({
-  label: `${i.toString().padStart(2, "0")}:00`,
-  value: i,
-}));
 const dayOptions = [
   { label: "Mon", value: 0 },
   { label: "Tue", value: 1 },
@@ -527,6 +618,16 @@ const scopeOptions = [
   { label: "User", value: "user" },
   { label: "User group", value: "user_group" },
 ];
+const timeBasisOptions = [
+  {
+    label: "Device local time (recommended for users and demos)",
+    value: "device_local",
+  },
+  {
+    label: "Server time (UTC, for centralized audit windows)",
+    value: "server_utc",
+  },
+];
 const privacyDefaultOptions = [
   { label: "User controlled", value: "user_controlled" },
   { label: "Force allow", value: "allow" },
@@ -537,6 +638,18 @@ const privacyForm = ref<any>(defaultPrivacyForm());
 
 const pendingRequests = computed(() => requests.value.filter((r) => r.status === "pending"));
 const pendingCount = computed(() => pendingRequests.value.length);
+const diagnosticsDeviceEntries = computed(() => {
+  const devices = diagnostics.value?.devices || {};
+  return ["camera", "mic", "usb"].map((type) => ({
+    type,
+    data: {
+      state: devices[type]?.state || "unknown",
+      sources: devices[type]?.sources || [],
+      conflicts: devices[type]?.conflicts || [],
+      recommended_actions: devices[type]?.recommended_actions || [],
+    },
+  }));
+});
 
 function defaultScheduleForm() {
   return {
@@ -545,6 +658,11 @@ function defaultScheduleForm() {
     disabled_days: [],
     disabled_hours_start: 9,
     disabled_hours_end: 18,
+    disabled_minutes_start: 9 * 60,
+    disabled_minutes_end: 18 * 60,
+    start_time: "09:00",
+    end_time: "18:00",
+    time_basis: "device_local",
     scope: "global",
     target_agent_id: "",
     target_device_group_id: null,
@@ -612,6 +730,48 @@ function displayDays(days: number[] | null | undefined) {
   return dayOptions.filter((d) => days.includes(d.value)).map((d) => d.label).join(", ");
 }
 
+function pad2(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+function minutesToTime(value: number | string | null | undefined) {
+  const minutes = Number(value || 0);
+  const safe = Math.max(0, Math.min(1439, Number.isFinite(minutes) ? minutes : 0));
+  return `${pad2(Math.floor(safe / 60))}:${pad2(safe % 60)}`;
+}
+
+function timeToMinutes(value: string | null | undefined) {
+  const [hRaw, mRaw] = String(value || "00:00").split(":");
+  const hours = Math.max(0, Math.min(23, Number(hRaw) || 0));
+  const minutes = Math.max(0, Math.min(59, Number(mRaw) || 0));
+  return hours * 60 + minutes;
+}
+
+function formatScheduleWindow(row: any) {
+  const start = row.disabled_minutes_start ?? (Number(row.disabled_hours_start || 0) * 60);
+  const end = row.disabled_minutes_end ?? (Number(row.disabled_hours_end || 0) * 60);
+  return `${minutesToTime(start)}-${minutesToTime(end)}`;
+}
+
+function timeBasisLabel(value: string) {
+  return value === "server_utc" ? "server UTC" : "device local";
+}
+
+function stateColor(value: string) {
+  if (value === "restricted") return "negative";
+  if (value === "allowed_temporarily") return "warning";
+  if (value === "allowed") return "positive";
+  return "grey";
+}
+
+function setDemoWindow(minutes: number) {
+  const now = new Date();
+  const start = now.getHours() * 60 + now.getMinutes();
+  const end = (start + minutes) % (24 * 60);
+  schedForm.value.start_time = minutesToTime(start);
+  schedForm.value.end_time = minutesToTime(end);
+}
+
 async function loadOptions() {
   try {
     const [agentsResp, sitesResp, usersResp, groupsResp] = await Promise.allSettled([
@@ -628,6 +788,9 @@ async function loadOptions() {
         label: `${agent.hostname || agent.agent_id} (${agent.agent_id})`,
         value: agent.agent_id,
       }));
+    if (!diagnosticsAgentId.value && agentOptions.value.length > 0) {
+      diagnosticsAgentId.value = agentOptions.value[0].value;
+    }
     const sites = sitesResp.status === "fulfilled" ? sitesResp.value.data : [];
     const siteList = Array.isArray(sites) ? sites : sites?.results ?? [];
     siteOptions.value = siteList
@@ -685,6 +848,36 @@ async function load() {
   try { requests.value = (await axios.get("/security/peripheral-requests/")).data || []; } catch {}
   try { schedules.value = (await axios.get("/security/peripheral-schedules/")).data || []; } catch {}
   try { appPrivacyPolicies.value = (await axios.get("/appmanagement/app-privacy-policies/")).data || []; } catch {}
+  if (diagnosticsAgentId.value) await loadDiagnostics();
+}
+
+async function loadDiagnostics() {
+  if (!diagnosticsAgentId.value) return;
+  loadingDiagnostics.value = true;
+  try {
+    const { data } = await axios.get(`/security/peripheral/effective/${diagnosticsAgentId.value}/`);
+    diagnostics.value = data;
+  } finally {
+    loadingDiagnostics.value = false;
+  }
+}
+
+async function applyPeripheralNow() {
+  if (!diagnosticsAgentId.value) return;
+  applyingNow.value = true;
+  try {
+    await axios.post("/security/peripheral/apply-now/", {
+      agent_id: diagnosticsAgentId.value,
+      wait: true,
+      timeout: 45,
+    });
+    $q.notify({ message: "Agent re-evaluated peripheral policies", color: "positive", icon: "rule" });
+    await loadDiagnostics();
+  } catch (e: any) {
+    $q.notify({ message: e?.response?.data?.detail || "Failed to apply peripheral policies", color: "negative" });
+  } finally {
+    applyingNow.value = false;
+  }
 }
 
 async function sendAction() {
@@ -717,6 +910,16 @@ function showScheduleDialog() {
 
 function normalizeScopedPayload(form: any) {
   const payload = { ...form };
+  if ("start_time" in payload || "end_time" in payload) {
+    const start = timeToMinutes(payload.start_time || minutesToTime(payload.disabled_minutes_start));
+    const end = timeToMinutes(payload.end_time || minutesToTime(payload.disabled_minutes_end));
+    payload.disabled_minutes_start = start;
+    payload.disabled_minutes_end = end;
+    payload.disabled_hours_start = Math.floor(start / 60);
+    payload.disabled_hours_end = Math.floor(end / 60);
+    delete payload.start_time;
+    delete payload.end_time;
+  }
   if (payload.scope !== "device") payload.target_agent_id = "";
   if (payload.scope !== "device_group") payload.target_device_group_id = null;
   if (payload.scope !== "user") payload.target_user_id = null;

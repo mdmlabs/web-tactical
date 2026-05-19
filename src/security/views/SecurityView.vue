@@ -1314,6 +1314,13 @@
             <q-btn
               outline
               color="primary"
+              icon="settings"
+              label="Forensics settings"
+              @click="openForensicSettingsDialog"
+            />
+            <q-btn
+              outline
+              color="primary"
               icon="picture_as_pdf"
               label="Export PDF"
               :disable="!forensicsReport"
@@ -1360,6 +1367,22 @@
               <div class="text-caption">
                 {{ $t("security.views.SecurityView.09fef5") }}
               </div>
+            </q-card-section>
+          </q-card>
+          <q-card flat bordered class="col">
+            <q-card-section class="text-center">
+              <div class="text-h5">
+                {{ forensicsReport.stats.evidence_bundles ?? 0 }}
+              </div>
+              <div class="text-caption">Evidence bundles</div>
+            </q-card-section>
+          </q-card>
+          <q-card flat bordered class="col">
+            <q-card-section class="text-center">
+              <div class="text-h5">
+                {{ forensicsReport.stats.encrypted_bundles ?? 0 }}
+              </div>
+              <div class="text-caption">Encrypted</div>
             </q-card-section>
           </q-card>
         </div>
@@ -1454,13 +1477,7 @@
                 <q-td :props="props">
                   <q-chip
                     dense
-                    :color="
-                      props.value === 'Isolated'
-                        ? 'negative'
-                        : props.value === 'Investigating'
-                          ? 'warning'
-                          : 'positive'
-                    "
+                    :color="forensicStatusColor(props.value)"
                     text-color="white"
                     size="sm"
                     >{{ props.value }}</q-chip
@@ -1493,6 +1510,30 @@
                   <span v-else>—</span>
                 </q-td>
               </template>
+              <template v-slot:body-cell-evidence_bundle_encrypted="props">
+                <q-td :props="props">
+                  <q-chip
+                    dense
+                    size="sm"
+                    :color="props.value ? 'positive' : 'grey'"
+                    text-color="white"
+                  >
+                    {{ props.value ? "Encrypted" : "Plain" }}
+                  </q-chip>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-av_scan_status="props">
+                <q-td :props="props">
+                  <q-chip
+                    dense
+                    size="sm"
+                    :color="forensicAvColor(props.value)"
+                    text-color="white"
+                  >
+                    {{ props.value || "not scanned" }}
+                  </q-chip>
+                </q-td>
+              </template>
               <template v-slot:body-cell-actions="props">
                 <q-td :props="props">
                   <q-btn
@@ -1511,6 +1552,17 @@
                     @click="downloadForensicToolExport(props.row, 'generic')"
                   >
                     <q-tooltip>Download tool export manifest</q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    flat
+                    dense
+                    icon="archive"
+                    size="sm"
+                    color="primary"
+                    :disable="!props.row.evidence_bundle_path"
+                    @click="downloadForensicEvidence(props.row)"
+                  >
+                    <q-tooltip>Download evidence ZIP</q-tooltip>
                   </q-btn>
                   <q-btn
                     flat
@@ -2270,7 +2322,7 @@
 
     <!-- USB Policy Dialog -->
     <q-dialog v-model="usbDialogOpen" persistent>
-      <q-card style="min-width: 460px">
+      <q-card style="min-width: 620px; max-width: 92vw">
         <q-bar
           >{{ editingUSB ? "Edit" : "New" }} USB Policy<q-space /><q-btn
             dense
@@ -2300,6 +2352,79 @@
             emit-value
             map-options
           />
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-sm-5">
+              <q-select
+                v-model="usbForm.scope"
+                :options="usbScopeOptions"
+                label="Scope"
+                outlined
+                dense
+                emit-value
+                map-options
+                @update:model-value="onUSBScopeChanged"
+              />
+            </div>
+            <div class="col-12 col-sm-7">
+              <q-select
+                v-if="usbForm.scope === 'device'"
+                v-model="usbForm.target_agent_id"
+                :options="agentOptions"
+                label="Target device"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+                use-input
+                input-debounce="200"
+              />
+              <q-select
+                v-else-if="usbForm.scope === 'device_group'"
+                v-model="usbForm.target_device_group_id"
+                :options="forensicDeviceGroupOptions"
+                label="Target device group"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+                use-input
+                input-debounce="200"
+              />
+              <q-select
+                v-else-if="usbForm.scope === 'user'"
+                v-model="usbForm.target_user_id"
+                :options="usbUserOptions"
+                label="Target user"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+                use-input
+                input-debounce="200"
+              />
+              <q-select
+                v-else-if="usbForm.scope === 'user_group'"
+                v-model="usbForm.target_user_group_id"
+                :options="usbUserGroupOptions"
+                label="Target user group"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+                use-input
+                input-debounce="200"
+              />
+              <q-field v-else outlined dense label="Target" stack-label>
+                <template #control>
+                  <div class="self-center text-grey-7">All Windows devices</div>
+                </template>
+              </q-field>
+            </div>
+          </div>
           <q-select
             v-model="usbForm.blocked_device_classes"
             :options="usbClassOptions"
@@ -2943,6 +3068,64 @@
       </q-card>
     </q-dialog>
 
+    <q-dialog v-model="showForensicSettingsDialog" persistent>
+      <q-card style="min-width: 760px; max-width: 94vw">
+        <q-bar>
+          Forensics settings
+          <q-space />
+          <q-btn dense flat icon="close" v-close-popup />
+        </q-bar>
+        <q-card-section class="q-gutter-md">
+          <q-toggle
+            v-model="forensicSettingsForm.evidence_encryption_enabled"
+            label="Encrypt evidence bundles before upload"
+          />
+          <q-input
+            v-model="forensicSettingsForm.evidence_public_key_pem"
+            label="Corporate public key or certificate PEM"
+            hint="Paste an RSA public key or certificate. The Windows agent encrypts the ZIP with AES-256-GCM and wraps the key with RSA-OAEP."
+            outlined
+            dense
+            type="textarea"
+            rows="8"
+          />
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-4">
+              <q-toggle
+                v-model="forensicSettingsForm.velociraptor_enabled"
+                label="Velociraptor sync"
+              />
+            </div>
+            <div class="col-12 col-md-8">
+              <q-input
+                v-model="forensicSettingsForm.velociraptor_api_url"
+                label="Velociraptor API URL"
+                outlined
+                dense
+              />
+            </div>
+          </div>
+          <q-input
+            v-model="forensicSettingsForm.notes"
+            label="Notes"
+            outlined
+            dense
+            type="textarea"
+            rows="2"
+          />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn
+            color="primary"
+            label="Save settings"
+            :loading="savingForensicSettings"
+            @click="saveForensicSettings"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <q-dialog v-model="showSiemExport" persistent>
       <q-card style="min-width: 460px">
         <q-bar
@@ -3278,6 +3461,51 @@ async function loadAgentOptions() {
   }
 }
 
+async function loadUSBScopeOptions() {
+  const [usersResp, groupsResp] = await Promise.allSettled([
+    axios.get("/accounts/users/"),
+    axios.get("/accounts/user-groups/"),
+  ]);
+
+  if (usersResp.status === "fulfilled") {
+    const list = Array.isArray(usersResp.value.data)
+      ? usersResp.value.data
+      : (usersResp.value.data?.results ?? []);
+    usbUserOptions.value = list
+      .filter((user: any) => user?.id !== undefined && user?.id !== null)
+      .map((user: any) => ({
+        value: user.id,
+        label:
+          user.display_name ||
+          user.full_name ||
+          user.username ||
+          user.sam_account_name ||
+          user.email ||
+          `User #${user.id}`,
+      }));
+  } else {
+    usbUserOptions.value = [];
+  }
+
+  if (groupsResp.status === "fulfilled") {
+    const list = Array.isArray(groupsResp.value.data)
+      ? groupsResp.value.data
+      : (groupsResp.value.data?.results ?? []);
+    usbUserGroupOptions.value = list
+      .filter((group: any) => group?.id !== undefined && group?.id !== null)
+      .map((group: any) => ({
+        value: group.id,
+        label:
+          group.display_name ||
+          group.name ||
+          group.sam_account_name ||
+          `User group #${group.id}`,
+      }));
+  } else {
+    usbUserGroupOptions.value = [];
+  }
+}
+
 function syncTabFromRoute() {
   const routeName = String(route.name ?? "");
   if (tabByRouteName[routeName]) {
@@ -3518,6 +3746,11 @@ const usbForm = ref<any>({
   blocked_device_ids: [],
   allowed_device_classes: [],
   blocked_device_classes: [],
+  scope: "global",
+  target_agent_id: "",
+  target_device_group_id: null,
+  target_user_id: null,
+  target_user_group_id: null,
   encrypt_required: false,
   log_usage: true,
   alert_on_connect: false,
@@ -3580,6 +3813,15 @@ const usbClassOptions = [
   { label: "Network adapter", value: "network" },
   { label: "Serial / modem", value: "serial" },
 ];
+const usbScopeOptions = [
+  { label: "Global (all devices)", value: "global" },
+  { label: "Specific device", value: "device" },
+  { label: "Device group", value: "device_group" },
+  { label: "Specific user", value: "user" },
+  { label: "User group", value: "user_group" },
+];
+const usbUserOptions = ref<{ label: string; value: number }[]>([]);
+const usbUserGroupOptions = ref<{ label: string; value: number }[]>([]);
 const fimEventTypeOptions = [
   { label: "Created", value: "created" },
   { label: "Modified", value: "modified" },
@@ -3837,6 +4079,12 @@ const usbColumns = [
     align: "center",
   },
   { name: "scope", label: "Scope", field: "scope", align: "center" },
+  {
+    name: "target",
+    label: "Target",
+    field: (row: any) => formatUSBPolicyTarget(row),
+    align: "left",
+  },
   { name: "enabled", label: "Status", field: "enabled", align: "center" },
   { name: "actions", label: "", field: "actions", align: "right" },
 ];
@@ -3913,6 +4161,46 @@ function formatDLPPolicyTarget(row: any) {
       : "No user group selected";
   }
   return "All devices";
+}
+
+function optionLabelByValue(
+  options: { label: string; value: string | number | null }[],
+  value: string | number | null,
+) {
+  return options.find((option) => option.value === value)?.label || "";
+}
+
+function formatUSBPolicyTarget(row: any) {
+  if (row.scope === "device") {
+    return (
+      optionLabelByValue(agentOptions.value, row.target_agent_id) ||
+      row.target_agent_id ||
+      "No device selected"
+    );
+  }
+  if (row.scope === "device_group") {
+    return (
+      optionLabelByValue(forensicDeviceGroupOptions.value, row.target_device_group_id) ||
+      (row.target_device_group_id
+        ? `Device group #${row.target_device_group_id}`
+        : "No device group selected")
+    );
+  }
+  if (row.scope === "user") {
+    return (
+      optionLabelByValue(usbUserOptions.value, row.target_user_id) ||
+      (row.target_user_id ? `User #${row.target_user_id}` : "No user selected")
+    );
+  }
+  if (row.scope === "user_group") {
+    return (
+      optionLabelByValue(usbUserGroupOptions.value, row.target_user_group_id) ||
+      (row.target_user_group_id
+        ? `User group #${row.target_user_group_id}`
+        : "No user group selected")
+    );
+  }
+  return "All Windows devices";
 }
 
 function formatDLPPolicyPaths(row: any) {
@@ -4258,22 +4546,26 @@ async function remediateFIMEvent(id: number) {
 
 function showUSBDialog(item?: any) {
   editingUSB.value = item || null;
-  usbForm.value = item
-    ? { ...item }
-    : {
-        name: "",
-        policy_type: "read_only",
-        allowed_device_ids: [],
-        blocked_device_ids: [],
-        allowed_device_classes: [],
-        blocked_device_classes: [],
-        encrypt_required: false,
-        log_usage: true,
-        alert_on_connect: false,
-        emergency_mode: false,
-        emergency_reason: "",
-        enabled: true,
-      };
+  const defaults = {
+    name: "",
+    policy_type: "read_only",
+    allowed_device_ids: [],
+    blocked_device_ids: [],
+    allowed_device_classes: [],
+    blocked_device_classes: [],
+    scope: "global",
+    target_agent_id: "",
+    target_device_group_id: null,
+    target_user_id: null,
+    target_user_group_id: null,
+    encrypt_required: false,
+    log_usage: true,
+    alert_on_connect: false,
+    emergency_mode: false,
+    emergency_reason: "",
+    enabled: true,
+  };
+  usbForm.value = item ? { ...defaults, ...item } : defaults;
   usbAllowedIdsInput.value = (usbForm.value.allowed_device_ids || []).join("\n");
   usbBlockedIdsInput.value = (usbForm.value.blocked_device_ids || []).join("\n");
   usbDialogOpen.value = true;
@@ -4286,15 +4578,60 @@ function splitLines(value: string) {
     .filter(Boolean);
 }
 
+function onUSBScopeChanged(scope: string) {
+  usbForm.value.scope = scope || "global";
+  usbForm.value.target_agent_id = "";
+  usbForm.value.target_device_group_id = null;
+  usbForm.value.target_user_id = null;
+  usbForm.value.target_user_group_id = null;
+}
+
+function normalizeUSBPayload(payload: any) {
+  const normalized = { ...payload };
+  normalized.scope = normalized.scope || "global";
+  if (normalized.scope !== "device") normalized.target_agent_id = "";
+  if (normalized.scope !== "device_group")
+    normalized.target_device_group_id = null;
+  if (normalized.scope !== "user") normalized.target_user_id = null;
+  if (normalized.scope !== "user_group") normalized.target_user_group_id = null;
+  for (const key of [
+    "target_device_group_id",
+    "target_user_id",
+    "target_user_group_id",
+  ]) {
+    if (normalized[key] === "" || normalized[key] === undefined)
+      normalized[key] = null;
+  }
+  return normalized;
+}
+
+function validateUSBPayload(payload: any) {
+  if (payload.scope === "device" && !payload.target_agent_id)
+    return "Select target device";
+  if (payload.scope === "device_group" && !payload.target_device_group_id)
+    return "Select target device group";
+  if (payload.scope === "user" && !payload.target_user_id)
+    return "Select target user";
+  if (payload.scope === "user_group" && !payload.target_user_group_id)
+    return "Select target user group";
+  return "";
+}
+
 async function saveUSB() {
   savingUSB.value = true;
   try {
     usbForm.value.allowed_device_ids = splitLines(usbAllowedIdsInput.value);
     usbForm.value.blocked_device_ids = splitLines(usbBlockedIdsInput.value);
+    const payload = normalizeUSBPayload(usbForm.value);
+    const validation = validateUSBPayload(payload);
+    if (validation) {
+      $q.notify({ message: validation, color: "warning" });
+      return;
+    }
     if (editingUSB.value) {
-      await axios.put(`/security/usb/${editingUSB.value.id}/`, usbForm.value);
+      await axios.put(`/security/usb/${editingUSB.value.id}/`, payload);
     } else {
-      await axios.post("/security/usb/", usbForm.value);
+      await axios.post("/security/usb/", payload);
     }
     usbDialogOpen.value = false;
     $q.notify({
@@ -4531,6 +4868,7 @@ onMounted(() => {
   loadForensicJobTypes();
   loadForensicPolicies();
   loadForensicDeviceGroups();
+  loadForensicSettings();
   loadForensics();
   loadForensicsAudit();
   loadUEBA();
@@ -4538,6 +4876,7 @@ onMounted(() => {
   refreshThreatIntelAll();
   loadThreatIntelStats();
   loadAgentOptions();
+  loadUSBScopeOptions();
   loadMicControlAll();
 });
 
@@ -4551,9 +4890,11 @@ watch(() => route.fullPath, syncTabFromRoute, { immediate: true });
 const showIsolateDialog = ref(false);
 const showForensicWizard = ref(false);
 const showForensicPolicyDialog = ref(false);
+const showForensicSettingsDialog = ref(false);
 const loadingForensics = ref(false);
 const loadingForensicsAudit = ref(false);
 const loadingForensicPolicies = ref(false);
+const savingForensicSettings = ref(false);
 const forensicCases = ref<any[]>([]);
 const forensicPolicies = ref<any[]>([]);
 const forensicAuditTrail = ref<any[]>([]);
@@ -4563,6 +4904,18 @@ const forensicsAuditError = ref("");
 const uebaError = ref("");
 const threatIntelError = ref("");
 const editingForensicPolicy = ref<any | null>(null);
+
+function defaultForensicSettingsForm() {
+  return {
+    label: "default",
+    evidence_encryption_enabled: false,
+    evidence_public_key_pem: "",
+    velociraptor_enabled: false,
+    velociraptor_api_url: "",
+    velociraptor_ca_cert_pem: "",
+    notes: "",
+  };
+}
 
 const defaultForensicJobTypeOptions = [
   { label: "Extract files by path", value: "file_collection" },
@@ -4633,6 +4986,7 @@ const forensicEngineOptions = [
 
 const forensicWizardForm = ref(defaultForensicWizardForm());
 const forensicPolicyForm = ref(defaultForensicPolicyForm());
+const forensicSettingsForm = ref(defaultForensicSettingsForm());
 const forensicKeywordsInput = ref("");
 const forensicPathGlobsInput = ref("");
 const forensicPolicyKeywordsInput = ref("");
@@ -4659,6 +5013,24 @@ const forensicColumns = [
     name: "artifact_count",
     label: "Artifacts",
     field: (row: any) => row.artifacts?.length || 0,
+    align: "center",
+  },
+  {
+    name: "evidence_bundle_size",
+    label: "Bundle",
+    field: (row: any) => formatBytes(row.evidence_bundle_size),
+    align: "right",
+  },
+  {
+    name: "evidence_bundle_encrypted",
+    label: "Encryption",
+    field: "evidence_bundle_encrypted",
+    align: "center",
+  },
+  {
+    name: "av_scan_status",
+    label: "AV",
+    field: "av_scan_status",
     align: "center",
   },
   {
@@ -4770,6 +5142,46 @@ async function loadForensicPolicies() {
   }
 }
 
+async function loadForensicSettings() {
+  try {
+    const r = await axios.get("/security/forensics/settings/");
+    forensicSettingsForm.value = {
+      ...defaultForensicSettingsForm(),
+      ...(r.data || {}),
+    };
+  } catch (e: any) {
+    $q.notify({
+      message: _apiErrMessage(e, "Failed to load forensics settings"),
+      color: "negative",
+    });
+  }
+}
+
+async function openForensicSettingsDialog() {
+  await loadForensicSettings();
+  showForensicSettingsDialog.value = true;
+}
+
+async function saveForensicSettings() {
+  savingForensicSettings.value = true;
+  try {
+    await axios.put("/security/forensics/settings/", forensicSettingsForm.value);
+    $q.notify({
+      message: "Forensics settings saved",
+      color: "positive",
+      icon: "check",
+    });
+    showForensicSettingsDialog.value = false;
+  } catch (e: any) {
+    $q.notify({
+      message: _apiErrMessage(e, "Failed to save forensics settings"),
+      color: "negative",
+    });
+  } finally {
+    savingForensicSettings.value = false;
+  }
+}
+
 async function loadForensics() {
   loadingForensics.value = true;
   forensicsError.value = "";
@@ -4875,7 +5287,19 @@ async function exportForensicsPdf() {
   autoTable(doc, {
     startY: (doc as any).lastAutoTable.finalY + 18,
     head: [
-      ["ID", "Device", "Title", "Status", "Collectors", "SHA256", "Updated"],
+      [
+        "ID",
+        "Device",
+        "Title",
+        "Status",
+        "Collectors",
+        "Artifacts",
+        "Bundle",
+        "Encrypted",
+        "AV",
+        "SHA256",
+        "Updated",
+      ],
     ],
     body: jobs.map((row: any) => [
       row.id,
@@ -4883,6 +5307,10 @@ async function exportForensicsPdf() {
       row.title,
       row.status,
       Array.isArray(row.job_types) ? row.job_types.join(", ") : "",
+      Array.isArray(row.artifacts) ? row.artifacts.length : 0,
+      formatBytes(row.evidence_bundle_size),
+      row.evidence_bundle_encrypted ? "yes" : "no",
+      row.av_scan_status || "-",
       row.manifest_sha256 || "-",
       row.updated_at || "",
     ]),
@@ -4940,6 +5368,36 @@ function formatForensicJobTypes(row: any) {
     return found?.label || value;
   });
   return labels.join(", ");
+}
+
+function formatBytes(value: any) {
+  const bytes = Number(value || 0);
+  if (!bytes) return "—";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let size = bytes;
+  let idx = 0;
+  while (size >= 1024 && idx < units.length - 1) {
+    size /= 1024;
+    idx += 1;
+  }
+  return `${size.toFixed(idx === 0 ? 0 : 1)} ${units[idx]}`;
+}
+
+function forensicAvColor(status: string) {
+  if (status === "clean") return "positive";
+  if (status === "detected") return "negative";
+  if (status === "error") return "warning";
+  if (status === "unavailable") return "grey";
+  return "grey";
+}
+
+function forensicStatusColor(status: string) {
+  if (status === "failed") return "negative";
+  if (status === "partial") return "warning";
+  if (status === "running" || status === "queued") return "primary";
+  if (status === "skipped" || status === "cancelled") return "grey";
+  if (status === "completed") return "positive";
+  return "grey";
 }
 
 function openForensicJobDialog() {
@@ -5157,7 +5615,15 @@ async function cancelForensicJob(row: any) {
 function openIRCase(row: any) {
   $q.dialog({
     title: `Forensic Job: ${row.title}`,
-    message: `Agent: ${row.agent_id}\nStatus: ${row.status}\nArtifacts: ${row.artifacts?.length ?? 0}`,
+    message: [
+      `Agent: ${row.agent_id}`,
+      `Status: ${row.status}`,
+      `Artifacts: ${row.artifacts?.length ?? 0}`,
+      `Evidence bundle: ${row.evidence_bundle_name || "not uploaded"}`,
+      `Bundle SHA-256: ${row.evidence_bundle_sha256 || row.manifest_sha256 || "—"}`,
+      `Encrypted: ${row.evidence_bundle_encrypted ? "yes" : "no"}`,
+      `AV scan: ${row.av_scan_status || "not scanned"}`,
+    ].join("\n"),
     ok: true,
   });
 }
@@ -5182,6 +5648,42 @@ async function downloadForensicToolExport(row: any, format = "generic") {
   } catch (e: any) {
     $q.notify({
       message: _apiErrMessage(e, "Failed to export forensic manifest"),
+      color: "negative",
+    });
+  }
+}
+
+async function downloadForensicEvidence(row: any) {
+  try {
+    const r = await axios.get(`/security/forensics/jobs/${row.id}/evidence/`, {
+      responseType: "blob",
+    });
+    const disposition = String(r.headers?.["content-disposition"] || "");
+    const match = disposition.match(/filename="?([^";]+)"?/i);
+    const filename =
+      match?.[1] ||
+      row.evidence_bundle_name ||
+      `forensics-${row.id}-evidence.zip`;
+    const blob = new Blob([r.data], {
+      type: r.headers?.["content-type"] || "application/octet-stream",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    $q.notify({
+      message: "Evidence bundle download started",
+      color: "positive",
+      icon: "archive",
+    });
+    await loadForensicsAudit();
+  } catch (e: any) {
+    $q.notify({
+      message: _apiErrMessage(e, "Failed to download evidence bundle"),
       color: "negative",
     });
   }
