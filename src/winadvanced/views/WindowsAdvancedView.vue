@@ -868,6 +868,7 @@
             <template v-for="field in extraFields" :key="field.key">
               <div v-if="shouldShowGenericField(field)" class="q-mb-sm">
                 <q-input v-if="field.type === 'text'" v-model="genericForm[field.key]" :label="field.label" outlined dense />
+                <q-input v-else-if="field.type === 'password'" v-model="genericForm[field.key]" :label="field.label" outlined dense type="password" autocomplete="new-password" />
                 <q-input v-else-if="field.type === 'number'" v-model.number="genericForm[field.key]" :label="field.label" outlined dense type="number" />
                 <q-input v-else-if="field.type === 'textarea'" v-model="genericForm[field.key]" :label="field.label" outlined dense type="textarea" autogrow />
                 <q-select
@@ -1201,6 +1202,10 @@ function openDialog(title: string, endpoint: string, item: any | null, form: any
     genericForm.value.trusted_repositories_text = Array.isArray(genericForm.value.trusted_repositories)
       ? genericForm.value.trusted_repositories.join("\n")
       : String(genericForm.value.trusted_repositories || "");
+    genericForm.value.integrity_baseline_paths_text = Array.isArray(genericForm.value.integrity_baseline_paths)
+      ? genericForm.value.integrity_baseline_paths.join("\n")
+      : String(genericForm.value.integrity_baseline_paths || "");
+    genericForm.value.sudo_admin_token = "";
   }
   if (fields.some((field) => ["agent-select", "site-select", "user-select", "user-group-select"].includes(field.type))) {
     loadGenericTargetOptions();
@@ -1313,9 +1318,17 @@ async function saveGeneric() {
         .split(/[\n,]+/)
         .map((item: string) => item.trim())
         .filter(Boolean);
+      payload.integrity_baseline_paths = String(payload.integrity_baseline_paths_text || "")
+        .split(/[\n,]+/)
+        .map((item: string) => item.trim())
+        .filter(Boolean);
+      if (!String(payload.sudo_admin_token || "").trim()) {
+        delete payload.sudo_admin_token;
+      }
       delete payload.allowed_distros_text;
       delete payload.allowed_packages_text;
       delete payload.trusted_repositories_text;
+      delete payload.integrity_baseline_paths_text;
     }
     if (currentEndpoint.value.includes("retention")) {
       payload.log_name = String(payload.log_name || "").trim();
@@ -1470,6 +1483,13 @@ function showWSLDialog(item?: any) {
       trusted_repositories: [],
       trusted_repositories_text: "",
       scan_downloaded_packages: true,
+      restrict_root_access: false,
+      sudo_admin_token_required: false,
+      sudo_admin_token: "",
+      integrity_check_enabled: false,
+      integrity_baseline_paths: [],
+      integrity_baseline_paths_text: "",
+      integrity_check_interval_minutes: 60,
       scope: "global",
       target_agent_id: "",
       target_device_group_id: null,
@@ -1488,10 +1508,16 @@ function showWSLDialog(item?: any) {
       { key: "package_monitoring_enabled", label: "Monitor package installs", type: "toggle", showWhen: { key: "monitor_activity", value: true } },
       { key: "allowed_packages_text", label: "Allowed packages (one per line; empty = any)", type: "textarea", showWhen: { key: "package_monitoring_enabled", value: true } },
       { key: "block_unapproved_packages", label: "Block WSL when unapproved package is detected", type: "toggle", showWhen: { key: "package_monitoring_enabled", value: true } },
-      { key: "enforce_trusted_repositories", label: "Enforce trusted repositories", type: "toggle", showWhen: { key: "package_monitoring_enabled", value: true } },
-      { key: "trusted_repositories_text", label: "Trusted repositories/domains (one per line; empty = any)", type: "textarea", showWhen: { key: "enforce_trusted_repositories", value: true } },
+      { key: "enforce_trusted_repositories", label: "Enforce trusted and signed repositories", type: "toggle", showWhen: { key: "package_monitoring_enabled", value: true } },
+      { key: "trusted_repositories_text", label: "Trusted repositories/domains (one per line; apt must use signed-by)", type: "textarea", showWhen: { key: "enforce_trusted_repositories", value: true } },
       { key: "scan_downloaded_packages", label: "Scan downloaded package artifacts", type: "toggle", showWhen: { key: "package_monitoring_enabled", value: true } },
       { key: "malware_auto_block", label: "Block WSL automatically on malware/trojan detection", type: "toggle", showWhen: { key: "monitor_activity", value: true } },
+      { key: "restrict_root_access", label: "Restrict WSL root and sudo access", type: "toggle" },
+      { key: "sudo_admin_token_required", label: "Require CYWM admin token for sudo", type: "toggle", showWhen: { key: "restrict_root_access", value: true } },
+      { key: "sudo_admin_token", label: "CYWM sudo admin token (stored as SHA-256)", type: "password", showWhen: { key: "sudo_admin_token_required", value: true } },
+      { key: "integrity_check_enabled", label: "Enable WSL file integrity checks", type: "toggle" },
+      { key: "integrity_baseline_paths_text", label: "Integrity baseline paths (one per line)", type: "textarea", showWhen: { key: "integrity_check_enabled", value: true } },
+      { key: "integrity_check_interval_minutes", label: "Integrity check interval minutes", type: "number", showWhen: { key: "integrity_check_enabled", value: true } },
       { key: "scope", label: "Scope", type: "select", options: [
         { label: "Global", value: "global" },
         { label: "Specific Device", value: "device" },
@@ -1544,6 +1570,11 @@ function wslLimitsLabel(row: any) {
     parts.push(`trusted repos${repos}`);
   }
   if (row.scan_downloaded_packages) parts.push("package scan");
+  if (row.restrict_root_access) parts.push(row.sudo_admin_token_required ? "sudo token" : "root restricted");
+  if (row.integrity_check_enabled) {
+    const paths = Array.isArray(row.integrity_baseline_paths) && row.integrity_baseline_paths.length ? `: ${row.integrity_baseline_paths.join(", ")}` : "";
+    parts.push(`integrity${paths}`);
+  }
   if (row.malware_auto_block) parts.push("malware auto-block");
   if (Array.isArray(row.allowed_distros) && row.allowed_distros.length) parts.push(`distros: ${row.allowed_distros.join(", ")}`);
   return parts.join(" | ");
