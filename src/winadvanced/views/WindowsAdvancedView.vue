@@ -117,9 +117,47 @@
           </template>
         </q-table>
         <div class="q-mt-md">
-          <div class="text-subtitle2 q-mb-sm">{{ $t('winadvanced.views.WindowsAdvancedView.67398c') }}</div>
-          <q-btn dense flat color="primary" icon="add" :label="$t('winadvanced.views.WindowsAdvancedView.c6222c')" @click="showRetentionDialog()" />
-          <q-table :rows="retentionPolicies" :columns="retentionColumns" dense row-key="id" class="q-mt-sm" />
+          <div class="row items-center q-gutter-sm q-mb-sm">
+            <div class="text-subtitle2">{{ $t('winadvanced.views.WindowsAdvancedView.67398c') }}</div>
+            <q-space />
+            <q-btn dense flat color="primary" icon="play_arrow" label="Run retention now" :loading="retentionRunning" @click="runRetentionNow" />
+            <q-btn dense flat color="primary" icon="add" :label="$t('winadvanced.views.WindowsAdvancedView.c6222c')" @click="showRetentionDialog()" />
+          </div>
+          <q-table :rows="retentionPolicies" :columns="retentionColumns" dense row-key="id" class="q-mt-sm">
+            <template v-slot:body-cell-enabled="props">
+              <q-td :props="props">
+                <q-chip dense :color="props.value ? 'positive' : 'grey'" text-color="white" size="sm">
+                  {{ props.value ? 'enabled' : 'off' }}
+                </q-chip>
+              </q-td>
+            </template>
+            <template v-slot:body-cell-backup_status="props">
+              <q-td :props="props">
+                <q-chip
+                  v-if="props.value"
+                  dense
+                  :color="retentionStatusColor(props.value)"
+                  text-color="white"
+                  size="sm"
+                  class="ellipsis"
+                  style="max-width: 360px;"
+                >
+                  {{ props.value }}
+                  <q-tooltip>{{ props.value }}</q-tooltip>
+                </q-chip>
+                <span v-else class="text-grey-6">No run yet</span>
+              </q-td>
+            </template>
+            <template v-slot:body-cell-actions="props">
+              <q-td :props="props">
+                <q-btn flat dense round icon="play_arrow" color="primary" size="sm" @click="runRetentionNow">
+                  <q-tooltip>Run all retention rules now</q-tooltip>
+                </q-btn>
+                <q-btn flat dense round icon="edit" size="sm" @click="showRetentionDialog(props.row)" />
+                <q-btn flat dense round icon="delete" color="negative" size="sm" @click="deleteRetentionPolicy(props.row.id)" />
+              </q-td>
+            </template>
+          </q-table>
         </div>
         <q-card flat bordered class="q-mt-md">
           <q-card-section class="row items-center q-col-gutter-md">
@@ -824,7 +862,7 @@
       <q-card style="min-width:500px">
         <q-bar>{{ genericDialogTitle }}<q-space /><q-btn dense flat icon="close" v-close-popup /></q-bar>
         <q-card-section class="q-gutter-md">
-          <q-input v-model="genericForm.name" :label="$t('winadvanced.views.WindowsAdvancedView.d145bb')" outlined dense />
+          <q-input v-if="'name' in genericForm" v-model="genericForm.name" :label="$t('winadvanced.views.WindowsAdvancedView.d145bb')" outlined dense />
           <q-toggle v-if="'enabled' in genericForm" v-model="genericForm.enabled" :label="$t('winadvanced.views.WindowsAdvancedView.df174a')" />
           <component :is="'div'" v-if="extraFields.length > 0">
             <template v-for="field in extraFields" :key="field.key">
@@ -933,6 +971,7 @@ let wslLiveTimer: ReturnType<typeof setInterval> | null = null;
 
 const loadingVuln = ref(false);
 const loadingLogs = ref(false);
+const retentionRunning = ref(false);
 const loadingCorrelation = ref(false);
 const correlationBusy = ref(false);
 const loadingAutopilot = ref(false);
@@ -959,6 +998,17 @@ const genericUserGroupOptions = ref<{ label: string; value: number }[]>([]);
 
 function vulnSevColor(sev: string) { return { critical: "negative", high: "deep-orange", medium: "warning", low: "info", info: "grey" }[sev] ?? "grey"; }
 function logLevelColor(level: string) { return { critical: "negative", error: "negative", warning: "warning", information: "info", verbose: "grey" }[level] ?? "grey"; }
+function retentionLogName(row: any) { return row.log_name || "All logs"; }
+function retentionArchiveLabel(row: any) {
+  if (!row.archive_before_delete) return "Delete only";
+  return row.archive_destination ? `Archive to ${row.archive_destination}` : "Archive enabled, no path";
+}
+function retentionStatusColor(value: string) {
+  const text = String(value || "").toLowerCase();
+  if (text.includes("failed") || text.includes("blocked")) return "negative";
+  if (text.includes("archived")) return "positive";
+  return "info";
+}
 
 const sevOptions = [{ label: "Critical", value: "critical" }, { label: "High", value: "high" }, { label: "Medium", value: "medium" }, { label: "Low", value: "low" }];
 const vulnStatusOptions = [{ label: "Open", value: "open" }, { label: "Remediated", value: "remediated" }, { label: "Accepted", value: "accepted" }, { label: "False Positive", value: "false_positive" }];
@@ -988,9 +1038,14 @@ const logColumns = [
   { name: "occurred_at", label: "Occurred", field: "occurred_at", align: "left", sortable: true },
 ];
 const retentionColumns = [
-  { name: "log_name", label: "Log Name", field: "log_name", align: "left" },
+  { name: "log_name", label: "Log Name", field: retentionLogName, align: "left" },
   { name: "retention_days", label: "Days", field: "retention_days", align: "center" },
+  { name: "minimum_compliance_days", label: "Compliance Min", field: "minimum_compliance_days", align: "center" },
+  { name: "archive", label: "Archive/NAS", field: retentionArchiveLabel, align: "left" },
+  { name: "backup_status", label: "Last Result", field: "backup_status", align: "left" },
+  { name: "last_archived_at", label: "Last Archive", field: "last_archived_at", align: "left" },
   { name: "enabled", label: "Enabled", field: "enabled", align: "center" },
+  { name: "actions", label: "", field: "actions", align: "right" },
 ];
 const correlationRuleColumns = [
   { name: "name", label: "Rule", field: "name", align: "left" },
@@ -1262,6 +1317,19 @@ async function saveGeneric() {
       delete payload.allowed_packages_text;
       delete payload.trusted_repositories_text;
     }
+    if (currentEndpoint.value.includes("retention")) {
+      payload.log_name = String(payload.log_name || "").trim();
+      payload.retention_days = Math.max(0, Number(payload.retention_days) || 0);
+      payload.minimum_compliance_days =
+        payload.minimum_compliance_days === "" || payload.minimum_compliance_days === null || payload.minimum_compliance_days === undefined
+          ? null
+          : Math.max(0, Number(payload.minimum_compliance_days) || 0);
+      if (!payload.archive_before_delete) payload.archive_destination = "";
+      delete payload.id;
+      delete payload.created_at;
+      delete payload.backup_status;
+      delete payload.last_archived_at;
+    }
     if (Object.prototype.hasOwnProperty.call(payload, "scope")) {
       if (payload.scope !== "device") payload.target_agent_id = "";
       if (payload.scope !== "device_group") payload.target_device_group_id = null;
@@ -1298,6 +1366,7 @@ async function saveGeneric() {
     else if (currentEndpoint.value.includes("windows-hello")) await loadWindowsHello();
     else if (currentEndpoint.value.includes("wdac")) await loadWDAC();
     else if (currentEndpoint.value.includes("baselines")) await loadBaselines();
+    else if (currentEndpoint.value.includes("retention")) await loadRetention();
     else if (currentEndpoint.value.includes("correlation/rules")) await loadCorrelation();
   } finally { savingGeneric.value = false; }
 }
@@ -1575,16 +1644,50 @@ function showBaselineDialog(item?: any) {
     ]
   );
 }
-function showRetentionDialog() {
-  $q.dialog({
-    title: "Add Retention Policy",
-    message: "Retention days:",
-    prompt: { model: "90", type: "number", label: "Days" },
-    cancel: true,
-  }).onOk(async (days: string) => {
-    await axios.post("/winadvanced/eventlogs/retention/", { retention_days: parseInt(days), enabled: true });
+function showRetentionDialog(item?: any) {
+  openDialog(item ? "Edit Retention Rule" : "Add Retention Rule", "/winadvanced/eventlogs/retention/", item || null,
+    {
+      log_name: "",
+      retention_days: 90,
+      enabled: true,
+      archive_before_delete: false,
+      archive_destination: "",
+      minimum_compliance_days: null,
+    },
+    [
+      { key: "log_name", label: "Log type", type: "select", options: [
+        { label: "All logs", value: "" },
+        { label: "Application", value: "Application" },
+        { label: "Security", value: "Security" },
+        { label: "System", value: "System" },
+        { label: "Custom MDM log", value: "MDMCustom" },
+      ] },
+      { key: "retention_days", label: "Retention days", type: "number" },
+      { key: "minimum_compliance_days", label: "Compliance minimum days (blank = no guard)", type: "number" },
+      { key: "archive_before_delete", label: "Archive before delete", type: "toggle" },
+      { key: "archive_destination", label: "Archive/NAS path mounted on server", type: "text", showWhen: { key: "archive_before_delete", value: true } },
+    ]
+  );
+}
+async function runRetentionNow() {
+  retentionRunning.value = true;
+  try {
+    const resp = await axios.post("/winadvanced/eventlogs/retention/run/");
+    const result = resp.data || {};
+    $q.notify({
+      message: `Retention complete: deleted ${result.deleted || 0}, archived ${result.archived || 0}, blocked ${result.compliance_blocked || 0}`,
+      color: result.compliance_blocked ? "warning" : "positive",
+      icon: result.compliance_blocked ? "policy" : "delete_sweep",
+    });
+    await Promise.all([loadRetention(), loadEventLogs()]);
+  } finally {
+    retentionRunning.value = false;
+  }
+}
+async function deleteRetentionPolicy(id: number) {
+  $q.dialog({ title: "Delete retention rule?", cancel: true, ok: { color: "negative" } }).onOk(async () => {
+    await axios.delete(`/winadvanced/eventlogs/retention/${id}/`);
     await loadRetention();
-    $q.notify({ message: "Retention policy added", color: "positive", icon: "check" });
   });
 }
 async function createCustomEventChannel() {
