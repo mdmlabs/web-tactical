@@ -312,13 +312,22 @@ async function refreshSelectedInventory() {
 }
 
 async function downloadInventoryExport(format: "csv" | "cmdb" | "siem") {
-  const resp = await axios.get(`/software/inventory-snapshots/?format=${format}`, { responseType: "blob" });
-  const url = window.URL.createObjectURL(resp.data);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = format === "siem" ? "software-inventory-siem.ndjson" : format === "cmdb" ? "software-inventory-cmdb.json" : "software-inventory.csv";
-  a.click();
-  window.URL.revokeObjectURL(url);
+  try {
+    const resp = await axios.get(`/software/inventory-snapshots/?export=${format}`, { responseType: "blob" });
+    const blob = resp.data instanceof Blob ? resp.data : new Blob([resp.data]);
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = format === "siem" ? "software-inventory-siem.ndjson" : format === "cmdb" ? "software-inventory-cmdb.json" : "software-inventory.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (e: any) {
+    let message = e?.response?.data?.error || e?.message || "Inventory export failed";
+    if (e?.response?.data instanceof Blob) {
+      message = await e.response.data.text();
+    }
+    $q.notify({ message, color: "negative" });
+  }
 }
 
 async function loadRequests() {
