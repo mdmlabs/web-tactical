@@ -1498,7 +1498,7 @@
               </template>
               <template v-slot:body-cell-artifact_count="props">
                 <q-td :props="props">
-                  {{ props.row.artifacts?.length || 0 }}
+                  {{ forensicArtifactCount(props.row) }}
                 </q-td>
               </template>
               <template v-slot:body-cell-manifest_sha256="props">
@@ -5026,7 +5026,7 @@ const forensicColumns = [
   {
     name: "artifact_count",
     label: "Artifacts",
-    field: (row: any) => row.artifacts?.length || 0,
+    field: (row: any) => forensicArtifactCount(row),
     align: "center",
   },
   {
@@ -5322,7 +5322,7 @@ async function exportForensicsPdf() {
       row.title,
       row.status,
       Array.isArray(row.job_types) ? row.job_types.join(", ") : "",
-      Array.isArray(row.artifacts) ? row.artifacts.length : 0,
+      forensicArtifactCount(row),
       formatBytes(row.evidence_bundle_size),
       row.evidence_bundle_encrypted ? "yes" : "no",
       row.av_scan_status || "-",
@@ -5413,6 +5413,16 @@ function forensicStatusColor(status: string) {
   if (status === "skipped" || status === "cancelled") return "grey";
   if (status === "completed") return "positive";
   return "grey";
+}
+
+function isForensicSystemManifest(artifact: any) {
+  const logicalName = String(artifact?.logical_name || "").toLowerCase();
+  return logicalName.includes("crashdump_manifest_");
+}
+
+function forensicArtifactCount(row: any) {
+  if (!Array.isArray(row?.artifacts)) return 0;
+  return row.artifacts.filter((artifact: any) => !isForensicSystemManifest(artifact)).length;
 }
 
 function openForensicJobDialog() {
@@ -5653,7 +5663,7 @@ function openIRCase(row: any) {
     message: [
       `Agent: ${row.agent_id}`,
       `Status: ${row.status}`,
-      `Artifacts: ${row.artifacts?.length ?? 0}`,
+      `Artifacts: ${forensicArtifactCount(row)}`,
       `Evidence bundle: ${row.evidence_bundle_name || "not uploaded"}`,
       `Bundle SHA-256: ${row.evidence_bundle_sha256 || row.manifest_sha256 || "—"}`,
       `Encrypted: ${row.evidence_bundle_encrypted ? "yes" : "no"}`,
