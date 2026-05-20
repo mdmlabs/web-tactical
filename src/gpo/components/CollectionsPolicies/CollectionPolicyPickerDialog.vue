@@ -132,6 +132,12 @@
                             <q-item-label>{{
                               policy.displayName || policy.name
                             }}</q-item-label>
+                            <q-item-label caption class="q-mt-xs">
+                              <PolicyMetaChips
+                                :version="policy.version"
+                                :policy-status="policy.policyStatus"
+                              />
+                            </q-item-label>
                           </q-item-section>
                           <q-item-section
                             v-if="selectedPolicies[policy.id]"
@@ -243,6 +249,12 @@
                             <q-item-label>{{
                               policy.displayName || policy.name
                             }}</q-item-label>
+                            <q-item-label caption class="q-mt-xs">
+                              <PolicyMetaChips
+                                :version="policy.version"
+                                :policy-status="policy.policyStatus"
+                              />
+                            </q-item-label>
                           </q-item-section>
                           <q-item-section
                             v-if="selectedPolicies[policy.id]"
@@ -357,8 +369,26 @@
                         <div v-else class="text-grey-6 text-body2 q-mb-md">
                           No description
                         </div>
-                        <div class="text-caption text-grey-6">
+                        <div class="text-caption text-grey-6 q-mb-sm">
                           Scope: {{ scopeLabel(selectedPolicy.scope) }}
+                        </div>
+                        <div class="row items-center q-gutter-sm">
+                          <span class="text-caption text-grey-6">Version:</span>
+                          <span class="text-body2">
+                            {{
+                              selectedPolicy.version !== undefined
+                                ? selectedPolicy.version
+                                : "—"
+                            }}
+                          </span>
+                        </div>
+                        <div class="row items-center q-gutter-sm q-mt-xs">
+                          <span class="text-caption text-grey-6">Status:</span>
+                          <PolicyMetaChips
+                            v-if="selectedPolicy.policyStatus !== undefined"
+                            :policy-status="selectedPolicy.policyStatus"
+                          />
+                          <span v-else class="text-grey-5">—</span>
                         </div>
                       </div>
                     </q-tab-panel>
@@ -417,6 +447,8 @@ import {
 import { getDefaultValueForElement } from "../../utils/policy-field-types";
 import { fetchSupportedOsSelectOptions } from "../../utils/supportedOsBuildSelect";
 import type { CategoryNode, PolicyItem } from "../../types/policy-catalog";
+import PolicyMetaChips from "@/gpo/components/shared/PolicyMetaChips.vue";
+import { policyMetaSearchText } from "@/gpo/utils/policy-meta";
 
 const POLICY_SCOPE_NONE = 0;
 const POLICY_SCOPE_USER = 1;
@@ -710,7 +742,8 @@ const filteredAllPoliciesGrouped = computed(() => {
     list = list.filter(
       (p) =>
         (p.displayName || "").toLowerCase().includes(query) ||
-        (p.name || "").toLowerCase().includes(query),
+        (p.name || "").toLowerCase().includes(query) ||
+        policyMetaSearchText(p).includes(query),
     );
   }
   const byScope: Record<number, PolicyItem[]> = {};

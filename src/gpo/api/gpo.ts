@@ -1,5 +1,8 @@
 import { ref } from "vue";
-import { policyCatalogClient } from "./grpc-client";
+import {
+  policyCatalogClient,
+  type UpdatePoliciesByHashParams,
+} from "./grpc-client";
 import type {
   GPOPolicy,
   GPOPolicyTree,
@@ -10,6 +13,73 @@ import {
   adaptPoliciesFromGroups,
   adaptCategoryTreeToPolicyTree,
 } from "./grpc-adapters";
+
+function extractHashFromPolicyDetails(response: unknown): string | null {
+  const policy = (response as { policy?: Record<string, unknown> })?.policy;
+  if (!policy || typeof policy !== "object") return null;
+  const hash = policy.hash ?? policy.policy_hash ?? policy.policyHash;
+  return typeof hash === "string" && hash.trim() ? hash.trim() : null;
+}
+
+type UpdatePoliciesByHashOptionalField = Exclude<
+  keyof UpdatePoliciesByHashParams,
+  "hash"
+>;
+
+function pickDefinedOptionalFields(
+  fields: Partial<
+    Pick<UpdatePoliciesByHashParams, UpdatePoliciesByHashOptionalField>
+  >,
+): Partial<
+  Pick<UpdatePoliciesByHashParams, UpdatePoliciesByHashOptionalField>
+> {
+  return Object.fromEntries(
+    Object.entries(fields).filter(([, value]) => value !== undefined),
+  ) as Partial<
+    Pick<UpdatePoliciesByHashParams, UpdatePoliciesByHashOptionalField>
+  >;
+}
+
+function buildUpdatePoliciesByHashParams(
+  hash: string,
+  data: UpdateGPOPolicyRequest,
+): UpdatePoliciesByHashParams {
+  const optionalFields: Partial<
+    Pick<UpdatePoliciesByHashParams, UpdatePoliciesByHashOptionalField>
+  > = {
+    name: data.name,
+    displayName: data.displayName,
+    explainText: data.explainText ?? data.description,
+    scope: data.scope,
+    registryKey: data.registryKey,
+    valueName: data.valueName,
+    enabledValue: data.enabledValue,
+    disabledValue: data.disabledValue,
+    supportedOnRef: data.supportedOnRef,
+    parentCategoryRef: data.parentCategoryRef,
+    presentationRef: data.presentationRef,
+    clientExtension: data.clientExtension,
+  };
+
+  return { hash, ...pickDefinedOptionalFields(optionalFields) };
+}
+
+async function resolvePolicyHash(
+  policyId: string,
+  inlineHash?: string,
+): Promise<string> {
+  if (inlineHash?.trim()) return inlineHash.trim();
+  const idNum = Number.parseInt(policyId, 10);
+  if (Number.isNaN(idNum)) {
+    throw new Error("Invalid policy id");
+  }
+  const details = await policyCatalogClient.getPolicyDetails(idNum, "en-US");
+  const hash = extractHashFromPolicyDetails(details);
+  if (!hash) {
+    throw new Error("Policy hash not found");
+  }
+  return hash;
+}
 
 export function useGPOPolicies() {
   const policies = ref<GPOPolicy[]>([]);
@@ -72,26 +142,79 @@ export function useGPOPolicies() {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async function updatePolicy(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _policyId: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _data: UpdateGPOPolicyRequest,
+    policyId: string,
+    data: UpdateGPOPolicyRequest,
   ): Promise<void> {
     isLoading.value = true;
     isError.value = false;
     errorMessage.value = null;
 
     try {
-      // TODO: Реализовать обновление политики через gRPC
-      // Пока что просто перезагружаем список
+      const hash = await resolvePolicyHash(policyId, data.hash);
+      const params = buildUpdatePoliciesByHashParams(hash, data);
+      const hasDescriptorFields = Object.keys(params).length > 1;
+      const hasStatusUpdate = data.policyStatus !== undefined;
+
+      if (!hasDescriptorFields && !hasStatusUpdate) {
+        throw new Error("Nothing to update");
+      }
+
+      if (hasDescriptorFields) {
+        const response = await policyCatalogClient.updatePoliciesByHash(params);
+        if (!response.success) {
+          throw new Error("Update rejected by server");
+        }
+      }
+
+      if (hasStatusUpdate) {
+        const statusResponse = await policyCatalogClient.updateStatusPolicies(
+          hash,
+          data.policyStatus!,
+        );
+        if (!statusResponse.success) {
+          throw new Error("Status update rejected by server");
+        }
+      }
+
       await fetchPolicies();
     } catch (error) {
       console.error("[GPO] Ошибка обновления политики:", error);
       isError.value = true;
       errorMessage.value =
         error instanceof Error ? error.message : "Не удалось обновить политику";
+      throw error;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function updatePolicyStatus(
+    policyId: string,
+    policyStatus: number,
+    hash?: string,
+  ): Promise<void> {
+    isLoading.value = true;
+    isError.value = false;
+    errorMessage.value = null;
+
+    try {
+      const resolvedHash = await resolvePolicyHash(policyId, hash);
+      const response = await policyCatalogClient.updateStatusPolicies(
+        resolvedHash,
+        policyStatus,
+      );
+      if (!response.success) {
+        throw new Error("Status update rejected by server");
+      }
+      await fetchPolicies();
+    } catch (error) {
+      console.error("[GPO] Ошибка обновления статуса политики:", error);
+      isError.value = true;
+      errorMessage.value =
+        error instanceof Error
+          ? error.message
+          : "Не удалось обновить статус политики";
       throw error;
     } finally {
       isLoading.value = false;
@@ -153,6 +276,7 @@ export function useGPOPolicies() {
     fetchPolicies,
     createPolicy,
     updatePolicy,
+    updatePolicyStatus,
     deletePolicy,
     clonePolicy,
   };

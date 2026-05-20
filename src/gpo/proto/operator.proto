@@ -34,6 +34,12 @@ enum PolicySource {
   POLICY_SOURCE_AGENT = 2;
   POLICY_SOURCE_USER = 3;
 }
+enum PolicyStatus {
+  Draft = 0;
+  Approve = 1;
+  Rejected = 2;
+  Obsolete = 3;
+}
 
 // AGENTS
 
@@ -382,6 +388,45 @@ service PolicyCatalogService {
 
   rpc GetAllSupportedOs(GetAllSupportedOsRequest)
       returns (GetAllSupportedOsResponse);
+
+  rpc UpdateStatusPolicies(UpdateStatusPoliciesRequest)
+      returns (UpdateStatusPoliciesResponse);
+
+  rpc UpdatePoliciesByHash(UpdatePoliciesByHashRequest)
+      returns (UpdatePoliciesByHashResponse);
+}
+message UpdatePoliciesByHashRequest {
+  string hash = 1;
+
+  optional string name = 2;
+  optional string displayName = 3;
+  optional string explainText = 4;
+
+  optional PolicyScope scope = 5;
+
+  optional string registryKey = 6;
+  optional string valueName = 7;
+
+  optional string enabledValue = 8;
+  optional string disabledValue = 9;
+
+  optional string supportedOnRef = 10;
+  optional string parentCategoryRef = 11;
+  optional string presentationRef = 12;
+  optional string clientExtension = 13;
+  optional PolicyStatus policyStatus = 14;
+}
+message UpdatePoliciesByHashResponse {
+  bool success = 1;
+}
+
+message UpdateStatusPoliciesRequest {
+  string hash = 1;
+  PolicyStatus policy_status = 2;
+}
+
+message UpdateStatusPoliciesResponse  {
+   bool success = 1;
 }
 
 message GetPoliciesBySupportedOsRequest {
@@ -483,10 +528,11 @@ message PolicyDetailsPolicy {
   string name = 2;
   string hash = 3;
   string scope = 4;
-
-  optional string parent_category_ref = 5;
-  optional string supported_on_ref = 6;
-  optional google.protobuf.StringValue client_extension = 7;
+  string policy_status = 5;
+  int32 version = 6;
+  optional string parent_category_ref = 7;
+  optional string supported_on_ref = 8;
+  optional google.protobuf.StringValue client_extension = 9;
 }
 
 message PolicyPresentation {
@@ -561,12 +607,15 @@ message PolicyDescriptor {
   string supported_on_ref = 8;
   string parent_category = 9;
   string presentation_ref = 10;
+  PolicyStatus policy_status = 11;
+  int32 version = 12;
+  repeated PolicyElement elements = 13;
+  repeated string required_capabilities = 14;
+  repeated string required_hardware = 15;
 
-  repeated PolicyElement elements = 11;
-  repeated string required_capabilities = 12;
-  repeated string required_hardware = 13;
+  repeated string admx_file_hashes = 16;
 
-  repeated string admx_file_hashes = 14;
+  string explain_text = 17;
 }
 
 message PolicyElement {
@@ -591,6 +640,8 @@ message PolicySummary {
   string display_name = 3;
   string explain_text = 4;
   PolicyScope scope = 5;
+  PolicyStatus policy_status = 6;
+  int32 version = 7;
 }
 
 // POLICY ASSIGNMENT

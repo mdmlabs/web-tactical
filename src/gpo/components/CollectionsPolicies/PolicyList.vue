@@ -52,6 +52,12 @@
                 <q-item-label>{{
                   policy.displayName || policy.name
                 }}</q-item-label>
+                <q-item-label caption class="q-mt-xs">
+                  <PolicyMetaChips
+                    :version="policy.version"
+                    :policy-status="policy.policyStatus"
+                  />
+                </q-item-label>
               </q-item-section>
               <q-item-section
                 v-if="selectedPolicies[policy.id]"
@@ -94,6 +100,7 @@
 <script setup lang="ts">
 import EmptyState from "@/components/ui/EmptyState.vue";
 import { PolicyItem } from "@/gpo/types/policy-catalog";
+import PolicyMetaChips from "@/gpo/components/shared/PolicyMetaChips.vue";
 
 defineProps<{
   filteredGroupedPolicies: {

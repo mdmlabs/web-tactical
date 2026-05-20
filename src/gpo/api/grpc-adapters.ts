@@ -4,12 +4,19 @@ import type {
   GPOPolicyDetails,
   GPOPolicySetting,
 } from "../types/gpo";
+import { parsePolicyStatus } from "../utils/policy-status";
 
 interface PolicySummary {
   id: number;
   name: string;
-  display_name: string;
+  display_name?: string;
+  displayName?: string;
   explain_text?: string;
+  explainText?: string;
+  scope?: number;
+  policy_status?: number | string;
+  policyStatus?: number | string;
+  version?: number;
 }
 
 interface PolicyGroup {
@@ -34,6 +41,9 @@ interface PolicyDetails {
     name: string;
     hash: string;
     scope: string;
+    policy_status?: string;
+    policyStatus?: string;
+    version?: number;
     parent_category_ref?: string;
     supported_on_ref?: string;
   };
@@ -68,23 +78,25 @@ export interface GetCategoryTreeResponse {
 function policySummaryToGPOPolicy(
   summary: PolicySummary | Record<string, unknown>,
 ): GPOPolicy {
-  const id = (summary as { id?: number }).id;
-  const name = (summary as { name?: string }).name || "";
-  const displayName =
-    (summary as { display_name?: string; displayName?: string }).display_name ||
-    (summary as { display_name?: string; displayName?: string }).displayName ||
-    name;
-  const explainText =
-    (summary as { explain_text?: string; explainText?: string }).explain_text ||
-    (summary as { explain_text?: string; explainText?: string }).explainText;
+  const s = summary as PolicySummary;
+  const id = s.id;
+  const name = s.name || "";
+  const displayName = s.display_name ?? s.displayName ?? name;
+  const explainText = s.explain_text ?? s.explainText;
+  const policyStatus = parsePolicyStatus(s.policy_status ?? s.policyStatus);
+  const version =
+    s.version !== undefined && s.version !== null ? Number(s.version) : undefined;
 
   return {
     id: String(id || ""),
-    name: name,
-    displayName: displayName,
+    name,
+    displayName,
     path: `CN={${id}},CN=Policies,CN=System`,
     enabled: true,
     description: explainText,
+    scope: s.scope,
+    policyStatus,
+    version: Number.isFinite(version) ? version : undefined,
   };
 }
 
@@ -186,6 +198,11 @@ export function adaptPolicyDetails(response: PolicyDetails): GPOPolicyDetails {
     path: `CN={${policy.hash}},CN=Policies,CN=System`,
     enabled: true,
     description: policy.supported_on_ref,
+    hash: policy.hash,
+    policyStatus: parsePolicyStatus(
+      policy.policy_status ?? policy.policyStatus,
+    ),
+    version: policy.version,
     settings: settings,
   };
 }

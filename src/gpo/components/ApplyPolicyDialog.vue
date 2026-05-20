@@ -154,6 +154,12 @@
                               <q-item-label>{{
                                 policy.displayName || policy.name
                               }}</q-item-label>
+                              <q-item-label caption class="q-mt-xs">
+                                <PolicyMetaChips
+                                  :version="policy.version"
+                                  :policy-status="policy.policyStatus"
+                                />
+                              </q-item-label>
                             </q-item-section>
                             <q-item-section
                               v-if="policyIsSimple[policy.id] !== undefined && policyIsSimple[policy.id] !== false"
@@ -253,6 +259,12 @@
                                 <q-item-label>{{
                                   policy.displayName || policy.name
                                 }}</q-item-label>
+                                <q-item-label caption class="q-mt-xs">
+                                  <PolicyMetaChips
+                                    :version="policy.version"
+                                    :policy-status="policy.policyStatus"
+                                  />
+                                </q-item-label>
                               </q-item-section>
                               <q-item-section
                                 v-if="
@@ -728,6 +740,30 @@
                               >
                                 Description not available
                               </div>
+                              <div class="row items-center q-gutter-sm q-mt-md">
+                                <span class="text-caption text-grey-6"
+                                  >Version:</span
+                                >
+                                <span class="text-body2">
+                                  {{
+                                    selectedPolicy.version !== undefined
+                                      ? selectedPolicy.version
+                                      : "—"
+                                  }}
+                                </span>
+                              </div>
+                              <div class="row items-center q-gutter-sm q-mt-xs">
+                                <span class="text-caption text-grey-6"
+                                  >Status:</span
+                                >
+                                <PolicyMetaChips
+                                  v-if="
+                                    selectedPolicy.policyStatus !== undefined
+                                  "
+                                  :policy-status="selectedPolicy.policyStatus"
+                                />
+                                <span v-else class="text-grey-5">—</span>
+                              </div>
                             </div>
                           </div>
                         </q-tab-panel>
@@ -849,6 +885,12 @@ import {
 import { fetchSupportedOsSelectOptions } from "../utils/supportedOsBuildSelect";
 import type { PolicyItem } from "../types/policy-catalog";
 import MultiTextBox from "@/components/ui/MultiTextBox.vue";
+import PolicyMetaChips from "@/gpo/components/shared/PolicyMetaChips.vue";
+import {
+  extractPolicyMetaFromRecord,
+  policyItemToGpoPolicyRow,
+  policyMetaSearchText,
+} from "@/gpo/utils/policy-meta";
 
 interface Agent {
   id: string;
@@ -895,15 +937,42 @@ interface PolicyDetailsElement {
   presentation_type?: string;
 }
 
+type PolicyDetailPolicy = Omit<Partial<GPOPolicy>, "id" | "name"> & {
+  id: string | number;
+  name: string;
+  hash?: string;
+};
+
 interface PolicyDetail {
   settings: Record<string, unknown>;
-  policy: Omit<Partial<GPOPolicy>, "id" | "name"> & {
-    id: string | number;
-    name: string;
-    hash?: string;
-    scope?: string;
-  };
+  policy: PolicyDetailPolicy;
   hash?: string;
+}
+
+function parsePolicyScopeFromApi(val: unknown): number | undefined {
+  if (val === null || val === undefined) return undefined;
+  if (typeof val === "number" && Number.isFinite(val)) {
+    return Math.trunc(val);
+  }
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    const asNum = Number.parseInt(trimmed, 10);
+    if (Number.isFinite(asNum)) return asNum;
+  }
+  return undefined;
+}
+
+function mapPolicyInfoFromDetails(
+  policyInfo: Record<string, unknown>,
+): PolicyDetailPolicy {
+  const meta = extractPolicyMetaFromRecord(policyInfo);
+  return {
+    id: policyInfo.id as string | number,
+    name: String(policyInfo.name ?? ""),
+    hash: policyInfo.hash ? String(policyInfo.hash) : undefined,
+    scope: parsePolicyScopeFromApi(policyInfo.scope),
+    ...meta,
+  };
 }
 
 interface PolicyPresentationElement {
@@ -1110,7 +1179,8 @@ const filteredAllPoliciesGrouped = computed(() => {
     list = list.filter(
       (p) =>
         (p.displayName || "").toLowerCase().includes(query) ||
-        (p.name || "").toLowerCase().includes(query),
+        (p.name || "").toLowerCase().includes(query) ||
+        policyMetaSearchText(p).includes(query),
     );
   }
   const byScope: Record<number, PolicyItem[]> = {};
@@ -1327,15 +1397,9 @@ async function loadPoliciesByCategory(categoryName: string) {
       );
       policies = policies.filter((p) => allowed.has(p.id));
     }
-    selectedCategoryPolicies.value = policies.map((p) => ({
-      id: p.id,
-      name: p.name,
-      displayName: p.displayName,
-      path: `CN={${p.id}},CN=Policies,CN=System`,
-      enabled: true,
-      description: p.description,
-      scope: p.scope,
-    }));
+    selectedCategoryPolicies.value = policies.map((p) =>
+      policyItemToGpoPolicyRow(p),
+    );
   } catch {
     notifyError("Error loading policies");
   } finally {
@@ -1352,16 +1416,7 @@ function selectPolicy(policy: PolicyRow) {
 }
 
 function selectAllPolicy(policy: PolicyItem) {
-  const row: PolicyRow = {
-    id: policy.id,
-    name: policy.name,
-    displayName: policy.displayName,
-    description: policy.description,
-    path: "",
-    enabled: true,
-    scope: policy.scope,
-  };
-  selectPolicy(row);
+  selectPolicy(policyItemToGpoPolicyRow(policy));
 }
 
 async function loadPolicyDetails(policy: PolicyRow) {
@@ -1771,24 +1826,15 @@ async function loadPolicyDetails(policy: PolicyRow) {
         const policyIdFromApi = String(policyInfo.id || policy.id);
         const policyId = policyIdFromApi || policy.id;
 
+        const mappedPolicy = mapPolicyInfoFromDetails(policyInfo);
         if (!policyDetails.value[policyId]) {
           policyDetails.value[policyId] = {
             settings: {},
-            policy: policyInfo as {
-              id: number | string;
-              name: string;
-              hash: string;
-              scope?: string;
-            },
+            policy: mappedPolicy,
             hash: policyHash,
           };
         } else {
-          policyDetails.value[policyId].policy = policyInfo as {
-            id: number | string;
-            name: string;
-            hash: string;
-            scope?: string;
-          };
+          policyDetails.value[policyId].policy = mappedPolicy;
           policyDetails.value[policyId].hash = policyHash;
         }
       }
@@ -2050,24 +2096,15 @@ async function loadPolicyDetails(policy: PolicyRow) {
           const policyIdFromApi = String(policyInfo.id || policy.id);
           const policyId = policyIdFromApi || policy.id;
 
+          const mappedPolicy = mapPolicyInfoFromDetails(policyInfo);
           if (!policyDetails.value[policyId]) {
             policyDetails.value[policyId] = {
               settings: {},
-              policy: policyInfo as {
-                id: number | string;
-                name: string;
-                hash: string;
-                scope?: string;
-              },
+              policy: mappedPolicy,
               hash: policyHash,
             };
           } else {
-            policyDetails.value[policyId].policy = policyInfo as {
-              id: number | string;
-              name: string;
-              hash: string;
-              scope?: string;
-            };
+            policyDetails.value[policyId].policy = mappedPolicy;
             policyDetails.value[policyId].hash = policyHash;
           }
         }

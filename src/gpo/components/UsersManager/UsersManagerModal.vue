@@ -323,6 +323,7 @@ import {
 import export_pb from "@/generated/common/export_pb";
 import operator_pb from "@/generated/operator_pb";
 import { notifyError, notifySuccess } from "@/utils/notify";
+import { mapRawCollectionPolicy } from "@/gpo/utils/policy-meta";
 
 import UsersListPanel from "./UsersListPanel.vue";
 import UserDetailPanel from "./UserDetailPanel.vue";
@@ -420,7 +421,12 @@ const userAppliedCollections = ref<
     id: number;
     name: string;
     explainText?: string;
-    policies?: { id: number; name: string }[];
+    policies?: {
+      id: number;
+      name: string;
+      policyStatus?: number;
+      version?: number;
+    }[];
     compliance?: {
       assignedAndApplied: number;
       assignedNotApplied: number;
@@ -1185,10 +1191,12 @@ async function loadUserAppliedCollections() {
         name: c.name ?? String(c.id ?? ""),
         explainText:
           (c.explainText ?? c.explain_text ?? "").trim() || undefined,
-        policies: rawPolicies.map((p) => ({
-          id: p.id ?? 0,
-          name: p.displayName ?? p.display_name ?? p.name ?? String(p.id ?? ""),
-        })),
+        policies: rawPolicies
+          .map((p) => {
+            const mapped = mapRawCollectionPolicy(p);
+            return mapped;
+          })
+          .filter((p): p is NonNullable<typeof p> => p !== null),
         compliance: {
           assignedAndApplied: 0,
           assignedNotApplied: 0,

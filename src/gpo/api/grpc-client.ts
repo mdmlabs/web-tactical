@@ -242,6 +242,58 @@ export const alertsClient = {
   },
 };
 
+export type UpdatePoliciesByHashParams = {
+  hash: string;
+  name?: string;
+  displayName?: string;
+  explainText?: string;
+  scope?: operator_pb.PolicyScope;
+  registryKey?: string;
+  valueName?: string;
+  enabledValue?: string;
+  disabledValue?: string;
+  supportedOnRef?: string;
+  parentCategoryRef?: string;
+  presentationRef?: string;
+  clientExtension?: string;
+  policyStatus?: operator_pb.PolicyStatus;
+};
+
+type UpdatePoliciesByHashOptionalField = Exclude<
+  keyof UpdatePoliciesByHashParams,
+  "hash"
+>;
+
+function applyUpdatePoliciesByHashFields(
+  request: operator_pb.UpdatePoliciesByHashRequest,
+  params: UpdatePoliciesByHashParams,
+): void {
+  const fieldSetters: Record<UpdatePoliciesByHashOptionalField, () => void> = {
+    name: () => request.setName(params.name!),
+    displayName: () => request.setDisplayname(params.displayName!),
+    explainText: () => request.setExplaintext(params.explainText!),
+    scope: () => request.setScope(params.scope!),
+    registryKey: () => request.setRegistrykey(params.registryKey!),
+    valueName: () => request.setValuename(params.valueName!),
+    enabledValue: () => request.setEnabledvalue(params.enabledValue!),
+    disabledValue: () => request.setDisabledvalue(params.disabledValue!),
+    supportedOnRef: () => request.setSupportedonref(params.supportedOnRef!),
+    parentCategoryRef: () =>
+      request.setParentcategoryref(params.parentCategoryRef!),
+    presentationRef: () => request.setPresentationref(params.presentationRef!),
+    clientExtension: () => request.setClientextension(params.clientExtension!),
+    policyStatus: () => request.setPolicystatus(params.policyStatus!),
+  };
+
+  (Object.keys(fieldSetters) as UpdatePoliciesByHashOptionalField[]).forEach(
+    (key) => {
+      if (params[key] != null) {
+        fieldSetters[key]();
+      }
+    },
+  );
+}
+
 export const policyCatalogClient = {
   async listPoliciesGroupedByScope(
     langCode: string = "en-US",
@@ -407,6 +459,37 @@ export const policyCatalogClient = {
     request.setExportFormat(exportFormat);
 
     const response = await policyCatalogServiceClient.exportAllPolicies(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async updateStatusPolicies(
+    hash: string,
+    policyStatus: operator_pb.PolicyStatus,
+  ): Promise<operator_pb_types.UpdateStatusPoliciesResponse.AsObject> {
+    const request = new operator_pb.UpdateStatusPoliciesRequest();
+    request.setHash(hash);
+    request.setPolicyStatus(policyStatus);
+
+    const response = await policyCatalogServiceClient.updateStatusPolicies(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async updatePoliciesByHash(
+    params: UpdatePoliciesByHashParams,
+  ): Promise<operator_pb_types.UpdatePoliciesByHashResponse.AsObject> {
+    const request = new operator_pb.UpdatePoliciesByHashRequest();
+    request.setHash(params.hash);
+    applyUpdatePoliciesByHashFields(request, params);
+
+    const response = await policyCatalogServiceClient.updatePoliciesByHash(
       request,
       createGrpcMetadata(),
     );
