@@ -5,6 +5,9 @@ export interface GPOPolicy {
   path: string;
   enabled: boolean;
   description?: string;
+  hash?: string;
+  scope?: number;
+  policyStatus?: number;
   version?: number;
   modified?: string;
   created?: string;
@@ -49,10 +52,22 @@ export interface CreateGPOPolicyRequest {
 }
 
 export interface UpdateGPOPolicyRequest {
+  hash: string;
   name?: string;
   displayName?: string;
+
   description?: string;
-  enabled?: boolean;
+  explainText?: string;
+  scope?: number;
+  registryKey?: string;
+  valueName?: string;
+  enabledValue?: string;
+  disabledValue?: string;
+  supportedOnRef?: string;
+  parentCategoryRef?: string;
+  presentationRef?: string;
+  clientExtension?: string;
+  policyStatus?: number;
 }
 
 export interface ApplyPolicyRequest {

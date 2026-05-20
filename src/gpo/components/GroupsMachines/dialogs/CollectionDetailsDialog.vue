@@ -67,6 +67,13 @@
                 <q-item-section>
                   <q-item-label>{{ p.name }}</q-item-label>
                 </q-item-section>
+                <q-item-section side>
+                  <PolicyMetaChips
+                    :version="p.version"
+                    :policy-status="p.policyStatus"
+                    align-end
+                  />
+                </q-item-section>
                 <q-item-section side class="policy-compliance-section">
                   <div v-if="p.compliance?.loading" class="compliance-loading-mini">
                     <q-spinner size="xs" color="grey-6" />
@@ -136,6 +143,8 @@ import {
   policyStateClient,
   createAgentTarget,
 } from "@/gpo/api/grpc-client";
+import PolicyMetaChips from "@/gpo/components/shared/PolicyMetaChips.vue";
+import { policyMetaSearchText } from "@/gpo/utils/policy-meta";
 
 interface AgentRow {
   id: string;
@@ -145,6 +154,8 @@ interface AgentRow {
 interface PolicyWithCompliance {
   id: number;
   name: string;
+  policyStatus?: number;
+  version?: number;
   compliance?: {
     appliedAgents: number;
     pendingAgents: number;
@@ -160,7 +171,12 @@ const props = defineProps<{
     id?: number;
     name?: string;
     explainText?: string;
-    policies?: Array<{ id?: number; name?: string }>;
+    policies?: Array<{
+      id?: number;
+      name?: string;
+      policyStatus?: number;
+      version?: number;
+    }>;
   } | null;
   policySearchQuery: string;
   categoryAgents: AgentRow[];
@@ -298,9 +314,10 @@ const filteredPoliciesWithCompliance = computed(() => {
   if (!props.policySearchQuery) return policiesWithCompliance.value;
 
   const query = props.policySearchQuery.toLowerCase();
-  return policiesWithCompliance.value.filter((p) =>
-    p.name.toLowerCase().includes(query),
-  );
+  return policiesWithCompliance.value.filter((p) => {
+    const metaText = policyMetaSearchText(p);
+    return p.name.toLowerCase().includes(query) || metaText.includes(query);
+  });
 });
 
 watch(
@@ -313,9 +330,11 @@ watch(
 
     const collection = props.collection;
     if (!collection?.policies || !props.selectedCategoryId || !props.categoryAgents.length) {
-      policiesWithCompliance.value = collection?.policies?.map(p => ({
+      policiesWithCompliance.value = collection?.policies?.map((p) => ({
         id: p.id ?? 0,
         name: p.name ?? "",
+        policyStatus: p.policyStatus,
+        version: p.version,
         compliance: {
           appliedAgents: 0,
           pendingAgents: 0,
@@ -327,9 +346,11 @@ watch(
       return;
     }
 
-    policiesWithCompliance.value = collection.policies.map(p => ({
+    policiesWithCompliance.value = collection.policies.map((p) => ({
       id: p.id ?? 0,
       name: p.name ?? "",
+      policyStatus: p.policyStatus,
+      version: p.version,
       compliance: {
         appliedAgents: 0,
         pendingAgents: 0,

@@ -257,6 +257,7 @@ import type { TargetRef } from "@/gpo/composables/useTargetSelection";
 import { fetchAgentRowsForIds } from "@/gpo/composables/useUserActions";
 import TargetSelectionDialog from "@/gpo/components/shared/TargetSelectionDialog.vue";
 import { notifyError, notifySuccess } from "@/utils/notify";
+import { mapRawCollectionPolicy } from "@/gpo/utils/policy-meta";
 import { fetchSite } from "@/api/clients";
 import axios from "axios";
 
@@ -637,7 +638,12 @@ const categoryAppliedCollections = ref<
     id: number;
     name: string;
     explainText?: string;
-    policies?: { id: number; name: string }[];
+    policies?: {
+    id: number;
+    name: string;
+    policyStatus?: number;
+    version?: number;
+  }[];
     compliance?: {
       assignedAndApplied: number;
       assignedNotApplied: number;
@@ -658,7 +664,12 @@ type CollectionType = {
   id: number;
   name: string;
   explainText?: string;
-  policies?: { id: number; name: string }[];
+  policies?: {
+    id: number;
+    name: string;
+    policyStatus?: number;
+    version?: number;
+  }[];
   compliance?: {
     assignedAndApplied: number;
     assignedNotApplied: number;
@@ -1116,10 +1127,9 @@ async function loadCategoryAppliedCollections() {
         name: c.name ?? String(c.id ?? ""),
         explainText:
           (c.explainText ?? c.explain_text ?? "").trim() || undefined,
-        policies: rawPolicies.map((p) => ({
-          id: p.id ?? 0,
-          name: p.displayName ?? p.display_name ?? p.name ?? String(p.id ?? ""),
-        })),
+        policies: rawPolicies
+          .map((p) => mapRawCollectionPolicy(p))
+          .filter((p): p is NonNullable<typeof p> => p !== null),
         compliance: {
           assignedAndApplied: 0,
           assignedNotApplied: 0,

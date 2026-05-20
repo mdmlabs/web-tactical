@@ -338,6 +338,23 @@
                   </q-td>
                 </template>
 
+                <template v-slot:body-cell-version="props">
+                  <q-td :props="props" class="text-center">
+                    {{ assignmentPolicyVersion(props.row) ?? "—" }}
+                  </q-td>
+                </template>
+
+                <template v-slot:body-cell-policyStatus="props">
+                  <q-td :props="props" class="text-center">
+                    <q-badge
+                      v-if="assignmentPolicyStatus(props.row) !== undefined"
+                      :color="policyStatusColor(assignmentPolicyStatus(props.row))"
+                      :label="policyStatusLabel(assignmentPolicyStatus(props.row))"
+                    />
+                    <span v-else class="text-grey-5">—</span>
+                  </q-td>
+                </template>
+
               </q-table>
               </div>
             </template>
@@ -493,6 +510,23 @@
                       :label="effectiveScopeLabel(props.row)"
                       outline
                     />
+                  </q-td>
+                </template>
+
+                <template v-slot:body-cell-version="props">
+                  <q-td :props="props" class="text-center">
+                    {{ effectivePolicyVersion(props.row) ?? "—" }}
+                  </q-td>
+                </template>
+
+                <template v-slot:body-cell-policyStatus="props">
+                  <q-td :props="props" class="text-center">
+                    <q-badge
+                      v-if="effectivePolicyStatus(props.row) !== undefined"
+                      :color="policyStatusColor(effectivePolicyStatus(props.row))"
+                      :label="policyStatusLabel(effectivePolicyStatus(props.row))"
+                    />
+                    <span v-else class="text-grey-5">—</span>
                   </q-td>
                 </template>
 
@@ -652,6 +686,14 @@ import { notifySuccess, notifyError } from "@/utils/notify";
 import ConnectivityPoliciesTab from "./ConnectivityPolicy/ConnectivityPoliciesTab.vue";
 import ExportAgentStatusRangeDialog from "./ExportAgentStatusRangeDialog.vue";
 import type { ExportAgentStatusRangePayload } from "./ExportAgentStatusRangeDialog.vue";
+import {
+  policyStatusColor,
+  policyStatusLabel,
+} from "@/gpo/utils/policy-status";
+import {
+  extractPolicyMetaFromRecord,
+  policyMetaSearchText,
+} from "@/gpo/utils/policy-meta";
 
 interface Agent {
   id: string;
@@ -912,9 +954,44 @@ function effectiveSummaryObject(
   return undefined;
 }
 
+function assignmentPolicyMeta(row: Record<string, unknown>) {
+  const fromRow = extractPolicyMetaFromRecord(row);
+  if (fromRow.policyStatus !== undefined || fromRow.version !== undefined) {
+    return fromRow;
+  }
+  return extractPolicyMetaFromRecord(
+    row["summary"] as Record<string, unknown> | undefined,
+  );
+}
+
+function assignmentPolicyVersion(row: Record<string, unknown>): number | undefined {
+  return assignmentPolicyMeta(row).version;
+}
+
+function assignmentPolicyStatus(row: Record<string, unknown>): number | undefined {
+  return assignmentPolicyMeta(row).policyStatus;
+}
+
+function effectivePolicyMeta(row: Record<string, unknown>) {
+  const fromRow = extractPolicyMetaFromRecord(row);
+  if (fromRow.policyStatus !== undefined || fromRow.version !== undefined) {
+    return fromRow;
+  }
+  return extractPolicyMetaFromRecord(effectiveSummaryObject(row));
+}
+
+function effectivePolicyVersion(row: Record<string, unknown>): number | undefined {
+  return effectivePolicyMeta(row).version;
+}
+
+function effectivePolicyStatus(row: Record<string, unknown>): number | undefined {
+  return effectivePolicyMeta(row).policyStatus;
+}
+
 function effectivePolicySearchBlob(row: Record<string, unknown>): string {
   const parts: string[] = [effectivePolicyName(row), effectivePolicyRowSid(row)];
   parts.push(scopeLabel(row).toLowerCase());
+  parts.push(policyMetaSearchText(effectivePolicyMeta(row)));
   const sum = effectiveSummaryObject(row);
   if (sum) {
     parts.push(
@@ -959,7 +1036,8 @@ const filteredAssignments = computed(() => {
     return (
       assignmentPolicyName(row).includes(q) ||
       userName.includes(q) ||
-      sid.includes(q)
+      sid.includes(q) ||
+      policyMetaSearchText(assignmentPolicyMeta(row)).includes(q)
     );
   });
 });
@@ -1053,6 +1131,20 @@ const assignmentColumns: QTableColumn[] = [
           "",
       ),
   },
+  {
+    name: "version",
+    label: "Version",
+    align: "center",
+    field: (row: Record<string, unknown>) =>
+      assignmentPolicyVersion(row) ?? "",
+  },
+  {
+    name: "policyStatus",
+    label: "Status",
+    align: "center",
+    field: (row: Record<string, unknown>) =>
+      assignmentPolicyStatus(row) ?? "",
+  },
 ];
 
 const effectiveColumns: QTableColumn[] = [
@@ -1102,7 +1194,18 @@ const effectiveColumns: QTableColumn[] = [
     align: "center",
     field: (row: Record<string, unknown>) => scopeLabel(row),
   },
-
+  {
+    name: "version",
+    label: "Version",
+    align: "center",
+    field: (row: Record<string, unknown>) => effectivePolicyVersion(row) ?? "",
+  },
+  {
+    name: "policyStatus",
+    label: "Status",
+    align: "center",
+    field: (row: Record<string, unknown>) => effectivePolicyStatus(row) ?? "",
+  },
   {
     name: "actions",
     label: "",

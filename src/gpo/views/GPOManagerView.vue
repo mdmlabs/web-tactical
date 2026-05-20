@@ -102,7 +102,9 @@
                                 </div>
                                 <div class="system-info-kv">
                                   <div class="system-info-k">Kiosk mode</div>
-                                  <div class="system-info-v row items-center q-gutter-xs">
+                                  <div
+                                    class="system-info-v row items-center q-gutter-xs"
+                                  >
                                     <q-spinner
                                       v-if="kioskModeLoading"
                                       color="primary"
@@ -1258,25 +1260,37 @@
 
           <q-tab-panels v-model="libraryNav" class="gpo-library-panels">
             <q-tab-panel name="all" class="q-pa-none">
-              <div class="row q-mb-md items-center">
+              <div class="row q-mb-md items-center q-col-gutter-sm">
                 <q-input
                   v-model="policyFilter"
                   placeholder="Policy search..."
                   dense
                   outlined
-                  class="col-4"
+                  class="col-12 col-sm-5 col-md-4"
                 >
                   <template v-slot:append>
                     <q-icon name="search" />
                   </template>
                 </q-input>
-                <q-space />
+                <q-select
+                  v-model="policyStatusFilter"
+                  :options="policyStatusFilterOptions"
+                  label="Status"
+                  emit-value
+                  map-options
+                  clearable
+                  dense
+                  outlined
+                  class="col-12 col-sm-4 col-md-3"
+                />
+                <q-space class="gt-xs" />
                 <q-btn
                   flat
                   dense
                   color="secondary"
                   icon="download"
                   label=""
+                  class="col-auto"
                   :disable="!filteredPoliciesByCategory('all').length"
                 >
                   <q-menu>
@@ -1358,6 +1372,19 @@
                       </span>
                     </q-td>
                   </template>
+                  <template v-slot:body-cell-version="props">
+                    <q-td :props="props" class="text-center">
+                      {{ props.row.version ?? "—" }}
+                    </q-td>
+                  </template>
+                  <template v-slot:body-cell-policyStatus="props">
+                    <q-td :props="props" class="text-center">
+                      <q-badge
+                        :color="policyStatusColor(props.row.policyStatus)"
+                        :label="policyStatusLabel(props.row.policyStatus)"
+                      />
+                    </q-td>
+                  </template>
                   <template v-slot:body-cell-actions="props">
                     <q-td :props="props">
                       <q-btn
@@ -1385,25 +1412,37 @@
             </q-tab-panel>
 
             <q-tab-panel name="templates" class="q-pa-none">
-              <div class="row q-mb-md items-center">
+              <div class="row q-mb-md items-center q-col-gutter-sm">
                 <q-input
                   v-model="policyFilter"
                   placeholder="Search for templates..."
                   dense
                   outlined
-                  class="col-4"
+                  class="col-12 col-sm-5 col-md-4"
                 >
                   <template v-slot:append>
                     <q-icon name="search" />
                   </template>
                 </q-input>
-                <q-space />
+                <q-select
+                  v-model="policyStatusFilter"
+                  :options="policyStatusFilterOptions"
+                  label="Status"
+                  emit-value
+                  map-options
+                  clearable
+                  dense
+                  outlined
+                  class="col-12 col-sm-4 col-md-3"
+                />
+                <q-space class="gt-xs" />
                 <q-btn
                   flat
                   dense
                   color="secondary"
                   icon="download"
                   label=""
+                  class="col-auto"
                   :disable="!filteredPoliciesByCategory('templates').length"
                 >
                   <q-menu>
@@ -1483,6 +1522,19 @@
                             : props.row.description || ""
                         }}
                       </span>
+                    </q-td>
+                  </template>
+                  <template v-slot:body-cell-version="props">
+                    <q-td :props="props" class="text-center">
+                      {{ props.row.version ?? "—" }}
+                    </q-td>
+                  </template>
+                  <template v-slot:body-cell-policyStatus="props">
+                    <q-td :props="props" class="text-center">
+                      <q-badge
+                        :color="policyStatusColor(props.row.policyStatus)"
+                        :label="policyStatusLabel(props.row.policyStatus)"
+                      />
                     </q-td>
                   </template>
                   <template v-slot:body-cell-actions="props">
@@ -2327,6 +2379,12 @@ import {
   resolveKioskModeFromAssignments,
   type KioskModeInfo,
 } from "@/gpo/utils/kioskModePolicy";
+import {
+  POLICY_STATUS_OPTIONS,
+  policyStatusColor,
+  policyStatusLabel,
+} from "@/gpo/utils/policy-status";
+import { extractPolicyMetaFromRecord } from "@/gpo/utils/policy-meta";
 import type {
   GPOPolicy,
   CreateGPOPolicyRequest,
@@ -2413,6 +2471,12 @@ const libraryNav = computed<LibraryNav>({
 const selectedAgent = ref<Agent | null>(null);
 const usersLoading = ref(false);
 const policyFilter = ref("");
+const policyStatusFilter = ref<number | null>(null);
+
+const policyStatusFilterOptions = [
+  { label: "All statuses", value: null },
+  ...POLICY_STATUS_OPTIONS.map((o) => ({ label: o.label, value: o.value })),
+];
 const selectedPolicyForManagement = ref<GPOPolicy | null>(null);
 const selectedPoliciesForManagement = ref<GPOPolicy[]>([]);
 const showPolicyDialog = ref(false);
@@ -2538,7 +2602,9 @@ const gpoAgents = ref<Agent[]>([]);
 const agentSearch = ref("");
 
 const agentListFilters = reactive<AgentListFilters>(emptyAgentListFilters());
-const agentListFiltersDraft = reactive<AgentListFilters>(emptyAgentListFilters());
+const agentListFiltersDraft = reactive<AgentListFilters>(
+  emptyAgentListFilters(),
+);
 const showAgentFilterDialog = ref(false);
 const agentFilterOptionsLoading = ref(false);
 const manufacturerCatalog = ref<Array<{ name: string; models: string[] }>>([]);
@@ -2578,7 +2644,8 @@ watch(
   (mfr) => {
     const mfrTrimmed = trimFilterValue(mfr);
     const models =
-      manufacturerCatalog.value.find((m) => m.name === mfrTrimmed)?.models ?? [];
+      manufacturerCatalog.value.find((m) => m.name === mfrTrimmed)?.models ??
+      [];
     const model = trimFilterValue(agentListFiltersDraft.model);
     if (model && !models.includes(model)) {
       agentListFiltersDraft.model = "";
@@ -2673,7 +2740,9 @@ async function applyAgentListFilters(): Promise<void> {
   await loadAgents();
 }
 
-async function clearAgentFilterField(field: AgentListFilterField): Promise<void> {
+async function clearAgentFilterField(
+  field: AgentListFilterField,
+): Promise<void> {
   agentListFilters[field] = "";
   if (field === "manufacturer") {
     agentListFilters.model = "";
@@ -2913,6 +2982,20 @@ const policyColumns: QTableColumn[] = [
     field: "description",
   },
   {
+    name: "version",
+    label: "Version",
+    align: "center",
+    field: "version",
+    sortable: true,
+  },
+  {
+    name: "policyStatus",
+    label: "Status",
+    align: "center",
+    field: "policyStatus",
+    sortable: true,
+  },
+  {
     name: "actions",
     label: "Actions",
     align: "center",
@@ -2931,11 +3014,16 @@ const filteredPoliciesByCategory = (category: "all" | "templates") => {
         const path = policy.path?.toLowerCase() ?? "";
         const displayName = policy.displayName?.toLowerCase() ?? "";
         const description = policy.description?.toLowerCase() ?? "";
+        const statusLabel = policyStatusLabel(policy.policyStatus).toLowerCase();
+        const versionStr =
+          policy.version !== undefined ? String(policy.version) : "";
         return (
           name.includes(filter) ||
           path.includes(filter) ||
           displayName.includes(filter) ||
-          description.includes(filter)
+          description.includes(filter) ||
+          statusLabel.includes(filter) ||
+          versionStr.includes(filter)
         );
       });
 
@@ -2950,6 +3038,13 @@ const filteredPoliciesByCategory = (category: "all" | "templates") => {
         displayName.includes("template")
       );
     });
+  }
+
+  const statusFilter = policyStatusFilter.value;
+  if (statusFilter !== null && statusFilter !== undefined) {
+    policies = policies.filter(
+      (policy) => policy.policyStatus === statusFilter,
+    );
   }
 
   return policies;
@@ -4209,6 +4304,7 @@ async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
         scopeRaw !== undefined && scopeRaw !== null
           ? String(scopeRaw)
           : undefined;
+      const meta = extractPolicyMetaFromRecord(summary);
       return {
         ...a,
         policyHash,
@@ -4218,6 +4314,7 @@ async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
         explainText: explainText || undefined,
         description: explainText || undefined,
         scope: scope || undefined,
+        ...meta,
       };
     }),
   );
@@ -4244,6 +4341,7 @@ async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
       scopeRaw !== undefined && scopeRaw !== null
         ? String(scopeRaw)
         : undefined;
+    const meta = extractPolicyMetaFromRecord(summary);
     return {
       ...p,
       policyHash,
@@ -4254,6 +4352,7 @@ async function loadAppliedPoliciesDialogData(agentId: string): Promise<void> {
       explainText: explainText || undefined,
       description: explainText || undefined,
       scope: scope || undefined,
+      ...meta,
     };
   });
 }
@@ -4385,6 +4484,17 @@ function exportPolicies(category: "all" | "templates", format: "csv" | "xlsx") {
     { name: "description", label: "Description", field: "description" },
     { name: "path", label: "Path", field: "path" },
     { name: "scope", label: "Scope", field: "scope" },
+    {
+      name: "version",
+      label: "Version",
+      field: (row: GPOPolicy) =>
+        row.version !== undefined ? String(row.version) : "",
+    },
+    {
+      name: "policyStatus",
+      label: "Status",
+      field: (row: GPOPolicy) => policyStatusLabel(row.policyStatus),
+    },
     {
       name: "enabled",
       label: "Enabled",

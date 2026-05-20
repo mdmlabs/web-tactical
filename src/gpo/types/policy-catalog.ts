@@ -39,4 +39,6 @@ export interface PolicyItem {
   hash?: string;
   state?: boolean;
   supportedOnRef?: string;
+  policyStatus?: number;
+  version?: number;
 }

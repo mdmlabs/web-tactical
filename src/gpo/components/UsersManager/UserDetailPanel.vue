@@ -668,6 +668,13 @@
                   <q-item-section>
                     <q-item-label>{{ p.name }}</q-item-label>
                   </q-item-section>
+                  <q-item-section side>
+                    <PolicyMetaChips
+                      :version="p.version"
+                      :policy-status="p.policyStatus"
+                      align-end
+                    />
+                  </q-item-section>
                   <q-item-section side class="policy-compliance-section">
                     <div
                       v-if="p.compliance?.loading"
@@ -766,6 +773,8 @@ import type { GroupRow, AgentRow } from "@/gpo/composables/useUserActions";
 import { exportPolicyCollections } from "@/utils/csv";
 import { policyStateClient, createAgentTarget } from "@/gpo/api/grpc-client";
 import ComplianceBar from "@/gpo/components/shared/ComplianceBar.vue";
+import PolicyMetaChips from "@/gpo/components/shared/PolicyMetaChips.vue";
+import { policyMetaSearchText } from "@/gpo/utils/policy-meta";
 import type { ConnectivityPolicyTarget } from "@/gpo/api/connectivity-policy";
 import AgentAlertsTab from "@/gpo/components/AgentAlertsTab.vue";
 import ConnectivityPoliciesTab from "@/gpo/components/ConnectivityPolicy/ConnectivityPoliciesTab.vue";
@@ -791,7 +800,12 @@ const props = withDefaults(
       id: number;
       name: string;
       explainText?: string;
-      policies?: { id: number; name: string }[];
+      policies?: {
+        id: number;
+        name: string;
+        policyStatus?: number;
+        version?: number;
+      }[];
     }[];
     appliedCollectionsLoading?: boolean;
     canApplyCollection: boolean;
@@ -889,7 +903,12 @@ type CollectionType = {
   id: number;
   name: string;
   explainText?: string;
-  policies?: { id: number; name: string }[];
+  policies?: {
+    id: number;
+    name: string;
+    policyStatus?: number;
+    version?: number;
+  }[];
   compliance?: {
     assignedAndApplied: number;
     assignedNotApplied: number;
@@ -935,6 +954,8 @@ const filteredAppliedCollections = computed(() => {
 interface PolicyWithCompliance {
   id: number;
   name: string;
+  policyStatus?: number;
+  version?: number;
   compliance?: {
     appliedAgents: number;
     pendingAgents: number;
@@ -965,9 +986,10 @@ const filteredPolicies = computed(() => {
   const query = (policySearchQuery.value ?? "").toLowerCase().trim();
   if (!query) return policiesWithCompliance.value;
 
-  return policiesWithCompliance.value.filter((p) =>
-    p.name.toLowerCase().includes(query),
-  );
+  return policiesWithCompliance.value.filter((p) => {
+    const metaText = policyMetaSearchText(p);
+    return p.name.toLowerCase().includes(query) || metaText.includes(query);
+  });
 });
 
 async function mapWithConcurrency<T, R>(

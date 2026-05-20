@@ -1,4 +1,5 @@
 import type { CategoryNode, PolicyItem } from "../types/policy-catalog";
+import { parsePolicyStatus } from "../utils/policy-status";
 
 function str(val: unknown): string {
   if (val == null) return "";
@@ -127,6 +128,9 @@ function normalizePolicySummary(
     state?: boolean;
     supported_on_ref?: string;
     supportedOnRef?: string;
+    policy_status?: number | string;
+    policyStatus?: number | string;
+    version?: number;
   };
   const name = str(item.name);
   const explainText = item.explain_text ?? item.explainText;
@@ -144,6 +148,13 @@ function normalizePolicySummary(
   const supportedOnRef = trimNonEmpty(
     item.supported_on_ref ?? item.supportedOnRef,
   );
+  const policyStatus = parsePolicyStatus(
+    item.policy_status ?? item.policyStatus,
+  );
+  const version =
+    item.version !== undefined && item.version !== null
+      ? num(item.version, NaN)
+      : undefined;
 
   return {
     id: String(item.id ?? ""),
@@ -154,6 +165,8 @@ function normalizePolicySummary(
     hash,
     state,
     supportedOnRef,
+    policyStatus,
+    version: Number.isFinite(version) ? version : undefined,
   };
 }
 

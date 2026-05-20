@@ -308,6 +308,21 @@
                     </q-expansion-item>
                   </q-td>
                 </template>
+                <template v-slot:body-cell-version="props">
+                  <q-td :props="props" class="text-center">
+                    {{ props.row.version ?? "—" }}
+                  </q-td>
+                </template>
+                <template v-slot:body-cell-policyStatus="props">
+                  <q-td :props="props" class="text-center">
+                    <q-badge
+                      v-if="props.row.policyStatus !== undefined"
+                      :color="policyStatusColor(props.row.policyStatus)"
+                      :label="policyStatusLabel(props.row.policyStatus)"
+                    />
+                    <span v-else class="text-grey-5">—</span>
+                  </q-td>
+                </template>
               </q-table>
             </div>
           </q-card-section>
@@ -449,6 +464,14 @@ import export_pb from "@/generated/common/export_pb";
 import { notifyError, notifySuccess } from "@/utils/notify";
 import CollectionPolicyPickerDialog from "../CollectionsPolicies/CollectionPolicyPickerDialog.vue";
 import ApplyCollectionTargetDialog from "../CollectionsPolicies/ApplyCollectionTargetDialog.vue";
+import {
+  policyStatusColor,
+  policyStatusLabel,
+} from "@/gpo/utils/policy-status";
+import {
+  extractPolicyMetaFromRecord,
+  policyMetaSearchText,
+} from "@/gpo/utils/policy-meta";
 
 interface PolicyItem {
   id?: number | string;
@@ -457,6 +480,8 @@ interface PolicyItem {
   displayName?: string;
   explain_text?: string;
   explainText?: string;
+  policyStatus?: number;
+  version?: number;
 }
 
 interface CollectionDetailsData {
@@ -675,13 +700,26 @@ const applyTargetCollectionId = ref<number>(0);
 const applyTargetCollectionName = ref("");
 const applyTargetMode = ref<"apply" | "remove">("apply");
 
-const policiesForDisplay = computed(() => {
+const policiesForDisplay = computed((): PolicyItem[] => {
   const c = collectionDetails.value;
   if (!c) return [];
   const arr =
     (c as Record<string, unknown>).policiesList ??
     (c as Record<string, unknown>).policies;
-  return Array.isArray(arr) ? arr : [];
+  if (!Array.isArray(arr)) return [];
+  return arr.map((raw) => {
+    const p = raw as Record<string, unknown>;
+    const meta = extractPolicyMetaFromRecord(p);
+    return {
+      id: p.id as number | string | undefined,
+      name: p.name as string | undefined,
+      display_name: p.display_name as string | undefined,
+      displayName: p.displayName as string | undefined,
+      explain_text: p.explain_text as string | undefined,
+      explainText: p.explainText as string | undefined,
+      ...meta,
+    };
+  });
 });
 
 const filteredPoliciesForDisplay = computed(() => {
@@ -695,7 +733,11 @@ const filteredPoliciesForDisplay = computed(() => {
     const desc = String(
       p.explainText ?? p.explain_text ?? "",
     ).toLowerCase();
-    return title.includes(q) || desc.includes(q);
+    return (
+      title.includes(q) ||
+      desc.includes(q) ||
+      policyMetaSearchText(p).includes(q)
+    );
   });
 });
 
@@ -706,6 +748,18 @@ const collectionPoliciesColumns: QTableColumn[] = [
     field: (row: PolicyItem) =>
       row.displayName ?? row.display_name ?? row.name ?? "—",
     align: "left",
+  },
+  {
+    name: "version",
+    label: "Version",
+    field: (row: PolicyItem) => row.version ?? "",
+    align: "center",
+  },
+  {
+    name: "policyStatus",
+    label: "Status",
+    field: (row: PolicyItem) => row.policyStatus ?? "",
+    align: "center",
   },
 ];
 
