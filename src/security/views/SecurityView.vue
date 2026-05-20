@@ -119,7 +119,7 @@
             </div>
             <q-select
               v-model="chartAgentId"
-              :options="agentOptions"
+              :options="chartAgentOptions"
               label="Agent name / ID"
               dense
               outlined
@@ -127,7 +127,10 @@
               emit-value
               map-options
               options-dense
+              use-input
+              input-debounce="0"
               style="min-width: 360px"
+              @filter="filterChartAgentOptions"
               @update:model-value="loadAgentHealthHistory"
             />
             <q-select
@@ -3471,6 +3474,7 @@ const tabByRouteName: Record<string, string> = {
 const chartAgentId = ref("");
 const agentHealthHistory = ref<any[]>([]);
 const agentOptions = ref<{ label: string; value: string }[]>([]);
+const chartAgentOptions = ref<{ label: string; value: string; search: string }[]>([]);
 const healthRangeHours = ref(1);
 const healthRangeOptions = [
   { label: "15 min", value: 0.25 },
@@ -3615,16 +3619,45 @@ async function loadAgentOptions() {
       ? response.data
       : (response.data?.agents ?? []);
     agentOptions.value = list.map((agent: any) => ({
-      label: `${agent.hostname || agent.description || "Unnamed device"} (${agent.agent_id})`,
+      label: [
+        agent.hostname || agent.description || "Unnamed device",
+        agent.description && agent.description !== agent.hostname
+          ? `- ${agent.description}`
+          : "",
+        `(${agent.agent_id})`,
+      ]
+        .filter(Boolean)
+        .join(" "),
       value: agent.agent_id,
+    }));
+    chartAgentOptions.value = agentOptions.value.map((agent) => ({
+      ...agent,
+      search: `${agent.label} ${agent.value}`.toLowerCase(),
     }));
   } catch (e: any) {
     agentOptions.value = [];
+    chartAgentOptions.value = [];
     $q.notify({
       message: _apiErrMessage(e, "Failed to load agent list"),
       color: "negative",
     });
   }
+}
+
+function filterChartAgentOptions(
+  value: string,
+  update: (callback: () => void) => void,
+) {
+  update(() => {
+    const needle = (value || "").trim().toLowerCase();
+    const source = agentOptions.value.map((agent) => ({
+      ...agent,
+      search: `${agent.label} ${agent.value}`.toLowerCase(),
+    }));
+    chartAgentOptions.value = needle
+      ? source.filter((agent) => agent.search.includes(needle))
+      : source;
+  });
 }
 
 async function loadUSBScopeOptions() {
