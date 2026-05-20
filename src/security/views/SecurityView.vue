@@ -117,41 +117,87 @@
             <div class="text-subtitle1">
               {{ $t("security.views.SecurityView.6cb9fd") }}
             </div>
-            <q-input
+            <q-select
               v-model="chartAgentId"
-              :label="$t('security.views.SecurityView.b51973')"
+              :options="agentOptions"
+              label="Agent name / ID"
               dense
               outlined
               clearable
-              style="min-width: 220px"
+              emit-value
+              map-options
+              options-dense
+              style="min-width: 360px"
               @update:model-value="loadAgentHealthHistory"
+            />
+            <q-select
+              v-model="healthRangeHours"
+              :options="healthRangeOptions"
+              label="Range"
+              dense
+              outlined
+              emit-value
+              map-options
+              style="min-width: 130px"
+              @update:model-value="loadAgentHealthHistory"
+            />
+            <q-toggle
+              v-model="liveHealthMode"
+              label="Live"
+              color="negative"
+              :disable="!chartAgentId"
             />
             <q-btn
               color="primary"
               dense
               icon="refresh"
-              @click="loadAgentHealthHistory"
+              :loading="liveHealthLoading"
+              @click="requestLiveHealthSample"
             />
+          </div>
+          <div v-if="chartAgentId" class="row items-center q-gutter-sm q-mb-sm">
+            <q-chip dense color="primary" text-color="white">
+              {{ selectedChartAgentLabel }}
+            </q-chip>
+            <q-chip dense :color="healthColor(selectedChartHealthStatus)" text-color="white">
+              {{ selectedChartHealthStatus }}
+            </q-chip>
+            <span class="text-caption text-grey">
+              {{ healthHistoryIntervalLabel }}
+            </span>
+            <span v-if="liveHealthMode" class="text-caption text-negative">
+              Live sample every 10s
+            </span>
           </div>
           <div class="row q-gutter-md" v-if="agentHealthHistory.length > 0">
             <div class="col-12 col-sm-5 col-md-3">
               <HealthChart
                 :title="$t('security.views.SecurityView.decb09')"
                 :data="agentHealthHistory.map((h) => h.cpu_usage || 0)"
+                :labels="healthHistoryLabels"
+                :subtitle="healthHistoryIntervalLabel"
+                :warnThreshold="healthThresholds.cpu_warn"
+                :critThreshold="healthThresholds.cpu_crit"
               />
             </div>
             <div class="col-12 col-sm-5 col-md-3">
               <HealthChart
                 :title="$t('security.views.SecurityView.78d3a7')"
                 :data="agentHealthHistory.map((h) => h.memory_usage || 0)"
+                :labels="healthHistoryLabels"
+                :subtitle="healthHistoryIntervalLabel"
+                :warnThreshold="healthThresholds.mem_warn"
+                :critThreshold="healthThresholds.mem_crit"
               />
             </div>
             <div class="col-12 col-sm-5 col-md-3">
               <HealthChart
                 :title="$t('security.views.SecurityView.20876c')"
                 :data="agentHealthHistory.map((h) => h.disk_usage || 0)"
-                :warnThreshold="80"
-                :critThreshold="90"
+                :labels="healthHistoryLabels"
+                :subtitle="healthHistoryIntervalLabel"
+                :warnThreshold="healthThresholds.disk_warn"
+                :critThreshold="healthThresholds.disk_crit"
               />
             </div>
           </div>
@@ -3425,6 +3471,69 @@ const tabByRouteName: Record<string, string> = {
 const chartAgentId = ref("");
 const agentHealthHistory = ref<any[]>([]);
 const agentOptions = ref<{ label: string; value: string }[]>([]);
+const healthRangeHours = ref(1);
+const healthRangeOptions = [
+  { label: "15 min", value: 0.25 },
+  { label: "1 hour", value: 1 },
+  { label: "4 hours", value: 4 },
+  { label: "24 hours", value: 24 },
+];
+const liveHealthMode = ref(false);
+const liveHealthLoading = ref(false);
+const healthThresholds = ref({
+  cpu_warn: 85,
+  cpu_crit: 95,
+  mem_warn: 85,
+  mem_crit: 95,
+  disk_warn: 85,
+  disk_crit: 95,
+});
+let liveHealthTimer: ReturnType<typeof setInterval> | null = null;
+
+function healthSampleTime(row: any) {
+  return row?.recorded_at || row?.updated_at || row?.created_at || "";
+}
+
+function formatHealthTime(value: string) {
+  if (!value) return "n/a";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "n/a";
+  return date.toLocaleString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+const healthHistoryLabels = computed(() =>
+  agentHealthHistory.value.map((row) => formatHealthTime(healthSampleTime(row))),
+);
+
+const healthHistoryIntervalLabel = computed(() => {
+  if (!agentHealthHistory.value.length) return "No samples";
+  const first = healthSampleTime(agentHealthHistory.value[0]);
+  const last = healthSampleTime(
+    agentHealthHistory.value[agentHealthHistory.value.length - 1],
+  );
+  return `${formatHealthTime(first)} - ${formatHealthTime(last)} · ${agentHealthHistory.value.length} samples`;
+});
+
+const selectedChartAgentLabel = computed(() => {
+  const option = agentOptions.value.find((item) => item.value === chartAgentId.value);
+  return option?.label || chartAgentId.value || "No agent selected";
+});
+
+const selectedChartHealthStatus = computed(() => {
+  const row = devices.value.find((item) => item.agent_id === chartAgentId.value);
+  return row?.overall_status || "unknown";
+});
+
+function stopLiveHealthWatch() {
+  if (liveHealthTimer) {
+    clearInterval(liveHealthTimer);
+    liveHealthTimer = null;
+  }
+}
 
 async function loadAgentHealthHistory() {
   if (!chartAgentId.value) {
@@ -3433,7 +3542,7 @@ async function loadAgentHealthHistory() {
   }
   try {
     const resp = await axios.get("/winadvanced/health-history/", {
-      params: { agent_id: chartAgentId.value, hours: 4 },
+      params: { agent_id: chartAgentId.value, hours: healthRangeHours.value },
     });
     if (Array.isArray(resp.data) && resp.data.length > 0) {
       agentHealthHistory.value = resp.data;
@@ -3453,6 +3562,50 @@ async function loadAgentHealthHistory() {
   }
 }
 
+async function loadHealthThresholds() {
+  try {
+    const resp = await axios.get("/security/health/thresholds/", {
+      params: { agent_id: chartAgentId.value || undefined },
+    });
+    if (Array.isArray(resp.data)) {
+      for (const row of resp.data) {
+        if (row.metric_type === "cpu") {
+          healthThresholds.value.cpu_warn = row.warn_threshold;
+          healthThresholds.value.cpu_crit = row.crit_threshold;
+        } else if (row.metric_type === "memory") {
+          healthThresholds.value.mem_warn = row.warn_threshold;
+          healthThresholds.value.mem_crit = row.crit_threshold;
+        } else if (row.metric_type === "disk") {
+          healthThresholds.value.disk_warn = row.warn_threshold;
+          healthThresholds.value.disk_crit = row.crit_threshold;
+        }
+      }
+      return;
+    }
+    Object.assign(healthThresholds.value, resp.data || {});
+  } catch {}
+}
+
+async function requestLiveHealthSample() {
+  if (!chartAgentId.value) return;
+  liveHealthLoading.value = true;
+  try {
+    await axios.post("/winadvanced/health-history/live-sample/", {
+      agent_id: chartAgentId.value,
+      timeout: 20,
+    });
+    await Promise.all([loadHealth(), loadAgentHealthHistory(), loadHealthThresholds()]);
+  } catch (e: any) {
+    await loadAgentHealthHistory();
+    $q.notify({
+      message: _apiErrMessage(e, "Live health sample failed"),
+      color: "negative",
+    });
+  } finally {
+    liveHealthLoading.value = false;
+  }
+}
+
 async function loadAgentOptions() {
   try {
     const response = await axios.get("/agents/", {
@@ -3462,7 +3615,7 @@ async function loadAgentOptions() {
       ? response.data
       : (response.data?.agents ?? []);
     agentOptions.value = list.map((agent: any) => ({
-      label: agent.hostname ?? agent.agent_id,
+      label: `${agent.hostname || agent.description || "Unnamed device"} (${agent.agent_id})`,
       value: agent.agent_id,
     }));
   } catch (e: any) {
@@ -4870,6 +5023,7 @@ async function massWipeSelectedIncidents() {
 
 onMounted(() => {
   loadHealth();
+  loadHealthThresholds();
   loadIncidents();
   loadFIMPolicies();
   loadFIMEvents();
@@ -4895,6 +5049,21 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopDLPTestWatch();
+  stopLiveHealthWatch();
+});
+
+watch(chartAgentId, () => {
+  loadHealthThresholds();
+  if (liveHealthMode.value) {
+    requestLiveHealthSample();
+  }
+});
+
+watch(liveHealthMode, (enabled) => {
+  stopLiveHealthWatch();
+  if (!enabled || !chartAgentId.value) return;
+  requestLiveHealthSample();
+  liveHealthTimer = setInterval(requestLiveHealthSample, 10000);
 });
 
 watch(() => route.fullPath, syncTabFromRoute, { immediate: true });
