@@ -2806,6 +2806,11 @@
               <q-input
                 v-model="forensicKeywordsInput"
                 :label="$t('security.views.SecurityView.4772c3')"
+                :hint="
+                  forensicMemoryDumpSelected(forensicWizardForm.job_types)
+                    ? 'For live memory dump enter process names or PIDs, e.g. notepad.exe'
+                    : undefined
+                "
                 outlined
                 dense
                 @update:model-value="updateForensicKeywords"
@@ -4919,7 +4924,8 @@ function defaultForensicSettingsForm() {
 
 const defaultForensicJobTypeOptions = [
   { label: "Extract files by path", value: "file_collection" },
-  { label: "Crash dumps / memory dumps", value: "crash_dumps" },
+  { label: "Existing crash dumps (WER/MEMORY.DMP)", value: "crash_dumps" },
+  { label: "Live process memory dump", value: "memory_dump" },
   { label: "Keyword file carving", value: "keyword_carve" },
   { label: "Event logs", value: "event_log" },
   { label: "Prefetch files", value: "prefetch" },
@@ -4939,12 +4945,20 @@ const forensicScopeOptions = [
 const dumpCollectorsRequireMaxSize = new Set([
   "crash_dumps",
   "memory_dump",
+  "process_dump",
+  "live_process_dump",
   "memory_lite",
   "triage_bundle",
 ]);
 
 function forensicDumpCollectorsNeedMaxSize(jobTypes: string[]) {
   return jobTypes.some((jobType) => dumpCollectorsRequireMaxSize.has(jobType));
+}
+
+function forensicMemoryDumpSelected(jobTypes: string[]) {
+  return jobTypes.some((jobType) =>
+    ["memory_dump", "process_dump", "live_process_dump"].includes(jobType),
+  );
 }
 
 function hasPositiveForensicMaxSize(value: number | null) {
@@ -5494,6 +5508,16 @@ async function submitForensicJob() {
       });
       return;
     }
+    if (
+      forensicMemoryDumpSelected(forensicWizardForm.value.job_types) &&
+      !forensicWizardForm.value.keywords.length
+    ) {
+      $q.notify({
+        message: "Enter a running process name or PID in Keywords for live memory dump",
+        color: "warning",
+      });
+      return;
+    }
     const payload = normalizeForensicPayload({ ...forensicWizardForm.value });
     await axios.post("/security/forensics/jobs/", payload);
     $q.notify({
@@ -5532,6 +5556,16 @@ async function submitForensicPolicy() {
   ) {
     $q.notify({
       message: "Enter Max size bytes for crash or memory dump collectors",
+      color: "warning",
+    });
+    return;
+  }
+  if (
+    forensicMemoryDumpSelected(forensicPolicyForm.value.job_types) &&
+    !forensicPolicyForm.value.keywords.length
+  ) {
+    $q.notify({
+      message: "Enter a running process name or PID in Keywords for live memory dump",
       color: "warning",
     });
     return;
