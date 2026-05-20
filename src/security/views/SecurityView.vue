@@ -3432,9 +3432,17 @@ async function loadAgentHealthHistory() {
     return;
   }
   try {
-    const resp = await axios.get(`/security/health/${chartAgentId.value}/`);
-    if (resp.data) {
-      agentHealthHistory.value = [resp.data];
+    const resp = await axios.get("/winadvanced/health-history/", {
+      params: { agent_id: chartAgentId.value, hours: 4 },
+    });
+    if (Array.isArray(resp.data) && resp.data.length > 0) {
+      agentHealthHistory.value = resp.data;
+      return;
+    }
+
+    const current = await axios.get(`/security/health/${chartAgentId.value}/`);
+    if (current.data) {
+      agentHealthHistory.value = [current.data];
     }
   } catch (e: any) {
     agentHealthHistory.value = [];

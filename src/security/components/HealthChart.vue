@@ -4,6 +4,15 @@
       <div class="row items-center">
         <div class="text-subtitle2">{{ title }}</div>
         <q-space />
+        <q-chip
+          v-if="maxValue !== null && maxValue !== currentValue"
+          dense
+          :color="peakColor"
+          text-color="white"
+          size="sm"
+        >
+          Peak {{ maxValue.toFixed(1) }}%
+        </q-chip>
         <q-chip dense :color="statusColor" text-color="white" size="sm">
           {{ currentValue !== null ? `${currentValue.toFixed(1)}%` : "N/A" }}
         </q-chip>
@@ -38,8 +47,21 @@ const currentValue = computed(() => {
   return props.data[props.data.length - 1];
 });
 
+const maxValue = computed(() => {
+  if (!props.data || props.data.length === 0) return null;
+  return Math.max(...props.data);
+});
+
 const statusColor = computed(() => {
   const v = currentValue.value;
+  if (v === null) return "grey";
+  if (v >= critAt.value) return "negative";
+  if (v >= warnAt.value) return "warning";
+  return "positive";
+});
+
+const peakColor = computed(() => {
+  const v = maxValue.value;
   if (v === null) return "grey";
   if (v >= critAt.value) return "negative";
   if (v >= warnAt.value) return "warning";
