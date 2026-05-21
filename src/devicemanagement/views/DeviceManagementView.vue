@@ -76,6 +76,10 @@
                 <q-item-section avatar><q-icon name="delete_sweep" /></q-item-section>
                 <q-item-section>{{ $t('devicemanagement.views.DeviceManagementView.dea946') }}</q-item-section>
               </q-item>
+              <q-item clickable v-close-popup @click="bulkAction('wipe_full')">
+                <q-item-section avatar><q-icon name="delete_forever" color="negative" /></q-item-section>
+                <q-item-section class="text-negative">{{ $t('devicemanagement.bulkActions.fullWipeAll') }}</q-item-section>
+              </q-item>
               <q-item clickable v-close-popup @click="bulkAction('block_access')">
                 <q-item-section avatar><q-icon name="block" /></q-item-section>
                 <q-item-section>{{ $t('devicemanagement.views.DeviceManagementView.9ee317') }}</q-item-section>

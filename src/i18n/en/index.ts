@@ -23,6 +23,11 @@ export default {
     russian: "Russian",
     vietnamese: "Tiếng Việt",
   },
+  devicemanagement: {
+    bulkActions: {
+      fullWipeAll: "Full Wipe All",
+    },
+  },
   layout: {
     outdatedBanner: "You are viewing an outdated version of this page.",
     licenseInactive:
