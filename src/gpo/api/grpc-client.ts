@@ -484,7 +484,7 @@ export const policyCatalogClient = {
 
   async updatePoliciesByHash(
     params: UpdatePoliciesByHashParams,
-  ): Promise<operator_pb_types.UpdatePoliciesByHashResponse.AsObject> {
+  ): Promise<operator_pb_types.UpdatePoliciesResponse.AsObject> {
     const request = new operator_pb.UpdatePoliciesByHashRequest();
     request.setHash(params.hash);
     applyUpdatePoliciesByHashFields(request, params);
@@ -493,6 +493,37 @@ export const policyCatalogClient = {
       request,
       createGrpcMetadata(),
     );
+
+    return response.toObject();
+  },
+
+  async getAllVersionByHash(
+    policyHash: string,
+  ): Promise<operator_pb_types.GetAllVersionByHashResponse.AsObject> {
+    const request = new operator_pb.GetAllVersionByHashRequast();
+    request.setPolicyHash(policyHash);
+
+    const response = await policyCatalogServiceClient.getAllVersionByHash(
+      request,
+      createGrpcMetadata(),
+    );
+
+    return response.toObject();
+  },
+
+  async updatePoliciesByHashAndVersion(
+    policyHash: string,
+    version: number,
+  ): Promise<operator_pb_types.UpdatePoliciesResponse.AsObject> {
+    const request = new operator_pb.UpdatePoliciesByHashAndVersionRequest();
+    request.setPolicyHash(policyHash);
+    request.setVersion(Math.trunc(version));
+
+    const response =
+      await policyCatalogServiceClient.updatePoliciesByHashAndVersion(
+        request,
+        createGrpcMetadata(),
+      );
 
     return response.toObject();
   },
