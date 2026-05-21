@@ -1374,7 +1374,18 @@
                   </template>
                   <template v-slot:body-cell-version="props">
                     <q-td :props="props" class="text-center">
-                      {{ props.row.version ?? "—" }}
+                      <q-btn
+                        v-if="props.row.version !== undefined"
+                        flat
+                        dense
+                        no-caps
+                        size="sm"
+                        :label="`v${props.row.version}`"
+                        @click="onShowPolicyVersions(props.row)"
+                      >
+                        <q-tooltip>Show version history</q-tooltip>
+                      </q-btn>
+                      <span v-else>—</span>
                     </q-td>
                   </template>
                   <template v-slot:body-cell-policyStatus="props">
@@ -1391,11 +1402,26 @@
                         flat
                         dense
                         round
+                        icon="history"
+                        size="sm"
+                        @click="onShowPolicyVersions(props.row)"
+                        class="q-mr-xs"
+                        aria-label="Show version history"
+                      >
+                        <q-tooltip>Version history</q-tooltip>
+                      </q-btn>
+                      <q-btn
+                        flat
+                        dense
+                        round
                         icon="edit"
                         size="sm"
                         @click="onEditPolicy(props.row)"
                         class="q-mr-xs"
-                      />
+                        aria-label="Edit policy"
+                      >
+                        <q-tooltip>Edit policy</q-tooltip>
+                      </q-btn>
                       <q-btn
                         flat
                         dense
@@ -1404,7 +1430,10 @@
                         size="sm"
                         color="negative"
                         @click="onDeletePolicy(props.row)"
-                      />
+                        aria-label="Delete policy"
+                      >
+                        <q-tooltip>Delete policy</q-tooltip>
+                      </q-btn>
                     </q-td>
                   </template>
                 </q-table>
@@ -1526,7 +1555,18 @@
                   </template>
                   <template v-slot:body-cell-version="props">
                     <q-td :props="props" class="text-center">
-                      {{ props.row.version ?? "—" }}
+                      <q-btn
+                        v-if="props.row.version !== undefined"
+                        flat
+                        dense
+                        no-caps
+                        size="sm"
+                        :label="`v${props.row.version}`"
+                        @click="onShowPolicyVersions(props.row)"
+                      >
+                        <q-tooltip>Show version history</q-tooltip>
+                      </q-btn>
+                      <span v-else>—</span>
                     </q-td>
                   </template>
                   <template v-slot:body-cell-policyStatus="props">
@@ -1543,11 +1583,26 @@
                         flat
                         dense
                         round
+                        icon="history"
+                        size="sm"
+                        @click="onShowPolicyVersions(props.row)"
+                        class="q-mr-xs"
+                        aria-label="Show version history"
+                      >
+                        <q-tooltip>Version history</q-tooltip>
+                      </q-btn>
+                      <q-btn
+                        flat
+                        dense
+                        round
                         icon="edit"
                         size="sm"
                         @click="onEditPolicy(props.row)"
                         class="q-mr-xs"
-                      />
+                        aria-label="Edit policy"
+                      >
+                        <q-tooltip>Edit policy</q-tooltip>
+                      </q-btn>
                       <q-btn
                         flat
                         dense
@@ -1556,7 +1611,10 @@
                         size="sm"
                         color="negative"
                         @click="onDeletePolicy(props.row)"
-                      />
+                        aria-label="Delete policy"
+                      >
+                        <q-tooltip>Delete policy</q-tooltip>
+                      </q-btn>
                     </q-td>
                   </template>
                 </q-table>
@@ -1590,6 +1648,17 @@
         :users="usersList"
         :loading="showAppliedPoliciesLoading"
         @refresh="refreshAppliedPoliciesDialog"
+      />
+
+      <PolicyVersionsDialog
+        v-model="showPolicyVersionsDialog"
+        :policy="policyForVersions"
+        :versions="versionsStore.versions.value"
+        :is-loading="versionsStore.isLoading.value"
+        :is-error="versionsStore.isError.value"
+        :error-message="versionsStore.errorMessage.value"
+        @refresh="onRefreshPolicyVersions"
+        @restore="onRestorePolicyVersion"
       />
 
       <q-dialog v-model="showAddUserDialog" persistent>
@@ -2339,7 +2408,11 @@ import { ref, computed, onMounted, watch, reactive } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { formatDate } from "@/utils/format";
 import { exportTableToCSV, exportTableToXLSX } from "@/utils/csv";
-import { useGPOPolicies, useGPOPolicyTree } from "../api/gpo";
+import {
+  useGPOPolicies,
+  useGPOPolicyTree,
+  useGPOPolicyVersions,
+} from "../api/gpo";
 import {
   // agentServiceClient,
   agentServiceClientWrapper,
@@ -2363,6 +2436,7 @@ import UsersManagerModal from "../components/UsersManager/UsersManagerModal.vue"
 import GroupsManagerModal from "../components/GroupsManager/GroupsManagerModal.vue";
 import GroupsMachinesModal from "../components/GroupsMachines/GroupsMachinesModal.vue";
 import AdmxManagementTab from "../components/PolicyLibrary/AdmxManagementTab.vue";
+import PolicyVersionsDialog from "../components/PolicyLibrary/PolicyVersionsDialog.vue";
 import AgentAlertsTab from "../components/AgentAlertsTab.vue";
 import GpoVhdAgentTab from "../components/GpoVhdAgentTab.vue";
 import WslUserDialog from "../components/WslUserDialog.vue";
@@ -2444,6 +2518,10 @@ const GPO_MAIN_TAB_QUERY_SET = new Set([
 
 const policiesStore = useGPOPolicies();
 const treeStore = useGPOPolicyTree();
+const versionsStore = useGPOPolicyVersions();
+
+const showPolicyVersionsDialog = ref(false);
+const policyForVersions = ref<GPOPolicy | null>(null);
 
 const mainTab = ref("dashboard");
 const subTab = ref("status");
@@ -3014,7 +3092,9 @@ const filteredPoliciesByCategory = (category: "all" | "templates") => {
         const path = policy.path?.toLowerCase() ?? "";
         const displayName = policy.displayName?.toLowerCase() ?? "";
         const description = policy.description?.toLowerCase() ?? "";
-        const statusLabel = policyStatusLabel(policy.policyStatus).toLowerCase();
+        const statusLabel = policyStatusLabel(
+          policy.policyStatus,
+        ).toLowerCase();
         const versionStr =
           policy.version !== undefined ? String(policy.version) : "";
         return (
@@ -3387,6 +3467,48 @@ const onEditPolicy = (policy: unknown) => {
   policyDialogMode.value = "edit";
   showPolicyDialog.value = true;
 };
+
+const onShowPolicyVersions = async (policy: unknown) => {
+  const target = policy as GPOPolicy;
+  policyForVersions.value = target;
+  showPolicyVersionsDialog.value = true;
+  await versionsStore.fetchVersions(target.id, target.hash);
+};
+
+const onRefreshPolicyVersions = async () => {
+  if (!policyForVersions.value) return;
+  await versionsStore.fetchVersions(
+    policyForVersions.value.id,
+    policyForVersions.value.hash,
+  );
+};
+
+const onRestorePolicyVersion = async (payload: { version: number }) => {
+  const target = policyForVersions.value;
+  if (!target) return;
+  try {
+    await versionsStore.restoreToVersion(
+      target.id,
+      payload.version,
+      target.hash,
+    );
+    notifySuccess(`Policy restored to version v${payload.version}`);
+    await Promise.all([
+      policiesStore.fetchPolicies(),
+      treeStore.fetchPolicyTree(),
+      versionsStore.fetchVersions(target.id, target.hash),
+    ]);
+  } catch {
+    notifyError("Failed to restore policy version");
+  }
+};
+
+watch(showPolicyVersionsDialog, (open) => {
+  if (!open) {
+    versionsStore.reset();
+    policyForVersions.value = null;
+  }
+});
 
 const onDeletePolicy = (policy: unknown) => {
   const policyToDelete = policy as GPOPolicy;
