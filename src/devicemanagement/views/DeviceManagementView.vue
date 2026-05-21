@@ -1110,13 +1110,38 @@
           <div v-if="currentActionType === 'wipe_full'" class="text-negative text-weight-bold">
             {{ $t('devicemanagement.views.DeviceManagementView.892525') }}
           </div>
-          <q-input
-            v-if="currentActionType === 'wipe_selective'"
-            v-model="actionForm.extra_paths"
-            label="Corporate data paths"
-            outlined dense type="textarea" rows="4"
-            placeholder="D:\\CompanyVault&#10;C:\\Users\\%USERNAME%\\Company"
-          />
+          <template v-if="currentActionType === 'wipe_selective'">
+            <q-select
+              v-model="actionForm.device_disposition"
+              :options="selectiveWipeDispositionOptions"
+              label="Leaving scenario"
+              outlined dense emit-value map-options
+              @update:model-value="applySelectiveWipeDispositionDefaults"
+            />
+            <div class="row q-col-gutter-sm">
+              <div class="col-12 col-sm-6">
+                <q-toggle v-model="actionForm.remove_org_data" label="Remove organization data" />
+                <q-toggle v-model="actionForm.remove_managed_apps" label="Remove managed apps" />
+                <q-toggle v-model="actionForm.remove_container" label="Remove container data" />
+              </div>
+              <div class="col-12 col-sm-6">
+                <q-toggle v-model="actionForm.remove_network_profiles" label="Remove WLAN/VPN profiles" />
+                <q-toggle
+                  v-model="actionForm.preserve_vpn_profiles"
+                  label="Keep VPN objects, clear CYWM management"
+                  :disable="!actionForm.remove_network_profiles"
+                />
+                <q-toggle v-model="actionForm.remove_mdm_agent" label="Remove CYWM/Laborato agent" />
+                <q-toggle v-model="actionForm.offboard_device" label="Stop future policy sync" />
+              </div>
+            </div>
+            <q-input
+              v-model="actionForm.extra_paths"
+              label="Corporate data paths"
+              outlined dense type="textarea" rows="4"
+              placeholder="D:\\CompanyVault&#10;C:\\Users\\%USERNAME%\\Company"
+            />
+          </template>
           <template v-if="currentActionType === 'block_access'">
             <q-input
               v-model="actionForm.blocked_targets"
@@ -1134,6 +1159,9 @@
           </template>
           <div v-if="currentActionType === 'factory_reset'" class="text-negative text-weight-bold">
             {{ $t('devicemanagement.views.DeviceManagementView.b410c2') }}
+          </div>
+          <div v-if="currentActionType === 'wipe_full' || currentActionType === 'factory_reset'" class="text-caption text-grey-8">
+            CYWM will remove organization data and managed resources, verify cleanup, then start Windows reset and agent self-removal.
           </div>
           <div v-if="currentActionType === 'clear_policies'" class="text-negative text-weight-bold">
             This removes MDM-managed policies, profiles, cached policy data, USB/app privacy restrictions, WLAN/VPN profiles, and kiosk settings from the device.
@@ -1700,12 +1728,25 @@ const actionForm = ref({
   agent_id: "",
   reason: "",
   extra_paths: "",
+  device_disposition: "byod_user_leaving",
+  remove_org_data: true,
+  remove_network_profiles: true,
+  preserve_vpn_profiles: false,
+  remove_managed_apps: true,
+  remove_mdm_agent: true,
+  remove_container: true,
+  offboard_device: true,
   blocked_targets: "",
   allow_targets: "",
   lost_message: "",
   lost_contact: "",
 });
 const encryptionForm = ref<any>({ name: "", encryption_type: "bitlocker", algorithm: "AES-256", encrypt_system_drive: true, encrypt_removable: false, escrow_keys: true, enabled: true });
+
+const selectiveWipeDispositionOptions = [
+  { label: "BYOD user keeps device", value: "byod_user_leaving" },
+  { label: "Return device to organization", value: "return_to_org" },
+];
 
 const actionTypeOptions = [
   { label: "Lock", value: "lock" }, { label: "Unlock", value: "unlock" },
@@ -2332,12 +2373,40 @@ function showActionDialog(type: string) {
     agent_id: "",
     reason: "",
     extra_paths: "",
+    device_disposition: "byod_user_leaving",
+    remove_org_data: true,
+    remove_network_profiles: true,
+    preserve_vpn_profiles: false,
+    remove_managed_apps: true,
+    remove_mdm_agent: true,
+    remove_container: true,
+    offboard_device: true,
     blocked_targets: "",
     allow_targets: "",
     lost_message: "This device is in Lost Mode. Please contact the organization.",
     lost_contact: "",
   };
   actionDialogOpen.value = true;
+}
+
+function applySelectiveWipeDispositionDefaults(value: string) {
+  if (value === "return_to_org") {
+    actionForm.value.remove_org_data = true;
+    actionForm.value.remove_network_profiles = true;
+    actionForm.value.preserve_vpn_profiles = true;
+    actionForm.value.remove_managed_apps = true;
+    actionForm.value.remove_mdm_agent = false;
+    actionForm.value.remove_container = true;
+    actionForm.value.offboard_device = false;
+    return;
+  }
+  actionForm.value.remove_org_data = true;
+  actionForm.value.remove_network_profiles = true;
+  actionForm.value.preserve_vpn_profiles = false;
+  actionForm.value.remove_managed_apps = true;
+  actionForm.value.remove_mdm_agent = true;
+  actionForm.value.remove_container = true;
+  actionForm.value.offboard_device = true;
 }
 
 async function submitAction() {
@@ -2350,6 +2419,14 @@ async function submitAction() {
         .split(/\r?\n|,/)
         .map((item) => item.trim())
         .filter(Boolean);
+      params.device_disposition = actionForm.value.device_disposition;
+      params.remove_org_data = actionForm.value.remove_org_data;
+      params.remove_network_profiles = actionForm.value.remove_network_profiles;
+      params.preserve_vpn_profiles = actionForm.value.preserve_vpn_profiles;
+      params.remove_managed_apps = actionForm.value.remove_managed_apps;
+      params.remove_mdm_agent = actionForm.value.remove_mdm_agent;
+      params.remove_container = actionForm.value.remove_container;
+      params.offboard_device = actionForm.value.offboard_device;
     }
     if (currentActionType.value === "block_access") {
       params.blocked_targets = actionForm.value.blocked_targets
