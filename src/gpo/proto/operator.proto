@@ -393,8 +393,34 @@ service PolicyCatalogService {
       returns (UpdateStatusPoliciesResponse);
 
   rpc UpdatePoliciesByHash(UpdatePoliciesByHashRequest)
-      returns (UpdatePoliciesByHashResponse);
+      returns (UpdatePoliciesResponse);
+
+  rpc UpdatePoliciesByHashAndVersion(UpdatePoliciesByHashAndVersionRequest)
+      returns (UpdatePoliciesResponse);
+
+  rpc GetAllVersionByHash(GetAllVersionByHashRequast)
+      returns (GetAllVersionByHashResponse);
 }
+
+message UpdatePoliciesByHashAndVersionRequest {
+  string policy_hash = 1;
+  int32 version = 2;
+}
+
+message GetAllVersionByHashRequast {
+  string policy_hash = 1;
+}
+
+message GetAllVersionByHashResponse {
+  repeated PolicyVersion versions = 1;
+}
+
+message PolicyVersion {
+  string policy_hash = 1;
+  PolicyDescriptor policy = 2;
+  int32 version = 3;
+}
+
 message UpdatePoliciesByHashRequest {
   string hash = 1;
 
@@ -416,7 +442,7 @@ message UpdatePoliciesByHashRequest {
   optional string clientExtension = 13;
   optional PolicyStatus policyStatus = 14;
 }
-message UpdatePoliciesByHashResponse {
+message UpdatePoliciesResponse {
   bool success = 1;
 }
 

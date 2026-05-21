@@ -13,6 +13,10 @@ import {
   adaptPoliciesFromGroups,
   adaptCategoryTreeToPolicyTree,
 } from "./grpc-adapters";
+import {
+  mapPolicyVersionsResponse,
+  type PolicyVersionRow,
+} from "../utils/policy-version";
 
 function extractHashFromPolicyDetails(response: unknown): string | null {
   const policy = (response as { policy?: Record<string, unknown> })?.policy;
@@ -209,12 +213,12 @@ export function useGPOPolicies() {
       }
       await fetchPolicies();
     } catch (error) {
-      console.error("[GPO] Ошибка обновления статуса политики:", error);
+      console.error("[GPO] Policy status update error:", error);
       isError.value = true;
       errorMessage.value =
         error instanceof Error
           ? error.message
-          : "Не удалось обновить статус политики";
+          : "Couldn't update policy status";
       throw error;
     } finally {
       isLoading.value = false;
@@ -307,7 +311,7 @@ export function useGPOPolicyTree() {
         categories: responseObj.categoriesList || responseObj.categories || [],
       });
     } catch (error) {
-      console.error("[GPO] Ошибка загрузки дерева политик:", error);
+      console.error("[GPO] Policy tree loading error:", error);
       const errorDetails =
         error instanceof Error
           ? error.message
@@ -315,7 +319,7 @@ export function useGPOPolicyTree() {
             ? JSON.stringify(error)
             : String(error);
       isError.value = true;
-      errorMessage.value = `Не удалось загрузить дерево политик: ${errorDetails}`;
+      errorMessage.value = `Couldn't load policy tree: ${errorDetails}`;
     } finally {
       isLoading.value = false;
     }
@@ -327,5 +331,100 @@ export function useGPOPolicyTree() {
     isError,
     errorMessage,
     fetchPolicyTree,
+  };
+}
+
+function describeError(error: unknown, fallback: string): string {
+  if (error instanceof Error) return error.message;
+  if (error == null) return fallback;
+  if (typeof error === "string") return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return fallback;
+  }
+}
+
+export function useGPOPolicyVersions() {
+  const versions = ref<PolicyVersionRow[]>([]);
+  const policyHash = ref<string | null>(null);
+  const isLoading = ref(false);
+  const isError = ref(false);
+  const errorMessage = ref<string | null>(null);
+
+  async function fetchVersions(
+    policyId: string,
+    inlineHash?: string,
+  ): Promise<void> {
+    isLoading.value = true;
+    isError.value = false;
+    errorMessage.value = null;
+
+    try {
+      const hash = await resolvePolicyHash(policyId, inlineHash);
+      policyHash.value = hash;
+
+      const response = await policyCatalogClient.getAllVersionByHash(hash);
+      versions.value = mapPolicyVersionsResponse(response);
+    } catch (error) {
+      console.error("[GPO] Error loading policy versions:", error);
+      isError.value = true;
+      errorMessage.value = `Couldn't download policy versions: ${describeError(
+        error,
+        "unknown error",
+      )}`;
+      versions.value = [];
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function restoreToVersion(
+    policyId: string,
+    version: number,
+    inlineHash?: string,
+  ): Promise<void> {
+    isLoading.value = true;
+    isError.value = false;
+    errorMessage.value = null;
+
+    try {
+      const hash = await resolvePolicyHash(policyId, inlineHash);
+      const response = await policyCatalogClient.updatePoliciesByHashAndVersion(
+        hash,
+        version,
+      );
+      if (!response.success) {
+        throw new Error("Server rejected the restore request");
+      }
+    } catch (error) {
+      console.error("[GPO] Policy version rollback error:", error);
+      isError.value = true;
+      errorMessage.value = `Couldn't roll back the policy version: ${describeError(
+        error,
+        "unknown error",
+      )}`;
+      throw error;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  function reset(): void {
+    versions.value = [];
+    policyHash.value = null;
+    isError.value = false;
+    errorMessage.value = null;
+  }
+
+  return {
+    versions,
+    policyHash,
+    isLoading,
+    isError,
+    errorMessage,
+    fetchVersions,
+    restoreToVersion,
+    reset,
   };
 }
