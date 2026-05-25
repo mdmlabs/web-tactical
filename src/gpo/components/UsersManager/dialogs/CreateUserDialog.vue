@@ -13,6 +13,8 @@
         <q-input
           v-model="form.samAccountName"
           label="SAM Account Name *"
+          :rules="requiredTrimRule"
+          lazy-rules
           outlined
           dense
           class="q-mb-sm"
@@ -21,6 +23,8 @@
           v-model="form.password"
           type="password"
           label="Password *"
+          :rules="requiredTrimRule"
+          lazy-rules
           outlined
           dense
           class="q-mb-sm"
@@ -67,7 +71,9 @@
         </div>
         <q-input
           v-model="form.name"
-          label="Name"
+          label="Name *"
+          :rules="requiredTrimRule"
+          lazy-rules
           outlined
           dense
           class="q-mb-sm"
@@ -182,6 +188,11 @@ const emit = defineEmits<{
 
 const loading = ref(false);
 
+const requiredTrimRule = [
+  (val: string | null | undefined) =>
+    (val ?? "").trim() !== "" || "Required field",
+];
+
 const form = ref<CreateUserParams & { name?: string; middleName?: string }>({
   samAccountName: "",
   password: "",
@@ -215,7 +226,8 @@ const minimalOsModel = computed({
 const canSubmit = computed(
   () =>
     form.value.samAccountName.trim() !== "" &&
-    (form.value.password ?? "").trim() !== "",
+    (form.value.password ?? "").trim() !== "" &&
+    (form.value.name ?? "").trim() !== "",
 );
 
 function resetForm() {
