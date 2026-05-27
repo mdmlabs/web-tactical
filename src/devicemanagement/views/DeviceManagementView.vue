@@ -3,7 +3,6 @@
     <div class="text-h6 q-mb-md">{{ $t('devicemanagement.views.DeviceManagementView.32fc9a') }}</div>
 
     <q-tabs v-model="tab" dense class="q-mb-md" align="left">
-      <q-tab name="workspace" :label="$t('devicemanagement.views.DeviceManagementView.4ca0a7')" icon="work" />
       <q-tab name="actions" :label="$t('devicemanagement.views.DeviceManagementView.d43b91')" icon="settings_remote" />
       <q-tab name="geolocation" :label="$t('devicemanagement.views.DeviceManagementView.2ee8f7')" icon="location_on" />
       <q-tab name="encryption" :label="$t('devicemanagement.views.DeviceManagementView.0af149')" icon="lock" />
@@ -683,302 +682,6 @@
         </q-card>
       </q-tab-panel>
 
-      <!-- Workspace Management (#814, #817, #822-827) -->
-      <q-tab-panel name="workspace">
-        <q-banner v-if="workspaceApiError" rounded dense class="bg-negative text-white q-mb-md">
-          {{ workspaceApiError }}
-        </q-banner>
-        <div class="row items-center justify-between q-mb-md">
-          <div>
-            <div class="mdm-section-title">{{ $t('devicemanagement.views.DeviceManagementView.61f8bb') }}</div>
-            <div class="mdm-section-subtitle">{{ $t('devicemanagement.views.DeviceManagementView.954bc0') }}</div>
-          </div>
-          <div class="row q-gutter-sm">
-            <q-btn flat color="primary" icon="feedback" :label="$t('devicemanagement.views.DeviceManagementView.c8d767')"
-              @click="openFeedbackDialog" />
-            <q-btn color="primary" icon="add" :label="$t('devicemanagement.views.DeviceManagementView.bf74fc')" @click="openCreateWorkspaceDialog" />
-          </div>
-        </div>
-
-        <!-- Workspace profiles -->
-        <div class="row q-gutter-md q-mb-lg">
-          <q-card
-            v-for="ws in workspaceProfiles"
-            :key="ws.id"
-            flat bordered class="col-12 col-md-3"
-            :style="`border-left: 4px solid ${ws.color}`"
-          >
-            <q-card-section>
-              <div class="row items-center q-mb-sm">
-                <q-icon :name="ws.icon" size="24px" :style="`color:${ws.color}`" class="q-mr-sm" />
-                <div>
-                  <div class="text-subtitle2">{{ ws.name }}</div>
-                  <div class="text-caption text-grey">{{ ws.devices_count }} devices</div>
-                </div>
-              </div>
-              <q-list dense>
-                <q-item v-for="feature in ws.features" :key="feature" dense>
-                  <q-item-section avatar><q-icon name="check" color="positive" size="16px" /></q-item-section>
-                  <q-item-section class="text-caption">{{ feature }}</q-item-section>
-                </q-item>
-              </q-list>
-              <div v-if="ws.preinstalled_app_links?.length || ws.preinstalled_choco_packages?.length" class="q-mt-xs">
-                <q-badge color="teal">{{ $t('devicemanagement.views.DeviceManagementView.c0769f') }}</q-badge>
-                <span class="text-caption text-grey-7 q-ml-xs">
-                  {{ (ws.preinstalled_app_links?.length || 0) + (ws.preinstalled_choco_packages?.length || 0) }} item(s)
-                </span>
-              </div>
-              <div v-if="ws.disk_quota_mb" class="q-mt-xs">
-                <q-badge color="purple">{{ $t('devicemanagement.views.DeviceManagementView.cfbceb') }}</q-badge>
-                <span class="text-caption text-grey-7 q-ml-xs">{{ ws.disk_quota_mb }} MB</span>
-              </div>
-              <!-- Phase-4 DLP chips -->
-              <div v-if="ws.encrypt_storage || (ws.export_behavior && ws.export_behavior !== 'free') || (ws.clipboard_behavior && ws.clipboard_behavior !== 'free')" class="q-mt-xs">
-                <q-badge color="indigo">WIP analog</q-badge>
-                <q-badge color="blue-grey" class="q-ml-xs">agent sync</q-badge>
-              </div>
-              <div v-if="ws.encrypt_storage" class="q-mt-xs">
-                <q-badge color="deep-purple">at-rest encryption</q-badge>
-              </div>
-              <div v-if="ws.export_behavior && ws.export_behavior !== 'free'" class="q-mt-xs">
-                <q-badge :color="ws.export_behavior === 'block' ? 'negative' : 'orange'">
-                  Export: {{ ws.export_behavior }}
-                </q-badge>
-              </div>
-              <div v-if="ws.clipboard_behavior && ws.clipboard_behavior !== 'free'" class="q-mt-xs">
-                <q-badge :color="ws.clipboard_behavior === 'block' ? 'negative' : 'orange'">
-                  Clipboard: {{ ws.clipboard_behavior }}
-                </q-badge>
-              </div>
-              <!-- Phase-1/2/3 user-pwd policy badges -->
-              <div v-if="ws.password_owner === 'user'" class="q-mt-xs">
-                <q-badge color="indigo">user-managed</q-badge>
-                <q-badge v-if="ws.require_tpm_binding" color="deep-purple" class="q-ml-xs">TPM</q-badge>
-                <q-badge v-if="ws.require_windows_hello" color="blue" class="q-ml-xs">Hello</q-badge>
-                <q-badge v-if="ws.recovery_escrow_mode === 'escrow'" color="teal" class="q-ml-xs">
-                  Shamir {{ ws.escrow_shamir_threshold }}/{{ ws.escrow_shamir_total }}
-                </q-badge>
-                <q-badge v-else-if="ws.recovery_escrow_mode === 'zero_knowledge'" color="negative" class="q-ml-xs">
-                  zero-knowledge
-                </q-badge>
-              </div>
-              <div v-if="ws.geofence_enforcement && ws.geofence_enforcement !== 'off'" class="q-mt-xs">
-                <q-badge :color="ws.geofence_enforcement === 'enforce' ? 'negative' : 'orange'">
-                  geofence: {{ ws.geofence_enforcement }} ({{ (ws.geofence_polygons || []).length }})
-                </q-badge>
-              </div>
-              <div v-if="ws.watermark_enabled || ws.snapshot_interval_hours > 0" class="q-mt-xs">
-                <q-badge v-if="ws.watermark_enabled" color="brown">watermark</q-badge>
-                <q-badge v-if="ws.snapshot_interval_hours > 0" color="green" class="q-ml-xs">
-                  snap/{{ ws.snapshot_interval_hours }}h × {{ ws.snapshot_retention_count }}
-                </q-badge>
-              </div>
-
-              <div class="row q-gutter-xs q-mt-sm">
-                <q-btn dense flat color="primary" icon="edit" label="Edit" size="sm" @click="openEditWorkspace(ws)" />
-                <q-btn dense flat color="primary" icon="link" :label="$t('devicemanagement.views.DeviceManagementView.1afff0')" size="sm" @click="attachWorkspace(ws)" />
-                <q-btn dense flat color="primary" icon="groups" :label="$t('devicemanagement.views.DeviceManagementView.171a06')" size="sm"
-                  @click="openGroupAssignDialog(ws)" />
-                <q-btn dense flat color="primary" icon="shield" :label="$t('devicemanagement.views.DeviceManagementView.4fbcdf')" size="sm"
-                  @click="openDlpEditDialog(ws)" />
-                <q-btn dense flat color="negative" icon="link_off" :label="$t('devicemanagement.views.DeviceManagementView.3a095f')" size="sm" @click="detachWorkspace(ws)" />
-                <q-btn dense flat color="negative" icon="delete" label="Delete" size="sm" @click="confirmDeleteWorkspace(ws)" />
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-
-        <!-- Workspace assignments table -->
-        <q-card flat bordered class="q-mb-md">
-          <q-card-section>
-            <div class="text-subtitle2 q-mb-sm">{{ $t('devicemanagement.views.DeviceManagementView.058e3e') }}</div>
-            <q-table :rows="workspaceAssignments" :columns="workspaceColumns" dense row-key="id" :rows-per-page-options="[10,25]">
-              <template v-slot:body-cell-workspace="props">
-                <q-td :props="props">
-                  <q-chip dense :color="props.row.workspace_color" text-color="white" size="sm">{{ props.value }}</q-chip>
-                </q-td>
-              </template>
-              <template v-slot:body-cell-state="props">
-                <q-td :props="props">
-                  <q-chip
-                    dense
-                    :color="assignmentStateColor(props.value)"
-                    text-color="white"
-                    size="sm"
-                    :icon="assignmentStateIcon(props.value)"
-                  >{{ props.value }}</q-chip>
-                </q-td>
-              </template>
-              <template v-slot:body-cell-encrypted="props">
-                <q-td :props="props" class="text-center">
-                  <q-icon :name="props.value ? 'lock' : 'lock_open'" :color="props.value ? 'positive' : 'grey'" />
-                </q-td>
-              </template>
-              <template v-slot:body-cell-actions="props">
-                <q-td :props="props">
-                  <q-btn
-                    flat dense size="sm" color="warning" icon="pause_circle"
-                    :disable="props.row.state !== 'active'"
-                    @click="suspendAssignment(props.row)"
-                    :title="$t('devicemanagement.views.DeviceManagementView.c8b3f7')" />
-                  <q-btn
-                    flat dense size="sm" color="positive" icon="play_circle"
-                    :disable="props.row.state !== 'suspended'"
-                    @click="resumeAssignment(props.row)"
-                    :title="$t('devicemanagement.views.DeviceManagementView.9fa09b')" />
-                  <q-btn
-                    flat dense size="sm" color="info" icon="fact_check"
-                    :disable="props.row.state === 'decommissioned'"
-                    @click="checkCompliance(props.row)"
-                    :title="$t('devicemanagement.views.DeviceManagementView.ba4ac0')" />
-                  <q-btn
-                    flat dense size="sm" color="deep-orange" icon="shield"
-                    :disable="props.row.state !== 'active'"
-                    @click="enforceAssignment(props.row)"
-                    :title="$t('devicemanagement.views.DeviceManagementView.daf456')" />
-                  <q-btn
-                    flat dense size="sm" color="indigo" icon="campaign"
-                    :disable="props.row.state === 'decommissioned'"
-                    @click="notifyAssignment(props.row)"
-                    :title="$t('devicemanagement.views.DeviceManagementView.9d5479')" />
-                  <q-btn flat dense icon="swap_horiz" size="sm" color="primary" @click="changeWorkspace(props.row)" :title="$t('devicemanagement.views.DeviceManagementView.abbf4b')" />
-                  <q-btn flat dense icon="key" size="sm" color="warning" @click="rotateKeys(props.row)" :title="$t('devicemanagement.views.DeviceManagementView.fa5d55')" />
-                  <q-btn
-                    flat dense size="sm" color="teal" icon="speed"
-                    :disable="props.row.state === 'decommissioned'"
-                    @click="openUsageDialog(props.row)"
-                    :title="$t('devicemanagement.views.DeviceManagementView.d8954e')" />
-                  <q-btn
-                    flat dense size="sm" color="negative" icon="delete_forever"
-                    :disable="props.row.state === 'decommissioned'"
-                    @click="decommissionAssignment(props.row)"
-                    :title="$t('devicemanagement.views.DeviceManagementView.e15ee5')" />
-                </q-td>
-              </template>
-              <template v-slot:no-data>
-                <div class="text-center q-pa-md text-grey">{{ $t('devicemanagement.views.DeviceManagementView.1e2aba') }}</div>
-              </template>
-            </q-table>
-          </q-card-section>
-        </q-card>
-
-        <!-- Feedback inbox (Phase-2) -->
-        <q-card flat bordered class="q-mb-md">
-          <q-card-section>
-            <div class="row items-center justify-between q-mb-sm">
-              <div class="text-subtitle2">{{ $t('devicemanagement.views.DeviceManagementView.1c1fe4') }}</div>
-              <div class="row q-gutter-sm items-center">
-                <q-select
-                  v-model="feedbackInboxStatus"
-                  :options="[
-                    {label:'Open', value:'open'},
-                    {label:'Triaged', value:'triaged'},
-                    {label:'Resolved', value:'resolved'},
-                    {label:'All', value:''},
-                  ]"
-                  emit-value map-options dense outlined
-                  :label="$t('devicemanagement.views.DeviceManagementView.bae7d5')"
-                  style="min-width: 140px"
-                  @update:model-value="loadFeedbackInbox" />
-                <q-btn flat dense round icon="refresh" color="primary"
-                  @click="loadFeedbackInbox" :title="$t('devicemanagement.views.DeviceManagementView.7a385d')" />
-              </div>
-            </div>
-            <q-table
-              :rows="feedbackInboxRows"
-              :columns="feedbackInboxColumns"
-              dense row-key="id"
-              :rows-per-page-options="[10,25]">
-              <template v-slot:body-cell-severity="props">
-                <q-td :props="props" class="text-center">
-                  <q-chip dense size="sm"
-                    :color="props.value === 'incident' ? 'negative' : props.value === 'bug' ? 'warning' : props.value === 'request' ? 'info' : 'grey'"
-                    text-color="white">{{ props.value }}</q-chip>
-                </q-td>
-              </template>
-              <template v-slot:body-cell-status="props">
-                <q-td :props="props" class="text-center">
-                  <q-select
-                    v-model="props.row.status"
-                    :options="[
-                      {label:'Open',value:'open'},
-                      {label:'Triaged',value:'triaged'},
-                      {label:'Resolved',value:'resolved'},
-                    ]"
-                    emit-value map-options dense borderless
-                    @update:model-value="updateFeedbackStatus(props.row, $event)" />
-                </q-td>
-              </template>
-              <template v-slot:body-cell-actions="props">
-                <q-td :props="props">
-                  <q-btn dense flat round icon="visibility" size="sm" color="primary"
-                    @click="openFeedbackDetail(props.row)" />
-                  <q-btn dense flat round icon="delete" size="sm" color="negative"
-                    @click="deleteFeedback(props.row)" />
-                </q-td>
-              </template>
-              <template v-slot:no-data>
-                <div class="text-center q-pa-md text-grey">{{ $t('devicemanagement.views.DeviceManagementView.102e7c') }}</div>
-              </template>
-            </q-table>
-          </q-card-section>
-        </q-card>
-
-        <!-- Encrypted containers — real VHDX+BitLocker lifecycle, managed via REST -->
-        <EncryptedContainersPanel
-          :workspaces="workspaceProfiles"
-          :agents="allAgents"
-        />
-
-        <!-- Portable encrypted file envelopes (Phase-C) -->
-        <SecureFileTransferPanel :agents="allAgents" />
-
-        <!-- Recovery & Key Rotation (#817) -->
-        <q-card flat bordered class="q-mt-md">
-          <q-card-section>
-            <div class="text-subtitle2 q-mb-md">{{ $t('devicemanagement.views.DeviceManagementView.6cb3c9') }}</div>
-            <div class="row q-gutter-md">
-              <div class="col-12 col-md-5">
-                <AgentPicker
-                  v-model="recoveryDeviceId"
-                  :options="agentOptions"
-                  :label="$t('devicemanagement.views.DeviceManagementView.a5a74a')"
-                  outlined dense clearable class="q-mb-sm"
-                />
-                <q-select
-                  v-model="recoveryAction"
-                  :options="[
-                    { label: 'Emergency Access (lock device)', value: 'Emergency Access' },
-                    { label: 'Unlock Device', value: 'Unlock Device' },
-                    { label: 'Rotate Local Admin (audit key)', value: 'Rotate Local Admin' },
-                    { label: 'Selective Wipe (org data only)', value: 'Selective Wipe' },
-                    { label: 'Full Wipe / Factory Reset', value: 'Factory Reset' },
-                  ]"
-                  emit-value map-options
-                  :label="$t('devicemanagement.views.DeviceManagementView.1886eb')"
-                  outlined dense class="q-mb-sm"
-                  :hint="$t('devicemanagement.views.DeviceManagementView.428f57')" />
-                <q-input v-model="recoveryReason" :label="$t('devicemanagement.views.DeviceManagementView.5116c3')" outlined dense type="textarea" rows="2" class="q-mb-sm" />
-                <q-btn color="warning" :label="$t('devicemanagement.views.DeviceManagementView.c06eff')" icon="restore" @click="executeRecovery" />
-              </div>
-              <div class="col-12 col-md-5">
-                <div class="text-caption text-grey q-mb-sm">{{ $t('devicemanagement.views.DeviceManagementView.57f3c5') }}</div>
-                <q-list bordered separator dense>
-                  <q-item v-for="log in recoveryLog" :key="log.id" dense>
-                    <q-item-section>
-                      <q-item-label>{{ log.action }}</q-item-label>
-                      <q-item-label caption>{{ log.device }} · {{ log.timestamp }}</q-item-label>
-                    </q-item-section>
-                    <q-item-section side>
-                      <q-chip dense :color="recoveryStatusColor(log.status)" text-color="white" size="sm">{{ log.status }}</q-chip>
-                    </q-item-section>
-                  </q-item>
-                </q-list>
-              </div>
-            </div>
-          </q-card-section>
-        </q-card>
-      </q-tab-panel>
     </q-tab-panels>
 
     <!-- Compliance probe dialog -->
@@ -1602,14 +1305,12 @@ import { ref, onMounted, onUnmounted, watch } from "vue";
 import { useQuasar } from "quasar";
 import axios from "axios";
 import DeviceMap from "@/devicemanagement/components/DeviceMap.vue";
-import EncryptedContainersPanel from "@/devicemanagement/components/EncryptedContainersPanel.vue";
-import SecureFileTransferPanel from "@/devicemanagement/components/SecureFileTransferPanel.vue";
 import AgentPicker from "@/devicemanagement/components/AgentPicker.vue";
 import WorkspaceUserPwdPolicyEditor from "@/devicemanagement/components/WorkspaceUserPwdPolicyEditor.vue";
 import { buildAgentOptions, type AgentOptionRich } from "@/devicemanagement/components/agentOptionHelpers";
 
 const $q = useQuasar();
-const tab = ref("workspace");
+const tab = ref("actions");
 
 // ── Agent options for all dropdowns ──────────────────────────────────────
 // Rich options carry hostname, shortId ("PZVpu…hhx"), online dot, and a
@@ -2055,27 +1756,27 @@ function geoRequestParams(): Record<string, string | number> {
 
 async function loadGeoPickerOptions() {
   // Sites (device groups).
-  try {
-    const r = await axios.get("/clients/");
-    const clients = Array.isArray(r.data) ? r.data : [];
-    const sites: { label: string; value: number }[] = [];
-    for (const c of clients) {
-      for (const s of (c.sites || [])) {
-        sites.push({ value: s.id, label: `${c.name} / ${s.name}` });
-      }
-    }
-    // Fallback: direct /clients/sites/
-    if (!sites.length) {
-      try {
-        const r2 = await axios.get("/clients/sites/");
-        const list = Array.isArray(r2.data) ? r2.data : [];
-        for (const s of list) sites.push({ value: s.id, label: s.name });
-      } catch { /* ignore */ }
-    }
-    geoSiteOptions.value = sites;
-  } catch {
-    geoSiteOptions.value = [];
-  }
+  // try {
+  //   const r = await axios.get("/clients/");
+  //   const clients = Array.isArray(r.data) ? r.data : [];
+  //   const sites: { label: string; value: number }[] = [];
+  //   for (const c of clients) {
+  //     for (const s of (c.sites || [])) {
+  //       sites.push({ value: s.id, label: `${c.name} / ${s.name}` });
+  //     }
+  //   }
+  //   // Fallback: direct /clients/sites/
+  //   if (!sites.length) {
+  //     try {
+  //       const r2 = await axios.get("/clients/sites/");
+  //       const list = Array.isArray(r2.data) ? r2.data : [];
+  //       for (const s of list) sites.push({ value: s.id, label: s.name });
+  //     } catch { /* ignore */ }
+  //   }
+  //   geoSiteOptions.value = sites;
+  // } catch {
+  //   geoSiteOptions.value = [];
+  // }
   // User groups.
   try {
     const r = await axios.get("/accounts/user-groups/");
@@ -2655,9 +2356,6 @@ onMounted(() => {
   loadActions();
   loadEncryption();
   loadInventoryFilters();
-  loadWorkspaces();
-  loadWorkspaceAppStoreLinks();
-  loadFeedbackInbox();
   loadGeoPickerOptions();
   loadCertBackups();
 });

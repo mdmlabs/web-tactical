@@ -650,6 +650,7 @@ function resetPassword() {
 }
 
 const DEFAULT_DOCS_PATH = "/docs/en/01-home/";
+const FALLBACK_DOCS_URL = "https://app.bcycp.vn/docs/en/01-home/";
 
 interface WindowWithDocsEnv extends Window {
   _env_?: {
@@ -667,7 +668,7 @@ function joinOriginAndDocsPath(origin: string, path: string): string {
 function docsUrlFromRuntimeEnv(
   env: WindowWithDocsEnv["_env_"] | undefined,
 ): string | undefined {
-  if (!env) return undefined;
+  if (!env) return FALLBACK_DOCS_URL;
 
   let explicit = env.DOCS_URL?.trim();
   if (explicit?.includes("${APP_HOST}")) {
@@ -677,7 +678,7 @@ function docsUrlFromRuntimeEnv(
   if (explicit) return explicit;
 
   const host = env.APP_HOST?.trim();
-  if (!host) return undefined;
+  if (!host) return FALLBACK_DOCS_URL;
   if (/^https?:\/\//i.test(host)) {
     return joinOriginAndDocsPath(host, DEFAULT_DOCS_PATH);
   }
