@@ -1530,7 +1530,7 @@
               <q-select
                 v-else-if="appForm.scope === 'user'"
                 v-model="appForm.target_user_id"
-                :options="scopeUserOptions"
+                :options="appScopeUserOptions"
                 label="Target user"
                 outlined dense emit-value map-options use-input hide-selected fill-input input-debounce="200"
                 clearable
@@ -1539,13 +1539,49 @@
               <q-select
                 v-else-if="appForm.scope === 'user_group'"
                 v-model="appForm.target_user_group_id"
-                :options="scopeUserGroupOptions"
+                :options="appScopeUserGroupOptions"
                 label="Target user group"
                 outlined dense emit-value map-options use-input hide-selected fill-input input-debounce="200"
                 clearable
                 @filter="filterScopeUserGroups"
               />
               <q-input v-else label="Target" model-value="All matching devices" outlined dense readonly />
+            </div>
+          </div>
+          <div v-if="appForm.scope === 'user'" class="row q-col-gutter-sm">
+            <div class="col-12 col-md-6 offset-md-6">
+              <q-select
+                v-model="appForm.target_agent_id"
+                :options="scopeAgentOptions"
+                label="Target device"
+                outlined dense emit-value map-options use-input hide-selected fill-input input-debounce="200"
+                clearable
+                @filter="filterScopeAgents"
+              />
+            </div>
+          </div>
+          <div v-if="appForm.scope === 'user_group'" class="row q-col-gutter-sm">
+            <div class="col-12 col-md-6">
+              <q-select
+                v-model="appForm.target_agent_id"
+                :options="scopeAgentOptions"
+                label="Target device"
+                outlined dense emit-value map-options use-input hide-selected fill-input input-debounce="200"
+                clearable
+                @update:model-value="(value) => { if (value) appForm.target_device_group_id = null; }"
+                @filter="filterScopeAgents"
+              />
+            </div>
+            <div class="col-12 col-md-6">
+              <q-select
+                v-model="appForm.target_device_group_id"
+                :options="scopeDeviceGroupOptions"
+                label="Target device group"
+                outlined dense emit-value map-options use-input hide-selected fill-input input-debounce="200"
+                clearable
+                @update:model-value="(value) => { if (value) appForm.target_agent_id = ''; }"
+                @filter="filterScopeDeviceGroups"
+              />
             </div>
           </div>
           <q-input v-model="appNamesInput" label="Application names / executable names" outlined dense type="textarea" autogrow
@@ -1719,7 +1755,7 @@
               <q-select
                 v-else-if="distributionForm.scope === 'user'"
                 v-model="distributionForm.target_user_id"
-                :options="scopeUserOptions"
+                :options="appScopeUserOptions"
                 label="Target user"
                 outlined dense emit-value map-options use-input hide-selected fill-input input-debounce="200"
                 clearable
@@ -1728,13 +1764,49 @@
               <q-select
                 v-else-if="distributionForm.scope === 'user_group'"
                 v-model="distributionForm.target_user_group_id"
-                :options="scopeUserGroupOptions"
+                :options="appScopeUserGroupOptions"
                 label="Target user group"
                 outlined dense emit-value map-options use-input hide-selected fill-input input-debounce="200"
                 clearable
                 @filter="filterScopeUserGroups"
               />
               <q-input v-else label="Target" model-value="All matching agents" outlined dense readonly />
+            </div>
+          </div>
+          <div v-if="distributionForm.scope === 'user'" class="row q-col-gutter-sm">
+            <div class="col-12 col-md-6 offset-md-6">
+              <q-select
+                v-model="distributionForm.target_agent_id"
+                :options="scopeAgentOptions"
+                label="Target device"
+                outlined dense emit-value map-options use-input hide-selected fill-input input-debounce="200"
+                clearable
+                @filter="filterScopeAgents"
+              />
+            </div>
+          </div>
+          <div v-if="distributionForm.scope === 'user_group'" class="row q-col-gutter-sm">
+            <div class="col-12 col-md-6">
+              <q-select
+                v-model="distributionForm.target_agent_id"
+                :options="scopeAgentOptions"
+                label="Target device"
+                outlined dense emit-value map-options use-input hide-selected fill-input input-debounce="200"
+                clearable
+                @update:model-value="(value) => { if (value) distributionForm.target_device_group_id = null; }"
+                @filter="filterScopeAgents"
+              />
+            </div>
+            <div class="col-12 col-md-6">
+              <q-select
+                v-model="distributionForm.target_device_group_id"
+                :options="scopeDeviceGroupOptions"
+                label="Target device group"
+                outlined dense emit-value map-options use-input hide-selected fill-input input-debounce="200"
+                clearable
+                @update:model-value="(value) => { if (value) distributionForm.target_agent_id = ''; }"
+                @filter="filterScopeDeviceGroups"
+              />
             </div>
           </div>
           <div class="row q-col-gutter-sm">
@@ -2153,6 +2225,8 @@ const scopeAgentAllOptions = ref<{ label: string; value: string }[]>([]);
 const scopeDeviceGroupAllOptions = ref<{ label: string; value: number }[]>([]);
 const scopeUserAllOptions = ref<{ label: string; value: number }[]>([]);
 const scopeUserGroupAllOptions = ref<{ label: string; value: number }[]>([]);
+const appScopeUserAllOptions = ref<{ label: string; value: string }[]>([]);
+const appScopeUserGroupAllOptions = ref<{ label: string; value: string }[]>([]);
 const scopeAgentNeedle = ref("");
 const scopeDeviceGroupNeedle = ref("");
 const scopeUserNeedle = ref("");
@@ -2168,6 +2242,8 @@ const scopeAgentOptions = computed(() => filteredTargetOptions(scopeAgentAllOpti
 const scopeDeviceGroupOptions = computed(() => filteredTargetOptions(scopeDeviceGroupAllOptions.value, scopeDeviceGroupNeedle.value));
 const scopeUserOptions = computed(() => filteredTargetOptions(scopeUserAllOptions.value, scopeUserNeedle.value));
 const scopeUserGroupOptions = computed(() => filteredTargetOptions(scopeUserGroupAllOptions.value, scopeUserGroupNeedle.value));
+const appScopeUserOptions = computed(() => filteredTargetOptions(appScopeUserAllOptions.value, scopeUserNeedle.value));
+const appScopeUserGroupOptions = computed(() => filteredTargetOptions(appScopeUserGroupAllOptions.value, scopeUserGroupNeedle.value));
 const infoCategoryOptions = computed(() => sspInfoCategories.value.map((cat: any) => ({
   label: cat.title || cat.slug || `Category #${cat.id}`,
   value: cat.id,
@@ -2248,6 +2324,14 @@ function lookupTargetLabel(options: { label: string; value: string | number }[],
   return options.find((item) => String(item.value) === String(value))?.label || fallback;
 }
 
+function lookupAppUserLabel(value: any, fallback: string) {
+  return lookupTargetLabel([...appScopeUserAllOptions.value, ...scopeUserAllOptions.value], value, fallback);
+}
+
+function lookupAppUserGroupLabel(value: any, fallback: string) {
+  return lookupTargetLabel([...appScopeUserGroupAllOptions.value, ...scopeUserGroupAllOptions.value], value, fallback);
+}
+
 function scopeTargetLabel(row: any) {
   const scope = (row?.scope || "global").toLowerCase();
   if (scope === "device") {
@@ -2257,10 +2341,21 @@ function scopeTargetLabel(row: any) {
     return lookupTargetLabel(scopeDeviceGroupAllOptions.value, row?.target_device_group_id, `Device group #${row?.target_device_group_id || "?"}`);
   }
   if (scope === "user") {
-    return lookupTargetLabel(scopeUserAllOptions.value, row?.target_user_id, `User #${row?.target_user_id || "?"}`);
+    const userLabel = lookupAppUserLabel(row?.target_user_id, `User #${row?.target_user_id || "?"}`);
+    const deviceLabel = lookupTargetLabel(scopeAgentAllOptions.value, row?.target_agent_id, row?.target_agent_id || "");
+    return row?.target_agent_id ? `${userLabel} on ${deviceLabel}` : userLabel;
   }
   if (scope === "user_group") {
-    return lookupTargetLabel(scopeUserGroupAllOptions.value, row?.target_user_group_id, `User group #${row?.target_user_group_id || "?"}`);
+    const groupLabel = lookupAppUserGroupLabel(row?.target_user_group_id, `User group #${row?.target_user_group_id || "?"}`);
+    if (row?.target_agent_id) {
+      const deviceLabel = lookupTargetLabel(scopeAgentAllOptions.value, row?.target_agent_id, row?.target_agent_id || "");
+      return `${groupLabel} on ${deviceLabel}`;
+    }
+    if (row?.target_device_group_id) {
+      const groupTargetLabel = lookupTargetLabel(scopeDeviceGroupAllOptions.value, row?.target_device_group_id, `Device group #${row?.target_device_group_id || "?"}`);
+      return `${groupLabel} on ${groupTargetLabel}`;
+    }
+    return groupLabel;
   }
   return "All matching devices";
 }
@@ -3127,11 +3222,12 @@ async function reviewSspRightRequest(row: any, status: string) {
 }
 
 async function loadScopeTargetOptions() {
-  const [agentsResp, sitesResp, usersResp, groupsResp] = await Promise.allSettled([
+  const [agentsResp, sitesResp, usersResp, groupsResp, appTargetsResp] = await Promise.allSettled([
     axios.get("/agents/", { params: { detail: "false" } }),
     axios.get("/clients/sites/?leaf=true"),
-    axios.get("/orchestration/windows-users/"),
-    axios.get("/orchestration/windows-user-groups/"),
+    axios.get("/accounts/users/"),
+    axios.get("/accounts/user-groups/"),
+    axios.get("/appmanagement/scope-targets/"),
   ]);
 
   if (agentsResp.status === "fulfilled") {
@@ -3161,10 +3257,10 @@ async function loadScopeTargetOptions() {
   if (usersResp.status === "fulfilled") {
     const list = Array.isArray(usersResp.value.data) ? usersResp.value.data : usersResp.value.data?.results ?? [];
     scopeUserAllOptions.value = list
-      .filter((user: any) => (user?.user_id ?? user?.id) !== undefined && (user?.user_id ?? user?.id) !== null)
+      .filter((user: any) => user?.id !== undefined && user?.id !== null)
       .map((user: any) => ({
-        value: user.user_id ?? user.id,
-        label: user.display_name || user.name || user.sam_account_name || user.email || `User #${user.user_id ?? user.id}`,
+        value: Number(user.id),
+        label: user.display_name || user.name || user.sam_account_name || user.username || user.email || `User #${user.id}`,
       }));
   } else {
     scopeUserAllOptions.value = [];
@@ -3175,11 +3271,31 @@ async function loadScopeTargetOptions() {
     scopeUserGroupAllOptions.value = list
       .filter((group: any) => group?.id !== undefined && group?.id !== null)
       .map((group: any) => ({
-        value: group.id,
+        value: Number(group.id),
         label: group.display_name || group.sam_group_name || group.name || group.sam_account_name || `User group #${group.id}`,
       }));
   } else {
     scopeUserGroupAllOptions.value = [];
+  }
+
+  if (appTargetsResp.status === "fulfilled") {
+    const users = Array.isArray(appTargetsResp.value.data?.users) ? appTargetsResp.value.data.users : [];
+    const groups = Array.isArray(appTargetsResp.value.data?.user_groups) ? appTargetsResp.value.data.user_groups : [];
+    appScopeUserAllOptions.value = users
+      .filter((user: any) => (user?.user_id ?? user?.id) !== undefined && (user?.user_id ?? user?.id) !== null)
+      .map((user: any) => ({
+        value: String(user.user_id ?? user.id),
+        label: user.display_name || user.name || user.sam_account_name || user.email || `User #${user.user_id ?? user.id}`,
+      }));
+    appScopeUserGroupAllOptions.value = groups
+      .filter((group: any) => (group?.group_id ?? group?.id) !== undefined && (group?.group_id ?? group?.id) !== null)
+      .map((group: any) => ({
+        value: String(group.group_id ?? group.id),
+        label: group.display_name || group.sam_group_name || group.name || group.sam_account_name || `User group #${group.group_id ?? group.id}`,
+      }));
+  } else {
+    appScopeUserAllOptions.value = scopeUserAllOptions.value.map((item) => ({ label: item.label, value: String(item.value) }));
+    appScopeUserGroupAllOptions.value = scopeUserGroupAllOptions.value.map((item) => ({ label: item.label, value: String(item.value) }));
   }
 }
 
@@ -3225,26 +3341,43 @@ function textToList(value: string) {
 
 function normalizeScopedPayload(form: any) {
   const payload = { ...form };
-  if (payload.scope !== "device") payload.target_agent_id = "";
-  if (payload.scope !== "device_group") payload.target_device_group_id = null;
-  if (payload.scope !== "user") payload.target_user_id = null;
-  if (payload.scope !== "user_group") payload.target_user_group_id = null;
+  if (payload.scope === "device") {
+    payload.target_device_group_id = null;
+    payload.target_user_id = null;
+    payload.target_user_group_id = null;
+  } else if (payload.scope === "device_group") {
+    payload.target_agent_id = "";
+    payload.target_user_id = null;
+    payload.target_user_group_id = null;
+  } else if (payload.scope === "user") {
+    payload.target_device_group_id = null;
+    payload.target_user_group_id = null;
+  } else if (payload.scope === "user_group") {
+    payload.target_user_id = null;
+  } else {
+    payload.target_agent_id = "";
+    payload.target_device_group_id = null;
+    payload.target_user_id = null;
+    payload.target_user_group_id = null;
+  }
   for (const key of ["target_device_group_id", "target_user_id", "target_user_group_id"]) {
     if (payload[key] === "" || payload[key] === undefined) payload[key] = null;
   }
   return payload;
 }
 
-function scopedTargetError(form: any) {
+function scopedTargetError(form: any, requireAppDeviceTarget = false) {
   if (form.scope === "device" && !form.target_agent_id) return "Select a target device";
   if (form.scope === "device_group" && !form.target_device_group_id) return "Select a target device group";
   if (form.scope === "user" && !form.target_user_id) return "Select a target user";
   if (form.scope === "user_group" && !form.target_user_group_id) return "Select a target user group";
+  if (requireAppDeviceTarget && form.scope === "user" && !form.target_agent_id) return "Select a target device";
+  if (requireAppDeviceTarget && form.scope === "user_group" && !form.target_agent_id && !form.target_device_group_id) return "Select a target device or device group";
   return "";
 }
 
-function validateScopedTarget(form: any) {
-  const error = scopedTargetError(form);
+function validateScopedTarget(form: any, requireAppDeviceTarget = false) {
+  const error = scopedTargetError(form, requireAppDeviceTarget);
   if (!error) return true;
   $q.notify({ message: error, color: "warning" });
   return false;
@@ -3744,7 +3877,7 @@ async function removeInfoArticle(id: number) {
 }
 
 async function saveApp() {
-  if (!validateScopedTarget(appForm.value)) return;
+  if (!validateScopedTarget(appForm.value, true)) return;
   savingApp.value = true;
   try {
     const payload = {
@@ -3884,7 +4017,7 @@ function normalizeDistributionPayload() {
   return payload;
 }
 async function saveDistribution() {
-  if (!validateScopedTarget(distributionForm.value)) return;
+  if (!validateScopedTarget(distributionForm.value, true)) return;
   savingDistribution.value = true;
   try {
     const payload = normalizeDistributionPayload();
