@@ -3130,8 +3130,8 @@ async function loadScopeTargetOptions() {
   const [agentsResp, sitesResp, usersResp, groupsResp] = await Promise.allSettled([
     axios.get("/agents/", { params: { detail: "false" } }),
     axios.get("/clients/sites/?leaf=true"),
-    axios.get("/accounts/users/"),
-    axios.get("/accounts/user-groups/"),
+    axios.get("/orchestration/windows-users/"),
+    axios.get("/orchestration/windows-user-groups/"),
   ]);
 
   if (agentsResp.status === "fulfilled") {
@@ -3161,10 +3161,10 @@ async function loadScopeTargetOptions() {
   if (usersResp.status === "fulfilled") {
     const list = Array.isArray(usersResp.value.data) ? usersResp.value.data : usersResp.value.data?.results ?? [];
     scopeUserAllOptions.value = list
-      .filter((user: any) => user?.id !== undefined && user?.id !== null)
+      .filter((user: any) => (user?.user_id ?? user?.id) !== undefined && (user?.user_id ?? user?.id) !== null)
       .map((user: any) => ({
-        value: user.id,
-        label: user.display_name || user.full_name || user.username || user.sam_account_name || user.email || `User #${user.id}`,
+        value: user.user_id ?? user.id,
+        label: user.display_name || user.name || user.sam_account_name || user.email || `User #${user.user_id ?? user.id}`,
       }));
   } else {
     scopeUserAllOptions.value = [];
@@ -3176,7 +3176,7 @@ async function loadScopeTargetOptions() {
       .filter((group: any) => group?.id !== undefined && group?.id !== null)
       .map((group: any) => ({
         value: group.id,
-        label: group.display_name || group.name || group.sam_account_name || `User group #${group.id}`,
+        label: group.display_name || group.sam_group_name || group.name || group.sam_account_name || `User group #${group.id}`,
       }));
   } else {
     scopeUserGroupAllOptions.value = [];
