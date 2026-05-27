@@ -603,6 +603,17 @@
                       dense
                       class="filebar-popup-item"
                       v-close-popup
+                      @click="navigateToMdmExtras('DeviceManagement')"
+                    >
+                      <q-item-section avatar><q-icon name="devices" /></q-item-section>
+                      <q-item-section>Devices</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-ripple
+                      dense
+                      class="filebar-popup-item"
+                      v-close-popup
                       @click="navigateToMdmExtras('AppManagement')"
                     >
                       <q-item-section avatar><q-icon name="apps" /></q-item-section>
@@ -826,7 +837,7 @@
                   <q-item-section avatar>
                     <q-icon name="devices" />
                   </q-item-section>
-                  <q-item-section>Devices &amp; Containers</q-item-section>
+                  <q-item-section>Devices </q-item-section>
                 </q-item>
                 <q-item
                   clickable
@@ -876,7 +887,7 @@
                 >
                   <q-item-section avatar><q-icon name="dns" /></q-item-section>
                   <q-item-section>Windows Advanced</q-item-section>
-                </q-item>  
+                </q-item>
                 <q-item
                   clickable
                   v-ripple

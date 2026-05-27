@@ -221,14 +221,14 @@
                   <q-item-section>Resize</q-item-section>
                 </q-item>
                 <q-separator />
-                <q-item
+                <!-- <q-item
                   v-close-popup
                   clickable
                   class="text-negative"
                   @click="confirmDeleteVolume(props.row)"
                 >
                   <q-item-section>Delete</q-item-section>
-                </q-item>
+                </q-item> -->
               </q-list>
             </q-btn-dropdown>
           </q-td>
