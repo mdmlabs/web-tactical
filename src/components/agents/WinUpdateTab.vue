@@ -50,6 +50,16 @@
           @click="installUpdates"
           class="q-mr-sm"
         />
+        <q-btn
+          label="Update Services"
+          dense
+          flat
+          push
+          no-caps
+          icon="dns"
+          @click="openUpdateServiceDialog"
+          class="q-mr-sm"
+        />
         <q-space />
 
         <q-input
@@ -192,6 +202,39 @@
         </q-tr>
       </template>
     </q-table>
+
+    <q-dialog v-model="updateServiceDialog">
+      <q-card style="min-width: 420px; max-width: 560px">
+        <q-bar>
+          Update Services Policy
+          <q-space />
+          <q-btn dense flat icon="close" v-close-popup />
+        </q-bar>
+        <q-card-section class="q-gutter-md">
+          <q-select
+            v-model="selectedUpdateServicePolicy"
+            :options="updateServicePolicyOptions"
+            label="WSUS policy"
+            outlined
+            dense
+            emit-value
+            map-options
+            :loading="updateServiceLoading"
+          />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn
+            color="primary"
+            icon="dns"
+            label="Apply and Scan"
+            :disable="!selectedUpdateServicePolicy"
+            :loading="updateServiceLoading"
+            @click="applySelectedUpdateServicePolicy"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
@@ -205,6 +248,8 @@ import {
   editAgentUpdate,
   runAgentUpdateScan,
   runAgentUpdateInstall,
+  fetchUpdateServicePolicies,
+  applyUpdateServicePolicy,
 } from "@/api/winupdates";
 import { notifySuccess } from "@/utils/notify";
 import { truncateText } from "@/utils/format";
@@ -284,6 +329,17 @@ export default {
       descending: false,
     });
     const loading = ref(false);
+    const updateServiceDialog = ref(false);
+    const updateServicePolicies = ref([]);
+    const selectedUpdateServicePolicy = ref(null);
+    const updateServiceLoading = ref(false);
+
+    const updateServicePolicyOptions = computed(() =>
+      updateServicePolicies.value.map((policy) => ({
+        value: policy.id,
+        label: `${policy.name} - ${policy.wsus_url}`,
+      }))
+    );
 
     async function getUpdates() {
       loading.value = true;
@@ -324,6 +380,39 @@ export default {
         console.error(e);
       }
       loading.value = false;
+    }
+
+    async function openUpdateServiceDialog() {
+      updateServiceDialog.value = true;
+      updateServiceLoading.value = true;
+      try {
+        updateServicePolicies.value = await fetchUpdateServicePolicies();
+        if (!selectedUpdateServicePolicy.value && updateServicePolicies.value.length) {
+          selectedUpdateServicePolicy.value = updateServicePolicies.value[0].id;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      updateServiceLoading.value = false;
+    }
+
+    async function applySelectedUpdateServicePolicy() {
+      if (!selectedUpdateServicePolicy.value) return;
+      updateServiceLoading.value = true;
+      try {
+        const result = await applyUpdateServicePolicy(
+          selectedUpdateServicePolicy.value,
+          selectedAgent.value
+        );
+        notifySuccess(
+          `WSUS policy applied to ${result.agents_triggered || 0} device(s). Update scan queued.`
+        );
+        updateServiceDialog.value = false;
+        await getUpdates();
+      } catch (e) {
+        console.error(e);
+      }
+      updateServiceLoading.value = false;
     }
 
     const exporting = ref(false);
@@ -381,6 +470,10 @@ export default {
       filter,
       pagination,
       loading,
+      updateServiceDialog,
+      updateServicePolicyOptions,
+      selectedUpdateServicePolicy,
+      updateServiceLoading,
       selectedAgent,
       tabHeight,
       agentPlatform,
@@ -396,6 +489,8 @@ export default {
       editWinUpdate,
       updateScan,
       installUpdates,
+      openUpdateServiceDialog,
+      applySelectedUpdateServicePolicy,
       exportWinUpdateHistory,
       showUpdateDetails,
       notifySuccess,
