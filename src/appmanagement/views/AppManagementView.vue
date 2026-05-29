@@ -2238,6 +2238,10 @@ function filteredTargetOptions<T extends { label: string; value: string | number
   return rows.filter((row) => String(row.label).toLowerCase().includes(q) || String(row.value).toLowerCase().includes(q));
 }
 
+function isEnabledTarget(row: any): boolean {
+  return row?.is_enabled !== false && row?.enabled !== false;
+}
+
 const scopeAgentOptions = computed(() => filteredTargetOptions(scopeAgentAllOptions.value, scopeAgentNeedle.value));
 const scopeDeviceGroupOptions = computed(() => filteredTargetOptions(scopeDeviceGroupAllOptions.value, scopeDeviceGroupNeedle.value));
 const scopeUserOptions = computed(() => filteredTargetOptions(scopeUserAllOptions.value, scopeUserNeedle.value));
@@ -3257,7 +3261,7 @@ async function loadScopeTargetOptions() {
   if (usersResp.status === "fulfilled") {
     const list = Array.isArray(usersResp.value.data) ? usersResp.value.data : usersResp.value.data?.results ?? [];
     scopeUserAllOptions.value = list
-      .filter((user: any) => user?.id !== undefined && user?.id !== null)
+      .filter((user: any) => user?.id !== undefined && user?.id !== null && isEnabledTarget(user))
       .map((user: any) => ({
         value: Number(user.id),
         label: user.display_name || user.name || user.sam_account_name || user.username || user.email || `User #${user.id}`,
@@ -3282,7 +3286,7 @@ async function loadScopeTargetOptions() {
     const users = Array.isArray(appTargetsResp.value.data?.users) ? appTargetsResp.value.data.users : [];
     const groups = Array.isArray(appTargetsResp.value.data?.user_groups) ? appTargetsResp.value.data.user_groups : [];
     appScopeUserAllOptions.value = users
-      .filter((user: any) => (user?.user_id ?? user?.id) !== undefined && (user?.user_id ?? user?.id) !== null)
+      .filter((user: any) => (user?.user_id ?? user?.id) !== undefined && (user?.user_id ?? user?.id) !== null && isEnabledTarget(user))
       .map((user: any) => ({
         value: String(user.user_id ?? user.id),
         label: user.display_name || user.name || user.sam_account_name || user.email || `User #${user.user_id ?? user.id}`,
