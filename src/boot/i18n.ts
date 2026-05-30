@@ -49,20 +49,33 @@ async function loadQuasarLangPack(code: LocaleCode) {
   if (langPack) Quasar.lang.set(langPack);
 }
 
-export async function setLocale(code: LocaleCode, persistRemote = false) {
-  i18n.global.locale.value = code;
+function normalizeLocale(code: string): LocaleCode {
+  return (
+    SUPPORTED_LOCALES.find((locale) => locale.code === code)?.code ??
+    DEFAULT_LOCALE
+  );
+}
+
+export async function setLocale(
+  code: LocaleCode | string,
+  persistRemote = false,
+) {
+  const normalizedCode = normalizeLocale(code);
+  i18n.global.locale.value = normalizedCode;
   if (typeof window !== "undefined") {
-    window.localStorage?.setItem(STORAGE_KEY, code);
+    window.localStorage?.setItem(STORAGE_KEY, normalizedCode);
   }
   if (typeof document !== "undefined") {
-    document.documentElement.setAttribute("lang", code);
+    document.documentElement.setAttribute("lang", normalizedCode);
   }
-  await loadQuasarLangPack(code);
+  await loadQuasarLangPack(normalizedCode);
 
   if (persistRemote) {
     // Fire-and-forget: unauthenticated users (login page) just use local state.
     try {
-      await axios.patch("/accounts/users/ui/", { preferred_language: code });
+      await axios.patch("/accounts/users/ui/", {
+        preferred_language: normalizedCode,
+      });
     } catch {
       // Silently ignore — PATCH fails if not logged in; local state still applied.
     }

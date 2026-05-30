@@ -1,6 +1,5 @@
 <template>
   <q-layout view="hHh lpR fFf" class="ssp-layout">
-
     <!-- Header -->
     <q-header class="ssp-header">
       <q-toolbar class="ssp-toolbar">
@@ -9,13 +8,20 @@
           <div class="ssp-brand-icon">
             <q-icon name="shield" size="20px" color="white" />
           </div>
-          <span class="ssp-brand-name">{{ $t('ssp.views.SSPView.96fa52') }}</span>
+          <span class="ssp-brand-name">{{
+            $t("ssp.views.SSPView.96fa52")
+          }}</span>
         </div>
 
         <q-space />
 
+        <LanguageSwitcher contrast class="ssp-language-switcher" />
+
         <q-btn
-          flat dense round icon="support_agent"
+          flat
+          dense
+          round
+          icon="support_agent"
           class="ssp-header-btn"
           @click="router.push('/ssp/info')"
         >
@@ -27,14 +33,19 @@
           <div class="ssp-avatar">{{ initials }}</div>
           <div class="ssp-user-info column">
             <span class="ssp-user-name">{{ auth.displayName }}</span>
-            <span class="ssp-user-role">{{ $t('ssp.views.SSPView.079711') }}</span>
+            <span class="ssp-user-role">{{
+              $t("ssp.views.SSPView.079711")
+            }}</span>
           </div>
           <q-btn
-            flat dense round icon="logout"
+            flat
+            dense
+            round
+            icon="logout"
             class="ssp-logout-btn"
             @click="logout"
           >
-            <q-tooltip>{{ $t('ssp.views.SSPView.e43d61') }}</q-tooltip>
+            <q-tooltip>{{ $t("ssp.views.SSPView.e43d61") }}</q-tooltip>
           </q-btn>
         </div>
       </q-toolbar>
@@ -49,7 +60,11 @@
           v-slot="{ isActive, navigate }"
         >
           <button
-            :class="['ssp-nav-item', { 'ssp-nav-item--active': isActive }, { 'ssp-nav-item--danger': tab.danger }]"
+            :class="[
+              'ssp-nav-item',
+              { 'ssp-nav-item--active': isActive },
+              { 'ssp-nav-item--danger': tab.danger },
+            ]"
             @click="navigate"
           >
             <q-icon :name="tab.icon" size="18px" class="ssp-nav-icon" />
@@ -69,23 +84,43 @@
 import { computed } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { useRouter } from "vue-router";
+import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
+import { useDomI18n } from "@/utils/dom-i18n";
 
 const auth = useAuthStore();
 const router = useRouter();
+useDomI18n();
 
 const initials = computed(() => {
   const name = auth.displayName || "";
-  return name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "U";
+  return (
+    name
+      .split(" ")
+      .map((n: string) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "U"
+  );
 });
 
 const tabs = [
-  { to: "/ssp/devices",     icon: "devices",       label: "My Devices",          danger: false },
-  { to: "/ssp/apps",        icon: "apps",          label: "App Catalog",          danger: false },
-  { to: "/ssp/rights",      icon: "verified_user", label: "My Rights",            danger: false },
-  { to: "/ssp/password",    icon: "lock",          label: "Password",             danger: false },
-  { to: "/ssp/profile",     icon: "person",        label: "My Profile",           danger: false },
-  { to: "/ssp/info",        icon: "menu_book",     label: "Info Portal",          danger: false },
-  { to: "/ssp/lost-device", icon: "report_problem",label: "Report Lost Device",   danger: true  },
+  { to: "/ssp/devices", icon: "devices", label: "My Devices", danger: false },
+  { to: "/ssp/apps", icon: "apps", label: "App Catalog", danger: false },
+  {
+    to: "/ssp/rights",
+    icon: "verified_user",
+    label: "My Rights",
+    danger: false,
+  },
+  { to: "/ssp/password", icon: "lock", label: "Password", danger: false },
+  { to: "/ssp/profile", icon: "person", label: "My Profile", danger: false },
+  { to: "/ssp/info", icon: "menu_book", label: "Info Portal", danger: false },
+  {
+    to: "/ssp/lost-device",
+    icon: "report_problem",
+    label: "Report Lost Device",
+    danger: true,
+  },
 ];
 
 async function logout() {
@@ -97,8 +132,8 @@ async function logout() {
 <style scoped>
 /* ─── Header ─── */
 .ssp-header {
-  background: #0F172A !important;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.06) !important;
+  background: #0f172a !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) !important;
 }
 
 .ssp-toolbar {
@@ -117,7 +152,7 @@ async function logout() {
 .ssp-brand-icon {
   width: 34px;
   height: 34px;
-  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   border-radius: 9px;
   display: flex;
   align-items: center;
@@ -129,7 +164,7 @@ async function logout() {
 .ssp-brand-name {
   font-size: 16px;
   font-weight: 700;
-  color: #F8FAFC;
+  color: #f8fafc;
   letter-spacing: -0.01em;
 }
 
@@ -143,7 +178,7 @@ async function logout() {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
   color: white;
   display: flex;
   align-items: center;
@@ -163,32 +198,36 @@ async function logout() {
 .ssp-user-name {
   font-size: 13px;
   font-weight: 600;
-  color: #F1F5F9;
+  color: #f1f5f9;
 }
 
 .ssp-user-role {
   font-size: 11px;
-  color: #64748B;
+  color: #64748b;
 }
 
 .ssp-logout-btn {
-  color: #64748B !important;
+  color: #64748b !important;
   margin-left: 4px;
 }
 
 .ssp-logout-btn:hover {
-  color: #94A3B8 !important;
-  background: rgba(255,255,255,0.06) !important;
+  color: #94a3b8 !important;
+  background: rgba(255, 255, 255, 0.06) !important;
 }
 
 .ssp-header-btn {
-  color: #CBD5E1 !important;
+  color: #cbd5e1 !important;
+  margin-right: 12px;
+}
+
+.ssp-language-switcher {
   margin-right: 12px;
 }
 
 .ssp-header-btn:hover {
-  color: #F8FAFC !important;
-  background: rgba(255,255,255,0.06) !important;
+  color: #f8fafc !important;
+  background: rgba(255, 255, 255, 0.06) !important;
 }
 
 /* ─── Tab Navigation ─── */
@@ -197,7 +236,7 @@ async function logout() {
   align-items: center;
   padding: 0 20px;
   gap: 2px;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -215,23 +254,26 @@ async function logout() {
   border: none;
   background: transparent;
   cursor: pointer;
-  color: #94A3B8;
+  color: #94a3b8;
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
   border-bottom: 2px solid transparent;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
   border-radius: 6px 6px 0 0;
 }
 
 .ssp-nav-item:hover {
-  color: #CBD5E1;
-  background: rgba(255,255,255,0.04);
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .ssp-nav-item--active {
-  color: #F8FAFC !important;
-  border-bottom-color: #2563EB !important;
+  color: #f8fafc !important;
+  border-bottom-color: #2563eb !important;
 }
 
 .ssp-nav-icon {
@@ -241,22 +283,22 @@ async function logout() {
 
 /* Danger tab (Report Lost Device) */
 .ssp-nav-item--danger {
-  color: #F87171;
+  color: #f87171;
 }
 
 .ssp-nav-item--danger:hover {
-  color: #FCA5A5;
+  color: #fca5a5;
   background: rgba(220, 38, 38, 0.08);
 }
 
 .ssp-nav-item--danger.ssp-nav-item--active {
-  color: #FCA5A5 !important;
-  border-bottom-color: #DC2626 !important;
+  color: #fca5a5 !important;
+  border-bottom-color: #dc2626 !important;
 }
 
 /* ─── Page container ─── */
 .ssp-page-container {
-  background: #F8FAFC;
+  background: #f8fafc;
   box-sizing: border-box;
   height: 100vh;
   min-height: 100vh;

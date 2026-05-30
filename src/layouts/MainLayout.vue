@@ -137,6 +137,8 @@
 
         <q-space />
 
+        <LanguageSwitcher contrast class="q-mr-sm" />
+
         <!-- Web Terminal -->
         <!-- <q-btn
           v-if="!hosted"
@@ -644,6 +646,7 @@ import { storeToRefs } from "pinia";
 
 // ui imports
 import AlertsIcon from "@/components/AlertsIcon.vue";
+import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
 import UserPreferences from "@/components/modals/coresettings/UserPreferences.vue";
 import ResetPass from "@/components/accounts/ResetPass.vue";
 import FileBar from "@/components/FileBar.vue";
