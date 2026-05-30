@@ -2,6 +2,7 @@ import { createStore } from "vuex";
 import { Screen, Dark, LoadingBar } from "quasar";
 import axios from "axios";
 import { formatDate } from "@/utils/format";
+import { setLocale } from "@/boot/i18n";
 
 export default function () {
   const Store = new createStore({
@@ -402,6 +403,9 @@ export default function () {
         commit("setServerScriptsEnabled", data.server_scripts_enabled);
         commit("setWebTerminalEnabled", data.web_terminal_enabled);
         commit("setBlockLocalUserLogon", data.block_local_user_logon);
+        if (data.preferred_language) {
+          await setLocale(data.preferred_language, false);
+        }
 
         if (data?.date_format !== "") commit("setDateFormat", data.date_format);
         else commit("setDateFormat", data.default_date_format);
@@ -429,7 +433,10 @@ export default function () {
                     master_id: site.master_id,
                     raw: `Site|${site.id}`,
                     header: childNodes.length > 0 ? "root" : "generic",
-                    icon: childNodes.length > 0 ? "corporate_fare" : "business_center",
+                    icon:
+                      childNodes.length > 0
+                        ? "corporate_fare"
+                        : "business_center",
                     selectable: true,
                     site: site,
                   };
@@ -442,7 +449,10 @@ export default function () {
                     siteNode["color"] = "green";
                   } else if (site.failing_checks && site.failing_checks.error) {
                     siteNode["color"] = "negative";
-                  } else if (site.failing_checks && site.failing_checks.warning) {
+                  } else if (
+                    site.failing_checks &&
+                    site.failing_checks.warning
+                  ) {
                     siteNode["color"] = "warning";
                   }
 
