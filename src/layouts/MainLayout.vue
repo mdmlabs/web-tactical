@@ -652,11 +652,23 @@ import ResetPass from "@/components/accounts/ResetPass.vue";
 import FileBar from "@/components/FileBar.vue";
 import bcyLogo from "@/assets/agent-icon.png";
 import { SYSTEM_NAME } from "@/constants/constants";
+import { useDomI18n } from "@/utils/dom-i18n";
 
 const store = useStore();
 const $q = useQuasar();
 const route = useRoute();
 const router = useRouter();
+
+useDomI18n({
+  root: () => document.querySelector(".modern-header"),
+});
+useDomI18n({
+  root: () => document.querySelector(".filebar-drawer"),
+});
+useDomI18n({
+  root: () => document.querySelector(".main-page-container"),
+  debounceMs: 120,
+});
 
 const {
   // serverCount,

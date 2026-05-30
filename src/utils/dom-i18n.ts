@@ -2,9 +2,25 @@ import { nextTick, onBeforeUnmount, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
 type TranslateFn = (key: string) => string;
+type RootResolver = ParentNode | string | (() => ParentNode | null);
+
+interface DomI18nOptions {
+  root?: RootResolver;
+  skipSelector?: string;
+  debounceMs?: number;
+}
 
 const textOriginals = new WeakMap<Text, string>();
 const ATTRIBUTES = ["placeholder", "title", "aria-label"] as const;
+const DEFAULT_SKIP_SELECTOR = [
+  "script",
+  "style",
+  "pre",
+  "code",
+  ".language-switcher",
+  "[data-no-dom-i18n]",
+  "tbody",
+].join(",");
 const SEGMENT_KEYS = [
   "Pending installer",
   "Last seen",
@@ -61,10 +77,14 @@ function localizeAttributes(
   root: ParentNode,
   t: TranslateFn,
   restore: boolean,
+  skipSelector: string,
 ) {
   if (!(root instanceof Element)) return;
   const elements = [root, ...Array.from(root.querySelectorAll("*"))];
   for (const element of elements) {
+    if (element.matches(skipSelector) || element.closest(skipSelector)) {
+      continue;
+    }
     for (const attr of ATTRIBUTES) {
       const current = element.getAttribute(attr);
       if (!current) continue;
@@ -77,19 +97,22 @@ function localizeAttributes(
       const dataset = (element as HTMLElement).dataset;
       const original = dataset[originalKey] || current;
       dataset[originalKey] = original;
-      element.setAttribute(
-        attr,
-        restore ? original : translateText(original, t),
-      );
+      const next = restore ? original : translateText(original, t);
+      if (next !== current) element.setAttribute(attr, next);
     }
   }
 }
 
-function localizeTextNodes(root: ParentNode, t: TranslateFn, restore: boolean) {
+function localizeTextNodes(
+  root: ParentNode,
+  t: TranslateFn,
+  restore: boolean,
+  skipSelector: string,
+) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
       const parent = node.parentElement;
-      if (!parent || ["SCRIPT", "STYLE"].includes(parent.tagName)) {
+      if (!parent || parent.closest(skipSelector)) {
         return NodeFilter.FILTER_REJECT;
       }
       return node.nodeValue?.trim()
@@ -102,36 +125,52 @@ function localizeTextNodes(root: ParentNode, t: TranslateFn, restore: boolean) {
   while (node) {
     const original = textOriginals.get(node) || node.nodeValue || "";
     textOriginals.set(node, original);
-    node.nodeValue = restore ? original : translateText(original, t);
+    const next = restore ? original : translateText(original, t);
+    if (next !== node.nodeValue) node.nodeValue = next;
     node = walker.nextNode() as Text | null;
   }
 }
 
-export function useDomI18n() {
+function resolveRoot(root?: RootResolver): ParentNode | null {
+  if (!root) return document.body;
+  if (typeof root === "string") return document.querySelector(root);
+  if (typeof root === "function") return root();
+  return root;
+}
+
+export function useDomI18n(options: DomI18nOptions = {}) {
   const { locale, t } = useI18n();
   let observer: MutationObserver | null = null;
+  let timeout: ReturnType<typeof setTimeout> | null = null;
   let scheduled = false;
+  const debounceMs = options.debounceMs ?? 80;
+  const skipSelector = [DEFAULT_SKIP_SELECTOR, options.skipSelector]
+    .filter(Boolean)
+    .join(",");
 
   const apply = () => {
     if (scheduled) return;
     scheduled = true;
     void nextTick(() => {
-      scheduled = false;
-      const root = document.body;
-      const restore = String(locale.value).startsWith("en");
-      localizeTextNodes(root, t, restore);
-      localizeAttributes(root, t, restore);
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        scheduled = false;
+        const root = resolveRoot(options.root);
+        if (!root) return;
+        const restore = String(locale.value).startsWith("en");
+        localizeTextNodes(root, t, restore, skipSelector);
+        localizeAttributes(root, t, restore, skipSelector);
+      }, debounceMs);
     });
   };
 
   onMounted(() => {
+    const root = resolveRoot(options.root);
+    if (!root) return;
     observer = new MutationObserver(apply);
-    observer.observe(document.body, {
+    observer.observe(root, {
       childList: true,
       subtree: true,
-      characterData: true,
-      attributes: true,
-      attributeFilter: [...ATTRIBUTES],
     });
     apply();
   });
@@ -139,6 +178,7 @@ export function useDomI18n() {
   watch(locale, apply);
 
   onBeforeUnmount(() => {
+    if (timeout) clearTimeout(timeout);
     observer?.disconnect();
     observer = null;
   });
