@@ -1,3 +1,4 @@
+import adminStatic from "./admin-static";
 import extracted from "./extracted";
 import sspStatic from "./ssp-static";
 
@@ -5,6 +6,7 @@ export default {
   // Auto-generated translations for extracted UI keys. Reviewed overrides live
   // in the structured namespaces below.
   ...extracted,
+  ...adminStatic,
   ...sspStatic,
   common: {
     save: "Lưu",

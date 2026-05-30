@@ -89,7 +89,9 @@ import { useDomI18n } from "@/utils/dom-i18n";
 
 const auth = useAuthStore();
 const router = useRouter();
-useDomI18n();
+useDomI18n({
+  root: () => document.querySelector(".ssp-layout"),
+});
 
 const initials = computed(() => {
   const name = auth.displayName || "";
