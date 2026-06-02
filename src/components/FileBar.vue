@@ -2073,6 +2073,19 @@
                       </q-item-section>
                       <q-item-section>Reports Manager</q-item-section>
                     </q-item>
+
+                    <q-item
+                      clickable
+                      v-ripple
+                      @click="handleMenuAction('patchManagement')"
+                      class="filebar-popup-item"
+                      v-close-popup
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="system_update_alt" size="sm" />
+                      </q-item-section>
+                      <q-item-section>Patch Management</q-item-section>
+                    </q-item>
                   </q-list>
                 </q-menu>
               </q-item>
@@ -2184,6 +2197,17 @@
                     <q-icon name="report" />
                   </q-item-section>
                   <q-item-section>Reports Manager</q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-ripple
+                  @click="handleMenuAction('patchManagement')"
+                  class="filebar-menu-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="system_update_alt" />
+                  </q-item-section>
+                  <q-item-section>Patch Management</q-item-section>
                 </q-item>
               </q-list>
             </q-expansion-item>
@@ -2515,6 +2539,9 @@ export default {
           break;
         case "agentMap":
           this.$router.push({ name: "AgentMap" });
+          break;
+        case "patchManagement":
+          this.$router.push({ name: "PatchManagement" });
           break;
       }
     },

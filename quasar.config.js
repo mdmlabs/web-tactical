@@ -105,6 +105,19 @@ module.exports = configure(function (/* ctx */) {
           },
         });
 
+        if (!isServer) {
+          viteConf.plugins = viteConf.plugins ?? [];
+          viteConf.plugins.push({
+            name: "upload-no-timeout",
+            configureServer(server) {
+              if (server.httpServer) {
+                server.httpServer.requestTimeout = 0;
+                server.httpServer.headersTimeout = 0;
+              }
+            },
+          });
+        }
+
         // настройка прокси для обхода CORS в режиме разработки
         if (!isServer && viteConf.server) {
           const apiUrl = process.env.DEV_URL;
@@ -205,6 +218,21 @@ module.exports = configure(function (/* ctx */) {
               : {}),
 
             // CYWM backend — path preserved as-is (Django registers at /api/cywm/)
+            "/api/winupdate/patches/upload": {
+              target: apiUrl,
+              changeOrigin: true,
+              secure: !insecure,
+              agent: httpsAgent,
+              timeout: 0,
+              proxyTimeout: 0,
+              rewrite: (path) => path.replace(/^\/api/, ""),
+              configure: (proxy) => {
+                proxy.on("proxyReq", (_proxyReq, req) => {
+                  req.socket.setTimeout(0);
+                });
+              },
+            },
+
             "/api/cywm": {
               target: apiUrl,
               changeOrigin: true,

@@ -182,6 +182,13 @@ const routes = [
         meta: { requireAuth: true },
       },
       {
+        path: "/winupdate/patches",
+        name: "PatchManagement",
+        component: () =>
+          import("@/winupdate/views/PatchManagementView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
         path: "/security-center",
         name: "SecurityCenter",
         component: () => import("@/security/views/SecurityView.vue"),
