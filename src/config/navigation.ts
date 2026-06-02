@@ -140,6 +140,20 @@ export const navigation: NavItem[] = [
     ],
   },
   {
+    id: "tools",
+    label: "Tools",
+    icon: "construction",
+    dividerBefore: true,
+    children: [
+      {
+        id: "patch-management",
+        label: "Patch Management",
+        icon: "system_update_alt",
+        route: "/winupdate/patches",
+      },
+    ],
+  },
+  {
     id: "system",
     label: "System",
     icon: "build",
