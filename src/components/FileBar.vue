@@ -1986,19 +1986,6 @@
                     <q-item
                       clickable
                       v-ripple
-                      @click="handleMenuAction('bulkPatch')"
-                      class="filebar-popup-item"
-                      v-close-popup
-                    >
-                      <q-item-section avatar>
-                        <q-icon name="update" size="sm" />
-                      </q-item-section>
-                      <q-item-section>Bulk Patch Management</q-item-section>
-                    </q-item>
-
-                    <q-item
-                      clickable
-                      v-ripple
                       @click="handleMenuAction('bulkSoftware')"
                       class="filebar-popup-item"
                       v-close-popup
@@ -2119,17 +2106,6 @@
                     <q-icon name="article" />
                   </q-item-section>
                   <q-item-section>Bulk Script</q-item-section>
-                </q-item>
-                <q-item
-                  clickable
-                  v-ripple
-                  @click="handleMenuAction('bulkPatch')"
-                  class="filebar-menu-item"
-                >
-                  <q-item-section avatar>
-                    <q-icon name="update" />
-                  </q-item-section>
-                  <q-item-section>Bulk Patch Management</q-item-section>
                 </q-item>
                 <q-item
                   clickable
