@@ -144,7 +144,63 @@
           </div>
         </div>
 
-        <!-- Section 2: Deployments -->
+        <!-- Section 2: Patches tree -->
+        <div class="winupdate-card">
+          <div
+            class="winupdate-card__header winupdate-card__header--clickable"
+            @click="treeExpanded = !treeExpanded"
+          >
+            <q-icon name="account_tree" size="20px" class="q-mr-sm" />
+            Available Patches
+            <q-btn
+              flat dense round icon="refresh" size="sm"
+              class="q-ml-auto"
+              :loading="loadingTree"
+              @click.stop="loadTree"
+            />
+            <q-icon
+              :name="treeExpanded ? 'expand_less' : 'expand_more'"
+              size="18px"
+              class="q-ml-xs text-grey-6"
+            />
+          </div>
+
+          <div v-if="treeExpanded">
+            <div v-if="loadingTree" class="flex flex-center q-pa-md">
+              <q-spinner color="primary" size="24px" />
+            </div>
+
+            <q-tree
+              v-else-if="treeNodes.length"
+              :nodes="treeNodes"
+              node-key="key"
+              default-expand-all
+              dense
+              class="winupdate-patches-tree"
+            >
+              <template #default-header="{ node }">
+                <div class="winupdate-tree-node">
+                  <q-icon
+                    :name="node.icon"
+                    :color="node.iconColor"
+                    size="16px"
+                    class="q-mr-xs"
+                  />
+                  <span>{{ node.label }}</span>
+                  <span v-if="node.count != null" class="winupdate-tree-count">
+                    {{ node.count }}
+                  </span>
+                </div>
+              </template>
+            </q-tree>
+
+            <div v-else class="winupdate-tree-empty">
+              No patches found
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Deployments -->
         <div class="winupdate-card">
           <div class="winupdate-card__header">
             <q-icon name="rocket_launch" size="20px" class="q-mr-sm" />
@@ -232,6 +288,8 @@ import {
   uploadPatches,
   applyPatch,
   fetchDeployments,
+  fetchPatchesTree,
+  type PatchTreeResponse,
   type DeploymentRecord,
   type UploadPatchesResponse,
   type DeploymentStatus,
@@ -414,6 +472,60 @@ async function loadDeployments() {
   }
 }
 
+// --- Patches tree ---
+
+const patchesTree = ref<PatchTreeResponse>({});
+const loadingTree = ref(false);
+const treeExpanded = ref(true);
+
+interface TreeNode {
+  key: string;
+  label: string;
+  icon: string;
+  iconColor: string;
+  count?: number;
+  children?: TreeNode[];
+}
+
+const treeNodes = computed<TreeNode[]>(() =>
+  Object.entries(patchesTree.value).map(([buildId, arches]) => ({
+    key: buildId,
+    label: buildId,
+    icon: "folder",
+    iconColor: "amber-7",
+    count: Object.values(arches).reduce(
+      (s: number, files: { filename: string }[]) => s + files.length,
+      0,
+    ),
+    children: Object.entries(arches).map(
+      ([arch, files]: [string, { filename: string }[]]) => ({
+        key: `${buildId}/${arch}`,
+        label: arch,
+        icon: "memory",
+        iconColor: "blue-5",
+        count: files.length,
+        children: files.map((f: { filename: string }) => ({
+          key: `${buildId}/${arch}/${f.filename}`,
+          label: f.filename,
+          icon: "draft",
+          iconColor: "grey-6",
+        })),
+      }),
+    ),
+  })),
+);
+
+async function loadTree() {
+  loadingTree.value = true;
+  try {
+    patchesTree.value = await fetchPatchesTree();
+  } catch {
+    // interceptor handles notifications
+  } finally {
+    loadingTree.value = false;
+  }
+}
+
 function onBeforeUnload(e: BeforeUnloadEvent) {
   if (!uploading.value) return;
   e.preventDefault();
@@ -429,7 +541,7 @@ onBeforeRouteLeave(() => {
 
 onMounted(async () => {
   window.addEventListener("beforeunload", onBeforeUnload);
-  await Promise.all([loadDeployments(), loadApplyFormData()]);
+  await Promise.all([loadDeployments(), loadApplyFormData(), loadTree()]);
 });
 
 onUnmounted(() => {
@@ -484,6 +596,32 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.winupdate-patches-tree { padding: 4px 0; }
+
+.winupdate-tree-node {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  gap: 4px;
+}
+
+.winupdate-tree-count {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--cywm-text-muted);
+  background: var(--cywm-bg-hover);
+  border-radius: 10px;
+  padding: 0 6px;
+  line-height: 18px;
+}
+
+.winupdate-tree-empty {
+  font-size: 13px;
+  color: var(--cywm-text-muted);
+  padding: 16px 0;
+  text-align: center;
 }
 
 .winupdate-back-btn {
