@@ -61,6 +61,11 @@
                 placeholder="e.g. 22631"
                 class="winupdate-patch-row__build"
                 bg-color="white"
+                type="text"
+                inputmode="numeric"
+                maxlength="5"
+                :rules="[v => /^\d{5}$/.test(v) || '5 digits required']"
+                @update:model-value="v => row.buildId = String(v).replace(/\D/g, '').slice(0, 5)"
               />
 
               <q-select
@@ -148,7 +153,7 @@
 
           <!-- Apply patch form -->
           <div class="winupdate-apply-form">
-            <div class="winupdate-apply-form__label">Apply Patch</div>
+            <div class="winupdate-apply-form__label">Apply Patches</div>
             <div class="winupdate-apply-grid">
               <AgentPicker
                 v-model="selectedAgentIds"
@@ -166,7 +171,7 @@
                 color="primary"
                 dense
                 no-caps
-                label="Apply Patch"
+                label="Apply Patches"
                 :loading="applying"
                 :disable="!canApply"
                 @click="doApply"
@@ -386,10 +391,7 @@ const deploymentColumns = [
     align: "left" as const,
     format: (v: string) => new Date(v).toLocaleString(),
   },
-  { name: "status", label: "Status", field: "status", sortable: true, align: "left" as const },
   { name: "total_agents", label: "Total", field: "total_agents", sortable: true, align: "right" as const },
-  { name: "dispatched_count", label: "Dispatched", field: "dispatched_count", sortable: true, align: "right" as const },
-  { name: "failed_count", label: "Failed", field: "failed_count", sortable: true, align: "right" as const },
   { name: "actions", label: "", field: "id", align: "right" as const },
 ];
 
