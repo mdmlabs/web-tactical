@@ -8,3 +8,8 @@ export const runAsUserToolTip =
 
 export const envVarsLabel =
   "Environment vars (press Enter after typing each key=value pair)";
+
+export const SYSTEM_NAME =
+  "Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Window";
+export const SHORT_SYSTEM_NAME = "BCY";
+export const AGENT_DISPLAY_NAME = `${SHORT_SYSTEM_NAME} Agent`;

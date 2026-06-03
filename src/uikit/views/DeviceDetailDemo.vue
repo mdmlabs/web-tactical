@@ -395,7 +395,7 @@ const mockSoftware = [
   { name: "Microsoft Exchange Server 2022", version: "15.2.1544.4", publisher: "Microsoft", installDate: "2024-01-15", size: "4.2 GB" },
   { name: "Microsoft .NET Framework 4.8", version: "4.8.04084", publisher: "Microsoft", installDate: "2024-01-15", size: "68 MB" },
   { name: "Microsoft Visual C++ 2019 Redistributable", version: "14.28.29913", publisher: "Microsoft", installDate: "2024-01-15", size: "24 MB" },
-  { name: "Tactical Agent", version: "2.8.1", publisher: "Amidaware", installDate: "2024-03-01", size: "12 MB" },
+  { name: "BCY Agent", version: "2.8.1", publisher: "BCY", installDate: "2024-03-01", size: "12 MB" },
   { name: "7-Zip", version: "24.01", publisher: "Igor Pavlov", installDate: "2024-02-10", size: "5 MB" },
   { name: "Notepad++", version: "8.6.4", publisher: "Notepad++ Team", installDate: "2024-02-15", size: "8 MB" },
 ];

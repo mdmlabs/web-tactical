@@ -2772,7 +2772,8 @@ export default {
   "components.layout.MainLayout.b69c17":
     "You are viewing an outdated version of this page.",
   "components.layout.MainLayout.d2e036": "Web Terminal",
-  "components.layout.MainLayout.df7461": "MDM-labs",
+  "components.layout.MainLayout.df7461":
+    "Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Window",
   "components.layout.MainLayout.e01fa7": "Offline",
   "components.layout.MainLayout.e43d61": "Logout",
   "components.layout.MainLayout.e924c8": "support team",
@@ -2854,10 +2855,10 @@ export default {
   "components.modals.agents.AgentDownload.f9857f": "Download Agent",
   "components.modals.agents.AgentDownload.fb06b8": "To use a domain CA",
   "components.modals.agents.AgentRecovery.3058b6":
-    "Fix issues with the MDM-labs Agent service.",
+    "Fix issues with the BCY Agent service.",
   "components.modals.agents.AgentRecovery.4addbf": "Recover",
   "components.modals.agents.AgentRecovery.77dfd2": "Cancel",
-  "components.modals.agents.AgentRecovery.b35f83": "MDM-labs Agent",
+  "components.modals.agents.AgentRecovery.b35f83": "BCY Agent",
   "components.modals.agents.AgentRecovery.b36609": "Mesh Agent",
   "components.modals.agents.AgentRecovery.bbfa77": "Close",
   "components.modals.agents.AgentRecovery.fb59ea":
@@ -3022,7 +3023,7 @@ export default {
   "components.modals.agents.RunScript.a1ef8d":
     "Use email addresses from global settings",
   "components.modals.agents.RunScript.b10f0f":
-    "Run the script on the MDM-labs server in the context of this\n              agent.",
+    "Run the script on the Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Window server in the context of this\n              agent.",
   "components.modals.agents.RunScript.b1b392": "Run",
   "components.modals.agents.RunScript.b56762": "Save all output",
   "components.modals.agents.RunScript.bae651": "Standard Error",
@@ -3439,7 +3440,7 @@ export default {
   "components.scripts.ScriptFormModal.727532": "Generate Script",
   "components.scripts.ScriptFormModal.77dfd2": "Cancel",
   "components.scripts.ScriptFormModal.8e9df4":
-    "Runs on MDM-labs local Linux Server.",
+    "Runs on Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Window local Linux Server.",
   "components.scripts.ScriptFormModal.967536": "Agent to run test script on",
   "components.scripts.ScriptFormModal.a3c686": "Category",
   "components.scripts.ScriptFormModal.b9a104":
@@ -3721,7 +3722,8 @@ export default {
   "css.MainLayout.b25928": "Total",
   "css.MainLayout.b69c17": "You are viewing an outdated version of this page.",
   "css.MainLayout.d2e036": "Web Terminal",
-  "css.MainLayout.df7461": "MDM-labs",
+  "css.MainLayout.df7461":
+    "Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Window",
   "css.MainLayout.e01fa7": "Offline",
   "css.MainLayout.e43d61": "Logout",
   "css.MainLayout.e924c8": "support team",
@@ -5300,7 +5302,8 @@ export default {
   inactive: "inactive",
   lateral_movement: "lateral_movement",
   "layouts.AppSidebar.9cf188": "Collapse",
-  "layouts.AppSidebar.df7461": "MDM-labs",
+  "layouts.AppSidebar.df7461":
+    "Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Window",
   "layouts.MainLayout.0f81a8": "Workstations",
   "layouts.MainLayout.3fb75e": "Reset Password",
   "layouts.MainLayout.4e8f0d":
@@ -5319,7 +5322,8 @@ export default {
   "layouts.MainLayout.b69c17":
     "You are viewing an outdated version of this page.",
   "layouts.MainLayout.d2e036": "Web Terminal",
-  "layouts.MainLayout.df7461": "MDM-labs",
+  "layouts.MainLayout.df7461":
+    "Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Window",
   "layouts.MainLayout.e01fa7": "Offline",
   "layouts.MainLayout.e43d61": "Logout",
   "layouts.MainLayout.e924c8": "support team",
@@ -6338,7 +6342,8 @@ export default {
   "views.LoginView.3fb75e": "Reset Password",
   "views.LoginView.5dff2c":
     "Enter your email address and we'll send you a link to reset your password.",
-  "views.LoginView.6a4b35": "Welcome back to MDM Labs",
+  "views.LoginView.6a4b35":
+    "Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Window",
   "views.LoginView.77dfd2": "Cancel",
   "views.LoginView.84c290": "Username",
   "views.LoginView.8be3c9": "Password",

@@ -4,10 +4,13 @@
     <aside :class="['uk-sidebar', { 'uk-sidebar--collapsed': sidebarCollapsed }]">
       <div class="uk-sidebar__brand">
         <div class="uk-sidebar__logo">
-          <q-icon name="shield" size="24px" />
+          <img :src="bcyLogo" :alt="`${SYSTEM_NAME} logo`" class="uk-sidebar__logo-img" />
         </div>
         <transition name="uk-fade">
-          <span v-if="!sidebarCollapsed" class="uk-sidebar__brand-text">MDM-labs</span>
+          <span v-if="!sidebarCollapsed" class="uk-sidebar__brand-text">
+            {{ SYSTEM_NAME }}
+            <q-tooltip>{{ SYSTEM_NAME }}</q-tooltip>
+          </span>
         </transition>
       </div>
 
@@ -155,6 +158,8 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { navItems, mockAgents, mockPolicies } from "../mockData";
+import bcyLogo from "@/assets/agent-icon.png";
+import { SYSTEM_NAME } from "@/constants/constants";
 
 const sidebarCollapsed = ref(false);
 const activeNav = ref("agents");
@@ -244,20 +249,30 @@ function toggleTheme() {
 }
 
 .uk-sidebar__logo {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--uk-primary);
   flex-shrink: 0;
+  padding: 2px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.uk-sidebar__logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .uk-sidebar__brand-text {
   font-size: var(--uk-text-lg);
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--uk-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

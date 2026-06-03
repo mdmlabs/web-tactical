@@ -93,6 +93,7 @@ import {
 import { useAgentsStore } from "@/stores/agents";
 import AgentUpdatesSidebar from "../components/AgentUpdatesSidebar.vue";
 import AgentUpdatesDevices from "../components/AgentUpdatesDevices.vue";
+import { AGENT_DISPLAY_NAME } from "@/constants/constants";
 
 export default {
   name: "AgentUpdatesView",
@@ -457,7 +458,7 @@ export default {
 
       this.$q.dialog({
         title: "Delete MDM Agent",
-        message: `Are you sure you want to uninstall MDM agent from ${hostname}? This will remove LaboratoMDM Agent and its data from the machine.`,
+        message: `Are you sure you want to uninstall MDM agent from ${hostname}? This will remove ${AGENT_DISPLAY_NAME} and its data from the machine.`,
         cancel: true,
         persistent: true,
         ok: { label: "Delete", color: "negative" },

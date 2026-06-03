@@ -62,14 +62,14 @@ export const mockApps: App[] = [
   {
     id: "app-1",
     type: "app",
-    name: "TacticalAgent",
-    description: "Tactical RMM Agent installer",
+    name: "BCYAgent",
+    description: "BCY Agent installer",
     segment: "Global",
     version: "2.5.0",
     platform: "Windows",
     extension: "MSI",
     createdTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    fileName: "TacticalAgent-2.5.0.msi",
+    fileName: "BCYAgent-2.5.0.msi",
     fileSize: 45000000,
   },
   {

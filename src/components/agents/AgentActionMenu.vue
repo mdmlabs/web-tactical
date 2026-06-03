@@ -162,10 +162,7 @@
     </q-item>
 
     <!-- update MDM agent (Windows only) -->
-    <q-item
-      v-if="agent.plat === 'windows'"
-      disable
-    >
+    <q-item v-if="agent.plat === 'windows'" disable>
       <q-item-section side>
         <q-icon size="xs" name="system_update_alt" />
       </q-item-section>
@@ -173,10 +170,7 @@
     </q-item>
 
     <!-- delete MDM agent (Windows only) -->
-    <q-item
-      v-if="agent.plat === 'windows'"
-      disable
-    >
+    <q-item v-if="agent.plat === 'windows'" disable>
       <q-item-section side>
         <q-icon size="xs" name="delete_outline" />
       </q-item-section>
@@ -296,6 +290,7 @@ import { runAgentUpdateScan, runAgentUpdateInstall } from "@/api/winupdates";
 import { runAgentChecks } from "@/api/checks";
 import { fetchScripts } from "@/api/scripts";
 import { notifySuccess, notifyError } from "@/utils/notify";
+import { AGENT_DISPLAY_NAME } from "@/constants/constants";
 
 // ui imports
 import PendingActions from "@/components/logs/PendingActions.vue";
@@ -560,7 +555,7 @@ export default {
     function confirmDeleteMdm(agent) {
       $q.dialog({
         title: "Delete MDM Agent",
-        message: `Are you sure you want to uninstall MDM agent from ${agent.hostname}? This will remove LaboratoMDM Agent and its data from the machine.`,
+        message: `Are you sure you want to uninstall MDM agent from ${agent.hostname}? This will remove ${AGENT_DISPLAY_NAME} and its data from the machine.`,
         cancel: true,
         persistent: true,
         ok: { label: "Delete", color: "negative" },

@@ -211,7 +211,8 @@
                 transition-hide="fade"
               >
                 <div>
-                  <strong>Runs on MDM-labs local Linux Server.</strong><br />
+                  <strong>Runs on {{ SYSTEM_NAME }} local Linux Server.</strong
+                  ><br />
                   Only available interpreters or frameworks will be used.<br />
                   <em>Example:</em> PowerShell scripts require PowerShell to be
                   installed on the system.
@@ -285,7 +286,7 @@ import type { Script } from "@/types/scripts";
 
 // static data
 import { shellOptions } from "@/composables/scripts";
-import { envVarsLabel } from "@/constants/constants";
+import { envVarsLabel, SYSTEM_NAME } from "@/constants/constants";
 
 // props
 const props = withDefaults(

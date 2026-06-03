@@ -160,8 +160,8 @@
               feature.</q-tooltip
             >
             <q-tooltip v-else
-              >Run the script on the MDM-labs server in the context of this
-              agent.</q-tooltip
+              >Run the script on the {{ SYSTEM_NAME }} server in the context of
+              this agent.</q-tooltip
             >
           </q-checkbox>
         </q-card-section>
@@ -243,7 +243,11 @@ import { useScriptDropdown } from "@/composables/scripts";
 import { useCustomFieldDropdown } from "@/composables/core";
 import { runScript } from "@/api/agents";
 import { notifySuccess } from "@/utils/notify";
-import { envVarsLabel, runAsUserToolTip } from "@/constants/constants";
+import {
+  envVarsLabel,
+  runAsUserToolTip,
+  SYSTEM_NAME,
+} from "@/constants/constants";
 
 //ui imports
 import TacticalDropdown from "@/components/ui/TacticalDropdown.vue";

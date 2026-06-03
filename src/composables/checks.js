@@ -6,6 +6,7 @@ import { formatCheckOptions } from "@/utils/format";
 import { fetchAgent } from "@/api/agents";
 import { isValidThreshold } from "@/utils/validation";
 import { notifySuccess } from "@/utils/notify";
+import { AGENT_DISPLAY_NAME } from "@/constants/constants";
 
 // for check add/edit modals
 // pass as an object {editCheck: props.check, initialState: {default form values for adding check} }
@@ -1253,6 +1254,6 @@ export const defaultServiceOptions = [
   },
   {
     value: "tacticalagent",
-    label: "MDM-labs Agent",
+    label: AGENT_DISPLAY_NAME,
   },
 ].sort((a, b) => a.label.localeCompare(b.label));

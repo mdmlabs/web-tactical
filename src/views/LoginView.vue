@@ -32,15 +32,15 @@
           <q-card-section class="text-center q-pt-xl q-pb-md">
             <div style="text-align: center">
               <img
-                :src="logo"
-                alt="MDM Labs Logo"
-                style="max-width: 200px; height: auto"
+                :src="bcyLogo"
+                :alt="`${SYSTEM_NAME} logo`"
+                class="auth-logo"
               />
             </div>
             <div class="text-h4 text-weight-bold gradient-text q-mt-md">
               Sign In
             </div>
-            <div class="text-grey-7 q-mt-xs">Welcome back to MDM Labs</div>
+            <div class="system-name q-mt-sm">{{ SYSTEM_NAME }}</div>
           </q-card-section>
 
           <q-card-section class="q-pa-lg">
@@ -136,7 +136,7 @@
               <q-icon name="shield" size="12px" /> Secure Enterprise Platform
             </div>
             <div class="text-caption text-grey-7 q-mt-xs">
-              © 2025 MDM Labs. v{{ appVersion }}
+              © 2026 {{ SYSTEM_NAME }}. v{{ appVersion }}
             </div>
           </q-card-section>
         </q-card>
@@ -146,7 +146,8 @@
             <q-card-section>
               <div class="text-h6">Reset password</div>
               <div class="text-body2 text-grey-7 q-mt-sm">
-                Enter your username or email. If the account exists, a reset link will be sent.
+                Enter your username or email. If the account exists, a reset
+                link will be sent.
               </div>
             </q-card-section>
             <q-card-section>
@@ -215,6 +216,23 @@
   border: 5px solid rgb(255, 255, 255);
   box-shadow: rgba(133, 189, 215, 0.878) 0px 30px 30px -20px;
   overflow: hidden;
+}
+
+.auth-logo {
+  width: 118px;
+  max-width: 42vw;
+  max-height: 132px;
+  object-fit: contain;
+}
+
+.system-name {
+  max-width: 26rem;
+  margin-left: auto;
+  margin-right: auto;
+  color: #344054;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
 }
 
 .gradient-text {
@@ -336,6 +354,10 @@
 
 .body--dark .text-grey-6 {
   color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.body--dark .system-name {
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .body--dark .forgot-link {
@@ -507,7 +529,7 @@
 </style>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { type QForm, useQuasar } from "quasar";
 import { useAuthStore } from "@/stores/auth";
 import { type RouteLocationRaw, useRoute, useRouter } from "vue-router";
@@ -518,8 +540,8 @@ import {
   type SSOProviderConfig,
 } from "@/ee/sso/api/sso";
 import packageJson from "../../package.json";
-import logo2 from "@/assets/logo2.png";
-import logo3 from "@/assets/logo3.png";
+import bcyLogo from "@/assets/bcy-logo.png";
+import { SYSTEM_NAME } from "@/constants/constants";
 
 // setup quasar
 const $q = useQuasar();
@@ -550,10 +572,6 @@ function handleThemeChange(event: Event) {
   $q.dark.set(newDarkMode);
   saveTheme(newDarkMode);
 }
-
-const logo = computed(() => {
-  return isDarkMode.value ? logo3 : logo2;
-});
 
 // setup auth store
 const auth = useAuthStore();
@@ -596,7 +614,8 @@ async function checkCreds() {
     await auth.checkCredentials(credentials, rememberMe.value);
     await auth.login(credentials, rememberMe.value);
     if (auth.isSspOnly) {
-      redirectTarget = auth.next && auth.next.startsWith("/ssp") ? auth.next : "/ssp/devices";
+      redirectTarget =
+        auth.next && auth.next.startsWith("/ssp") ? auth.next : "/ssp/devices";
       auth.next = null;
     } else if (auth.next) {
       redirectTarget = auth.next;
@@ -626,7 +645,8 @@ async function submitPasswordResetRequest() {
     passwordResetRequest.emailOrUsername = "";
     $q.notify({
       color: "positive",
-      message: "If the account exists, password reset instructions have been sent.",
+      message:
+        "If the account exists, password reset instructions have been sent.",
     });
   } finally {
     passwordResetRequest.loading = false;
@@ -654,7 +674,10 @@ async function submitPasswordResetConfirm() {
     showPasswordResetConfirm.value = false;
     passwordResetConfirm.password = "";
     passwordResetConfirm.password2 = "";
-    $q.notify({ color: "positive", message: "Password was reset. You can now sign in." });
+    $q.notify({
+      color: "positive",
+      message: "Password was reset. You can now sign in.",
+    });
     router.replace({ name: "Login" });
   } finally {
     passwordResetConfirm.loading = false;
@@ -682,20 +705,21 @@ onMounted(async () => {
 <style>
 .bg-image {
   background-image: linear-gradient(
-    90deg,
-    rgba(20, 20, 29, 1) 0%,
-    rgba(38, 42, 56, 1) 49%,
-    rgba(15, 18, 20, 1) 100%
-  );
+      rgba(255, 255, 255, 0.06),
+      rgba(255, 255, 255, 0.06)
+    ),
+    url("@/assets/bcy-background.jpg");
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
   transition: background-image 0.4s ease;
 }
 
 .body--light .bg-image {
   background-image: linear-gradient(
-    135deg,
-    rgba(240, 248, 255, 1) 0%,
-    rgba(230, 240, 250, 1) 50%,
-    rgba(220, 235, 245, 1) 100%
-  );
+      rgba(255, 255, 255, 0.12),
+      rgba(255, 255, 255, 0.12)
+    ),
+    url("@/assets/bcy-background.jpg");
 }
 </style>

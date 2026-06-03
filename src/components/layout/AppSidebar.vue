@@ -2,10 +2,17 @@
   <aside :class="['uk-sidebar', { 'uk-sidebar--collapsed': collapsed }]">
     <div class="uk-sidebar__brand">
       <div class="uk-sidebar__logo">
-        <q-icon name="shield" size="24px" />
+        <img
+          :src="bcyLogo"
+          :alt="`${SYSTEM_NAME} logo`"
+          class="uk-sidebar__logo-img"
+        />
       </div>
       <transition name="uk-fade">
-        <span v-if="!collapsed" class="uk-sidebar__brand-text">MDM-labs</span>
+        <span v-if="!collapsed" class="uk-sidebar__brand-text">
+          {{ SYSTEM_NAME }}
+          <q-tooltip>{{ SYSTEM_NAME }}</q-tooltip>
+        </span>
       </transition>
     </div>
 
@@ -23,11 +30,7 @@
           ]"
           @click="handleItemClick(item)"
         >
-          <q-icon
-            :name="item.icon"
-            size="20px"
-            class="uk-sidebar__item-icon"
-          />
+          <q-icon :name="item.icon" size="20px" class="uk-sidebar__item-icon" />
           <transition name="uk-fade">
             <span v-if="!collapsed" class="uk-sidebar__item-label">{{
               item.label
@@ -37,9 +40,7 @@
             <q-icon
               v-if="!collapsed && item.children?.length"
               :name="
-                expandedSections.has(item.id)
-                  ? 'expand_less'
-                  : 'expand_more'
+                expandedSections.has(item.id) ? 'expand_less' : 'expand_more'
               "
               size="16px"
               class="uk-sidebar__expand-icon"
@@ -92,9 +93,7 @@
           class="uk-sidebar__item-icon"
         />
         <transition name="uk-fade">
-          <span v-if="!collapsed" class="uk-sidebar__item-label"
-            >Collapse</span
-          >
+          <span v-if="!collapsed" class="uk-sidebar__item-label">Collapse</span>
         </transition>
       </div>
     </div>
@@ -106,6 +105,8 @@ import { ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { navigation, type NavItem } from "@/config/navigation";
 import { useDialogRegistry } from "@/composables/useDialogRegistry";
+import bcyLogo from "@/assets/agent-icon.png";
+import { SYSTEM_NAME } from "@/constants/constants";
 
 const props = defineProps<{
   collapsed: boolean;
@@ -181,20 +182,30 @@ function handleItemClick(item: NavItem) {
 }
 
 .uk-sidebar__logo {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--uk-primary);
   flex-shrink: 0;
+  padding: 2px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.uk-sidebar__logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .uk-sidebar__brand-text {
   font-size: var(--uk-text-lg);
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--uk-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

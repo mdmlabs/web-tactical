@@ -98,8 +98,16 @@
 
         <!-- Logo & Title -->
         <q-toolbar-title class="toolbar-title">
-          <div class="row items-center q-gutter-sm">
-            <span class="logo-text">MDM-labs</span>
+          <div class="brand-row row items-center no-wrap q-gutter-sm">
+            <img
+              :src="bcyLogo"
+              :alt="`${SYSTEM_NAME} logo`"
+              class="toolbar-logo"
+            />
+            <span class="logo-text">
+              {{ SYSTEM_NAME }}
+              <q-tooltip>{{ SYSTEM_NAME }}</q-tooltip>
+            </span>
             <q-chip dense square class="version-chip"> v1.0.1 </q-chip>
 
             <!-- Update Available -->
@@ -326,11 +334,31 @@
 /* Logo & Title */
 .toolbar-title {
   font-size: 18px;
+  min-width: 0;
+}
+
+.brand-row {
+  min-width: 0;
+}
+
+.toolbar-logo {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  padding: 2px;
+  border-radius: 4px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .logo-text {
+  min-width: 0;
+  max-width: min(52vw, 760px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-weight: 700;
-  font-size: 22px;
+  font-size: 16px;
   color: white;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -360,6 +388,18 @@
   color: white;
   font-weight: 600;
   animation: pulse 2s infinite;
+}
+
+@media (max-width: 720px) {
+  .toolbar-logo {
+    width: 28px;
+    height: 28px;
+  }
+
+  .logo-text {
+    max-width: 34vw;
+    font-size: 13px;
+  }
 }
 
 @keyframes pulse {
@@ -607,6 +647,8 @@ import AlertsIcon from "@/components/AlertsIcon.vue";
 import UserPreferences from "@/components/modals/coresettings/UserPreferences.vue";
 import ResetPass from "@/components/accounts/ResetPass.vue";
 import FileBar from "@/components/FileBar.vue";
+import bcyLogo from "@/assets/agent-icon.png";
+import { SYSTEM_NAME } from "@/constants/constants";
 
 const store = useStore();
 const $q = useQuasar();

@@ -16,7 +16,7 @@
               dense
               v-model="state.mode"
               val="tacagent"
-              label="MDM-labs Agent"
+              :label="AGENT_DISPLAY_NAME"
             />
           </div>
         </q-card-section>
@@ -25,7 +25,7 @@
           terminal and file browser.
         </q-card-section>
         <q-card-section v-else-if="state.mode === 'tacagent'">
-          Fix issues with the MDM-labs Agent service.
+          Fix issues with the {{ AGENT_DISPLAY_NAME }} service.
         </q-card-section>
         <q-card-actions align="right">
           <q-btn dense flat push label="Cancel" v-close-popup />
@@ -50,6 +50,7 @@ import { ref } from "vue";
 import { useDialogPluginComponent } from "quasar";
 import { sendAgentRecovery } from "@/api/agents";
 import { notifySuccess } from "@/utils/notify";
+import { AGENT_DISPLAY_NAME } from "@/constants/constants";
 
 export default {
   name: "AgentRecovery",
@@ -84,6 +85,8 @@ export default {
     }
 
     return {
+      AGENT_DISPLAY_NAME,
+
       // reactive data
       state,
       loading,

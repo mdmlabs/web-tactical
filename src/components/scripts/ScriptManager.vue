@@ -194,7 +194,7 @@
               <img
                 v-if="props.node.script_type === 'builtin'"
                 class="vertical-middle"
-                :src="trmmLogo"
+                :src="agentIcon"
                 style="height: 20px; max-width: 20px"
               />
 
@@ -530,7 +530,7 @@
               <!-- is community script icon -->
               <img
                 v-if="props.row.script_type === 'builtin'"
-                :src="trmmLogo"
+                :src="agentIcon"
                 style="height: 20px; max-width: 20px"
               />
               {{ truncateText(props.row.name, 50) }}
@@ -596,7 +596,7 @@ import ScriptFormModal from "@/components/scripts/ScriptFormModal.vue";
 import ScriptSnippets from "@/components/scripts/ScriptSnippets.vue";
 import TacticalTable from "@/core/dashboard/ui/TacticalTable.vue";
 
-import trmmLogo from "@/assets/trmm_256.png";
+import agentIcon from "@/assets/agent-icon.png";
 
 // static data
 const columns = [
@@ -929,7 +929,7 @@ export default {
       loading,
       showCommunityScripts,
       showHiddenScripts,
-      trmmLogo,
+      agentIcon,
 
       // computed
       visibleScripts,

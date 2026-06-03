@@ -205,6 +205,7 @@ import { useDialogPluginComponent, useQuasar } from "quasar";
 import { useAgentsStore } from "@/stores/agents";
 import { fetchMdmVersions, updateMdmAgents, deleteMdmAgents } from "@/api/agents";
 import { notifySuccess, notifyError } from "@/utils/notify";
+import { AGENT_DISPLAY_NAME } from "@/constants/constants";
 
 const CHART_COLORS = [
   "#3B82F6",
@@ -357,7 +358,7 @@ export default defineComponent({
     function handleDelete(agent) {
       $q.dialog({
         title: "Удаление MDM агента",
-        message: `Вы уверены, что хотите удалить MDM агент с ${agent.hostname}? Это удалит LaboratoMDM Agent и его данные с машины.`,
+        message: `Вы уверены, что хотите удалить MDM агент с ${agent.hostname}? Это удалит ${AGENT_DISPLAY_NAME} и его данные с машины.`,
         cancel: true,
         persistent: true,
         ok: { label: "Удалить", color: "negative" },
