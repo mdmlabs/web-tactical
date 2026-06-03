@@ -99,6 +99,17 @@ export async function applyPatch(
   return data;
 }
 
+// { "22631": { "x64": [{ filename: "KB..." }], "x86": [...] } }
+export type PatchTreeResponse = Record<
+  string,
+  Record<string, { filename: string }[]>
+>;
+
+export async function fetchPatchesTree(): Promise<PatchTreeResponse> {
+  const { data } = await axios.get<PatchTreeResponse>("/winupdate/patches/tree/");
+  return data;
+}
+
 export async function fetchDeployments(): Promise<DeploymentRecord[]> {
   const { data } = await axios.get<DeploymentRecord[]>(
     `${base}/deployments/`,
