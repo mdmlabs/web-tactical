@@ -27,34 +27,6 @@
         </div>
       </div>
 
-      <div class="winupdate-stats-row">
-        <div class="winupdate-stat">
-          <div class="winupdate-stat__value">{{ detail.total_agents }}</div>
-          <div class="winupdate-stat__label">Total</div>
-        </div>
-        <div class="winupdate-stat">
-          <div class="winupdate-stat__value winupdate-stat__value--blue">
-            {{ detail.dispatched_count }}
-          </div>
-          <div class="winupdate-stat__label">Dispatched</div>
-        </div>
-        <div class="winupdate-stat">
-          <div
-            class="winupdate-stat__value"
-            :class="detail.failed_count > 0 ? 'winupdate-stat__value--red' : ''"
-          >
-            {{ detail.failed_count }}
-          </div>
-          <div class="winupdate-stat__label">Failed</div>
-        </div>
-        <div class="winupdate-stat">
-          <div class="winupdate-stat__value winupdate-stat__value--green">
-            {{ installedCount }}
-          </div>
-          <div class="winupdate-stat__label">Installed</div>
-        </div>
-      </div>
-
       <!-- Agents table -->
       <q-table
         :rows="detail.agents"
@@ -121,9 +93,6 @@ const detail = ref<DeploymentDetail | null>(null);
 const loading = ref(false);
 let pollTimer: ReturnType<typeof setTimeout> | null = null;
 
-const installedCount = computed(
-  () => detail.value?.agents.filter((a) => a.status === "installed").length ?? 0,
-);
 
 const agentColumns = [
   {
@@ -137,13 +106,6 @@ const agentColumns = [
     name: "agent_id",
     label: "Agent ID",
     field: "agent__agent_id",
-    sortable: true,
-    align: "left" as const,
-  },
-  {
-    name: "status",
-    label: "Status",
-    field: "status",
     sortable: true,
     align: "left" as const,
   },
