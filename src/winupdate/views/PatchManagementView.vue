@@ -64,7 +64,7 @@
                 type="text"
                 inputmode="numeric"
                 maxlength="5"
-                :rules="[v => /^\d{5}$/.test(v) || '5 digits required']"
+                :rules="[v => (/^\d{5}$/.test(v) && Number(v) >= 10000) || 'Must be 10000–99999']"
                 @update:model-value="v => row.buildId = String(v).replace(/\D/g, '').slice(0, 5)"
               />
 
