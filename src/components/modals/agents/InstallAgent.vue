@@ -243,11 +243,11 @@ export default {
       ping: false,
       showAgentDownload: false,
       info: {},
-      installMethod: "powershell",
+      installMethod: "exe",
       goarch: GOARCH_AMD64,
       agentOS: "windows",
       // MDM agent fields
-      install_mdm: false,
+      install_mdm: true,
       mdm_arch: "x64",
       mdm_master_url: "",
     };
