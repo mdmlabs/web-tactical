@@ -312,6 +312,27 @@
           </div>
         </div>
 
+        <div
+          v-if="coverage.network_dlp_agents > 0"
+          class="network-runtime q-mb-md"
+        >
+          <div class="text-caption text-grey-7 q-mb-xs">
+            {{ $t("Network DLP runtime") }}
+          </div>
+          <div class="row q-gutter-sm">
+            <q-chip
+              v-for="item in networkRuntimeItems"
+              :key="item.key"
+              dense
+              square
+              :color="item.color"
+              text-color="white"
+              :icon="item.icon"
+              :label="`${item.label}: ${item.value}`"
+            />
+          </div>
+        </div>
+
         <div class="row q-col-gutter-md">
           <div class="col-12 col-lg-5">
             <div class="text-subtitle2 q-mb-sm">
@@ -375,6 +396,25 @@
                     text-color="white"
                     :label="$t(channel)"
                   />
+                </q-td>
+              </template>
+              <template #body-cell-network_dlp="props">
+                <q-td :props="props">
+                  <q-chip
+                    v-if="props.value?.state"
+                    dense
+                    square
+                    size="sm"
+                    :color="networkStateColor(props.value.state)"
+                    text-color="white"
+                    :icon="networkStateIcon(props.value.state)"
+                    :label="networkStateLabel(props.value.state)"
+                  >
+                    <q-tooltip>
+                      {{ networkHealthTooltip(props.value) }}
+                    </q-tooltip>
+                  </q-chip>
+                  <span v-else class="text-grey-5">-</span>
                 </q-td>
               </template>
               <template #no-data>
@@ -630,6 +670,12 @@ const report = ref<any>({
     file_dlp_agents: 0,
     network_dlp_agents: 0,
     email_dlp_agents: 0,
+    network_runtime: {
+      ready: 0,
+      degraded: 0,
+      fail_closed: 0,
+      unknown: 0,
+    },
     covered_agents: [],
     uncovered_agents: [],
   },
@@ -678,6 +724,38 @@ const actionRows = computed(() =>
 );
 
 const coverage = computed(() => report.value.coverage || {});
+const networkRuntime = computed(() => coverage.value.network_runtime || {});
+
+const networkRuntimeItems = computed(() => [
+  {
+    key: "ready",
+    label: t("Ready"),
+    value: Number(networkRuntime.value.ready || 0),
+    color: "positive",
+    icon: "check_circle",
+  },
+  {
+    key: "degraded",
+    label: t("Degraded"),
+    value: Number(networkRuntime.value.degraded || 0),
+    color: "warning",
+    icon: "warning",
+  },
+  {
+    key: "fail_closed",
+    label: t("Fail-closed"),
+    value: Number(networkRuntime.value.fail_closed || 0),
+    color: "negative",
+    icon: "lock",
+  },
+  {
+    key: "unknown",
+    label: t("Unknown"),
+    value: Number(networkRuntime.value.unknown || 0),
+    color: "grey",
+    icon: "help",
+  },
+]);
 
 const coverageRatio = computed(() =>
   Math.max(0, Math.min(1, Number(coverage.value.protected_percent || 0) / 100)),
@@ -805,6 +883,12 @@ const coveredColumns = computed(() => [
     field: "channels",
     align: "left" as const,
   },
+  {
+    name: "network_dlp",
+    label: t("Network runtime"),
+    field: "network_dlp",
+    align: "left" as const,
+  },
 ]);
 
 function barHeight(count: number): number {
@@ -820,6 +904,7 @@ function typeColor(type: string): string {
     cloud_sync: "blue",
     keyword_match: "orange",
     credential: "red-10",
+    credential_detected: "red-10",
     email_body: "teal",
     custom_pattern_match: "indigo",
     email_dlp: "teal",
@@ -861,6 +946,42 @@ function channelColor(channel: string): string {
     Encryption: "indigo",
   };
   return map[channel] || "grey";
+}
+
+function networkStateColor(state: string): string {
+  const normalized = String(state || "").toLowerCase();
+  if (["ready", "running"].includes(normalized)) return "positive";
+  if (normalized === "fail_closed") return "negative";
+  if (["degraded", "error", "exited", "starting"].includes(normalized))
+    return "warning";
+  if (normalized === "disabled") return "grey-6";
+  return "grey";
+}
+
+function networkStateIcon(state: string): string {
+  const normalized = String(state || "").toLowerCase();
+  if (["ready", "running"].includes(normalized)) return "check_circle";
+  if (normalized === "fail_closed") return "lock";
+  if (["degraded", "error", "exited"].includes(normalized)) return "warning";
+  if (normalized === "starting") return "sync";
+  return "help";
+}
+
+function networkStateLabel(state: string): string {
+  const normalized = String(state || "unknown").toLowerCase();
+  if (normalized === "fail_closed") return "Fail-closed";
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
+function networkHealthTooltip(health: any): string {
+  const parts = [
+    health?.detail,
+    health?.rules_loaded ? "Rules loaded" : "Rules not loaded",
+    health?.proxy_configured ? "Proxy configured" : "Proxy not configured",
+    health?.port_listening ? "Port listening" : "Port not listening",
+  ].filter(Boolean);
+  if (health?.reported_at) parts.push(`Reported: ${formatLastSeen(health.reported_at)}`);
+  return parts.join(" · ");
 }
 
 function formatLastSeen(value: string): string {
@@ -949,6 +1070,11 @@ onMounted(loadReport);
   align-items: center;
   gap: 10px;
   min-height: 54px;
+}
+
+.network-runtime {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding-top: 10px;
 }
 
 .metric-value {
