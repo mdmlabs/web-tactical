@@ -404,6 +404,8 @@
                 :class="
                   props.row.windows_policy_status === 'online'
                     ? 'text-positive'
+                    : props.row.windows_policy_status === 'overdue'
+                      ? 'text-negative'
                     : 'text-warning'
                 "
                 style="font-size: 1em"
@@ -411,6 +413,8 @@
                 {{
                   props.row.windows_policy_status === "online"
                     ? "Online"
+                    : props.row.windows_policy_status === "overdue"
+                      ? "Overdue"
                     : "Offline"
                 }}
               </span>

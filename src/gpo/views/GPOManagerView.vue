@@ -80,22 +80,10 @@
                                   <div class="system-info-v">
                                     <q-badge
                                       :color="
-                                        getAgentStatusColor(
-                                          agentDetails?.isOnline !== undefined
-                                            ? agentDetails.isOnline
-                                              ? 'online'
-                                              : 'offline'
-                                            : selectedAgent.status,
-                                        )
+                                        getAgentStatusColor(selectedAgentStatus)
                                       "
                                       :label="
-                                        getAgentStatusLabel(
-                                          agentDetails?.isOnline !== undefined
-                                            ? agentDetails.isOnline
-                                              ? 'online'
-                                              : 'offline'
-                                            : selectedAgent.status,
-                                        )
+                                        getAgentStatusLabel(selectedAgentStatus)
                                       "
                                     />
                                   </div>
@@ -123,20 +111,9 @@
                                   <div class="system-info-k">Last answer</div>
                                   <div class="system-info-v">
                                     {{
-                                      agentDetails?.lastHeartbeatUnix
-                                        ? formatDate(
-                                            new Date(
-                                              (typeof agentDetails.lastHeartbeatUnix ===
-                                              "string"
-                                                ? Number.parseInt(
-                                                    agentDetails.lastHeartbeatUnix,
-                                                    10,
-                                                  )
-                                                : agentDetails.lastHeartbeatUnix) *
-                                                1000,
-                                            ).toISOString(),
-                                          )
-                                        : formatDate(selectedAgent.last_seen)
+                                      selectedAgentLastSeen
+                                        ? formatDate(selectedAgentLastSeen)
+                                        : "No heartbeat"
                                     }}
                                   </div>
                                 </div>
@@ -259,14 +236,14 @@
                                     <div class="system-info-v">
                                       <q-badge
                                         :color="
-                                          agentDetails.isOnline
-                                            ? 'positive'
-                                            : 'negative'
+                                          getAgentStatusColor(
+                                            selectedAgentStatus,
+                                          )
                                         "
                                         :label="
-                                          agentDetails.isOnline
-                                            ? 'Online'
-                                            : 'Offline'
+                                          getAgentStatusLabel(
+                                            selectedAgentStatus,
+                                          )
                                         "
                                       />
                                     </div>
@@ -947,62 +924,262 @@
 
               <q-tab-panels v-model="subTab" class="gpo-content-tab-panels">
                 <q-tab-panel name="status" class="q-pa-md">
-                  <div class="text-h6 q-mb-md">General status</div>
-                  <div class="row q-gutter-md">
-                    <q-card class="col-4">
-                      <q-card-section>
-                        <div class="text-h6">{{ agentsList.length }}</div>
+                  <div class="gpo-dashboard-page">
+                    <div class="row items-center justify-between q-mb-md">
+                      <div>
+                        <div class="text-h6">General status</div>
                         <div class="text-caption text-grey-7">
-                          Total devices
+                          Policy Manager devices and heartbeat health
                         </div>
-                      </q-card-section>
-                    </q-card>
-                    <q-card class="col-4">
-                      <q-card-section>
-                        <div class="text-h6 text-positive">
-                          {{
-                            agentsList.filter((a) => a.status === "online")
-                              .length
-                          }}
-                        </div>
-                        <div class="text-caption text-grey-7">Online</div>
-                      </q-card-section>
-                    </q-card>
-                    <q-card class="col-4">
-                      <q-card-section>
-                        <div class="text-h6 text-negative">
-                          {{
-                            agentsList.filter((a) => a.status === "overdue")
-                              .length
-                          }}
-                        </div>
-                        <div class="text-caption text-grey-7">Overdue</div>
-                      </q-card-section>
-                    </q-card>
-                  </div>
-                  <q-card class="q-mt-md">
-                    <q-card-section>
-                      <div class="text-subtitle1 q-mb-md">
-                        Device statistics
                       </div>
-                      <q-list>
-                        <q-item>
-                          <q-item-section>
-                            <q-item-label>Total policy</q-item-label>
-                            <q-item-label caption>
-                              {{ policiesStore.policies.value.length }} policy
-                            </q-item-label>
-                          </q-item-section>
-                        </q-item>
-                        <q-item>
-                          <q-item-section>
-                            <q-item-label>Active appointments</q-item-label>
-                            <q-item-label caption>Loading...</q-item-label>
-                          </q-item-section>
-                        </q-item>
-                      </q-list>
-                    </q-card-section>
-                  </q-card>
+                      <q-btn
+                        dense
+                        flat
+                        color="primary"
+                        icon="refresh"
+                        label="Refresh"
+                        :loading="agentsLoading"
+                        @click="loadAgents"
+                      />
+                    </div>
+
+                    <q-banner
+                      v-if="agentsError"
+                      dense
+                      rounded
+                      class="bg-red-1 text-negative q-mb-md"
+                    >
+                      <template #avatar>
+                        <q-icon name="error" color="negative" />
+                      </template>
+                      {{ agentsErrorMessage || "Failed to load devices" }}
+                    </q-banner>
+                    <q-banner
+                      v-else-if="agentsWarningMessage"
+                      dense
+                      rounded
+                      class="bg-orange-1 text-warning q-mb-md"
+                    >
+                      <template #avatar>
+                        <q-icon name="warning" color="warning" />
+                      </template>
+                      {{ agentsWarningMessage }}
+                    </q-banner>
+
+                    <div class="row q-col-gutter-md">
+                      <div class="col-12 col-sm-6 col-lg-3">
+                        <q-card flat bordered class="gpo-metric-card">
+                          <q-card-section>
+                            <div class="row items-center justify-between">
+                              <div>
+                                <div class="gpo-metric-value">
+                                  {{ dashboardStats.total }}
+                                </div>
+                                <div class="gpo-metric-label">
+                                  Total devices
+                                </div>
+                              </div>
+                              <q-icon
+                                name="devices"
+                                color="primary"
+                                size="28px"
+                              />
+                            </div>
+                          </q-card-section>
+                        </q-card>
+                      </div>
+                      <div class="col-12 col-sm-6 col-lg-3">
+                        <q-card flat bordered class="gpo-metric-card">
+                          <q-card-section>
+                            <div class="row items-center justify-between">
+                              <div>
+                                <div class="gpo-metric-value text-positive">
+                                  {{ dashboardStats.online }}
+                                </div>
+                                <div class="gpo-metric-label">Online</div>
+                              </div>
+                              <q-icon name="wifi" color="positive" size="28px" />
+                            </div>
+                          </q-card-section>
+                        </q-card>
+                      </div>
+                      <div class="col-12 col-sm-6 col-lg-3">
+                        <q-card flat bordered class="gpo-metric-card">
+                          <q-card-section>
+                            <div class="row items-center justify-between">
+                              <div>
+                                <div class="gpo-metric-value text-negative">
+                                  {{ dashboardStats.overdue }}
+                                </div>
+                                <div class="gpo-metric-label">Overdue</div>
+                              </div>
+                              <q-icon
+                                name="schedule"
+                                color="negative"
+                                size="28px"
+                              />
+                            </div>
+                          </q-card-section>
+                        </q-card>
+                      </div>
+                      <div class="col-12 col-sm-6 col-lg-3">
+                        <q-card flat bordered class="gpo-metric-card">
+                          <q-card-section>
+                            <div class="row items-center justify-between">
+                              <div>
+                                <div class="gpo-metric-value text-warning">
+                                  {{ dashboardStats.offline }}
+                                </div>
+                                <div class="gpo-metric-label">Offline</div>
+                              </div>
+                              <q-icon
+                                name="wifi_off"
+                                color="warning"
+                                size="28px"
+                              />
+                            </div>
+                          </q-card-section>
+                        </q-card>
+                      </div>
+                    </div>
+
+                    <div class="row q-col-gutter-md q-mt-sm">
+                      <div class="col-12 col-lg-7">
+                        <q-card flat bordered class="gpo-dashboard-panel">
+                          <q-card-section>
+                            <div
+                              class="row items-start justify-between q-mb-sm"
+                            >
+                              <div>
+                                <div class="text-subtitle1">Fleet health</div>
+                                <div class="text-caption text-grey-7">
+                                  {{ dashboardStats.onlinePercent }}% online
+                                </div>
+                              </div>
+                              <q-chip
+                                dense
+                                square
+                                color="primary"
+                                text-color="white"
+                                icon="monitor_heart"
+                              >
+                                {{ dashboardStats.total }} devices
+                              </q-chip>
+                            </div>
+                            <q-linear-progress
+                              rounded
+                              size="8px"
+                              color="positive"
+                              track-color="grey-3"
+                              :value="dashboardStats.onlinePercent / 100"
+                              class="q-mb-md"
+                            />
+                            <q-list dense separator>
+                              <q-item
+                                v-for="row in dashboardHealthRows"
+                                :key="row.key"
+                                class="q-px-none"
+                              >
+                                <q-item-section avatar>
+                                  <q-icon
+                                    :name="row.icon"
+                                    :color="row.color"
+                                  />
+                                </q-item-section>
+                                <q-item-section>
+                                  <q-item-label>{{ row.label }}</q-item-label>
+                                </q-item-section>
+                                <q-item-section side>
+                                  <q-badge
+                                    :color="row.color"
+                                    :label="row.value"
+                                    rounded
+                                  />
+                                </q-item-section>
+                              </q-item>
+                            </q-list>
+                          </q-card-section>
+                        </q-card>
+                      </div>
+
+                      <div class="col-12 col-lg-5">
+                        <q-card flat bordered class="gpo-dashboard-panel">
+                          <q-card-section>
+                            <div class="text-subtitle1 q-mb-sm">
+                              Policy Manager
+                            </div>
+                            <q-list dense>
+                              <q-item class="q-px-none">
+                                <q-item-section avatar>
+                                  <q-icon name="policy" color="primary" />
+                                </q-item-section>
+                                <q-item-section>
+                                  <q-item-label>Policy catalog</q-item-label>
+                                  <q-item-label caption>
+                                    <span v-if="policiesStore.isLoading.value">
+                                      Loading...
+                                    </span>
+                                    <span
+                                      v-else-if="policiesStore.isError.value"
+                                      class="text-negative"
+                                    >
+                                      Load error
+                                    </span>
+                                    <span v-else>
+                                      {{ dashboardStats.policyCount }} policies
+                                    </span>
+                                  </q-item-label>
+                                </q-item-section>
+                              </q-item>
+                              <q-item class="q-px-none">
+                                <q-item-section avatar>
+                                  <q-icon name="bolt" color="positive" />
+                                </q-item-section>
+                                <q-item-section>
+                                  <q-item-label>Latest heartbeat</q-item-label>
+                                  <q-item-label caption>
+                                    <template v-if="dashboardStats.latest">
+                                      {{ dashboardStats.latest.hostname }} ·
+                                      {{
+                                        getAgentLastSeenDisplay(
+                                          dashboardStats.latest,
+                                        )
+                                      }}
+                                    </template>
+                                    <template v-else>No heartbeat</template>
+                                  </q-item-label>
+                                </q-item-section>
+                              </q-item>
+                              <q-item class="q-px-none">
+                                <q-item-section avatar>
+                                  <q-icon
+                                    name="desktop_windows"
+                                    :color="
+                                      selectedAgent
+                                        ? getAgentStatusColor(
+                                            selectedAgent.status,
+                                          )
+                                        : 'grey'
+                                    "
+                                  />
+                                </q-item-section>
+                                <q-item-section>
+                                  <q-item-label>Selected device</q-item-label>
+                                  <q-item-label caption>
+                                    <template v-if="selectedAgent">
+                                      {{ selectedAgent.hostname }} ·
+                                      {{ getAgentStatusLabel(selectedAgent.status) }}
+                                    </template>
+                                    <template v-else>None</template>
+                                  </q-item-label>
+                                </q-item-section>
+                              </q-item>
+                            </q-list>
+                          </q-card-section>
+                        </q-card>
+                      </div>
+                    </div>
+                  </div>
                 </q-tab-panel>
               </q-tab-panels>
             </div>
@@ -1157,11 +1334,14 @@
                 class="text-center q-pa-md text-negative"
               >
                 <q-icon name="error" size="2em" />
-                <div class="q-mt-sm text-caption">Download error</div>
+                <div class="q-mt-sm text-caption">
+                  {{ agentsErrorMessage || "Download error" }}
+                </div>
                 <q-btn
                   flat
                   dense
                   size="sm"
+                  icon="refresh"
                   label="Repeat"
                   @click="loadAgents"
                   class="q-mt-xs"
@@ -1203,7 +1383,10 @@
                     <q-item-section>
                       <q-item-label>{{ agent.hostname }}</q-item-label>
                       <q-item-label caption>
-                        {{ formatDate(agent.last_seen) }}
+                        {{ getAgentLastSeenDisplay(agent) }}
+                        <span class="text-grey-6">
+                          · {{ getAgentHeartbeatAgeLabel(agent) }}
+                        </span>
                       </q-item-label>
                     </q-item-section>
                     <q-item-section side>
@@ -2454,6 +2637,13 @@ import {
   type KioskModeInfo,
 } from "@/gpo/utils/kioskModePolicy";
 import {
+  derivePolicyAgentStatus,
+  formatHeartbeatAge,
+  getHeartbeatAgeSeconds,
+  unixSecondsToIso,
+  type PolicyAgentStatus,
+} from "@/gpo/utils/policy-agent-status";
+import {
   POLICY_STATUS_OPTIONS,
   policyStatusColor,
   policyStatusLabel,
@@ -2471,10 +2661,13 @@ interface Agent {
   id: string;
   hostname: string;
   last_seen: string;
-  status: string;
+  status: PolicyAgentStatus;
   operating_system?: string;
   version?: string;
   ip_address?: string;
+  is_online?: boolean;
+  last_heartbeat_unix?: number | string | null;
+  heartbeat_age_seconds?: number | null;
 }
 
 interface User {
@@ -2676,6 +2869,8 @@ const policyForForm = computed(() => {
 
 const agentsLoading = ref(false);
 const agentsError = ref(false);
+const agentsErrorMessage = ref("");
+const agentsWarningMessage = ref("");
 const gpoAgents = ref<Agent[]>([]);
 const agentSearch = ref("");
 
@@ -2746,6 +2941,92 @@ const filteredAgentsList = computed<Agent[]>(() => {
     return hostname.includes(q) || id.includes(q);
   });
 });
+
+const dashboardStats = computed(() => {
+  const total = agentsList.value.length;
+  const online = agentsList.value.filter((a) => a.status === "online").length;
+  const overdue = agentsList.value.filter((a) => a.status === "overdue").length;
+  const offline = agentsList.value.filter((a) => a.status === "offline").length;
+  const unknown = agentsList.value.filter((a) => a.status === "unknown").length;
+  const latest = agentsList.value.reduce<Agent | null>((current, agent) => {
+    if (!agent.last_seen) return current;
+    if (!current?.last_seen) return agent;
+    return Date.parse(agent.last_seen) > Date.parse(current.last_seen)
+      ? agent
+      : current;
+  }, null);
+
+  return {
+    total,
+    online,
+    overdue,
+    offline,
+    unknown,
+    policyCount: policiesStore.policies.value.length,
+    latest,
+    onlinePercent: total > 0 ? Math.round((online / total) * 100) : 0,
+  };
+});
+
+const dashboardHealthRows = computed(() => [
+  {
+    key: "online",
+    label: "Online",
+    value: dashboardStats.value.online,
+    color: "positive",
+    icon: "wifi",
+  },
+  {
+    key: "overdue",
+    label: "Overdue",
+    value: dashboardStats.value.overdue,
+    color: "negative",
+    icon: "schedule",
+  },
+  {
+    key: "offline",
+    label: "Offline",
+    value: dashboardStats.value.offline,
+    color: "warning",
+    icon: "wifi_off",
+  },
+  {
+    key: "unknown",
+    label: "Unknown",
+    value: dashboardStats.value.unknown,
+    color: "grey",
+    icon: "help_outline",
+  },
+]);
+
+const selectedAgentStatus = computed<PolicyAgentStatus>(() => {
+  const details = agentDetails.value;
+  if (details?.isOnline !== undefined || details?.lastHeartbeatUnix) {
+    return derivePolicyAgentStatus(
+      details?.isOnline,
+      details?.lastHeartbeatUnix,
+    );
+  }
+  return selectedAgent.value?.status ?? "unknown";
+});
+
+const selectedAgentLastSeen = computed(() => {
+  return (
+    unixSecondsToIso(agentDetails.value?.lastHeartbeatUnix) ||
+    selectedAgent.value?.last_seen ||
+    ""
+  );
+});
+
+function getAgentLastSeenDisplay(agent: Agent | null | undefined): string {
+  if (!agent?.last_seen) return "No heartbeat";
+  return formatDate(agent.last_seen);
+}
+
+function getAgentHeartbeatAgeLabel(agent: Agent | null | undefined): string {
+  if (!agent) return "No heartbeat";
+  return formatHeartbeatAge(agent.heartbeat_age_seconds ?? null);
+}
 
 function buildListAgentsFilters(): ListAgentsFilters | undefined {
   const manufacturer = trimFilterValue(agentListFilters.manufacturer);
@@ -2831,15 +3112,22 @@ async function clearAgentFilterField(
 async function loadAgents() {
   agentsLoading.value = true;
   agentsError.value = false;
+  agentsErrorMessage.value = "";
+  agentsWarningMessage.value = "";
 
   try {
-    const tacticalAgents = await fetchTacticalAgents({ detail: false });
-
-    const allowedAgentIds = Array.isArray(tacticalAgents)
-      ? tacticalAgents.map((agent: { agent_id?: string }) =>
-          String(agent.agent_id),
-        )
-      : [];
+    let allowedAgentIds: string[] = [];
+    try {
+      const tacticalAgents = await fetchTacticalAgents({ detail: false });
+      allowedAgentIds = Array.isArray(tacticalAgents)
+        ? tacticalAgents
+            .map((agent: { agent_id?: string }) => String(agent.agent_id || ""))
+            .filter(Boolean)
+        : [];
+    } catch (error) {
+      const msg = (error as { message?: string })?.message || String(error);
+      agentsWarningMessage.value = `Tactical agent filter is unavailable: ${msg}`;
+    }
 
     const response = await agentServiceClientWrapper.listAgents(
       allowedAgentIds.length > 0 ? allowedAgentIds : undefined,
@@ -2868,7 +3156,7 @@ async function loadAgents() {
         const agentId = agent.agent_id || agent.agentId || "";
         const hostName = agent.host_name || agent.hostName || "Unknown";
         const ipAddress = agent.ip_address || agent.ipAddress || "";
-        let isOnline = false;
+        let isOnline: boolean | undefined;
         if (agent.is_online !== undefined) {
           isOnline = agent.is_online;
         } else if (agent.isOnline !== undefined) {
@@ -2880,22 +3168,21 @@ async function loadAgents() {
         } else if (agent.lastHeartbeatUnix !== undefined) {
           lastHeartbeatUnix = agent.lastHeartbeatUnix;
         }
+        const lastSeen = unixSecondsToIso(lastHeartbeatUnix) || "";
+        const status = derivePolicyAgentStatus(isOnline, lastHeartbeatUnix);
+        const heartbeatAgeSeconds = getHeartbeatAgeSeconds(lastHeartbeatUnix);
 
         return {
           id: agentId,
           hostname: hostName,
-          last_seen: (() => {
-            if (!lastHeartbeatUnix) return "";
-            const timestamp =
-              typeof lastHeartbeatUnix === "string"
-                ? Number.parseInt(lastHeartbeatUnix, 10)
-                : lastHeartbeatUnix;
-            return new Date(timestamp * 1000).toISOString();
-          })(),
-          status: isOnline ? "online" : "offline",
+          last_seen: lastSeen,
+          status,
           operating_system: undefined,
           version: undefined,
           ip_address: ipAddress || undefined,
+          is_online: isOnline,
+          last_heartbeat_unix: lastHeartbeatUnix ?? null,
+          heartbeat_age_seconds: heartbeatAgeSeconds,
         };
       });
     } else {
@@ -2913,6 +3200,8 @@ async function loadAgents() {
     }
   } catch (error) {
     agentsError.value = true;
+    agentsErrorMessage.value =
+      (error as { message?: string })?.message || String(error);
     gpoAgents.value = [];
   } finally {
     agentsLoading.value = false;
@@ -3562,10 +3851,10 @@ const getAgentStatusColor = (status: string) => {
   switch (status) {
     case "online":
       return "positive";
-    case "offline":
-      return "warning";
     case "overdue":
       return "negative";
+    case "offline":
+      return "warning";
     default:
       return "grey";
   }
@@ -3579,6 +3868,8 @@ const getAgentStatusLabel = (status: string) => {
       return "Offline";
     case "overdue":
       return "Overdue";
+    case "unknown":
+      return "Unknown";
     default:
       return "Unknown";
   }
@@ -3591,7 +3882,9 @@ const getAgentStatusTooltip = (status: string) => {
     case "offline":
       return "Device is unavailable";
     case "overdue":
-      return "Device did not send heartbeat longer than the set time.";
+      return "Device heartbeat is stale and needs attention.";
+    case "unknown":
+      return "No heartbeat data is available yet";
     default:
       return "Status is unknown";
   }
@@ -3604,6 +3897,13 @@ watch(mainTab, (newTab) => {
     }
     if (!treeStore.tree.value) {
       treeStore.fetchPolicyTree();
+    }
+  } else if (newTab === "dashboard") {
+    if (
+      policiesStore.policies.value.length === 0 &&
+      !policiesStore.isLoading.value
+    ) {
+      policiesStore.fetchPolicies();
     }
   }
 });
@@ -4581,6 +4881,8 @@ onMounted(async () => {
   if (mainTab.value === "library") {
     policiesStore.fetchPolicies();
     treeStore.fetchPolicyTree();
+  } else if (mainTab.value === "dashboard") {
+    policiesStore.fetchPolicies();
   }
   await syncAgentSelectionFromRouteQuery();
 });
@@ -4769,6 +5071,32 @@ function exportPolicies(category: "all" | "templates", format: "csv" | "xlsx") {
   :deep(.q-panel > div)
     height: auto
     min-height: 0
+
+.gpo-dashboard-page
+  max-width: 1280px
+  margin: 0 auto
+  width: 100%
+
+.gpo-metric-card,
+.gpo-dashboard-panel
+  border-radius: 8px
+  height: 100%
+
+.gpo-metric-card
+  min-height: 92px
+
+.gpo-metric-value
+  font-size: 28px
+  line-height: 34px
+  font-weight: 700
+
+.gpo-metric-label
+  color: rgba(0, 0, 0, 0.56)
+  font-size: 12px
+  line-height: 16px
+
+.body--dark .gpo-metric-label
+  color: rgba(255, 255, 255, 0.65)
 
 .gpo-standalone-page-wrap
   display: flex
