@@ -7,14 +7,14 @@
     <div class="uk-header__center">
       <UkSearchInput
         v-model="globalSearch.query.value"
-        placeholder="Search agents, policies, scripts..."
+        :placeholder="t('Search agents, policies, scripts...')"
       >
         <template #results>
           <div
             v-if="globalSearch.results.value.agents.length"
             class="uk-search__section"
           >
-            <div class="uk-search__section-title">Agents</div>
+            <div class="uk-search__section-title">{{ t("Agents") }}</div>
             <div
               v-for="agent in globalSearch.results.value.agents"
               :key="agent.agent_id"
@@ -23,9 +23,7 @@
             >
               <q-icon name="dns" size="16px" />
               <span>{{ agent.hostname }}</span>
-              <span class="uk-search__result-meta">{{
-                agent.clientName
-              }}</span>
+              <span class="uk-search__result-meta">{{ agent.clientName }}</span>
             </div>
           </div>
         </template>
@@ -36,7 +34,7 @@
       <!-- Theme Toggle -->
       <button
         class="uk-header__icon-btn"
-        :title="theme.isDark.value ? 'Switch to Light' : 'Switch to Dark'"
+        :title="theme.isDark.value ? t('Switch to Light') : t('Switch to Dark')"
         @click="theme.toggle()"
       >
         <q-icon
@@ -58,10 +56,12 @@
         <q-menu v-model="showUserMenu">
           <q-list dense style="min-width: 150px">
             <q-item clickable @click="openUserPreferences">
-              <q-item-section>Preferences</q-item-section>
+              <q-item-section>{{ t("Preferences") }}</q-item-section>
             </q-item>
             <q-item clickable @click="logout">
-              <q-item-section class="text-red">Logout</q-item-section>
+              <q-item-section class="text-red">{{
+                t("Logout")
+              }}</q-item-section>
             </q-item>
           </q-list>
         </q-menu>
@@ -73,6 +73,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import { UkBreadcrumbs, UkSearchInput } from "@/uikit";
 import AlertsIcon from "@/components/AlertsIcon.vue";
 import { useBreadcrumbs } from "@/composables/useBreadcrumbs";
@@ -82,6 +83,7 @@ import { useAuthStore } from "@/stores/auth";
 
 const router = useRouter();
 const auth = useAuthStore();
+const { t } = useI18n();
 const { breadcrumbs } = useBreadcrumbs();
 const globalSearch = useGlobalSearch();
 const theme = useTheme();
