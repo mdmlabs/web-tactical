@@ -474,6 +474,16 @@
               />
 
               <template v-if="form.network_dlp_enabled">
+                <q-toggle
+                  v-model="form.network_fail_closed"
+                  color="negative"
+                  class="q-mb-sm"
+                  label="Fail-closed if proxy is unavailable"
+                />
+                <div class="text-caption text-grey-7 q-mb-md">
+                  Keep web traffic pinned to the local DLP proxy when Network DLP
+                  cannot start or proxy settings are tampered with.
+                </div>
                 <div class="text-caption text-grey-7 q-mb-sm">
                   {{ $t("security.components.DLPPolicyDialog.4cb444") }}
                 </div>
@@ -752,6 +762,7 @@ const defaultForm = () => ({
   block_cloud_upload: false,
   // Network
   network_dlp_enabled: false,
+  network_fail_closed: false,
   blocked_domains: [] as string[],
   // Email
   email_dlp_enabled: false,
@@ -851,6 +862,7 @@ async function save() {
       email_smtp_password: form.value.email_smtp_password,
       email_smtp_from_email: form.value.email_smtp_from_email.trim(),
       email_smtp_use_tls: Boolean(form.value.email_smtp_use_tls),
+      network_fail_closed: Boolean(form.value.network_fail_closed),
       email_agent_relay_enabled: Boolean(form.value.email_agent_relay_enabled),
       email_agent_relay_port: Number(form.value.email_agent_relay_port || 2525),
       email_block_direct_smtp: Boolean(form.value.email_block_direct_smtp),
