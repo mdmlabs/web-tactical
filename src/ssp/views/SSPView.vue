@@ -5,9 +5,7 @@
       <q-toolbar class="ssp-toolbar">
         <!-- Brand -->
         <div class="ssp-brand">
-          <div class="ssp-brand-icon">
-            <q-icon name="shield" size="20px" color="white" />
-          </div>
+          <img class="ssp-brand-logo" :src="bcyLogo" alt="BCY" />
           <span class="ssp-brand-name">{{
             $t("ssp.views.SSPView.96fa52")
           }}</span>
@@ -87,12 +85,17 @@ import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
 import { useDomI18n } from "@/utils/dom-i18n";
+import bcyLogo from "@/assets/bcy-logo.png";
 
 const auth = useAuthStore();
 const router = useRouter();
 const { t } = useI18n();
 useDomI18n({
   root: () => document.querySelector(".ssp-layout"),
+});
+useDomI18n({
+  root: () => document.body,
+  skipSelector: ".ssp-layout",
 });
 
 const initials = computed(() => {
@@ -163,15 +166,11 @@ async function logout() {
   gap: 10px;
 }
 
-.ssp-brand-icon {
+.ssp-brand-logo {
   width: 34px;
   height: 34px;
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.35);
+  border-radius: 6px;
+  object-fit: contain;
   flex-shrink: 0;
 }
 
