@@ -1,10 +1,15 @@
 import adminStatic from "./admin-static";
+import enExtracted from "../en/extracted";
 import extracted from "./extracted";
+import { createPlainTextTranslations } from "../plain-text";
 import sspStatic from "./ssp-static";
+
+const extractedPlainText = createPlainTextTranslations(enExtracted, extracted);
 
 export default {
   // Auto-generated translations for extracted UI keys. Reviewed overrides live
   // in the structured namespaces below.
+  ...extractedPlainText,
   ...extracted,
   ...adminStatic,
   ...sspStatic,

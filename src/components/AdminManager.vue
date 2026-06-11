@@ -9,17 +9,17 @@
         flat
         push
         icon="refresh"
-      />User Administration
+      />{{ $t("User Administration") }}
       <q-space />
       <q-btn dense flat icon="close" v-close-popup>
-        <q-tooltip class="bg-white text-primary">Close</q-tooltip>
+        <q-tooltip class="bg-white text-primary">{{ $t("Close") }}</q-tooltip>
       </q-btn>
     </q-bar>
     <div class="q-pa-md">
       <div class="q-gutter-sm">
         <q-btn
           ref="new"
-          label="New"
+          :label="$t('New')"
           dense
           flat
           push
@@ -29,7 +29,7 @@
           @click="showAddUserModal"
         />
         <q-btn
-          label="Export Excel"
+          :label="$t('Export Excel')"
           dense
           flat
           push
@@ -53,7 +53,7 @@
         <template v-slot:header-cell-is_active="props">
           <q-th :props="props" auto-width>
             <q-icon name="power_settings_new" size="1.5em">
-              <q-tooltip>Enable User</q-tooltip>
+              <q-tooltip>{{ $t("Enable User") }}</q-tooltip>
             </q-icon>
           </q-th>
         </template>
@@ -65,7 +65,7 @@
         <!-- No data Slot -->
         <template v-slot:no-data>
           <div class="full-width row flex-center q-gutter-sm">
-            <span v-if="users.length === 0">No Users</span>
+            <span v-if="users.length === 0">{{ $t("No Users") }}</span>
           </div>
         </template>
 
@@ -87,7 +87,7 @@
                   <q-item-section side>
                     <q-icon name="edit" />
                   </q-item-section>
-                  <q-item-section>Edit</q-item-section>
+                  <q-item-section>{{ $t("Edit") }}</q-item-section>
                 </q-item>
                 <q-item
                   clickable
@@ -98,7 +98,7 @@
                   <q-item-section side>
                     <q-icon name="delete" />
                   </q-item-section>
-                  <q-item-section>Delete</q-item-section>
+                  <q-item-section>{{ $t("Delete") }}</q-item-section>
                 </q-item>
 
                 <q-separator></q-separator>
@@ -113,18 +113,22 @@
                   <q-item-section side>
                     <q-icon name="autorenew" />
                   </q-item-section>
-                  <q-item-section>Reset Password</q-item-section>
+                  <q-item-section>{{ $t("Reset Password") }}</q-item-section>
                 </q-item>
                 <q-item
                   clickable
                   v-close-popup
                   @click="verifyEmail(props.row)"
-                  :disable="!props.row.email || Boolean(props.row.email_verified_at)"
+                  :disable="
+                    !props.row.email || Boolean(props.row.email_verified_at)
+                  "
                 >
                   <q-item-section side>
                     <q-icon name="mark_email_read" />
                   </q-item-section>
-                  <q-item-section>Verify Email Identifier</q-item-section>
+                  <q-item-section>{{
+                    $t("Verify Email Identifier")
+                  }}</q-item-section>
                 </q-item>
 
                 <q-separator></q-separator>
@@ -139,7 +143,9 @@
                   <q-item-section side>
                     <q-icon name="groups" />
                   </q-item-section>
-                  <q-item-section>Show Connected SSO Accounts</q-item-section>
+                  <q-item-section>{{
+                    $t("Show Connected SSO Accounts")
+                  }}</q-item-section>
                 </q-item>
 
                 <q-item
@@ -151,13 +157,15 @@
                   <q-item-section side>
                     <q-icon name="groups" />
                   </q-item-section>
-                  <q-item-section>Show Active Sessions</q-item-section>
+                  <q-item-section>{{
+                    $t("Show Active Sessions")
+                  }}</q-item-section>
                 </q-item>
 
                 <q-separator></q-separator>
 
                 <q-item clickable v-close-popup>
-                  <q-item-section>Close</q-item-section>
+                  <q-item-section>{{ $t("Close") }}</q-item-section>
                 </q-item>
               </q-list>
             </q-menu>
@@ -188,20 +196,22 @@
                 text-color="white"
                 dense
               >
-                Verified
+                {{ $t("Verified") }}
                 <q-tooltip>
                   {{ formatDate(props.row.email_verified_at) }}
                   <span v-if="props.row.email_verified_by_username">
-                    by {{ props.row.email_verified_by_username }}
+                    {{ $t("by") }} {{ props.row.email_verified_by_username }}
                   </span>
                 </q-tooltip>
               </q-chip>
-              <q-chip v-else color="grey-5" text-color="white" dense>Unverified</q-chip>
+              <q-chip v-else color="grey-5" text-color="white" dense>{{
+                $t("Unverified")
+              }}</q-chip>
             </q-td>
             <q-td v-if="props.row.last_login">{{
               formatDate(props.row.last_login)
             }}</q-td>
-            <q-td v-else>Never</q-td>
+            <q-td v-else>{{ $t("Never") }}</q-td>
             <q-td>{{ props.row.last_login_ip }}</q-td>
           </q-tr>
         </template>
@@ -260,63 +270,6 @@ export default {
   data() {
     return {
       users: [],
-      columns: [
-        {
-          name: "is_active",
-          label: "Active",
-          field: "is_active",
-          align: "left",
-        },
-        {
-          name: "sso",
-          label: "",
-          field: "sso",
-          align: "left",
-          sortable: true,
-        },
-        {
-          name: "username",
-          label: "Username",
-          field: "username",
-          align: "left",
-          sortable: true,
-        },
-        {
-          name: "name",
-          label: "Name",
-          field: "name",
-          align: "left",
-          sortable: true,
-        },
-        {
-          name: "email",
-          label: "Email",
-          field: "email",
-          align: "left",
-          sortable: true,
-        },
-        {
-          name: "email_verified_at",
-          label: "Email ID",
-          field: "email_verified_at",
-          align: "left",
-          sortable: true,
-        },
-        {
-          name: "last_login",
-          label: "Last Login",
-          field: "last_login",
-          align: "left",
-          sortable: true,
-        },
-        {
-          name: "last_login_ip",
-          label: "Last Logon From",
-          field: "last_login_ip",
-          align: "left",
-          sortable: true,
-        },
-      ],
       pagination: {
         rowsPerPage: 0,
         sortBy: "username",
@@ -355,7 +308,7 @@ export default {
           link.click();
           document.body.removeChild(link);
           window.URL.revokeObjectURL(url);
-          this.notifySuccess("User list exported");
+          this.notifySuccess(this.$t("User list exported"));
         })
         .finally(() => {
           this.$q.loading.hide();
@@ -364,20 +317,30 @@ export default {
     verifyEmail(user) {
       this.$axios.post(`/accounts/users/${user.id}/verify-email/`).then((r) => {
         Object.assign(user, r.data);
-        this.notifySuccess(`Email identifier verified for ${user.username}`);
+        this.notifySuccess(
+          this.$t("Email identifier verified for {username}", {
+            username: user.username,
+          }),
+        );
       });
     },
     deleteUser(user) {
       this.$q
         .dialog({
-          title: `Delete user ${user.username}?`,
+          title: this.$t("Delete user {username}?", {
+            username: user.username,
+          }),
           cancel: true,
-          ok: { label: "Delete", color: "negative" },
+          ok: { label: this.$t("Delete"), color: "negative" },
         })
         .onOk(() => {
           this.$axios.delete(`/accounts/${user.id}/users/`).then(() => {
             this.getUsers();
-            this.notifySuccess(`User ${user.username} was deleted!`);
+            this.notifySuccess(
+              this.$t("User {username} was deleted!", {
+                username: user.username,
+              }),
+            );
           });
         });
     },
@@ -407,8 +370,8 @@ export default {
         return;
       }
       let text = !user.is_active
-        ? "User enabled successfully"
-        : "User disabled successfully";
+        ? this.$t("User enabled successfully")
+        : this.$t("User disabled successfully");
 
       const data = {
         id: user.id,
@@ -433,6 +396,65 @@ export default {
     },
   },
   computed: {
+    columns() {
+      return [
+        {
+          name: "is_active",
+          label: this.$t("Active"),
+          field: "is_active",
+          align: "left",
+        },
+        {
+          name: "sso",
+          label: "",
+          field: "sso",
+          align: "left",
+          sortable: true,
+        },
+        {
+          name: "username",
+          label: this.$t("Username"),
+          field: "username",
+          align: "left",
+          sortable: true,
+        },
+        {
+          name: "name",
+          label: this.$t("Name"),
+          field: "name",
+          align: "left",
+          sortable: true,
+        },
+        {
+          name: "email",
+          label: this.$t("Email"),
+          field: "email",
+          align: "left",
+          sortable: true,
+        },
+        {
+          name: "email_verified_at",
+          label: this.$t("Email ID"),
+          field: "email_verified_at",
+          align: "left",
+          sortable: true,
+        },
+        {
+          name: "last_login",
+          label: this.$t("Last Login"),
+          field: "last_login",
+          align: "left",
+          sortable: true,
+        },
+        {
+          name: "last_login_ip",
+          label: this.$t("Last Logon From"),
+          field: "last_login_ip",
+          align: "left",
+          sortable: true,
+        },
+      ];
+    },
     ...piniaMapState(useAuthStore, {
       logged_in_user: (state) => state.username,
     }),

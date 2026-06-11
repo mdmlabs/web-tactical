@@ -669,6 +669,11 @@ useDomI18n({
   root: () => document.querySelector(".main-page-container"),
   debounceMs: 120,
 });
+useDomI18n({
+  root: () => document.body,
+  skipSelector: ".modern-header,.filebar-drawer,.main-page-container",
+  debounceMs: 120,
+});
 
 const {
   // serverCount,
