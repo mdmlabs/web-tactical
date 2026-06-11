@@ -25,7 +25,7 @@
           class="ssp-header-btn"
           @click="router.push('/ssp/info')"
         >
-          <q-tooltip>Contact support</q-tooltip>
+          <q-tooltip>{{ t("Contact support") }}</q-tooltip>
         </q-btn>
 
         <!-- User info -->
@@ -84,11 +84,13 @@
 import { computed } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
 import { useDomI18n } from "@/utils/dom-i18n";
 
 const auth = useAuthStore();
 const router = useRouter();
+const { t } = useI18n();
 useDomI18n({
   root: () => document.querySelector(".ssp-layout"),
 });
@@ -105,25 +107,35 @@ const initials = computed(() => {
   );
 });
 
-const tabs = [
-  { to: "/ssp/devices", icon: "devices", label: "My Devices", danger: false },
-  { to: "/ssp/apps", icon: "apps", label: "App Catalog", danger: false },
+const tabs = computed(() => [
+  {
+    to: "/ssp/devices",
+    icon: "devices",
+    label: t("My Devices"),
+    danger: false,
+  },
+  { to: "/ssp/apps", icon: "apps", label: t("App Catalog"), danger: false },
   {
     to: "/ssp/rights",
     icon: "verified_user",
-    label: "My Rights",
+    label: t("My Rights"),
     danger: false,
   },
-  { to: "/ssp/password", icon: "lock", label: "Password", danger: false },
-  { to: "/ssp/profile", icon: "person", label: "My Profile", danger: false },
-  { to: "/ssp/info", icon: "menu_book", label: "Info Portal", danger: false },
+  { to: "/ssp/password", icon: "lock", label: t("Password"), danger: false },
+  { to: "/ssp/profile", icon: "person", label: t("My Profile"), danger: false },
+  {
+    to: "/ssp/info",
+    icon: "menu_book",
+    label: t("Info Portal"),
+    danger: false,
+  },
   {
     to: "/ssp/lost-device",
     icon: "report_problem",
-    label: "Report Lost Device",
+    label: t("Report Lost Device"),
     danger: true,
   },
-];
+]);
 
 async function logout() {
   await auth.logout();

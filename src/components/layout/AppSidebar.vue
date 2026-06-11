@@ -33,7 +33,7 @@
           <q-icon :name="item.icon" size="20px" class="uk-sidebar__item-icon" />
           <transition name="uk-fade">
             <span v-if="!collapsed" class="uk-sidebar__item-label">{{
-              item.label
+              t(item.label)
             }}</span>
           </transition>
           <transition name="uk-fade">
@@ -52,7 +52,7 @@
             self="center left"
             :offset="[8, 0]"
           >
-            {{ item.label }}
+            {{ t(item.label) }}
           </q-tooltip>
         </div>
 
@@ -77,7 +77,7 @@
                 size="18px"
                 class="uk-sidebar__item-icon"
               />
-              <span class="uk-sidebar__item-label">{{ child.label }}</span>
+              <span class="uk-sidebar__item-label">{{ t(child.label) }}</span>
             </div>
           </div>
         </transition>
@@ -93,7 +93,9 @@
           class="uk-sidebar__item-icon"
         />
         <transition name="uk-fade">
-          <span v-if="!collapsed" class="uk-sidebar__item-label">Collapse</span>
+          <span v-if="!collapsed" class="uk-sidebar__item-label">{{
+            t("Collapse")
+          }}</span>
         </transition>
       </div>
     </div>
@@ -103,6 +105,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import { useI18n } from "vue-i18n";
 import { navigation, type NavItem } from "@/config/navigation";
 import { useDialogRegistry } from "@/composables/useDialogRegistry";
 import bcyLogo from "@/assets/agent-icon.png";
@@ -118,6 +121,7 @@ defineEmits<{
 
 const router = useRouter();
 const route = useRoute();
+const { t } = useI18n();
 const { openDialog } = useDialogRegistry();
 const expandedSections = ref(new Set<string>());
 
