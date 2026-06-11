@@ -8,6 +8,7 @@ import {
 } from "@/gpo/api/grpc-client";
 import type { UserWithIdInfo } from "@/generated/user_service_pb";
 import type { GroupInfo } from "@/generated/common/user_pb";
+import { derivePolicyAgentStatus } from "@/gpo/utils/policy-agent-status";
 
 export interface CreateUserParams {
   samAccountName: string;
@@ -72,9 +73,9 @@ function normalizeAgentFromListItem(a: RawAgentListItem): AgentRow | null {
 
   const name = (a.host_name ?? a.hostName ?? "").trim() || id;
   const isOnline = a.is_online ?? a.isOnline;
-  const lastSeenIso = unixSecondsToIso(a.last_heartbeat_unix ?? a.lastHeartbeatUnix);
-  let status: string | undefined;
-  if (isOnline !== undefined) status = isOnline ? "online" : "offline";
+  const lastHeartbeatUnix = a.last_heartbeat_unix ?? a.lastHeartbeatUnix;
+  const lastSeenIso = unixSecondsToIso(lastHeartbeatUnix);
+  const status = derivePolicyAgentStatus(isOnline, lastHeartbeatUnix);
 
   return {
     id,

@@ -3,6 +3,7 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import axios from "axios";
 import { useClientsStore } from "./clients";
+import { derivePolicyAgentStatus } from "@/gpo/utils/policy-agent-status";
 
 export const useAgentsStore = defineStore("agents", () => {
   const agents = ref<any[]>([]);
@@ -141,9 +142,10 @@ export const useAgentsStore = defineStore("agents", () => {
           }
 
           if (policyAgent) {
-            agent.windows_policy_status = policyAgent.isOnline
-              ? "online"
-              : "offline";
+            agent.windows_policy_status = derivePolicyAgentStatus(
+              policyAgent.isOnline,
+              policyAgent.lastHeartbeatUnix,
+            );
             agent.windows_policy_last_seen = policyAgent.lastHeartbeatUnix
               ? new Date(
                   (typeof policyAgent.lastHeartbeatUnix === "string"

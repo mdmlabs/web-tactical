@@ -3,6 +3,7 @@ import { Screen, Dark, LoadingBar } from "quasar";
 import axios from "axios";
 import { formatDate } from "@/utils/format";
 import { setLocale } from "@/boot/i18n";
+import { derivePolicyAgentStatus } from "@/gpo/utils/policy-agent-status";
 
 export default function () {
   const Store = new createStore({
@@ -344,9 +345,10 @@ export default function () {
               }
 
               if (policyAgent) {
-                agent.windows_policy_status = policyAgent.isOnline
-                  ? "online"
-                  : "offline";
+                agent.windows_policy_status = derivePolicyAgentStatus(
+                  policyAgent.isOnline,
+                  policyAgent.lastHeartbeatUnix,
+                );
                 agent.windows_policy_last_seen = policyAgent.lastHeartbeatUnix
                   ? new Date(
                       (typeof policyAgent.lastHeartbeatUnix === "string"
