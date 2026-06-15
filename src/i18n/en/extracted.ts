@@ -5773,7 +5773,7 @@ export default {
   "security.components.DLPJustificationPanel.dc3dec": "Details",
   "security.components.DLPJustificationPanel.e6394b": "Filter by Agent ID",
   "security.components.DLPPolicyDialog.03eb1a":
-    "Block cloud uploads (requires Network DLP enabled)",
+    "Block cloud and web uploads",
   "security.components.DLPPolicyDialog.074977": "Add Domain",
   "security.components.DLPPolicyDialog.087741": "Configure Graph API",
   "security.components.DLPPolicyDialog.0b2531":
@@ -5813,6 +5813,14 @@ export default {
     "Auto-encrypt classified files (EFS)",
   "security.components.DLPPolicyDialog.88b278":
     "Enable Network DLP (HTTPS upload interception)",
+  "security.components.DLPPolicyDialog.networkFailClosed":
+    "Fail-closed if proxy is unavailable",
+  "security.components.DLPPolicyDialog.networkFailClosedHelp":
+    "Keep web traffic pinned to the local DLP proxy when Network DLP cannot start or proxy settings are changed.",
+  "security.components.DLPPolicyDialog.protectedFolderGuard":
+    "Protect every file in watched folders",
+  "security.components.DLPPolicyDialog.protectedFolderGuardHelp":
+    "Encrypts every file in watched folders and, in block mode, blocks common egress channels such as web uploads, USB writes, file clipboard transfers, and direct Telegram Desktop transfers.",
   "security.components.DLPPolicyDialog.9239ee": "General",
   "security.components.DLPPolicyDialog.979ddc": "Add Path",
   "security.components.DLPPolicyDialog.9b8e14":
