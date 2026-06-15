@@ -792,6 +792,31 @@
                   </q-chip>
                 </q-td>
               </template>
+              <template v-slot:body-cell-protection="props">
+                <q-td :props="props">
+                  <q-chip
+                    v-if="props.row.encrypt_on_exfiltration"
+                    dense
+                    color="secondary"
+                    text-color="white"
+                    icon="lock"
+                    size="sm"
+                  >
+                    All files
+                  </q-chip>
+                  <q-chip
+                    v-else-if="props.row.auto_encrypt"
+                    dense
+                    color="indigo"
+                    text-color="white"
+                    icon="lock"
+                    size="sm"
+                  >
+                    Classified
+                  </q-chip>
+                  <span v-else class="text-grey-6">—</span>
+                </q-td>
+              </template>
               <template v-slot:body-cell-actions="props">
                 <q-td :props="props">
                   <q-btn
@@ -4331,6 +4356,17 @@ const dlpColumns = [
     name: "block_mode",
     label: "Mode",
     field: "block_mode",
+    align: "center" as const,
+  },
+  {
+    name: "protection",
+    label: "Protection",
+    field: (row: any) =>
+      row.encrypt_on_exfiltration
+        ? "All files"
+        : row.auto_encrypt
+          ? "Classified"
+          : "—",
     align: "center" as const,
   },
   {
