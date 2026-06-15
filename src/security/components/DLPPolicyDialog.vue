@@ -426,7 +426,7 @@
                 <q-toggle
                   v-model="form.encrypt_on_exfiltration"
                   color="secondary"
-                  label="Encrypt every file in watched folders"
+                  :label="$t('security.components.DLPPolicyDialog.protectedFolderGuard')"
                 />
                 <q-banner
                   v-if="form.encrypt_on_exfiltration"
@@ -436,10 +436,7 @@
                   <template v-slot:avatar>
                     <q-icon name="lock" color="primary" />
                   </template>
-                  Every file in the watched folders is encrypted with Windows
-                  EFS without keyword or content matching. This protects DOCX,
-                  PDF, archives, images, and other file types when users move
-                  or copy them out.
+                  {{ $t("security.components.DLPPolicyDialog.protectedFolderGuardHelp") }}
                 </q-banner>
                 <q-toggle
                   v-model="form.auto_quarantine"
@@ -480,8 +477,7 @@
                 <template v-slot:avatar
                   ><q-icon name="info" color="blue"
                 /></template>
-                Network DLP intercepts HTTPS uploads via mitmproxy proxy on the
-                endpoint. Requires CA certificate deployment via GPO.
+                {{ $t("security.components.DLPPolicyDialog.617b5b") }}
               </q-banner>
 
               <q-toggle
@@ -496,11 +492,10 @@
                   v-model="form.network_fail_closed"
                   color="negative"
                   class="q-mb-sm"
-                  label="Fail-closed if proxy is unavailable"
+                  :label="$t('security.components.DLPPolicyDialog.networkFailClosed')"
                 />
                 <div class="text-caption text-grey-7 q-mb-md">
-                  Keep web traffic pinned to the local DLP proxy when Network DLP
-                  cannot start or proxy settings are tampered with.
+                  {{ $t("security.components.DLPPolicyDialog.networkFailClosedHelp") }}
                 </div>
                 <div class="text-caption text-grey-7 q-mb-sm">
                   {{ $t("security.components.DLPPolicyDialog.4cb444") }}

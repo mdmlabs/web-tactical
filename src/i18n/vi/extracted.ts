@@ -5913,7 +5913,7 @@ export default {
   "security.components.DLPJustificationPanel.dc3dec": "Chi tiết",
   "security.components.DLPJustificationPanel.e6394b": "Lọc theo ID đại lý",
   "security.components.DLPPolicyDialog.03eb1a":
-    "Chặn tải lên trên đám mây (yêu cầu bật Network DLP)",
+    "Chặn tải lên đám mây và web",
   "security.components.DLPPolicyDialog.074977": "Thêm tên miền",
   "security.components.DLPPolicyDialog.087741": "Định cấu hình API đồ thị",
   "security.components.DLPPolicyDialog.0b2531":
@@ -5953,6 +5953,14 @@ export default {
     "Tự động mã hóa các tập tin được phân loại (EFS)",
   "security.components.DLPPolicyDialog.88b278":
     "Kích hoạt Network DLP (chặn tải lên HTTPS)",
+  "security.components.DLPPolicyDialog.networkFailClosed":
+    "Chặn khi proxy không khả dụng",
+  "security.components.DLPPolicyDialog.networkFailClosedHelp":
+    "Giữ lưu lượng web đi qua proxy DLP cục bộ khi Network DLP không khởi động được hoặc cài đặt proxy bị thay đổi.",
+  "security.components.DLPPolicyDialog.protectedFolderGuard":
+    "Bảo vệ mọi tệp trong thư mục giám sát",
+  "security.components.DLPPolicyDialog.protectedFolderGuardHelp":
+    "Mã hóa mọi tệp trong thư mục giám sát và, ở chế độ chặn, chặn các kênh thoát dữ liệu phổ biến như tải lên web, ghi USB, chuyển tệp qua clipboard và truyền trực tiếp qua Telegram Desktop.",
   "security.components.DLPPolicyDialog.9239ee": "Tổng quan",
   "security.components.DLPPolicyDialog.979ddc": "Thêm đường dẫn",
   "security.components.DLPPolicyDialog.9b8e14":
