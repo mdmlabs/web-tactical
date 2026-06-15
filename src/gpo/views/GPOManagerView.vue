@@ -1,5 +1,16 @@
 <template>
   <q-page class="gpo-manager-page">
+    <q-inner-loading
+      :showing="initializingGPOView"
+      class="gpo-page-loader"
+      color="primary"
+    >
+      <q-spinner color="primary" size="42px" />
+      <div class="q-mt-md text-body2 text-grey-7">
+        Loading Policy Manager...
+      </div>
+    </q-inner-loading>
+
     <div class="row gpo-main-row">
       <div
         v-if="mainTab !== 'library'"
@@ -2717,6 +2728,7 @@ const showPolicyVersionsDialog = ref(false);
 const policyForVersions = ref<GPOPolicy | null>(null);
 
 const mainTab = ref("dashboard");
+const initializingGPOView = ref(true);
 const subTab = ref("status");
 const contentTab = ref("overview");
 const libraryTab = ref("policies");
@@ -3890,6 +3902,55 @@ const getAgentStatusTooltip = (status: string) => {
   }
 };
 
+function resolveMainTabFromQuery(rawTab: unknown): string {
+  if (rawTab === "windows") return "dashboard";
+  if (typeof rawTab === "string" && GPO_MAIN_TAB_QUERY_SET.has(rawTab)) {
+    return rawTab;
+  }
+  return "dashboard";
+}
+
+function normalizeLegacyGpoTabQuery(rawTab: unknown): void {
+  if (rawTab !== "windows") return;
+  router
+    .replace({
+      path: route.path,
+      query: { ...route.query, tab: "dashboard" },
+    })
+    .catch(() => {});
+}
+
+function fetchPoliciesForDashboardIfNeeded(): Promise<void> | undefined {
+  if (
+    policiesStore.policies.value.length === 0 &&
+    !policiesStore.isLoading.value
+  ) {
+    return policiesStore.fetchPolicies();
+  }
+  return undefined;
+}
+
+async function ensureDataForMainTab(tab: string): Promise<void> {
+  if (tab === "library") {
+    const jobs: Array<Promise<unknown>> = [];
+    if (policiesStore.policies.value.length === 0) {
+      jobs.push(policiesStore.fetchPolicies());
+    }
+    if (!treeStore.tree.value) {
+      jobs.push(treeStore.fetchPolicyTree());
+    }
+    await Promise.all(jobs);
+    return;
+  }
+
+  if (tab === "dashboard") {
+    const jobs: Array<Promise<unknown>> = [loadAgents()];
+    const policiesJob = fetchPoliciesForDashboardIfNeeded();
+    if (policiesJob) jobs.push(policiesJob);
+    await Promise.all(jobs);
+  }
+}
+
 watch(mainTab, (newTab) => {
   if (newTab === "library") {
     if (policiesStore.policies.value.length === 0) {
@@ -3899,33 +3960,19 @@ watch(mainTab, (newTab) => {
       treeStore.fetchPolicyTree();
     }
   } else if (newTab === "dashboard") {
-    if (
-      policiesStore.policies.value.length === 0 &&
-      !policiesStore.isLoading.value
-    ) {
-      policiesStore.fetchPolicies();
+    if (!agentsLoading.value && gpoAgents.value.length === 0) {
+      loadAgents();
     }
+    fetchPoliciesForDashboardIfNeeded();
   }
 });
 
 watch(
   () => route.query.tab,
   (newTab) => {
-    if (newTab === "windows") {
-      router
-        .replace({
-          path: route.path,
-          query: { ...route.query, tab: "dashboard" },
-        })
-        .catch(() => {});
-      return;
-    }
-    if (
-      newTab &&
-      typeof newTab === "string" &&
-      GPO_MAIN_TAB_QUERY_SET.has(newTab)
-    ) {
-      mainTab.value = newTab;
+    normalizeLegacyGpoTabQuery(newTab);
+    if (newTab && typeof newTab === "string") {
+      mainTab.value = resolveMainTabFromQuery(newTab);
     }
   },
 );
@@ -4863,28 +4910,16 @@ async function refreshAppliedPoliciesDialog() {
 }
 
 onMounted(async () => {
-  await loadAgents();
-
   const tabFromQuery = route.query.tab as string | undefined;
-  if (tabFromQuery === "windows") {
-    router
-      .replace({
-        path: route.path,
-        query: { ...route.query, tab: "dashboard" },
-      })
-      .catch(() => {});
-    mainTab.value = "dashboard";
-  } else if (tabFromQuery && GPO_MAIN_TAB_QUERY_SET.has(tabFromQuery)) {
-    mainTab.value = tabFromQuery;
-  }
+  normalizeLegacyGpoTabQuery(tabFromQuery);
+  mainTab.value = resolveMainTabFromQuery(tabFromQuery);
 
-  if (mainTab.value === "library") {
-    policiesStore.fetchPolicies();
-    treeStore.fetchPolicyTree();
-  } else if (mainTab.value === "dashboard") {
-    policiesStore.fetchPolicies();
+  try {
+    await ensureDataForMainTab(mainTab.value);
+    await syncAgentSelectionFromRouteQuery();
+  } finally {
+    initializingGPOView.value = false;
   }
-  await syncAgentSelectionFromRouteQuery();
 });
 
 watch(
@@ -4936,11 +4971,17 @@ function exportPolicies(category: "all" | "templates", format: "csv" | "xlsx") {
 
 <style scoped lang="sass">
 .gpo-manager-page
+  position: relative
   height: 100%
   min-height: 100%
   overflow: hidden
   display: flex
   flex-direction: column
+
+.gpo-page-loader
+  z-index: 20
+  background: rgba(255, 255, 255, 0.88)
+  backdrop-filter: blur(2px)
 
 .gpo-manager-page .gpo-main-row
   flex: 1

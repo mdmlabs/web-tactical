@@ -4,6 +4,7 @@ import {
   createWebHistory,
   createWebHashHistory,
 } from "vue-router";
+import { LoadingBar } from "quasar";
 
 import { useAuthStore } from "@/stores/auth";
 import routes from "./routes";
@@ -31,6 +32,10 @@ export default function (/* { store } */) {
   });
 
   Router.beforeEach((to, from, next) => {
+    if (to.fullPath !== from.fullPath) {
+      LoadingBar.start();
+    }
+
     const auth = useAuthStore();
 
     if (to.meta.requireAuth) {
@@ -57,6 +62,14 @@ export default function (/* { store } */) {
     } else {
       next();
     }
+  });
+
+  Router.afterEach(() => {
+    LoadingBar.stop();
+  });
+
+  Router.onError(() => {
+    LoadingBar.stop();
   });
 
   return Router;

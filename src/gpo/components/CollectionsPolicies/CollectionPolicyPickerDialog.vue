@@ -413,6 +413,15 @@
         </div>
       </q-card-section>
 
+      <q-card-section v-if="applyProgressText" class="q-pt-none q-pb-xs">
+        <q-banner dense rounded class="collection-progress-banner">
+          <template #avatar>
+            <q-spinner color="primary" size="20px" />
+          </template>
+          {{ applyProgressText }}
+        </q-banner>
+      </q-card-section>
+
       <q-card-actions align="right" class="q-pa-md">
         <q-btn flat label="Cancel" color="grey" v-close-popup />
         <q-btn
@@ -521,6 +530,7 @@ const scopeFilter = computed(() =>
   collectionScopeToFilter(props.collectionScope ?? POLICY_SCOPE_NONE),
 );
 const applying = ref(false);
+const applyProgressText = ref("");
 const perPolicySettings = ref<Record<string, Record<string, unknown>>>({});
 const perPolicyElements = ref<Record<string, PolicyDetailsElement[]>>({});
 
@@ -1119,17 +1129,77 @@ async function loadPolicyDetails(policy: PolicyItem) {
   }
 }
 
+function readTrimmedString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+function extractHashFromPolicyLike(policy: unknown): string | null {
+  if (!policy || typeof policy !== "object") return null;
+  const p = policy as Record<string, unknown> & {
+    getHash?: () => unknown;
+    toObject?: () => unknown;
+  };
+  try {
+    const getterHash = readTrimmedString(p.getHash?.());
+    if (getterHash) return getterHash;
+  } catch {}
+  try {
+    const obj = p.toObject?.();
+    if (obj && typeof obj === "object") {
+      const hash = extractHashFromPolicyLike(obj);
+      if (hash) return hash;
+    }
+  } catch {}
+  return (
+    readTrimmedString(p.hash) ??
+    readTrimmedString(p.policy_hash) ??
+    readTrimmedString(p.policyHash)
+  );
+}
+
 function extractHashFromPolicyDetails(response: unknown): string | null {
   if (!response || typeof response !== "object") return null;
-  const r = response as Record<string, unknown>;
-  const policy =
-    (r.policy as Record<string, unknown> | undefined) ??
-    ((Array.isArray(r.policyList) ? r.policyList[0] : undefined) as
-      | Record<string, unknown>
-      | undefined);
-  if (!policy || typeof policy !== "object") return null;
-  const hash = policy.hash ?? policy.policy_hash ?? policy.policyHash;
-  if (typeof hash === "string" && hash.trim()) return hash.trim();
+  const r = response as Record<string, unknown> & {
+    getPolicy?: () => unknown;
+    toObject?: () => unknown;
+  };
+
+  try {
+    const getterPolicyHash = extractHashFromPolicyLike(r.getPolicy?.());
+    if (getterPolicyHash) return getterPolicyHash;
+  } catch {}
+
+  const direct = extractHashFromPolicyLike(r);
+  if (direct) return direct;
+
+  try {
+    const obj = r.toObject?.();
+    if (obj && obj !== response) {
+      const hash = extractHashFromPolicyDetails(obj);
+      if (hash) return hash;
+    }
+  } catch {}
+
+  const candidates = [
+    r.policy,
+    r.policyDetails,
+    r.details,
+    Array.isArray(r.policyList) ? r.policyList[0] : undefined,
+    Array.isArray(r.policiesList) ? r.policiesList[0] : undefined,
+    Array.isArray(r.policies) ? r.policies[0] : undefined,
+  ];
+
+  for (const candidate of candidates) {
+    const hash = extractHashFromPolicyLike(candidate);
+    if (hash) return hash;
+    if (candidate && typeof candidate === "object") {
+      const nested = extractHashFromPolicyDetails(candidate);
+      if (nested) return nested;
+    }
+  }
+
   return null;
 }
 
@@ -1175,9 +1245,15 @@ async function buildPoliciesWithStatePayload(list: PolicyItem[]): Promise<{
   }> = [];
   const skipped: string[] = [];
 
-  for (const policy of list) {
+  const resolvedPolicies = await Promise.all(
+    list.map(async (policy) => ({
+      policy,
+      hash: await resolvePolicyHash(policy),
+    })),
+  );
+
+  for (const { policy, hash } of resolvedPolicies) {
     const id = policy.id;
-    const hash = await resolvePolicyHash(policy);
     if (!hash) {
       skipped.push(policyLabel(policy));
       continue;
@@ -1220,16 +1296,19 @@ async function submitAddPolicies() {
   }
 
   applying.value = true;
+  applyProgressText.value = "Resolving selected policy identifiers...";
   try {
     const { policiesWithState, skipped } =
       await buildPoliciesWithStatePayload(list);
     if (policiesWithState.length === 0) {
       notifyError(
-        "Could not get policy hashes for selected policies. " +
-          "Ensure the server returns policy hash in the list (GetPoliciesByCategory) or fix GetPolicyDetails.",
+        skipped.length > 0
+          ? `Could not get policy hashes for: ${skipped.slice(0, 3).join(", ")}${skipped.length > 3 ? ", ..." : ""}`
+          : "Could not get policy hashes for selected policies.",
       );
       return;
     }
+    applyProgressText.value = "Saving policies to collection...";
     await collectionsClient.createCollectionsPolicies(
       collectionId,
       policiesWithState,
@@ -1251,6 +1330,7 @@ async function submitAddPolicies() {
     notifyError(msg);
   } finally {
     applying.value = false;
+    applyProgressText.value = "";
   }
 }
 </script>
@@ -1267,4 +1347,8 @@ async function submitAddPolicies() {
 
 .policy-list-scroll
   min-height: 200px
+
+.collection-progress-banner
+  background: rgba(25, 118, 210, 0.08)
+  color: #1f2a44
 </style>

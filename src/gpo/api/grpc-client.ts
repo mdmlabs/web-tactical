@@ -162,6 +162,34 @@ const agentCategoryServiceClient = createClient(
 );
 const alertQueryServiceClient = createClient(AlertQueryServiceClient);
 
+function normalizePolicyDetailsResponse(
+  response: operator_pb_types.PolicyDetails,
+): operator_pb_types.PolicyDetails.AsObject {
+  const obj = response.toObject();
+  const policy = response.getPolicy?.();
+  if (!policy) return obj;
+
+  const getterPolicy = {
+    id: policy.getId?.() ?? obj.policy?.id ?? 0,
+    name: policy.getName?.() ?? obj.policy?.name ?? "",
+    hash: policy.getHash?.() ?? obj.policy?.hash ?? "",
+    scope: policy.getScope?.() ?? obj.policy?.scope ?? "",
+    parentCategoryRef:
+      policy.getParentCategoryRef?.() ?? obj.policy?.parentCategoryRef,
+    supportedOnRef:
+      policy.getSupportedOnRef?.() ?? obj.policy?.supportedOnRef,
+    clientExtension: obj.policy?.clientExtension,
+  };
+
+  return {
+    ...obj,
+    policy: {
+      ...obj.policy,
+      ...getterPolicy,
+    },
+  };
+}
+
 const ALERT_GUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -387,7 +415,7 @@ export const policyCatalogClient = {
         createGrpcMetadata(),
       );
 
-      return response.toObject();
+      return normalizePolicyDetailsResponse(response);
     } catch (error) {
       throw error;
     }
