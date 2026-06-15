@@ -424,6 +424,24 @@
                   :label="$t('security.components.DLPPolicyDialog.86e0a6')"
                 />
                 <q-toggle
+                  v-model="form.encrypt_on_exfiltration"
+                  color="secondary"
+                  label="Encrypt every file in watched folders"
+                />
+                <q-banner
+                  v-if="form.encrypt_on_exfiltration"
+                  dense
+                  class="bg-blue-1 text-blue-10 rounded-borders q-mb-sm"
+                >
+                  <template v-slot:avatar>
+                    <q-icon name="lock" color="primary" />
+                  </template>
+                  Every file in the watched folders is encrypted with Windows
+                  EFS without keyword or content matching. This protects DOCX,
+                  PDF, archives, images, and other file types when users move
+                  or copy them out.
+                </q-banner>
+                <q-toggle
                   v-model="form.auto_quarantine"
                   color="negative"
                   :label="$t('security.components.DLPPolicyDialog.d346c4')"
@@ -756,6 +774,7 @@ const defaultForm = () => ({
   alert_on_violation: true,
   log_violations: true,
   auto_encrypt: false,
+  encrypt_on_exfiltration: false,
   auto_quarantine: false,
   block_usb_transfer: false,
   block_email_attachment: false,
