@@ -236,7 +236,7 @@ export default {
       GOARCH_ARM32: GOARCH_ARM32,
       siteOptions: [],
       site: null,
-      agenttype: "server",
+      agenttype: "workstation",
       expires: 24,
       power: false,
       rdp: false,
