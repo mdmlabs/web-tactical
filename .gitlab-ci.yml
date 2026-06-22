@@ -1,0 +1,71 @@
+stages:
+  - deploy
+
+variables:
+  # Убедитесь, что эти переменные установлены в GitLab
+  # Settings → CI/CD → Variables
+  SSH_USER: $SSH_USER_STAGE
+  SSH_HOST: $SSH_HOST_STAGE
+  SSH_KEY: $SSH_KEY_STAGE
+
+deploy_to_stage:
+  stage: deploy
+  image: ubuntu:latest
+  only:
+    - develop
+  before_script:
+    # Установите необходимые пакеты
+    - apt-get update && apt-get install -y openssh-client git curl
+    # Настройка SSH
+    - mkdir -p ~/.ssh
+    - echo "$SSH_KEY" | base64 -d > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts 2>/dev/null || true
+  script:
+    - |
+      ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'EOF'
+      set -euo pipefail
+
+      export NVM_DIR="$HOME/.nvm"
+      [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+      nvm use 20
+
+      export NODE_OPTIONS="--max-old-space-size=4096"
+
+      node -v
+      npm -v
+
+      cd ~/mdmlabsrmm/web-tactical/
+
+      echo "🌐 Resetting working tree to remote..."
+      BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+      git fetch origin "$BRANCH"
+      git reset --hard "origin/$BRANCH"
+      git clean -fd
+
+      mkdir -p dist
+
+      echo "📦 Installing dependencies..."
+      npm install --legacy-peer-deps
+
+      echo "🔧 Generating proto files..."
+      npm run proto:generate
+
+      echo "🏗️ Building project..."
+      npm run build
+
+      test -f dist/index.html
+      echo "✅ dist/ refreshed at $(stat -c %y dist/index.html)"
+
+      cd ~/mdmlabsrmm/
+      echo "🐳 Building Docker image..."
+      docker build --pull --no-cache -t "mdmlabs-frontend" -f "docker/containers/mdmlabs-frontend/dockerfile" .
+      echo "🛑 Stopping frontend container..."
+      docker stop mdmlabs-frontend || true
+      echo "🗑️ Removing frontend container..."
+      docker rm mdmlabs-frontend || true
+      echo "🚀 Starting new frontend container..."
+      cd ~/mdmlabsrmm/docker/
+      docker compose up -d mdmlabs-frontend
+
+      EOF
