@@ -8,55 +8,48 @@ deploy_to_stage:
   only:
     - develop
   before_script:
-    - echo "Debugging SSH connection..."
-    - echo "User: $SSH_USER_STAGE"
-    - echo "Host: $SSH_HOST_STAGE"
     - mkdir -p ~/.ssh
     - echo "$SSH_KEY_STAGE" | base64 -d > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
     - ssh-keyscan -H "$SSH_HOST_STAGE" >> ~/.ssh/known_hosts 2>/dev/null || true
   script:
-    - |
-      ssh -v -o StrictHostKeyChecking=no "$SSH_USER_STAGE@$SSH_HOST_STAGE" bash << 'EOF'
-      set -euo pipefail
+    - ssh -o StrictHostKeyChecking=no "$SSH_USER_STAGE@$SSH_HOST_STAGE" << 'REMOTESCRIPT'
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+nvm use 20
 
-      export NVM_DIR="$HOME/.nvm"
-      [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-      nvm use 20
+export NODE_OPTIONS="--max-old-space-size=4096"
 
-      export NODE_OPTIONS="--max-old-space-size=4096"
+cd ~/mdmlabsrmm/web-tactical/
 
-      cd ~/mdmlabsrmm/web-tactical/
+echo "🌐 Resetting working tree to remote..."
+BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+git fetch origin "$BRANCH"
+git reset --hard "origin/$BRANCH"
+git clean -fd
 
-      echo "🌐 Resetting working tree to remote..."
-      BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-      git fetch origin "$BRANCH"
-      git reset --hard "origin/$BRANCH"
-      git clean -fd
+mkdir -p dist
 
-      mkdir -p dist
+echo "📦 Installing dependencies..."
+npm install --legacy-peer-deps
 
-      echo "📦 Installing dependencies..."
-      npm install --legacy-peer-deps
+echo "🔧 Generating proto files..."
+npm run proto:generate
 
-      echo "🔧 Generating proto files..."
-      npm run proto:generate
+echo "🏗️ Building project..."
+npm run build
 
-      echo "🏗️ Building project..."
-      npm run build
+test -f dist/index.html
+echo "✅ dist/ refreshed at $(stat -c %y dist/index.html)"
 
-      test -f dist/index.html
-      echo "✅ dist/ refreshed at $(stat -c %y dist/index.html)"
-
-      cd ~/mdmlabsrmm/
-      echo "🐳 Building Docker image..."
-      docker build --pull --no-cache -t "mdmlabs-frontend" -f "docker/containers/mdmlabs-frontend/dockerfile" .
-      echo "🛑 Stopping frontend container..."
-      docker stop mdmlabs-frontend || true
-      echo "🗑️ Removing frontend container..."
-      docker rm mdmlabs-frontend || true
-      echo "🚀 Starting new frontend container..."
-      cd ~/mdmlabsrmm/docker/
-      docker compose up -d mdmlabs-frontend
-
-      EOF
+cd ~/mdmlabsrmm/
+echo "🐳 Building Docker image..."
+docker build --pull --no-cache -t "mdmlabs-frontend" -f "docker/containers/mdmlabs-frontend/dockerfile" .
+echo "🛑 Stopping frontend container..."
+docker stop mdmlabs-frontend || true
+echo "🗑️ Removing frontend container..."
+docker rm mdmlabs-frontend || true
+echo "🚀 Starting new frontend container..."
+cd ~/mdmlabsrmm/docker/
+docker compose up -d mdmlabs-frontend
+REMOTESCRIPT
