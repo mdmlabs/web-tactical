@@ -9,18 +9,17 @@ variables:
 deploy_to_stage:
   stage: deploy
   tags:
-    - shell  # Важно: это список, не строка!
+    - shell
   only:
     - develop
   before_script:
-    # Настройка SSH
     - mkdir -p ~/.ssh
     - echo "$SSH_KEY" | base64 -d > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
     - ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts 2>/dev/null || true
   script:
     - |
-      ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'EOF'
+      cat > /tmp/deploy.sh << 'DEPLOY_EOF'
       set -euo pipefail
 
       export NVM_DIR="$HOME/.nvm"
@@ -64,5 +63,5 @@ deploy_to_stage:
       echo "🚀 Starting new frontend container..."
       cd ~/mdmlabsrmm/docker/
       docker compose up -d mdmlabs-frontend
-
-      EOF
+      DEPLOY_EOF
+    - ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "bash -s" < /tmp/deploy.sh
