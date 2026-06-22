@@ -2,20 +2,17 @@ stages:
   - deploy
 
 variables:
-  # Убедитесь, что эти переменные установлены в GitLab
-  # Settings → CI/CD → Variables
   SSH_USER: $SSH_USER_STAGE
   SSH_HOST: $SSH_HOST_STAGE
   SSH_KEY: $SSH_KEY_STAGE
 
 deploy_to_stage:
   stage: deploy
-  image: ubuntu:latest
+  tags:
+    - shell  # Важно: это список, не строка!
   only:
     - develop
   before_script:
-    # Установите необходимые пакеты
-    - apt-get update && apt-get install -y openssh-client git curl
     # Настройка SSH
     - mkdir -p ~/.ssh
     - echo "$SSH_KEY" | base64 -d > ~/.ssh/id_rsa
