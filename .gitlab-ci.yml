@@ -1,11 +1,6 @@
 stages:
   - deploy
 
-variables:
-  SSH_USER: $SSH_USER_STAGE
-  SSH_HOST: $SSH_HOST_STAGE
-  SSH_KEY: $SSH_KEY_STAGE
-
 deploy_to_stage:
   stage: deploy
   tags:
@@ -14,15 +9,15 @@ deploy_to_stage:
     - develop
   before_script:
     - echo "Debugging SSH connection..."
-    - echo "User:$SSH_USER"
-    - echo "Host:$SSH_HOST"
+    - echo "User: $SSH_USER_STAGE"
+    - echo "Host: $SSH_HOST_STAGE"
     - mkdir -p ~/.ssh
-    - echo "$SSH_KEY" | base64 -d > ~/.ssh/id_rsa
+    - echo "$SSH_KEY_STAGE" | base64 -d > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
-    - ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+    - ssh-keyscan -H "$SSH_HOST_STAGE" >> ~/.ssh/known_hosts 2>/dev/null || true
   script:
     - |
-      ssh -v -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" bash << 'EOF'
+      ssh -v -o StrictHostKeyChecking=no "$SSH_USER_STAGE@$SSH_HOST_STAGE" bash << 'EOF'
       set -euo pipefail
 
       export NVM_DIR="$HOME/.nvm"
