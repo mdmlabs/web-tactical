@@ -14,13 +14,12 @@ deploy_to_stage:
     - develop
   before_script:
     - echo "Debugging SSH connection..."
-    - echo "User: $SSH_USER"
-    - echo "Host: $SSH_HOST"
+    - echo "User:$SSH_USER"
+    - echo "Host:$SSH_HOST"
     - mkdir -p ~/.ssh
     - echo "$SSH_KEY" | base64 -d > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
     - ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
-    - cat ~/.ssh/known_hosts
   script:
     - |
       ssh -v -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" bash << 'EOF'
