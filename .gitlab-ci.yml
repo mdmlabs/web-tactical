@@ -13,13 +13,17 @@ deploy_to_stage:
   only:
     - develop
   before_script:
+    - echo "Debugging SSH connection..."
+    - echo "User: $SSH_USER"
+    - echo "Host: $SSH_HOST"
     - mkdir -p ~/.ssh
     - echo "$SSH_KEY" | base64 -d > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
-    - ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts 2>/dev/null || true
+    - ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+    - cat ~/.ssh/known_hosts
   script:
     - |
-      cat > /tmp/deploy.sh << 'DEPLOY_EOF'
+      ssh -v -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" bash << 'EOF'
       set -euo pipefail
 
       export NVM_DIR="$HOME/.nvm"
@@ -27,9 +31,6 @@ deploy_to_stage:
       nvm use 20
 
       export NODE_OPTIONS="--max-old-space-size=4096"
-
-      node -v
-      npm -v
 
       cd ~/mdmlabsrmm/web-tactical/
 
@@ -63,5 +64,5 @@ deploy_to_stage:
       echo "🚀 Starting new frontend container..."
       cd ~/mdmlabsrmm/docker/
       docker compose up -d mdmlabs-frontend
-      DEPLOY_EOF
-    - ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "bash -s" < /tmp/deploy.sh
+
+      EOF
