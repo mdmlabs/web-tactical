@@ -170,6 +170,9 @@ export interface UploadConfirmRequest {
   expiry_date?: string | null;
   issued_to?: string;
   password?: string;
+  install_config?: Record<string, unknown> | null;
+  verification_config?: Record<string, unknown> | null;
+  msi_metadata?: Record<string, unknown> | null;
 }
 
 export interface DownloadUrlResponse {
