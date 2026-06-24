@@ -32,11 +32,13 @@
             <div style="text-align: center">
               <img
                 :src="bcyLogo"
-                :alt="`${SYSTEM_NAME} logo`"
+                :alt="`${$t('branding.systemName')} logo`"
                 class="auth-logo"
               />
             </div>
-            <div class="system-name q-mt-sm">{{ SYSTEM_NAME }}</div>
+            <div class="system-name q-mt-sm">
+              {{ $t("branding.systemName") }}
+            </div>
             <div class="text-h4 text-weight-bold gradient-text q-mt-md">
               Your session has expired. Please sign in again.
             </div>
@@ -71,7 +73,6 @@ import { useQuasar } from "quasar";
 import { useAuthStore } from "@/stores/auth";
 import { useDashWSConnection } from "@/websocket/websocket";
 import bcyLogo from "@/assets/bcy-logo.png";
-import { SYSTEM_NAME } from "@/constants/constants";
 
 const $q = useQuasar();
 

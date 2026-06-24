@@ -4,12 +4,12 @@
     <aside :class="['uk-sidebar', { 'uk-sidebar--collapsed': sidebarCollapsed }]">
       <div class="uk-sidebar__brand">
         <div class="uk-sidebar__logo">
-          <img :src="bcyLogo" :alt="`${SYSTEM_NAME} logo`" class="uk-sidebar__logo-img" />
+          <img :src="bcyLogo" :alt="`${$t('branding.systemName')} logo`" class="uk-sidebar__logo-img" />
         </div>
         <transition name="uk-fade">
           <span v-if="!sidebarCollapsed" class="uk-sidebar__brand-text">
-            {{ SYSTEM_NAME }}
-            <q-tooltip>{{ SYSTEM_NAME }}</q-tooltip>
+            {{ $t("branding.systemName") }}
+            <q-tooltip>{{ $t("branding.systemName") }}</q-tooltip>
           </span>
         </transition>
       </div>
@@ -159,7 +159,6 @@
 import { ref, computed } from "vue";
 import { navItems, mockAgents, mockPolicies } from "../mockData";
 import bcyLogo from "@/assets/agent-icon.png";
-import { SYSTEM_NAME } from "@/constants/constants";
 
 const sidebarCollapsed = ref(false);
 const activeNav = ref("agents");

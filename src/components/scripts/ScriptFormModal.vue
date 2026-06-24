@@ -211,7 +211,9 @@
                 transition-hide="fade"
               >
                 <div>
-                  <strong>Runs on {{ SYSTEM_NAME }} local Linux Server.</strong
+                  <strong
+                    >Runs on {{ $t("branding.systemName") }} local Linux
+                    Server.</strong
                   ><br />
                   Only available interpreters or frameworks will be used.<br />
                   <em>Example:</em> PowerShell scripts require PowerShell to be
@@ -286,7 +288,7 @@ import type { Script } from "@/types/scripts";
 
 // static data
 import { shellOptions } from "@/composables/scripts";
-import { envVarsLabel, SYSTEM_NAME } from "@/constants/constants";
+import { envVarsLabel } from "@/constants/constants";
 
 // props
 const props = withDefaults(
