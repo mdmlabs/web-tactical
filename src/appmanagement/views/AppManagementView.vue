@@ -181,6 +181,14 @@
                       <q-chip dense color="blue-grey-6" text-color="white">{{ props.row.source }}</q-chip>
                     </q-td>
                   </template>
+                  <template v-slot:body-cell-package_id="props">
+                    <q-td :props="props">
+                      <div class="text-weight-medium">{{ availablePackageLabel(props.row) }}</div>
+                      <div v-if="props.row.installer === 'uploaded'" class="text-caption text-grey-7">
+                        {{ uploadedPackageTypeLabel(props.row) }}
+                      </div>
+                    </q-td>
+                  </template>
                   <template v-slot:body-cell-install_state="props">
                     <q-td :props="props">
                       <q-chip dense :color="availableInstallState(props.row).color" text-color="white">
@@ -257,6 +265,14 @@
         </div>
 
         <q-table :rows="appDistributions" :columns="distributionColumns" dense row-key="id" :loading="loadingDistributions">
+          <template v-slot:body-cell-package_id="props">
+            <q-td :props="props">
+              <div class="text-weight-medium">{{ distributionPackageLabel(props.row) }}</div>
+              <div v-if="props.row.installer === 'uploaded'" class="text-caption text-grey-7">
+                {{ uploadedPackageTypeLabel(props.row) }}
+              </div>
+            </q-td>
+          </template>
           <template v-slot:body-cell-enabled="props">
             <q-td :props="props">
               <q-chip dense :color="props.value ? 'positive' : 'grey'" text-color="white">
@@ -1766,8 +1782,83 @@
             </q-table>
           </q-card>
           <q-banner v-if="distributionForm.installer === 'uploaded'" dense rounded class="bg-blue-1 text-blue-9">
-            Uploaded installer metadata is managed from the internal app catalog.
+            Select an uploaded application from the internal app catalog. The saved distribution will reuse its installer metadata.
           </q-banner>
+          <q-card v-if="distributionForm.installer === 'uploaded'" flat bordered class="distribution-choco-picker">
+            <q-card-section class="row items-center q-col-gutter-sm q-pb-sm">
+              <div class="col-12 col-md-8">
+                <q-input v-model="distributionUploadedSearch" outlined dense clearable label="Search uploaded installers">
+                  <template v-slot:prepend>
+                    <q-icon name="search" />
+                  </template>
+                </q-input>
+              </div>
+              <div class="col-12 col-md-4 text-right">
+                <q-btn
+                  flat
+                  color="primary"
+                  icon="refresh"
+                  label="Refresh"
+                  :loading="loadingInternalCatalog"
+                  @click="loadInternalCatalogApps"
+                />
+              </div>
+            </q-card-section>
+            <q-table
+              class="distribution-choco-table"
+              dense
+              flat
+              virtual-scroll
+              row-key="catalog_id"
+              :rows="filteredDistributionUploadedApps"
+              :columns="distributionUploadedColumns"
+              :loading="loadingInternalCatalog"
+              v-model:pagination="distributionUploadedPagination"
+              :rows-per-page-options="[0]"
+              hide-bottom
+              binary-state-sort
+            >
+              <template v-slot:body="props">
+                <q-tr
+                  :props="props"
+                  :class="{ 'bg-blue-1': uploadedInstallerFileAssetId(props.row) === distributionUploadedFileAssetId }"
+                >
+                  <q-td auto-width>
+                    <q-btn
+                      dense
+                      flat
+                      round
+                      color="primary"
+                      icon="add"
+                      @click="selectDistributionUploadedApp(props.row)"
+                    >
+                      <q-tooltip>Add uploaded installer to distribution</q-tooltip>
+                    </q-btn>
+                  </q-td>
+                  <q-td key="name" :props="props">
+                    <span
+                      class="text-primary text-weight-medium cursor-pointer"
+                      @click="selectDistributionUploadedApp(props.row)"
+                    >
+                      {{ props.row.name }}
+                    </span>
+                    <div class="text-caption text-grey-7">{{ props.row.file_name || "-" }}</div>
+                  </q-td>
+                  <q-td key="version" :props="props">{{ props.row.version || "-" }}</q-td>
+                  <q-td key="package_type" :props="props">{{ uploadedPackageTypeLabel(props.row) }}</q-td>
+                  <q-td key="description" :props="props" class="distribution-choco-description">
+                    {{ props.row.description || "-" }}
+                  </q-td>
+                </q-tr>
+              </template>
+              <template v-slot:no-data>
+                <div class="full-width row flex-center q-gutter-sm text-grey-7 q-pa-md">
+                  <q-icon name="info" />
+                  <span>No uploaded installers found</span>
+                </div>
+              </template>
+            </q-table>
+          </q-card>
           <q-input v-if="distributionForm.installer !== 'rawcmd' && distributionForm.installer !== 'uploaded'" v-model="distributionForm.package_version" label="Package version" outlined dense placeholder="Optional" />
           <q-input v-if="distributionForm.installer === 'rawcmd'" v-model="distributionForm.command" label="PowerShell command" outlined dense type="textarea" autogrow />
           <div class="row q-col-gutter-sm">
@@ -2197,7 +2288,13 @@ const appPublishersInput = ref("");
 const appHashesInput = ref("");
 const distributionChocoPackages = ref<any[]>([]);
 const distributionChocoSearch = ref("");
+const distributionUploadedSearch = ref("");
 const distributionChocoPagination = ref({
+  rowsPerPage: 0,
+  sortBy: "name",
+  descending: false,
+});
+const distributionUploadedPagination = ref({
   rowsPerPage: 0,
   sortBy: "name",
   descending: false,
@@ -2336,6 +2433,32 @@ const filteredDistributionChocoPackages = computed(() => {
       .some((value) => String(value || "").toLowerCase().includes(q))
   );
 });
+const distributionUploadedApps = computed(() => (
+  internalCatalogApps.value.filter((row: any) => (
+    row.installer === "uploaded"
+    || !!row.installer_payload?.file_asset_id
+    || ["msi", "exe", "zip"].includes(String(row.package_type || "").toLowerCase())
+  ))
+));
+const filteredDistributionUploadedApps = computed(() => {
+  const q = distributionUploadedSearch.value.trim().toLowerCase();
+  if (!q) return distributionUploadedApps.value;
+  return distributionUploadedApps.value.filter((row: any) =>
+    [
+      row.name,
+      row.description,
+      row.category,
+      row.version,
+      row.file_name,
+      row.package_type,
+      row.installer_payload?.package_type,
+    ].some((value) => String(value || "").toLowerCase().includes(q))
+  );
+});
+const distributionUploadedFileAssetId = computed(() => {
+  const payload = distributionForm.value.installer_payload || {};
+  return Number(payload.file_asset_id || payload.id || 0);
+});
 
 function normalizeChocolateyPackage(row: any) {
   const name = typeof row === "string"
@@ -2353,6 +2476,55 @@ function normalizeChocolateyPackage(row: any) {
     version: String(version || "").trim(),
     description: String(description || "").trim(),
   };
+}
+
+function uploadedInstallerPayload(row: any) {
+  const payload = row?.installer_payload || row?.install_config?.installer_payload || {};
+  const packageType = String(
+    payload.package_type
+    || row?.package_type
+    || inferUploadedPackageType(row?.file_name || row?.name || "")
+  ).toLowerCase();
+  return {
+    ...payload,
+    file_asset_id: Number(payload.file_asset_id || row?.file_asset_id || 0),
+    file_name: payload.file_name || row?.file_name || "",
+    file_hash: payload.file_hash || row?.file_hash || "",
+    file_size: payload.file_size || row?.file_size || 0,
+    package_type: ["msi", "exe", "zip"].includes(packageType) ? packageType : "msi",
+    display_name: payload.display_name || row?.name || "",
+    product_name: payload.product_name || row?.name || "",
+    product_code: payload.product_code || row?.product_code || "",
+    install_args: payload.install_args || row?.install_args || "",
+    uninstall_args: payload.uninstall_args || row?.uninstall_args || "",
+    nested_installer: payload.nested_installer || row?.nested_installer || "",
+    expected_executable: payload.expected_executable || row?.expected_executable || "",
+  };
+}
+
+function uploadedInstallerFileAssetId(row: any) {
+  return Number(uploadedInstallerPayload(row).file_asset_id || 0);
+}
+
+function uploadedPackageTypeLabel(row: any) {
+  const type = String(uploadedInstallerPayload(row).package_type || "").toUpperCase();
+  return type ? `${type} installer` : "Uploaded installer";
+}
+
+function availablePackageLabel(row: any) {
+  if (row?.installer === "uploaded") {
+    const payload = uploadedInstallerPayload(row);
+    return payload.file_name || row.file_name || row.name || "Uploaded installer";
+  }
+  return row?.package_id || row?.command || row?.url || "-";
+}
+
+function distributionPackageLabel(row: any) {
+  if (row?.installer === "uploaded") {
+    const payload = uploadedInstallerPayload(row);
+    return payload.display_name || payload.file_name || row.name || "Uploaded installer";
+  }
+  return row?.package_id || row?.command || "-";
 }
 
 function filterScopeAgents(value: string, update: (fn: () => void) => void) {
@@ -2494,6 +2666,13 @@ const distributionChocoColumns = [
   { name: "select", label: "Add", field: "select", align: "left", sortable: false },
   { name: "name", label: "Name", field: "name", align: "left", sortable: true },
   { name: "version", label: "Version", field: "version", align: "left", sortable: true },
+  { name: "description", label: "Description", field: "description", align: "left", sortable: false },
+];
+const distributionUploadedColumns = [
+  { name: "select", label: "Add", field: "select", align: "left", sortable: false },
+  { name: "name", label: "Name", field: "name", align: "left", sortable: true },
+  { name: "version", label: "Version", field: "version", align: "left", sortable: true },
+  { name: "package_type", label: "Type", field: "package_type", align: "left", sortable: true },
   { name: "description", label: "Description", field: "description", align: "left", sortable: false },
 ];
 const websiteColumns = [
@@ -2720,7 +2899,17 @@ const availableAppRows = computed(() => {
   return ((appInventory.value.available || []) as any[])
     .filter((row) => {
       if (!q) return true;
-      return [row.name, row.description, row.category, row.source, row.package_id, row.installer]
+      return [
+        row.name,
+        row.description,
+        row.category,
+        row.source,
+        row.package_id,
+        row.installer,
+        row.file_name,
+        row.installer_payload?.file_name,
+        availablePackageLabel(row),
+      ]
         .some((v) => String(v || "").toLowerCase().includes(q));
     });
 });
@@ -2729,6 +2918,9 @@ function availableInstallState(row: any) {
   const state = appPolicyState(row);
   if (state.state === "Blocked" || state.state === "Not allowed") {
     return { label: state.state, color: state.color, blocked: true };
+  }
+  if (row.installer === "uploaded" && !uploadedInstallerPayload(row).file_asset_id) {
+    return { label: "Missing metadata", color: "warning", blocked: true };
   }
   if (!row.installable) {
     return { label: "Link only", color: "grey-6", blocked: true };
@@ -3650,8 +3842,25 @@ function selectDistributionChocolateyPackage(row: any) {
   const pkg = normalizeChocolateyPackage(row);
   if (!pkg.name) return;
   distributionForm.value.package_id = pkg.name;
+  distributionForm.value.installer_payload = {};
   if (!distributionForm.value.name) {
     distributionForm.value.name = `${distributionActionLabel(distributionForm.value.action)} ${pkg.name}`;
+  }
+}
+
+function selectDistributionUploadedApp(row: any) {
+  const payload = uploadedInstallerPayload(row);
+  if (!payload.file_asset_id) {
+    $q.notify({ message: "Uploaded installer metadata is missing", color: "warning" });
+    return;
+  }
+  distributionForm.value.installer = "uploaded";
+  distributionForm.value.package_id = "";
+  distributionForm.value.package_version = "";
+  distributionForm.value.command = "";
+  distributionForm.value.installer_payload = payload;
+  if (!distributionForm.value.name) {
+    distributionForm.value.name = `${distributionActionLabel(distributionForm.value.action)} ${row.name || payload.display_name || payload.file_name}`;
   }
 }
 
@@ -3686,6 +3895,7 @@ function onDistributionInstallerChanged(installer: string) {
     distributionForm.value.package_id = "";
     distributionForm.value.package_version = "";
     distributionForm.value.command = "";
+    void loadInternalCatalogApps();
   } else {
     distributionForm.value.command = "";
     distributionForm.value.installer_payload = {};
@@ -3711,9 +3921,12 @@ function showDistributionDialog(item?: any) {
     .map((id: any) => Number(id))
     .filter((id: number) => Number.isInteger(id) && id > 0);
   distributionChocoSearch.value = "";
+  distributionUploadedSearch.value = "";
   distributionDialogOpen.value = true;
   if (distributionForm.value.installer === "choco") {
     void loadDistributionChocoPackages();
+  } else if (distributionForm.value.installer === "uploaded") {
+    void loadInternalCatalogApps();
   }
 }
 function showWebsiteDialog(type: string, item?: any) {
@@ -4021,6 +4234,9 @@ async function quickPolicyFromRows(type: "blacklist" | "whitelist", rows: any[])
 function distributionPayloadForApp(row: any) {
   const installer = row.installer || "choco";
   const packageId = row.package_id || row.name;
+  const installerPayload = installer === "uploaded"
+    ? uploadedInstallerPayload(row)
+    : row.installer_payload || row.install_config?.installer_payload || {};
   return {
     name: `Install ${row.name || packageId}`,
     installer,
@@ -4028,7 +4244,7 @@ function distributionPayloadForApp(row: any) {
     package_id: installer === "uploaded" ? "" : packageId,
     package_version: installer === "uploaded" ? "" : row.version || "",
     command: row.command || "",
-    installer_payload: row.installer_payload || row.install_config?.installer_payload || {},
+    installer_payload: installerPayload,
     scope: "device",
     target_agent_id: selectedAppAgentId.value,
     enabled: true,
@@ -4102,6 +4318,9 @@ function normalizeDistributionPayload() {
     payload.package_version = "";
     payload.command = "";
     payload.installer_payload = payload.installer_payload || {};
+    if (!payload.installer_payload.file_asset_id) {
+      throw new Error("Select an uploaded installer before saving this distribution");
+    }
   }
   return payload;
 }
