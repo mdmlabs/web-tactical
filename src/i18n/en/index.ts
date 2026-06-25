@@ -82,6 +82,9 @@ export default {
     russian: "Russian",
     vietnamese: "Tiếng Việt",
   },
+  branding: {
+    systemName: "Windows-Based Cryptographic Operations Management System",
+  },
   devicemanagement: {
     bulkActions: {
       fullWipeAll: "Full Wipe All",

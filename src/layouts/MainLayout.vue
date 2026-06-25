@@ -101,12 +101,12 @@
           <div class="brand-row row items-center no-wrap q-gutter-sm">
             <img
               :src="bcyLogo"
-              :alt="`${SYSTEM_NAME} logo`"
+              :alt="`${$t('branding.systemName')} logo`"
               class="toolbar-logo"
             />
             <span class="logo-text">
-              {{ SYSTEM_NAME }}
-              <q-tooltip>{{ SYSTEM_NAME }}</q-tooltip>
+              {{ $t("branding.systemName") }}
+              <q-tooltip>{{ $t("branding.systemName") }}</q-tooltip>
             </span>
             <q-chip dense square class="version-chip"> v1.0.1 </q-chip>
 
@@ -651,7 +651,6 @@ import UserPreferences from "@/components/modals/coresettings/UserPreferences.vu
 import ResetPass from "@/components/accounts/ResetPass.vue";
 import FileBar from "@/components/FileBar.vue";
 import bcyLogo from "@/assets/agent-icon.png";
-import { SYSTEM_NAME } from "@/constants/constants";
 import { useDomI18n } from "@/utils/dom-i18n";
 
 const store = useStore();
