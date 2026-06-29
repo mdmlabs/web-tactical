@@ -83,7 +83,7 @@ export default {
     vietnamese: "Tiếng Việt",
   },
   branding: {
-    systemName: "Windows-Based Cryptographic Operations Management System",
+    systemName: "Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Windows",
   },
   devicemanagement: {
     bulkActions: {

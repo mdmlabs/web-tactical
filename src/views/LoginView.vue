@@ -37,7 +37,7 @@
                 class="auth-logo"
               />
             </div>
-            <div class="text-h4 text-weight-bold gradient-text q-mt-md">
+            <div class="sign-in-title gradient-text q-mt-md">
               Sign In
             </div>
             <div class="system-name q-mt-sm">
@@ -232,9 +232,15 @@
   margin-left: auto;
   margin-right: auto;
   color: #344054;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.35;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.sign-in-title {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .gradient-text {
