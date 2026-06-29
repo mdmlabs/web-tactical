@@ -2773,7 +2773,7 @@ export default {
     "You are viewing an outdated version of this page.",
   "components.layout.MainLayout.d2e036": "Web Terminal",
   "components.layout.MainLayout.df7461":
-    "Windows-Based Cryptographic Operations Management System",
+    "Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Windows",
   "components.layout.MainLayout.e01fa7": "Offline",
   "components.layout.MainLayout.e43d61": "Logout",
   "components.layout.MainLayout.e924c8": "support team",
@@ -3023,7 +3023,7 @@ export default {
   "components.modals.agents.RunScript.a1ef8d":
     "Use email addresses from global settings",
   "components.modals.agents.RunScript.b10f0f":
-    "Run the script on the Windows-Based Cryptographic Operations Management System server in the context of this\n              agent.",
+    "Run the script on the Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Windows server in the context of this\n              agent.",
   "components.modals.agents.RunScript.b1b392": "Run",
   "components.modals.agents.RunScript.b56762": "Save all output",
   "components.modals.agents.RunScript.bae651": "Standard Error",
@@ -3440,7 +3440,7 @@ export default {
   "components.scripts.ScriptFormModal.727532": "Generate Script",
   "components.scripts.ScriptFormModal.77dfd2": "Cancel",
   "components.scripts.ScriptFormModal.8e9df4":
-    "Runs on Windows-Based Cryptographic Operations Management System local Linux Server.",
+    "Runs on Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Windows local Linux Server.",
   "components.scripts.ScriptFormModal.967536": "Agent to run test script on",
   "components.scripts.ScriptFormModal.a3c686": "Category",
   "components.scripts.ScriptFormModal.b9a104":
@@ -3723,7 +3723,7 @@ export default {
   "css.MainLayout.b69c17": "You are viewing an outdated version of this page.",
   "css.MainLayout.d2e036": "Web Terminal",
   "css.MainLayout.df7461":
-    "Windows-Based Cryptographic Operations Management System",
+    "Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Windows",
   "css.MainLayout.e01fa7": "Offline",
   "css.MainLayout.e43d61": "Logout",
   "css.MainLayout.e924c8": "support team",
@@ -5303,7 +5303,7 @@ export default {
   lateral_movement: "lateral_movement",
   "layouts.AppSidebar.9cf188": "Collapse",
   "layouts.AppSidebar.df7461":
-    "Windows-Based Cryptographic Operations Management System",
+    "Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Windows",
   "layouts.MainLayout.0f81a8": "Workstations",
   "layouts.MainLayout.3fb75e": "Reset Password",
   "layouts.MainLayout.4e8f0d":
@@ -5323,7 +5323,7 @@ export default {
     "You are viewing an outdated version of this page.",
   "layouts.MainLayout.d2e036": "Web Terminal",
   "layouts.MainLayout.df7461":
-    "Windows-Based Cryptographic Operations Management System",
+    "Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Windows",
   "layouts.MainLayout.e01fa7": "Offline",
   "layouts.MainLayout.e43d61": "Logout",
   "layouts.MainLayout.e924c8": "support team",
@@ -6350,7 +6350,7 @@ export default {
   "views.LoginView.5dff2c":
     "Enter your email address and we'll send you a link to reset your password.",
   "views.LoginView.6a4b35":
-    "Windows-Based Cryptographic Operations Management System",
+    "Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Windows",
   "views.LoginView.77dfd2": "Cancel",
   "views.LoginView.84c290": "Username",
   "views.LoginView.8be3c9": "Password",

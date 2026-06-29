@@ -10,7 +10,7 @@ export const envVarsLabel =
   "Environment vars (press Enter after typing each key=value pair)";
 
 export const SYSTEM_NAME =
-  "Windows-Based Cryptographic Operations Management System";
+  "Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Windows";
 export const VI_SYSTEM_NAME =
   "Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Windows";
 export const SHORT_SYSTEM_NAME = "BCY";
