@@ -157,9 +157,29 @@
                   </div>
                   <q-btn color="primary" icon="system_update_alt" label="Install selected" no-caps :disable="selectedAvailableApps.length === 0 || !selectedAppAgentId" :loading="installingSelectedApps" @click="installSelectedApps" />
                 </div>
+                <div class="row q-col-gutter-sm q-mb-sm">
+                  <div class="col-12 col-md-8">
+                    <q-input v-model="availableAppsSearch" label="Search available apps or files" outlined dense clearable>
+                      <template v-slot:prepend>
+                        <q-icon name="search" />
+                      </template>
+                    </q-input>
+                  </div>
+                  <div class="col-12 col-md-4">
+                    <q-select
+                      v-model="availableAppsExtensionFilter"
+                      :options="uploadedExtensionFilterOptions"
+                      label="File type"
+                      outlined
+                      dense
+                      emit-value
+                      map-options
+                    />
+                  </div>
+                </div>
                 <q-table
                   v-model:selected="selectedAvailableApps"
-                  :rows="availableAppRows"
+                  :rows="filteredAvailableAppRows"
                   :columns="availableAppColumns"
                   row-key="catalog_id"
                   selection="multiple"
@@ -1029,14 +1049,36 @@
 
         <q-card flat bordered class="q-mb-md">
           <q-card-section>
-            <div class="row items-center justify-between q-mb-sm">
-              <div class="text-subtitle2">App lifecycle</div>
-              <q-btn flat dense round icon="refresh" :loading="loadingAppLifecycle" @click="loadAppLifecycle">
-                <q-tooltip>Refresh lifecycle</q-tooltip>
-              </q-btn>
+            <div class="row items-center q-col-gutter-sm q-mb-sm">
+              <div class="col-12 col-lg-3">
+                <div class="text-subtitle2">App lifecycle</div>
+              </div>
+              <div class="col-12 col-md-6 col-lg-5">
+                <q-input v-model="appLifecycleSearch" label="Search apps or installer files" outlined dense clearable>
+                  <template v-slot:prepend>
+                    <q-icon name="search" />
+                  </template>
+                </q-input>
+              </div>
+              <div class="col-12 col-md-4 col-lg-3">
+                <q-select
+                  v-model="appLifecycleExtensionFilter"
+                  :options="uploadedExtensionFilterOptions"
+                  label="File type"
+                  outlined
+                  dense
+                  emit-value
+                  map-options
+                />
+              </div>
+              <div class="col-12 col-md-2 col-lg-1 text-right">
+                <q-btn flat dense round icon="refresh" :loading="loadingAppLifecycle" @click="loadAppLifecycle">
+                  <q-tooltip>Refresh lifecycle</q-tooltip>
+                </q-btn>
+              </div>
             </div>
             <q-table
-              :rows="appLifecycleManagedRows"
+              :rows="filteredAppLifecycleManagedRows"
               :columns="appLifecycleColumns"
               dense
               row-key="catalog_id"
@@ -1124,9 +1166,36 @@
 
         <q-card flat bordered class="q-mb-md">
           <q-card-section>
-            <div class="text-subtitle2 q-mb-sm">Internal app files</div>
+            <div class="row items-center q-col-gutter-sm q-mb-sm">
+              <div class="col-12 col-lg-3">
+                <div class="text-subtitle2">Internal app files</div>
+              </div>
+              <div class="col-12 col-md-6 col-lg-5">
+                <q-input v-model="internalCatalogSearch" label="Search uploaded files" outlined dense clearable>
+                  <template v-slot:prepend>
+                    <q-icon name="search" />
+                  </template>
+                </q-input>
+              </div>
+              <div class="col-12 col-md-4 col-lg-3">
+                <q-select
+                  v-model="internalCatalogExtensionFilter"
+                  :options="uploadedExtensionFilterOptions"
+                  label="File type"
+                  outlined
+                  dense
+                  emit-value
+                  map-options
+                />
+              </div>
+              <div class="col-12 col-md-2 col-lg-1 text-right">
+                <q-btn flat dense round icon="refresh" :loading="loadingInternalCatalog" @click="loadInternalCatalogApps">
+                  <q-tooltip>Refresh files</q-tooltip>
+                </q-btn>
+              </div>
+            </div>
             <q-table
-              :rows="internalCatalogApps"
+              :rows="filteredInternalCatalogApps"
               :columns="internalCatalogColumns"
               dense
               row-key="id"
@@ -1651,7 +1720,7 @@
 
     <!-- App Distribution Dialog -->
     <q-dialog v-model="distributionDialogOpen" persistent>
-      <q-card style="width:760px; max-width:95vw">
+      <q-card style="width:920px; max-width:95vw">
         <q-bar>{{ editingDistribution ? 'Edit' : 'New' }} App Distribution<q-space /><q-btn dense flat icon="close" v-close-popup /></q-bar>
         <q-card-section class="q-gutter-md">
           <q-input v-model="distributionForm.name" label="Name" outlined dense />
@@ -1765,9 +1834,97 @@
               </template>
             </q-table>
           </q-card>
-          <q-banner v-if="distributionForm.installer === 'uploaded'" dense rounded class="bg-blue-1 text-blue-9">
-            Uploaded installer metadata is managed from the internal app catalog.
-          </q-banner>
+          <q-card v-if="distributionForm.installer === 'uploaded'" flat bordered class="distribution-uploaded-picker">
+            <q-card-section class="q-pb-sm">
+              <q-banner dense rounded class="bg-blue-1 text-blue-9 q-mb-sm">
+                Pick an uploaded installer from the internal app catalog. Search supports app name, file name, category, and version.
+              </q-banner>
+              <div class="row q-col-gutter-sm items-center">
+                <div class="col-12 col-md-7">
+                  <q-input v-model="distributionUploadedSearch" outlined dense clearable label="Search uploaded files">
+                    <template v-slot:prepend>
+                      <q-icon name="search" />
+                    </template>
+                  </q-input>
+                </div>
+                <div class="col-12 col-md-3">
+                  <q-select
+                    v-model="distributionUploadedExtensionFilter"
+                    :options="uploadedExtensionFilterOptions"
+                    label="File type"
+                    outlined
+                    dense
+                    emit-value
+                    map-options
+                  />
+                </div>
+                <div class="col-12 col-md-2 text-right">
+                  <q-btn
+                    flat
+                    color="primary"
+                    icon="refresh"
+                    label="Refresh"
+                    :loading="loadingInternalCatalog"
+                    @click="loadInternalCatalogApps"
+                  />
+                </div>
+              </div>
+            </q-card-section>
+            <q-table
+              class="distribution-uploaded-table"
+              dense
+              flat
+              row-key="id"
+              :rows="filteredDistributionUploadedApps"
+              :columns="uploadedInstallerColumns"
+              :loading="loadingInternalCatalog"
+              :rows-per-page-options="[5,10]"
+            >
+              <template v-slot:body="props">
+                <q-tr
+                  :props="props"
+                  :class="{ 'bg-blue-1': isDistributionUploadedSelected(props.row) }"
+                >
+                  <q-td auto-width>
+                    <q-btn
+                      dense
+                      flat
+                      round
+                      color="primary"
+                      :icon="isDistributionUploadedSelected(props.row) ? 'check' : 'add'"
+                      @click="selectDistributionUploadedInstaller(props.row)"
+                    >
+                      <q-tooltip>{{ isDistributionUploadedSelected(props.row) ? 'Selected installer' : 'Use this uploaded installer' }}</q-tooltip>
+                    </q-btn>
+                  </q-td>
+                  <q-td key="name" :props="props">
+                    <div
+                      class="text-primary text-weight-medium cursor-pointer"
+                      @click="selectDistributionUploadedInstaller(props.row)"
+                    >
+                      {{ props.row.name || uploadedInstallerFileName(props.row) }}
+                    </div>
+                    <div class="text-caption text-grey-7">{{ props.row.category || 'Internal app' }}</div>
+                  </q-td>
+                  <q-td key="file_name" :props="props">
+                    <span class="text-mono">{{ uploadedInstallerFileName(props.row) || "-" }}</span>
+                  </q-td>
+                  <q-td key="package_type" :props="props">
+                    <q-chip dense color="blue-grey-6" text-color="white">
+                      {{ uploadedInstallerPackageType(props.row).toUpperCase() || "-" }}
+                    </q-chip>
+                  </q-td>
+                  <q-td key="version" :props="props">{{ props.row.latest_version || props.row.version || "-" }}</q-td>
+                </q-tr>
+              </template>
+              <template v-slot:no-data>
+                <div class="full-width row flex-center q-gutter-sm text-grey-7 q-pa-md">
+                  <q-icon name="info" />
+                  <span>No uploaded installers found. Add an internal app first or change the filter.</span>
+                </div>
+              </template>
+            </q-table>
+          </q-card>
           <q-input v-if="distributionForm.installer !== 'rawcmd' && distributionForm.installer !== 'uploaded'" v-model="distributionForm.package_version" label="Package version" outlined dense placeholder="Optional" />
           <q-input v-if="distributionForm.installer === 'rawcmd'" v-model="distributionForm.command" label="PowerShell command" outlined dense type="textarea" autogrow />
           <div class="row q-col-gutter-sm">
@@ -2151,6 +2308,8 @@ const savingSspInfo = ref(false);
 const appFilter = ref({ list_type: "" });
 const selectedAppAgentId = ref("");
 const appInventorySearch = ref("");
+const availableAppsSearch = ref("");
+const availableAppsExtensionFilter = ref("all");
 const selectedInstalledApps = ref<any[]>([]);
 const selectedAvailableApps = ref<any[]>([]);
 const appAgentNeedle = ref("");
@@ -2197,6 +2356,8 @@ const appPublishersInput = ref("");
 const appHashesInput = ref("");
 const distributionChocoPackages = ref<any[]>([]);
 const distributionChocoSearch = ref("");
+const distributionUploadedSearch = ref("");
+const distributionUploadedExtensionFilter = ref("all");
 const distributionChocoPagination = ref({
   rowsPerPage: 0,
   sortBy: "name",
@@ -2271,6 +2432,12 @@ const uploadedPackageTypeOptions = [
   { label: "EXE installer", value: "exe" },
   { label: "ZIP package", value: "zip" },
 ];
+const uploadedExtensionFilterOptions = [
+  { label: "All file types", value: "all" },
+  { label: "MSI", value: "msi" },
+  { label: "EXE", value: "exe" },
+  { label: "ZIP", value: "zip" },
+];
 const distributionActionOptions = [
   { label: "Install", value: "install" },
   { label: "Upgrade", value: "upgrade" },
@@ -2336,6 +2503,97 @@ const filteredDistributionChocoPackages = computed(() => {
       .some((value) => String(value || "").toLowerCase().includes(q))
   );
 });
+
+function objectOrEmpty(value: any) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function isKnownInstallerExtension(value: string) {
+  return ["msi", "exe", "zip"].includes(String(value || "").toLowerCase());
+}
+
+function installerPayloadForRow(row: any) {
+  const installConfig = objectOrEmpty(row?.install_config);
+  return {
+    ...installConfig,
+    ...objectOrEmpty(installConfig.installer_payload),
+    ...objectOrEmpty(row?.installer_payload),
+  };
+}
+
+function uploadedInstallerFileName(row: any) {
+  const payload = installerPayloadForRow(row);
+  return String(
+    row?.file_name
+    || row?.filename
+    || payload.file_name
+    || payload.filename
+    || payload.original_name
+    || payload.asset_name
+    || row?.package_id
+    || ""
+  );
+}
+
+function uploadedInstallerDetectedType(row: any) {
+  const payload = installerPayloadForRow(row);
+  const explicit = String(
+    row?.package_type
+    || payload.package_type
+    || payload.file_type
+    || payload.installer_type
+    || ""
+  ).toLowerCase();
+  if (isKnownInstallerExtension(explicit)) return explicit;
+  const ext = uploadedInstallerFileName(row).match(/\.(msi|exe|zip)$/i)?.[1]?.toLowerCase() || "";
+  return isKnownInstallerExtension(ext) ? ext : "";
+}
+
+function uploadedInstallerPackageType(row: any) {
+  return uploadedInstallerDetectedType(row) || inferUploadedPackageType(uploadedInstallerFileName(row));
+}
+
+function isUploadedInstallerRow(row: any) {
+  const installer = String(row?.installer || row?.install_config?.installer || "").toLowerCase();
+  return installer === "uploaded" || !!uploadedInstallerDetectedType(row);
+}
+
+function installerSearchValues(row: any) {
+  const payload = installerPayloadForRow(row);
+  return [
+    row?.name,
+    row?.description,
+    row?.category,
+    row?.source,
+    row?.installer,
+    row?.package_id,
+    row?.version,
+    row?.latest_version,
+    uploadedInstallerFileName(row),
+    uploadedInstallerDetectedType(row),
+    payload.name,
+    payload.file_name,
+    payload.package_type,
+    payload.expected_executable,
+    payload.nested_installer,
+  ];
+}
+
+function rowMatchesInstallerSearch(row: any, search: string) {
+  const q = String(search || "").trim().toLowerCase();
+  if (!q) return true;
+  return installerSearchValues(row).some((value) => String(value || "").toLowerCase().includes(q));
+}
+
+function rowMatchesInstallerExtension(row: any, extension: string) {
+  const ext = String(extension || "all").toLowerCase();
+  if (ext === "all") return true;
+  return uploadedInstallerDetectedType(row) === ext;
+}
+
+function filterInstallerRows(rows: any[], search: string, extension: string) {
+  return rows.filter((row) => rowMatchesInstallerSearch(row, search) && rowMatchesInstallerExtension(row, extension));
+}
 
 function normalizeChocolateyPackage(row: any) {
   const name = typeof row === "string"
@@ -2495,6 +2753,13 @@ const distributionChocoColumns = [
   { name: "name", label: "Name", field: "name", align: "left", sortable: true },
   { name: "version", label: "Version", field: "version", align: "left", sortable: true },
   { name: "description", label: "Description", field: "description", align: "left", sortable: false },
+];
+const uploadedInstallerColumns = [
+  { name: "select", label: "Use", field: "select", align: "left", sortable: false },
+  { name: "name", label: "Application", field: "name", align: "left", sortable: true },
+  { name: "file_name", label: "File", field: (row: any) => uploadedInstallerFileName(row), align: "left", sortable: true },
+  { name: "package_type", label: "Type", field: (row: any) => uploadedInstallerDetectedType(row), align: "center", sortable: true },
+  { name: "version", label: "Version", field: (row: any) => row.latest_version || row.version || "", align: "left", sortable: true },
 ];
 const websiteColumns = [
   { name: "name", label: "Name", field: "name", align: "left", sortable: true },
@@ -2724,6 +2989,9 @@ const availableAppRows = computed(() => {
         .some((v) => String(v || "").toLowerCase().includes(q));
     });
 });
+const filteredAvailableAppRows = computed(() =>
+  filterInstallerRows(availableAppRows.value, availableAppsSearch.value, availableAppsExtensionFilter.value)
+);
 
 function availableInstallState(row: any) {
   const state = appPolicyState(row);
@@ -3655,6 +3923,46 @@ function selectDistributionChocolateyPackage(row: any) {
   }
 }
 
+function uploadedInstallerPayloadForDistribution(row: any) {
+  const payload = installerPayloadForRow(row);
+  const fileName = uploadedInstallerFileName(row) || payload.file_name || row?.file_name || "";
+  return {
+    ...payload,
+    catalog_id: payload.catalog_id || internalCatalogId(row),
+    internal_catalog_id: payload.internal_catalog_id || row?.id || null,
+    name: payload.name || row?.name || fileName,
+    file_name: fileName,
+    package_type: uploadedInstallerPackageType(row),
+    install_args: payload.install_args || row?.install_args || "",
+    uninstall_args: payload.uninstall_args || row?.uninstall_args || "",
+    nested_installer: payload.nested_installer || row?.nested_installer || "",
+    expected_executable: payload.expected_executable || row?.expected_executable || "",
+    product_code: payload.product_code || row?.product_code || "",
+  };
+}
+
+function selectDistributionUploadedInstaller(row: any) {
+  const payload = uploadedInstallerPayloadForDistribution(row);
+  distributionForm.value.installer = "uploaded";
+  distributionForm.value.package_id = "";
+  distributionForm.value.package_version = "";
+  distributionForm.value.command = "";
+  distributionForm.value.installer_payload = payload;
+  if (!distributionForm.value.name) {
+    distributionForm.value.name = `${distributionActionLabel(distributionForm.value.action)} ${payload.name || payload.file_name || "uploaded installer"}`;
+  }
+}
+
+function isDistributionUploadedSelected(row: any) {
+  const selected = objectOrEmpty(distributionForm.value.installer_payload);
+  const catalogId = String(selected.catalog_id || "");
+  if (catalogId && catalogId === String(internalCatalogId(row))) return true;
+  const internalId = selected.internal_catalog_id;
+  if (internalId !== undefined && internalId !== null && String(internalId) === String(row?.id || "")) return true;
+  const selectedFile = String(selected.file_name || selected.filename || "");
+  return !!selectedFile && selectedFile === uploadedInstallerFileName(row);
+}
+
 function selectInternalCatalogChocolateyPackage(row: any) {
   const pkg = normalizeChocolateyPackage(row);
   if (!pkg.name) return;
@@ -3686,6 +3994,7 @@ function onDistributionInstallerChanged(installer: string) {
     distributionForm.value.package_id = "";
     distributionForm.value.package_version = "";
     distributionForm.value.command = "";
+    void loadInternalCatalogApps();
   } else {
     distributionForm.value.command = "";
     distributionForm.value.installer_payload = {};
@@ -3711,9 +4020,13 @@ function showDistributionDialog(item?: any) {
     .map((id: any) => Number(id))
     .filter((id: number) => Number.isInteger(id) && id > 0);
   distributionChocoSearch.value = "";
+  distributionUploadedSearch.value = "";
+  distributionUploadedExtensionFilter.value = "all";
   distributionDialogOpen.value = true;
   if (distributionForm.value.installer === "choco") {
     void loadDistributionChocoPackages();
+  } else if (distributionForm.value.installer === "uploaded") {
+    void loadInternalCatalogApps();
   }
 }
 function showWebsiteDialog(type: string, item?: any) {
@@ -4352,6 +4665,10 @@ const lifecycleActionLoading = ref("");
 const catalogCategoryForToggle = ref("");
 const catalogCategoryVisible = ref(true);
 const savingCatalogCategory = ref(false);
+const appLifecycleSearch = ref("");
+const appLifecycleExtensionFilter = ref("all");
+const internalCatalogSearch = ref("");
+const internalCatalogExtensionFilter = ref("all");
 
 const appLifecycleColumns = [
   { name: "name", label: "App", field: "name", align: "left" },
@@ -4380,6 +4697,16 @@ const appLifecycleManagedRows = computed(() => appLifecycleRows.value.filter((ro
   || row.installable
   || row.license?.managed
 )));
+const filteredAppLifecycleManagedRows = computed(() =>
+  filterInstallerRows(appLifecycleManagedRows.value, appLifecycleSearch.value, appLifecycleExtensionFilter.value)
+);
+const filteredInternalCatalogApps = computed(() =>
+  filterInstallerRows(internalCatalogApps.value, internalCatalogSearch.value, internalCatalogExtensionFilter.value)
+);
+const uploadedInternalCatalogApps = computed(() => internalCatalogApps.value.filter((row) => isUploadedInstallerRow(row)));
+const filteredDistributionUploadedApps = computed(() =>
+  filterInstallerRows(uploadedInternalCatalogApps.value, distributionUploadedSearch.value, distributionUploadedExtensionFilter.value)
+);
 
 const appLifecycleByCatalogId = computed(() => {
   const rows: Record<string, any> = {};
@@ -4890,11 +5217,21 @@ async function extractFromContainer() {
 .distribution-choco-table
   max-height: 250px
 
+.distribution-uploaded-picker
+  max-height: 430px
+  overflow: hidden
+
+.distribution-uploaded-table
+  max-height: 270px
+
 .distribution-choco-description
   max-width: 300px
   white-space: nowrap
   overflow: hidden
   text-overflow: ellipsis
+
+.text-mono
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace
 
 .ssp-request-detail-label
   width: 190px
