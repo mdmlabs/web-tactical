@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 echo "==================================="
@@ -6,8 +6,8 @@ echo "MDM-labs Frontend Container Setup"
 echo "==================================="
 
 # Environment variables with defaults
-API_URL="${API_URL:-https://api.example.com}"
-GRPC_API_URL="${GRPC_API_URL:-https://grpc.example.com}"
+API_URL="${API_URL:-}"
+GRPC_API_URL="${GRPC_API_URL:-}"
 APP_VERSION="${APP_VERSION:-0.101.56}"
 LOG_LEVEL="${LOG_LEVEL:-info}"
 
@@ -17,17 +17,26 @@ echo "  GRPC_API_URL: ${GRPC_API_URL}"
 echo "  APP_VERSION: ${APP_VERSION}"
 echo "  LOG_LEVEL: ${LOG_LEVEL}"
 
-# Generate runtime configuration file
-CONFIG_FILE="${PUBLIC_DIR}/config.js"
+ENV_CONFIG_FILE="${PUBLIC_DIR}/env-config.js"
+LEGACY_CONFIG_FILE="${PUBLIC_DIR}/config.js"
 
-echo "Generating runtime configuration at ${CONFIG_FILE}..."
+echo "Generating runtime configuration at ${ENV_CONFIG_FILE}..."
 
-cat > "${CONFIG_FILE}" <<EOF
+cat > "${ENV_CONFIG_FILE}" <<EOF
 // Runtime configuration injected by container entrypoint
 // This file is generated automatically - do not edit manually
+var runtimeOrigin = window.location.origin;
+
+window._env_ = {
+  PROD_URL: '${API_URL}' || runtimeOrigin,
+  GRPC_URL: '${GRPC_API_URL}' || runtimeOrigin,
+  APP_VERSION: '${APP_VERSION}',
+  LOG_LEVEL: '${LOG_LEVEL}'
+};
+
 window.APP_CONFIG = {
-  apiUrl: '${API_URL}',
-  grpcUrl: '${GRPC_API_URL}',
+  apiUrl: window._env_.PROD_URL,
+  grpcUrl: window._env_.GRPC_URL,
   version: '${APP_VERSION}',
   logLevel: '${LOG_LEVEL}',
   environment: 'production',
@@ -38,16 +47,18 @@ window.APP_CONFIG = {
 console.log('Application configuration loaded:', window.APP_CONFIG);
 EOF
 
+cp "${ENV_CONFIG_FILE}" "${LEGACY_CONFIG_FILE}"
+
 echo "Configuration file generated successfully"
 
 # Verify configuration file was created
-if [ ! -f "${CONFIG_FILE}" ]; then
-    echo "ERROR: Failed to create configuration file at ${CONFIG_FILE}"
+if [ ! -f "${ENV_CONFIG_FILE}" ]; then
+    echo "ERROR: Failed to create configuration file at ${ENV_CONFIG_FILE}"
     exit 1
 fi
 
 # Set proper permissions
-chmod 644 "${CONFIG_FILE}"
+chmod 644 "${ENV_CONFIG_FILE}" "${LEGACY_CONFIG_FILE}"
 
 # Create readiness marker file
 echo "Creating readiness marker at ${TACTICAL_READY_FILE}..."
@@ -67,25 +78,25 @@ fi
 
 echo "Application files verified"
 
-# Optional: Inject config.js reference into index.html if not present
+# Optional: inject runtime configuration reference into index.html if not present.
 INDEX_HTML="${PUBLIC_DIR}/index.html"
-if ! grep -q "config.js" "${INDEX_HTML}"; then
-    echo "Injecting config.js reference into index.html..."
+if ! grep -q "env-config.js" "${INDEX_HTML}"; then
+    echo "Injecting env-config.js reference into index.html..."
     # Create a backup
     cp "${INDEX_HTML}" "${INDEX_HTML}.bak"
 
     # Inject script tag before closing head tag
-    sed -i 's|</head>|  <script src="/config.js"></script>\n</head>|' "${INDEX_HTML}"
+    sed -i 's|</head>|  <script src="/env-config.js"></script>\n</head>|' "${INDEX_HTML}"
 
     if [ $? -eq 0 ]; then
-        echo "Successfully injected config.js reference"
+        echo "Successfully injected env-config.js reference"
         rm "${INDEX_HTML}.bak"
     else
-        echo "WARNING: Failed to inject config.js reference, restoring backup"
+        echo "WARNING: Failed to inject env-config.js reference, restoring backup"
         mv "${INDEX_HTML}.bak" "${INDEX_HTML}"
     fi
 else
-    echo "config.js reference already present in index.html"
+    echo "env-config.js reference already present in index.html"
 fi
 
 echo "==================================="
