@@ -69,6 +69,9 @@ export interface UploadMetadata {
   expiry_date?: string | null;
   issued_to?: string;
   password?: string;
+  install_config?: Record<string, unknown> | null;
+  verification_config?: Record<string, unknown> | null;
+  msi_metadata?: Record<string, unknown> | null;
 }
 
 export function useResourceUpload() {
@@ -132,6 +135,9 @@ export function useResourceUpload() {
         expiry_date: metadata.expiry_date,
         issued_to: metadata.issued_to,
         password: metadata.password,
+        install_config: metadata.install_config,
+        verification_config: metadata.verification_config,
+        msi_metadata: metadata.msi_metadata,
       };
 
       const resource = await confirmUpload(confirmPayload);

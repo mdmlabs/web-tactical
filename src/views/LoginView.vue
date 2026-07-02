@@ -33,14 +33,16 @@
             <div style="text-align: center">
               <img
                 :src="bcyLogo"
-                :alt="`${SYSTEM_NAME} logo`"
+                :alt="`${$t('branding.systemName')} logo`"
                 class="auth-logo"
               />
             </div>
-            <div class="text-h4 text-weight-bold gradient-text q-mt-md">
+            <div class="sign-in-title gradient-text q-mt-md">
               Sign In
             </div>
-            <div class="system-name q-mt-sm">{{ SYSTEM_NAME }}</div>
+            <div class="system-name q-mt-sm">
+              {{ $t("branding.systemName") }}
+            </div>
           </q-card-section>
 
           <q-card-section class="q-pa-lg">
@@ -136,7 +138,7 @@
               <q-icon name="shield" size="12px" /> Secure Enterprise Platform
             </div>
             <div class="text-caption text-grey-7 q-mt-xs">
-              © 2026 {{ SYSTEM_NAME }}. v{{ appVersion }}
+              © 2026 {{ $t("branding.systemName") }}. v{{ appVersion }}
             </div>
           </q-card-section>
         </q-card>
@@ -230,9 +232,15 @@
   margin-left: auto;
   margin-right: auto;
   color: #344054;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.35;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.sign-in-title {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .gradient-text {
@@ -541,7 +549,6 @@ import {
 } from "@/ee/sso/api/sso";
 import packageJson from "../../package.json";
 import bcyLogo from "@/assets/bcy-logo.png";
-import { SYSTEM_NAME } from "@/constants/constants";
 
 // setup quasar
 const $q = useQuasar();

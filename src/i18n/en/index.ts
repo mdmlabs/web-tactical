@@ -82,6 +82,9 @@ export default {
     russian: "Russian",
     vietnamese: "Tiếng Việt",
   },
+  branding: {
+    systemName: "Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Windows",
+  },
   devicemanagement: {
     bulkActions: {
       fullWipeAll: "Full Wipe All",

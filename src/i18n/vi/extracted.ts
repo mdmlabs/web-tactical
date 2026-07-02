@@ -5912,8 +5912,7 @@ export default {
     "Đánh giá của quản trị viên",
   "security.components.DLPJustificationPanel.dc3dec": "Chi tiết",
   "security.components.DLPJustificationPanel.e6394b": "Lọc theo ID đại lý",
-  "security.components.DLPPolicyDialog.03eb1a":
-    "Chặn tải lên đám mây và web",
+  "security.components.DLPPolicyDialog.03eb1a": "Chặn tải lên đám mây và web",
   "security.components.DLPPolicyDialog.074977": "Thêm tên miền",
   "security.components.DLPPolicyDialog.087741": "Định cấu hình API đồ thị",
   "security.components.DLPPolicyDialog.0b2531":
@@ -6510,7 +6509,8 @@ export default {
   "views.LoginView.3fb75e": "Đặt lại mật khẩu",
   "views.LoginView.5dff2c":
     "Nhập địa chỉ email của bạn và chúng tôi sẽ gửi cho bạn một liên kết để đặt lại mật khẩu của bạn.",
-  "views.LoginView.6a4b35": "Chào mừng quay trở lại Phòng thí nghiệm MDM",
+  "views.LoginView.6a4b35":
+    "Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Windows",
   "views.LoginView.77dfd2": "Hủy",
   "views.LoginView.84c290": "Tên người dùng",
   "views.LoginView.8be3c9": "Mật khẩu",

@@ -4,14 +4,14 @@
       <div class="uk-sidebar__logo">
         <img
           :src="bcyLogo"
-          :alt="`${SYSTEM_NAME} logo`"
+          :alt="`${t('branding.systemName')} logo`"
           class="uk-sidebar__logo-img"
         />
       </div>
       <transition name="uk-fade">
         <span v-if="!collapsed" class="uk-sidebar__brand-text">
-          {{ SYSTEM_NAME }}
-          <q-tooltip>{{ SYSTEM_NAME }}</q-tooltip>
+          {{ t("branding.systemName") }}
+          <q-tooltip>{{ t("branding.systemName") }}</q-tooltip>
         </span>
       </transition>
     </div>
@@ -109,7 +109,6 @@ import { useI18n } from "vue-i18n";
 import { navigation, type NavItem } from "@/config/navigation";
 import { useDialogRegistry } from "@/composables/useDialogRegistry";
 import bcyLogo from "@/assets/agent-icon.png";
-import { SYSTEM_NAME } from "@/constants/constants";
 
 const props = defineProps<{
   collapsed: boolean;
