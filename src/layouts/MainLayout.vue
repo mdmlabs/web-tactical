@@ -105,8 +105,8 @@
               class="toolbar-logo"
             />
             <span class="logo-text">
-              {{ $t("branding.systemName") }}
-              <q-tooltip>{{ $t("branding.systemName") }}</q-tooltip>
+              {{ $t("branding.systemTitle") }}
+              <q-tooltip>{{ $t("branding.systemTitle") }}</q-tooltip>
             </span>
             <q-chip dense square class="version-chip"> v1.0.1 </q-chip>
 

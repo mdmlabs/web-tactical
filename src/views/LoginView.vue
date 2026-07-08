@@ -38,10 +38,10 @@
               />
             </div>
             <div class="sign-in-title gradient-text q-mt-md">
-              Sign In
+              {{ $t("auth.signInTitle") }}
             </div>
             <div class="system-name q-mt-sm">
-              {{ $t("branding.systemName") }}
+              {{ $t("branding.systemTitle") }}
             </div>
           </q-card-section>
 
@@ -50,7 +50,7 @@
               <q-input
                 filled
                 v-model="credentials.username"
-                label="Username"
+                :label="$t('auth.username')"
                 lazy-rules
                 class="modern-input"
                 :rules="[
@@ -66,7 +66,7 @@
                 v-model="credentials.password"
                 filled
                 :type="showPassword ? 'password' : 'text'"
-                label="Password"
+                :label="$t('auth.password')"
                 lazy-rules
                 class="modern-input"
                 :rules="[
@@ -88,7 +88,7 @@
               <div class="row items-center justify-between q-mt-sm q-px-xs">
                 <q-checkbox
                   v-model="rememberMe"
-                  label="Remember me"
+                  :label="$t('auth.rememberMe')"
                   dense
                   color="primary"
                   class="text-caption"
@@ -97,13 +97,13 @@
                   href="#"
                   class="forgot-link text-caption"
                   @click.prevent="showPasswordResetRequest = true"
-                  >Forgot Password?</a
+                  >{{ $t("auth.forgotPassword") }}</a
                 >
               </div>
 
               <div class="q-mt-lg">
                 <q-btn
-                  label="Sign In"
+                  :label="$t('auth.signInAction')"
                   type="submit"
                   class="gradient-button full-width"
                   size="lg"
@@ -135,7 +135,7 @@
 
           <q-card-section class="text-center q-py-md">
             <div class="text-caption text-grey-6">
-              <q-icon name="shield" size="12px" /> Secure Enterprise Platform
+              <q-icon name="shield" size="12px" /> {{ $t("auth.securePlatform") }}
             </div>
             <div class="text-caption text-grey-7 q-mt-xs">
               © 2026 {{ $t("branding.systemName") }}. v{{ appVersion }}

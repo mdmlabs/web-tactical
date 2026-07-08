@@ -84,6 +84,16 @@ export default {
   },
   branding: {
     systemName: "Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Windows",
+    systemTitle: "HỆ THỐNG QUẢN LÝ NGHIỆP VỤ CƠ YẾU TRÊN NỀN TẢNG WINDOWS",
+  },
+  auth: {
+    signInTitle: "Sign In",
+    username: "Username",
+    password: "Password",
+    rememberMe: "Remember me",
+    forgotPassword: "Forgot Password?",
+    signInAction: "Sign In",
+    securePlatform: "Secure Enterprise Platform",
   },
   devicemanagement: {
     bulkActions: {

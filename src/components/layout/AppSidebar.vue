@@ -10,8 +10,8 @@
       </div>
       <transition name="uk-fade">
         <span v-if="!collapsed" class="uk-sidebar__brand-text">
-          {{ t("branding.systemName") }}
-          <q-tooltip>{{ t("branding.systemName") }}</q-tooltip>
+          {{ t("branding.systemTitle") }}
+          <q-tooltip>{{ t("branding.systemTitle") }}</q-tooltip>
         </span>
       </transition>
     </div>
