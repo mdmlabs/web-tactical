@@ -45,6 +45,7 @@ deploy_to_stage:
       npm install --legacy-peer-deps
 
       echo "🔧 Generating proto files..."
+      mkdir -p src/generated
       npm run proto:generate
 
       echo "🏗️ Building project..."
