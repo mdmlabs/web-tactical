@@ -14,7 +14,20 @@ deploy_to_stage:
     - ssh-keyscan -H "$SSH_HOST_STAGE" >> ~/.ssh/known_hosts 2>/dev/null || true
   script:
     - |
-      ssh -o StrictHostKeyChecking=no "$SSH_USER_STAGE@$SSH_HOST_STAGE" "CI_COMMIT_REF_NAME='$CI_COMMIT_REF_NAME' CI_COMMIT_SHA='$CI_COMMIT_SHA' bash -s" << 'REMOTESCRIPT'
+      set -euo pipefail
+
+      echo "📤 Syncing GitLab checkout ${CI_COMMIT_SHA} to stage..."
+      ssh -o StrictHostKeyChecking=no "$SSH_USER_STAGE@$SSH_HOST_STAGE" << 'REMOTEPREP'
+      set -e
+      mkdir -p ~/mdmlabsrmm/web-tactical
+      find ~/mdmlabsrmm/web-tactical -mindepth 1 -maxdepth 1 ! -name node_modules -exec rm -rf {} +
+      REMOTEPREP
+
+      tar --exclude=.git --exclude=node_modules --exclude=dist --exclude=.quasar --exclude=.DS_Store -czf - . \
+        | ssh -o StrictHostKeyChecking=no "$SSH_USER_STAGE@$SSH_HOST_STAGE" 'tar -xzf - -C ~/mdmlabsrmm/web-tactical'
+
+      ssh -o StrictHostKeyChecking=no "$SSH_USER_STAGE@$SSH_HOST_STAGE" "CI_COMMIT_SHA='$CI_COMMIT_SHA' bash -s" << 'REMOTESCRIPT'
+      set -euo pipefail
       export NVM_DIR="$HOME/.nvm"
       [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
       nvm use 20
@@ -23,15 +36,8 @@ deploy_to_stage:
 
       cd ~/mdmlabsrmm/web-tactical/
 
-      echo "🌐 Resetting working tree to GitLab commit ${CI_COMMIT_SHA}..."
-      mkdir -p ~/.ssh
-      ssh-keyscan -p 8822 -H gitlab.it-laborato.ru >> ~/.ssh/known_hosts 2>/dev/null || true
-      git remote set-url origin "ssh://git@gitlab.it-laborato.ru:8822/mdm/mdmlabs-frontend.git"
-      git fetch --prune origin "$CI_COMMIT_REF_NAME"
-      git checkout -B "$CI_COMMIT_REF_NAME" "origin/$CI_COMMIT_REF_NAME"
-      git reset --hard "$CI_COMMIT_SHA"
-      test "$(git rev-parse HEAD)" = "$CI_COMMIT_SHA"
-      git clean -fd
+      echo "🌐 Building synced GitLab commit ${CI_COMMIT_SHA}..."
+      printf "%s\n" "$CI_COMMIT_SHA" > .deployed-gitlab-sha
 
       mkdir -p dist
 
