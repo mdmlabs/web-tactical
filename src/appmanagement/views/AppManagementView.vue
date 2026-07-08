@@ -300,6 +300,42 @@
             </q-td>
           </template>
         </q-table>
+
+        <div class="row items-center justify-between q-mt-lg q-mb-sm">
+          <div class="mdm-section-title">Latest execution history</div>
+          <q-btn outline dense color="primary" icon="refresh" label="Refresh" :loading="loadingDistributionExecutions" @click="loadDistributionExecutions" />
+        </div>
+        <q-table
+          :rows="distributionExecutions"
+          :columns="distributionExecutionColumns"
+          dense
+          row-key="id"
+          :loading="loadingDistributionExecutions"
+          :rows-per-page-options="[10,25,50]"
+        >
+          <template v-slot:body-cell-status="props">
+            <q-td :props="props">
+              <q-chip dense :color="distributionExecutionStatusColor(props.value)" text-color="white">
+                {{ props.value || "unknown" }}
+              </q-chip>
+            </q-td>
+          </template>
+          <template v-slot:body-cell-return_code="props">
+            <q-td :props="props">
+              <span :class="Number(props.value || 0) === 0 ? 'text-positive' : 'text-negative'">{{ props.value ?? "-" }}</span>
+            </q-td>
+          </template>
+          <template v-slot:body-cell-msi_log_path="props">
+            <q-td :props="props">
+              <span class="text-mono">{{ props.value || "-" }}</span>
+            </q-td>
+          </template>
+          <template v-slot:body-cell-actions="props">
+            <q-td :props="props">
+              <q-btn flat dense round icon="visibility" size="sm" color="primary" @click="openDistributionExecutionDetails(props.row)" />
+            </q-td>
+          </template>
+        </q-table>
       </q-tab-panel>
 
       <!-- Website Policies -->
@@ -1925,6 +1961,25 @@
               </template>
             </q-table>
           </q-card>
+          <div v-if="distributionForm.installer === 'uploaded' && hasDistributionUploadedPayload" class="q-gutter-sm">
+            <q-banner v-if="distributionUploadedExeWarning" rounded dense class="bg-warning text-dark">
+              {{ distributionUploadedExeWarning }}
+            </q-banner>
+            <div class="row q-col-gutter-sm">
+              <div class="col-12 col-md-6">
+                <q-input v-model="distributionForm.installer_payload.install_args" label="Install args" outlined dense placeholder="/S, /silent, /quiet" />
+              </div>
+              <div class="col-12 col-md-6">
+                <q-input v-model="distributionForm.installer_payload.uninstall_args" label="Uninstall args" outlined dense placeholder="/S, /silent, /quiet" />
+              </div>
+              <div class="col-12 col-md-6">
+                <q-input v-model="distributionForm.installer_payload.nested_installer" label="Nested installer" outlined dense placeholder="setup.msi or setup.exe" />
+              </div>
+              <div class="col-12 col-md-6">
+                <q-input v-model="distributionForm.installer_payload.expected_executable" label="Expected executable" outlined dense placeholder="C:\\Program Files\\App\\app.exe" />
+              </div>
+            </div>
+          </div>
           <q-input v-if="distributionForm.installer !== 'rawcmd' && distributionForm.installer !== 'uploaded'" v-model="distributionForm.package_version" label="Package version" outlined dense placeholder="Optional" />
           <q-input v-if="distributionForm.installer === 'rawcmd'" v-model="distributionForm.command" label="PowerShell command" outlined dense type="textarea" autogrow />
           <div class="row q-col-gutter-sm">
@@ -2036,6 +2091,40 @@
           <q-btn flat label="Cancel" v-close-popup />
           <q-btn color="primary" :label="editingDistribution ? 'Save' : 'Create'" @click="saveDistribution" :loading="savingDistribution" />
         </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="distributionExecutionDialogOpen">
+      <q-card style="min-width:720px; max-width:90vw">
+        <q-bar>
+          Distribution execution
+          <q-space />
+          <q-btn dense flat icon="close" v-close-popup />
+        </q-bar>
+        <q-card-section class="q-gutter-md">
+          <div class="row q-col-gutter-sm">
+            <div
+              v-for="row in distributionExecutionDetailRows"
+              :key="row.label"
+              class="col-12 col-md-6"
+            >
+              <div class="text-caption text-grey-7">{{ row.label }}</div>
+              <div class="text-mono">{{ row.value || "-" }}</div>
+            </div>
+          </div>
+          <div>
+            <div class="text-caption text-grey-7 q-mb-xs">stdout</div>
+            <pre class="distribution-execution-output">{{ selectedDistributionExecution?.stdout || "-" }}</pre>
+          </div>
+          <div>
+            <div class="text-caption text-grey-7 q-mb-xs">stderr</div>
+            <pre class="distribution-execution-output">{{ selectedDistributionExecution?.stderr || "-" }}</pre>
+          </div>
+          <div>
+            <div class="text-caption text-grey-7 q-mb-xs">details</div>
+            <pre class="distribution-execution-output">{{ distributionExecutionDetailsJson }}</pre>
+          </div>
+        </q-card-section>
       </q-card>
     </q-dialog>
 
@@ -2265,6 +2354,7 @@ const tab = ref("apps");
 const appPolicies = ref<any[]>([]);
 const appInventory = ref<any>({ installed: [], available: [], agents: [], summary: {} });
 const appDistributions = ref<any[]>([]);
+const distributionExecutions = ref<any[]>([]);
 const websitePolicies = ref<any[]>([]);
 const wlanProfiles = ref<any[]>([]);
 const vpnProfiles = ref<any[]>([]);
@@ -2284,12 +2374,15 @@ const sspRequestDetailsOpen = ref(false);
 const sspRequestDetailsTitle = ref("");
 const sspRequestDetailsRows = ref<{ label: string; value: string }[]>([]);
 const sspRequestDetailsRaw = ref("");
+const distributionExecutionDialogOpen = ref(false);
+const selectedDistributionExecution = ref<any | null>(null);
 
 const loadingApps = ref(false);
 const loadingAppInventory = ref(false);
 const refreshingInstalledApps = ref(false);
 const installingSelectedApps = ref(false);
 const loadingDistributions = ref(false);
+const loadingDistributionExecutions = ref(false);
 const loadingDistributionChocoPackages = ref(false);
 const loadingWebsites = ref(false);
 const loadingWlan = ref(false);
@@ -2553,6 +2646,30 @@ function uploadedInstallerPackageType(row: any) {
   return uploadedInstallerDetectedType(row) || inferUploadedPackageType(uploadedInstallerFileName(row));
 }
 
+const hasDistributionUploadedPayload = computed(() => {
+  const payload = objectOrEmpty(distributionForm.value.installer_payload);
+  return Object.keys(payload).length > 0;
+});
+
+const selectedDistributionUploadedPackageType = computed(() => {
+  const payload = objectOrEmpty(distributionForm.value.installer_payload);
+  if (String(payload.nested_installer || "").toLowerCase().endsWith(".exe")) return "exe";
+  return String(payload.package_type || inferUploadedPackageType(payload.file_name || "")).toLowerCase();
+});
+
+const distributionUploadedExeWarning = computed(() => {
+  if (distributionForm.value.installer !== "uploaded" || selectedDistributionUploadedPackageType.value !== "exe") return "";
+  const payload = objectOrEmpty(distributionForm.value.installer_payload);
+  const action = String(distributionForm.value.action || "install").toLowerCase();
+  if (["install", "upgrade", "rollback"].includes(action) && !String(payload.install_args || "").trim()) {
+    return "EXE installers require explicit install args. Common templates: /S, /silent, /quiet, /VERYSILENT /NORESTART.";
+  }
+  if (action === "uninstall" && !String(payload.uninstall_args || "").trim()) {
+    return "EXE uninstall requires explicit uninstall args. Common templates: /S, /silent, /quiet, /VERYSILENT /NORESTART.";
+  }
+  return "";
+});
+
 function isUploadedInstallerRow(row: any) {
   const installer = String(row?.installer || row?.install_config?.installer || "").toLowerCase();
   return installer === "uploaded" || !!uploadedInstallerDetectedType(row);
@@ -2746,6 +2863,15 @@ const distributionColumns = [
   { name: "target", label: "Target", field: (row: any) => scopeTargetLabel(row), align: "left" },
   { name: "enabled", label: "Enabled", field: "enabled", align: "center" },
   { name: "dry_run", label: "Mode", field: "dry_run", align: "center" },
+  { name: "actions", label: "", field: "actions", align: "right" },
+];
+const distributionExecutionColumns = [
+  { name: "policy", label: "Policy", field: (row: any) => distributionExecutionPolicyLabel(row), align: "left", sortable: true },
+  { name: "agent", label: "Agent", field: (row: any) => distributionExecutionAgentLabel(row), align: "left", sortable: true },
+  { name: "status", label: "Status", field: "status", align: "center", sortable: true },
+  { name: "return_code", label: "Code", field: "return_code", align: "center", sortable: true },
+  { name: "msi_log_path", label: "MSI log", field: (row: any) => row.msi_log_path || row.details?.msi_log_path || "", align: "left" },
+  { name: "reported_at", label: "Reported", field: "reported_at", align: "left", sortable: true },
   { name: "actions", label: "", field: "actions", align: "right" },
 ];
 const distributionChocoColumns = [
@@ -3043,7 +3169,7 @@ async function loadAppInventory() {
 }
 
 async function refreshAppManagement() {
-  await Promise.all([loadApps(), loadAppInventory(), loadAppDistributions(), loadInternalCatalogApps(), loadAppLifecycle(), loadAppStoreLinks()]);
+  await Promise.all([loadApps(), loadAppInventory(), loadAppDistributions(), loadDistributionExecutions(), loadInternalCatalogApps(), loadAppLifecycle(), loadAppStoreLinks()]);
 }
 
 async function refreshInstalledApps() {
@@ -3073,6 +3199,65 @@ async function loadAppDistributions() {
     $q.notify({ message: e?.response?.data?.error || e?.message || "Failed to load app distributions", color: "negative" });
   } finally { loadingDistributions.value = false; }
 }
+
+async function loadDistributionExecutions() {
+  loadingDistributionExecutions.value = true;
+  try {
+    const data = (await axios.get("/appmanagement/app-distributions/executions/", {
+      params: { latest: 1, limit: 200 },
+    })).data;
+    distributionExecutions.value = Array.isArray(data) ? data : data?.results ?? [];
+  } catch (e: any) {
+    distributionExecutions.value = [];
+    $q.notify({ message: e?.response?.data?.error || e?.message || "Failed to load distribution history", color: "negative" });
+  } finally {
+    loadingDistributionExecutions.value = false;
+  }
+}
+
+function distributionExecutionStatusColor(status: string) {
+  switch (String(status || "").toLowerCase()) {
+    case "success": return "positive";
+    case "failed":
+    case "failure":
+    case "error": return "negative";
+    case "running":
+    case "installing": return "info";
+    default: return "grey-6";
+  }
+}
+
+function distributionExecutionPolicyLabel(row: any) {
+  return row?.policy_name || row?.details?.name || row?.package_id || `Policy #${row?.policy_id_snapshot || row?.policy || "-"}`;
+}
+
+function distributionExecutionAgentLabel(row: any) {
+  return row?.hostname || row?.agent_id || "-";
+}
+
+function openDistributionExecutionDetails(row: any) {
+  selectedDistributionExecution.value = row;
+  distributionExecutionDialogOpen.value = true;
+}
+
+const distributionExecutionDetailRows = computed(() => {
+  const row = selectedDistributionExecution.value || {};
+  return [
+    { label: "Policy", value: distributionExecutionPolicyLabel(row) },
+    { label: "Agent", value: distributionExecutionAgentLabel(row) },
+    { label: "Status", value: row.status || "" },
+    { label: "Return code", value: row.return_code ?? "" },
+    { label: "Installer", value: row.installer || "" },
+    { label: "Action", value: row.action || "" },
+    { label: "Package", value: row.package_id || "" },
+    { label: "MSI log", value: row.msi_log_path || row.details?.msi_log_path || "" },
+  ];
+});
+
+const distributionExecutionDetailsJson = computed(() => {
+  const details = selectedDistributionExecution.value?.details || {};
+  return JSON.stringify(details, null, 2);
+});
 async function loadWebsites() {
   loadingWebsites.value = true;
   websiteLoadError.value = "";
@@ -4362,8 +4547,7 @@ async function installAvailableApp(row: any) {
   try {
     const response = await axios.post("/appmanagement/app-distributions/", distributionPayloadForApp(row));
     notifyDistributionResult(response.data, `Install request saved for ${row.name}`, "system_update_alt");
-    await loadAppDistributions();
-    await loadAppInventory();
+    await Promise.all([loadAppDistributions(), loadDistributionExecutions(), loadAppInventory()]);
   } catch (e: any) {
     $q.notify({ message: apiErrorMessage(e, "Install dispatch failed"), color: "negative" });
   }
@@ -4388,8 +4572,7 @@ async function installSelectedApps() {
       $q.notify({ message: `${rows.length} install request(s) saved; no matching agents found yet`, color: "warning", icon: "warning" });
     }
     selectedAvailableApps.value = [];
-    await loadAppDistributions();
-    await loadAppInventory();
+    await Promise.all([loadAppDistributions(), loadDistributionExecutions(), loadAppInventory()]);
   } catch (e: any) {
     $q.notify({ message: apiErrorMessage(e, "Install dispatch failed"), color: "negative" });
   } finally {
@@ -4414,12 +4597,31 @@ function normalizeDistributionPayload() {
     payload.package_id = "";
     payload.package_version = "";
     payload.command = "";
-    payload.installer_payload = payload.installer_payload || {};
+    const installerPayload = objectOrEmpty(payload.installer_payload);
+    payload.installer_payload = {
+      ...installerPayload,
+      install_args: String(installerPayload.install_args || "").trim(),
+      uninstall_args: String(installerPayload.uninstall_args || "").trim(),
+      nested_installer: String(installerPayload.nested_installer || "").trim(),
+      expected_executable: String(installerPayload.expected_executable || "").trim(),
+    };
   }
   return payload;
 }
+
+function validateDistributionInstallerMetadata() {
+  if (distributionForm.value.installer !== "uploaded") return true;
+  const warning = distributionUploadedExeWarning.value;
+  if (warning) {
+    $q.notify({ message: warning, color: "warning", icon: "warning" });
+    return false;
+  }
+  return true;
+}
+
 async function saveDistribution() {
   if (!validateScopedTarget(distributionForm.value, true)) return;
+  if (!validateDistributionInstallerMetadata()) return;
   savingDistribution.value = true;
   try {
     const payload = normalizeDistributionPayload();
@@ -4431,7 +4633,7 @@ async function saveDistribution() {
       notifyDistributionResult(response.data, "App distribution saved");
     }
     distributionDialogOpen.value = false;
-    await loadAppDistributions();
+    await Promise.all([loadAppDistributions(), loadDistributionExecutions()]);
   } catch (e: any) {
     $q.notify({ message: apiErrorMessage(e, "Save failed"), color: "negative" });
   } finally {
@@ -4442,7 +4644,7 @@ async function toggleDistribution(row: any) {
   try {
     const response = await axios.patch(`/appmanagement/app-distributions/${row.id}/`, { enabled: !row.enabled });
     notifyDistributionResult(response.data, response.data?.enabled ? "Distribution enabled" : "Distribution disabled");
-    await loadAppDistributions();
+    await Promise.all([loadAppDistributions(), loadDistributionExecutions()]);
   } catch (e: any) {
     $q.notify({ message: apiErrorMessage(e, "Update failed"), color: "negative" });
   }
@@ -4451,7 +4653,7 @@ async function refreshDistribution(row: any) {
   try {
     const response = await axios.patch(`/appmanagement/app-distributions/${row.id}/`, {});
     notifyDistributionResult(response.data, "Distribution dispatch requested", "sync");
-    await loadAppDistributions();
+    await Promise.all([loadAppDistributions(), loadDistributionExecutions()]);
   } catch (e: any) {
     $q.notify({ message: apiErrorMessage(e, "Dispatch failed"), color: "negative" });
   }
@@ -4541,7 +4743,7 @@ async function deleteItem(type: string, id: number) {
       await axios.delete(`${urls[type]}${id}/`);
       $q.notify({ message: "Deleted", color: "positive", icon: "check" });
       if (type === "apps") await loadApps();
-      else if (type === "distribution") await loadAppDistributions();
+      else if (type === "distribution") await Promise.all([loadAppDistributions(), loadDistributionExecutions()]);
       else if (type === "websites") await loadWebsites();
       else if (type === "wlan") await loadWlan();
       else if (type === "vpn") await loadVpn();
@@ -4556,6 +4758,7 @@ onMounted(() => {
   loadApps();
   loadAppInventory();
   loadAppDistributions();
+  loadDistributionExecutions();
   loadWebsites();
   loadWlan();
   loadVpn();
@@ -4887,8 +5090,11 @@ function onInternalCatalogFileSelected(file: File | null) {
     internalCatalogForm.value.install_args ||= "/qn /norestart";
     internalCatalogForm.value.uninstall_args ||= "/qn /norestart";
   } else if (internalCatalogForm.value.package_type === "exe") {
-    internalCatalogForm.value.install_args ||= "/S";
-    internalCatalogForm.value.uninstall_args ||= "/S";
+    $q.notify({
+      message: "EXE installers need explicit silent install/uninstall args before distribution.",
+      color: "warning",
+      icon: "warning",
+    });
   }
 }
 
@@ -5223,6 +5429,18 @@ async function extractFromContainer() {
 
 .distribution-uploaded-table
   max-height: 270px
+
+.distribution-execution-output
+  max-height: 220px
+  overflow: auto
+  white-space: pre-wrap
+  word-break: break-word
+  margin: 0
+  padding: 10px
+  border: 1px solid #e5e7eb
+  border-radius: 6px
+  background: #f9fafb
+  font-size: 12px
 
 .distribution-choco-description
   max-width: 300px
