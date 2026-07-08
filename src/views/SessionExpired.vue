@@ -37,7 +37,7 @@
               />
             </div>
             <div class="system-name q-mt-sm">
-              {{ $t("branding.systemName") }}
+              {{ $t("branding.systemTitle") }}
             </div>
             <div class="text-h4 text-weight-bold gradient-text q-mt-md">
               Your session has expired. Please sign in again.
@@ -47,7 +47,7 @@
           <q-card-section class="q-pa-lg">
             <div class="q-mt-lg">
               <q-btn
-                label="Sign In"
+                :label="$t('auth.signInAction')"
                 to="/login"
                 class="gradient-button full-width"
                 size="lg"
@@ -58,7 +58,7 @@
 
           <q-card-section class="text-center q-py-md">
             <div class="text-caption text-grey-6">
-              <q-icon name="shield" size="12px" /> Secure Enterprise Platform
+              <q-icon name="shield" size="12px" /> {{ $t("auth.securePlatform") }}
             </div>
           </q-card-section>
         </q-card>

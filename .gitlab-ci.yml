@@ -14,7 +14,7 @@ deploy_to_stage:
     - ssh-keyscan -H "$SSH_HOST_STAGE" >> ~/.ssh/known_hosts 2>/dev/null || true
   script:
     - |
-      ssh -o StrictHostKeyChecking=no "$SSH_USER_STAGE@$SSH_HOST_STAGE" << 'REMOTESCRIPT'
+      ssh -o StrictHostKeyChecking=no "$SSH_USER_STAGE@$SSH_HOST_STAGE" "CI_COMMIT_REF_NAME='$CI_COMMIT_REF_NAME' CI_COMMIT_SHA='$CI_COMMIT_SHA' bash -s" << 'REMOTESCRIPT'
       export NVM_DIR="$HOME/.nvm"
       [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
       nvm use 20
@@ -23,10 +23,14 @@ deploy_to_stage:
 
       cd ~/mdmlabsrmm/web-tactical/
 
-      echo "🌐 Resetting working tree to remote..."
-      BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-      git fetch origin "$BRANCH"
-      git reset --hard "origin/$BRANCH"
+      echo "🌐 Resetting working tree to GitLab commit ${CI_COMMIT_SHA}..."
+      mkdir -p ~/.ssh
+      ssh-keyscan -p 8822 -H gitlab.it-laborato.ru >> ~/.ssh/known_hosts 2>/dev/null || true
+      git remote set-url origin "ssh://git@gitlab.it-laborato.ru:8822/mdm/mdmlabs-frontend.git"
+      git fetch --prune origin "$CI_COMMIT_REF_NAME"
+      git checkout -B "$CI_COMMIT_REF_NAME" "origin/$CI_COMMIT_REF_NAME"
+      git reset --hard "$CI_COMMIT_SHA"
+      test "$(git rev-parse HEAD)" = "$CI_COMMIT_SHA"
       git clean -fd
 
       mkdir -p dist
