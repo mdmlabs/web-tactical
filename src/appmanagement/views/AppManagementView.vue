@@ -1411,6 +1411,7 @@
                     dense
                     emit-value
                     map-options
+                    @update:model-value="onInternalCatalogPackageTypeChanged"
                   />
                 </div>
               </div>
@@ -1429,6 +1430,38 @@
                 </q-file>
                 <q-linear-progress v-if="uploadingInternalCatalogFile" :value="internalCatalogUploadProgress / 100" color="primary" />
                 <div class="row q-col-gutter-sm">
+                  <div class="col-12 col-md-7">
+                    <q-select
+                      v-model="internalCatalogForm.silent_preset"
+                      :options="uploadedPresetOptionsForPackageType(internalCatalogForm.package_type)"
+                      label="Silent install preset"
+                      outlined
+                      dense
+                      emit-value
+                      map-options
+                      @update:model-value="applyInternalCatalogUploadedPreset"
+                    />
+                    <div class="text-caption text-grey-7 q-mt-xs">
+                      {{ uploadedPresetByValue(internalCatalogForm.silent_preset).description }}
+                    </div>
+                  </div>
+                  <div class="col-12 col-md-5">
+                    <q-toggle
+                      v-model="internalCatalogForm.allow_interactive"
+                      label="Allow interactive one-device test"
+                      :disable="internalCatalogForm.package_type !== 'exe'"
+                    />
+                  </div>
+                </div>
+                <q-banner
+                  v-if="uploadedInstallerNeedsArgs(internalCatalogForm, 'install')"
+                  dense
+                  rounded
+                  class="bg-orange-1 text-orange-10"
+                >
+                  EXE installers need vendor silent arguments. Choose a preset or enter install arguments before distribution.
+                </q-banner>
+                <div class="row q-col-gutter-sm">
                   <div class="col-12 col-md-6">
                     <q-input v-model="internalCatalogForm.install_args" label="Silent install arguments" outlined dense placeholder="/qn /norestart or /S" />
                   </div>
@@ -1445,6 +1478,10 @@
                   </div>
                 </div>
                 <q-input v-model="internalCatalogForm.product_code" label="MSI product code" outlined dense placeholder="Optional; used for reliable uninstall" />
+                <div class="uploaded-command-preview">
+                  <div class="text-caption text-grey-7">Install preview</div>
+                  <div class="text-mono">{{ uploadedInstallerCommandPreview(internalCatalogForm, 'install') }}</div>
+                </div>
               </q-card>
               <q-card v-if="internalCatalogForm.installer === 'choco'" flat bordered class="distribution-choco-picker">
                 <q-card-section class="row items-center q-col-gutter-sm q-pb-sm">
@@ -1961,23 +1998,78 @@
               </template>
             </q-table>
           </q-card>
-          <div v-if="distributionForm.installer === 'uploaded' && hasDistributionUploadedPayload" class="q-gutter-sm">
+          <div v-if="distributionForm.installer === 'uploaded' && hasDistributionUploadedPayload" class="uploaded-installer-editor q-gutter-sm">
+            <div class="row q-col-gutter-sm items-start">
+              <div class="col-12 col-md-6">
+                <div class="text-caption text-grey-7">Selected installer</div>
+                <div class="text-mono">{{ distributionForm.installer_payload.file_name || distributionForm.installer_payload.name || distributionForm.installer_payload.display_name }}</div>
+              </div>
+              <div class="col-12 col-md-3">
+                <q-select
+                  v-model="distributionForm.installer_payload.package_type"
+                  :options="uploadedPackageTypeOptions"
+                  label="File type"
+                  outlined
+                  dense
+                  emit-value
+                  map-options
+                  @update:model-value="onDistributionUploadedPackageTypeChanged"
+                />
+              </div>
+              <div class="col-12 col-md-3">
+                <q-toggle
+                  v-model="distributionForm.installer_payload.allow_interactive"
+                  label="Interactive test"
+                  :disable="uploadedPayloadPackageType(distributionForm.installer_payload) === 'msi'"
+                />
+              </div>
+            </div>
+            <div class="row q-col-gutter-sm">
+              <div class="col-12 col-md-7">
+                <q-select
+                  v-model="distributionForm.installer_payload.silent_preset"
+                  :options="uploadedPresetOptionsForPackageType(uploadedPayloadPackageType(distributionForm.installer_payload))"
+                  label="Silent install preset"
+                  outlined
+                  dense
+                  emit-value
+                  map-options
+                  @update:model-value="applyDistributionUploadedPreset"
+                />
+                <div class="text-caption text-grey-7 q-mt-xs">
+                  {{ uploadedPresetByValue(distributionForm.installer_payload.silent_preset).description }}
+                </div>
+              </div>
+              <div class="col-12 col-md-5">
+                <q-input
+                  v-model="distributionForm.installer_payload.expected_executable"
+                  label="Expected executable path"
+                  outlined
+                  dense
+                  placeholder="Optional verification path"
+                />
+              </div>
+            </div>
             <q-banner v-if="distributionUploadedExeWarning" rounded dense class="bg-warning text-dark">
               {{ distributionUploadedExeWarning }}
             </q-banner>
             <div class="row q-col-gutter-sm">
               <div class="col-12 col-md-6">
-                <q-input v-model="distributionForm.installer_payload.install_args" label="Install args" outlined dense placeholder="/S, /silent, /quiet" />
+                <q-input v-model="distributionForm.installer_payload.install_args" label="Install args" outlined dense placeholder="/qn /norestart, /S, --silent..." />
               </div>
               <div class="col-12 col-md-6">
-                <q-input v-model="distributionForm.installer_payload.uninstall_args" label="Uninstall args" outlined dense placeholder="/S, /silent, /quiet" />
+                <q-input v-model="distributionForm.installer_payload.uninstall_args" label="Uninstall args" outlined dense placeholder="/qn /norestart, /S, --remove --silent..." />
               </div>
               <div class="col-12 col-md-6">
-                <q-input v-model="distributionForm.installer_payload.nested_installer" label="Nested installer" outlined dense placeholder="setup.msi or setup.exe" />
+                <q-input v-model="distributionForm.installer_payload.nested_installer" label="ZIP nested installer" outlined dense placeholder="Optional path inside ZIP" />
               </div>
               <div class="col-12 col-md-6">
-                <q-input v-model="distributionForm.installer_payload.expected_executable" label="Expected executable" outlined dense placeholder="C:\\Program Files\\App\\app.exe" />
+                <q-input v-model="distributionForm.installer_payload.product_code" label="MSI product code" outlined dense placeholder="Optional; used for reliable uninstall" />
               </div>
+            </div>
+            <div class="uploaded-command-preview">
+              <div class="text-caption text-grey-7">Command preview</div>
+              <div class="text-mono">{{ uploadedInstallerCommandPreview(distributionForm.installer_payload, distributionForm.action) }}</div>
             </div>
           </div>
           <q-input v-if="distributionForm.installer !== 'rawcmd' && distributionForm.installer !== 'uploaded'" v-model="distributionForm.package_version" label="Package version" outlined dense placeholder="Optional" />
@@ -2531,6 +2623,74 @@ const uploadedExtensionFilterOptions = [
   { label: "EXE", value: "exe" },
   { label: "ZIP", value: "zip" },
 ];
+const uploadedSilentPresetOptions = [
+  {
+    label: "Custom arguments",
+    value: "custom",
+    packageTypes: ["msi", "exe", "zip"],
+    description: "Use this when the vendor documents its own silent install switches.",
+    installArgs: "",
+    uninstallArgs: "",
+  },
+  {
+    label: "MSI: quiet standard",
+    value: "msi-standard",
+    packageTypes: ["msi", "zip"],
+    description: "Default Windows Installer silent mode with no restart.",
+    installArgs: "/qn /norestart",
+    uninstallArgs: "/qn /norestart",
+  },
+  {
+    label: "EXE: NSIS / 7-Zip style",
+    value: "nsis-s",
+    packageTypes: ["exe", "zip"],
+    description: "Common for NSIS installers and 7-Zip EXE installers.",
+    installArgs: "/S",
+    uninstallArgs: "/S",
+  },
+  {
+    label: "EXE: Inno Setup",
+    value: "inno-verysilent",
+    packageTypes: ["exe", "zip"],
+    description: "Common for Inno Setup packages.",
+    installArgs: "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+    uninstallArgs: "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+  },
+  {
+    label: "EXE: quiet / norestart",
+    value: "quiet-norestart",
+    packageTypes: ["exe", "zip"],
+    description: "Common bootstrapper quiet mode.",
+    installArgs: "/quiet /norestart",
+    uninstallArgs: "/quiet /norestart",
+  },
+  {
+    label: "EXE: Microsoft runtime",
+    value: "microsoft-runtime",
+    packageTypes: ["exe", "zip"],
+    description: "Common for VC++/.NET redistributable installers.",
+    installArgs: "/install /quiet /norestart",
+    uninstallArgs: "/uninstall /quiet /norestart",
+  },
+  {
+    label: "EXE: AnyDesk system install",
+    value: "anydesk-system",
+    packageTypes: ["exe", "zip"],
+    description: "AnyDesk silent install into Program Files (x86).",
+    installArgs: "--install \"C:\\Program Files (x86)\\AnyDesk\" --start-with-win --silent",
+    uninstallArgs: "--remove --silent",
+    expectedExecutable: "C:\\Program Files (x86)\\AnyDesk\\AnyDesk.exe",
+  },
+  {
+    label: "Interactive one-device test",
+    value: "interactive-test",
+    packageTypes: ["exe", "zip"],
+    description: "Only for a controlled test device; the user may see installer UI.",
+    installArgs: "",
+    uninstallArgs: "",
+    allowInteractive: true,
+  },
+];
 const distributionActionOptions = [
   { label: "Install", value: "install" },
   { label: "Upgrade", value: "upgrade" },
@@ -2646,6 +2806,112 @@ function uploadedInstallerPackageType(row: any) {
   return uploadedInstallerDetectedType(row) || inferUploadedPackageType(uploadedInstallerFileName(row));
 }
 
+function uploadedPresetByValue(value: string) {
+  return uploadedSilentPresetOptions.find((option) => option.value === value) || uploadedSilentPresetOptions[0];
+}
+
+function uploadedPresetOptionsForPackageType(packageType: string) {
+  const normalized = String(packageType || "msi").toLowerCase();
+  return uploadedSilentPresetOptions.filter((option: any) => option.packageTypes.includes(normalized));
+}
+
+function ensureUploadedPayload(form: any) {
+  if (!form.installer_payload || typeof form.installer_payload !== "object" || Array.isArray(form.installer_payload)) {
+    form.installer_payload = {};
+  }
+  return form.installer_payload;
+}
+
+function uploadedPayloadPackageType(payload: any) {
+  const nested = String(payload?.nested_installer || "").toLowerCase();
+  if (nested.endsWith(".exe")) return "exe";
+  if (nested.endsWith(".msi")) return "msi";
+  return String(payload?.package_type || inferUploadedPackageType(payload?.file_name || payload?.name || "") || "msi").toLowerCase();
+}
+
+function guessUploadedSilentPreset(fileName: string, packageType: string) {
+  const normalizedType = String(packageType || "").toLowerCase();
+  const lowerName = String(fileName || "").toLowerCase();
+  if (normalizedType === "msi") return "msi-standard";
+  if (normalizedType === "exe") {
+    if (lowerName.includes("anydesk")) return "anydesk-system";
+    if (/(^|[^a-z0-9])(7z|7zip)([^a-z0-9]|$)/i.test(lowerName)) return "nsis-s";
+    if (/(vc_redist|vcredist|dotnet|windowsdesktop|aspnetcore|ndp)/i.test(lowerName)) return "microsoft-runtime";
+  }
+  return "custom";
+}
+
+function applyUploadedPresetToPayload(payload: any, presetValue: string) {
+  if (!payload || typeof payload !== "object") return;
+  const preset = uploadedPresetByValue(presetValue);
+  payload.silent_preset = preset.value;
+  payload.allow_interactive = !!(preset as any).allowInteractive;
+  if (preset.value === "custom") return;
+  payload.install_args = preset.installArgs || "";
+  payload.uninstall_args = preset.uninstallArgs || "";
+  if ((preset as any).expectedExecutable && !payload.expected_executable) {
+    payload.expected_executable = (preset as any).expectedExecutable;
+  }
+}
+
+function applyDistributionUploadedPreset(presetValue: string) {
+  applyUploadedPresetToPayload(ensureUploadedPayload(distributionForm.value), presetValue);
+}
+
+function applyInternalCatalogUploadedPreset(presetValue: string) {
+  internalCatalogForm.value.silent_preset = presetValue;
+  applyUploadedPresetToPayload(internalCatalogForm.value, presetValue);
+}
+
+function onDistributionUploadedPackageTypeChanged(packageType: string) {
+  const payload = ensureUploadedPayload(distributionForm.value);
+  payload.package_type = packageType;
+  const validPreset = uploadedPresetOptionsForPackageType(packageType).some((option: any) => option.value === payload.silent_preset);
+  if (!validPreset) {
+    applyUploadedPresetToPayload(payload, guessUploadedSilentPreset(payload.file_name || payload.name || "", packageType));
+  }
+}
+
+function onInternalCatalogPackageTypeChanged(packageType: string) {
+  internalCatalogForm.value.package_type = packageType;
+  const validPreset = uploadedPresetOptionsForPackageType(packageType).some((option: any) => option.value === internalCatalogForm.value.silent_preset);
+  if (!validPreset) {
+    applyInternalCatalogUploadedPreset(guessUploadedSilentPreset(internalCatalogForm.value.file_name || internalCatalogForm.value.name || "", packageType));
+  }
+}
+
+function uploadedInstallArgsForAction(payload: any, action = "install") {
+  const normalizedAction = String(action || "install").toLowerCase();
+  return normalizedAction === "uninstall"
+    ? String(payload?.uninstall_args || "")
+    : String(payload?.install_args || "");
+}
+
+function uploadedInstallerNeedsArgs(payload: any, action = "install") {
+  const packageType = uploadedPayloadPackageType(payload);
+  if (packageType !== "exe") return false;
+  if (payload?.allow_interactive) return false;
+  return !uploadedInstallArgsForAction(payload, action).trim();
+}
+
+function uploadedInstallerCommandPreview(payload: any, action = "install") {
+  const packageType = uploadedPayloadPackageType(payload);
+  const fileName = payload?.nested_installer || payload?.file_name || "installer";
+  const args = uploadedInstallArgsForAction(payload, action).trim();
+  if (packageType === "msi") {
+    const verb = String(action || "install").toLowerCase() === "uninstall" ? "/x" : "/i";
+    const target = String(action || "install").toLowerCase() === "uninstall" && payload?.product_code
+      ? payload.product_code
+      : fileName;
+    return `msiexec ${verb} "${target}" ${args || "/qn /norestart"}`.trim();
+  }
+  if (packageType === "zip") {
+    const nested = payload?.nested_installer ? `"${payload.nested_installer}"` : "<first .msi/.exe in ZIP>";
+    return `extract ZIP -> run ${nested}${args ? ` ${args}` : ""}`;
+  }
+  return `"${fileName}"${args ? ` ${args}` : ""}`;
+}
+
 const hasDistributionUploadedPayload = computed(() => {
   const payload = objectOrEmpty(distributionForm.value.installer_payload);
   return Object.keys(payload).length > 0;
@@ -2653,19 +2919,15 @@ const hasDistributionUploadedPayload = computed(() => {
 
 const selectedDistributionUploadedPackageType = computed(() => {
   const payload = objectOrEmpty(distributionForm.value.installer_payload);
-  if (String(payload.nested_installer || "").toLowerCase().endsWith(".exe")) return "exe";
-  return String(payload.package_type || inferUploadedPackageType(payload.file_name || "")).toLowerCase();
+  return uploadedPayloadPackageType(payload);
 });
 
 const distributionUploadedExeWarning = computed(() => {
   if (distributionForm.value.installer !== "uploaded" || selectedDistributionUploadedPackageType.value !== "exe") return "";
   const payload = objectOrEmpty(distributionForm.value.installer_payload);
   const action = String(distributionForm.value.action || "install").toLowerCase();
-  if (["install", "upgrade", "rollback"].includes(action) && !String(payload.install_args || "").trim()) {
-    return "EXE installers require explicit install args. Common templates: /S, /silent, /quiet, /VERYSILENT /NORESTART.";
-  }
-  if (action === "uninstall" && !String(payload.uninstall_args || "").trim()) {
-    return "EXE uninstall requires explicit uninstall args. Common templates: /S, /silent, /quiet, /VERYSILENT /NORESTART.";
+  if (uploadedInstallerNeedsArgs(payload, action)) {
+    return "EXE installers need silent arguments for unattended deployment. Choose a preset or enter vendor arguments.";
   }
   return "";
 });
@@ -4111,19 +4373,28 @@ function selectDistributionChocolateyPackage(row: any) {
 function uploadedInstallerPayloadForDistribution(row: any) {
   const payload = installerPayloadForRow(row);
   const fileName = uploadedInstallerFileName(row) || payload.file_name || row?.file_name || "";
-  return {
+  const packageType = uploadedInstallerPackageType(row);
+  const result = {
     ...payload,
     catalog_id: payload.catalog_id || internalCatalogId(row),
     internal_catalog_id: payload.internal_catalog_id || row?.id || null,
     name: payload.name || row?.name || fileName,
     file_name: fileName,
-    package_type: uploadedInstallerPackageType(row),
+    package_type: packageType,
     install_args: payload.install_args || row?.install_args || "",
     uninstall_args: payload.uninstall_args || row?.uninstall_args || "",
     nested_installer: payload.nested_installer || row?.nested_installer || "",
     expected_executable: payload.expected_executable || row?.expected_executable || "",
     product_code: payload.product_code || row?.product_code || "",
+    silent_preset: payload.silent_preset || row?.silent_preset || "",
+    allow_interactive: !!(payload.allow_interactive || row?.allow_interactive),
   };
+  if (!result.silent_preset && (result.install_args || result.uninstall_args)) {
+    result.silent_preset = "custom";
+  } else if (!result.silent_preset) {
+    applyUploadedPresetToPayload(result, guessUploadedSilentPreset(fileName, packageType));
+  }
+  return result;
 }
 
 function selectDistributionUploadedInstaller(row: any) {
@@ -4179,6 +4450,9 @@ function onDistributionInstallerChanged(installer: string) {
     distributionForm.value.package_id = "";
     distributionForm.value.package_version = "";
     distributionForm.value.command = "";
+    const payload = ensureUploadedPayload(distributionForm.value);
+    payload.package_type ||= "msi";
+    payload.silent_preset ||= "msi-standard";
     void loadInternalCatalogApps();
   } else {
     distributionForm.value.command = "";
@@ -4207,6 +4481,16 @@ function showDistributionDialog(item?: any) {
   distributionChocoSearch.value = "";
   distributionUploadedSearch.value = "";
   distributionUploadedExtensionFilter.value = "all";
+  if (distributionForm.value.installer === "uploaded") {
+    const payload = ensureUploadedPayload(distributionForm.value);
+    payload.package_type = uploadedPayloadPackageType(payload);
+    if (!payload.silent_preset) {
+      payload.silent_preset = payload.install_args || payload.uninstall_args
+        ? "custom"
+        : guessUploadedSilentPreset(payload.file_name || payload.name || "", payload.package_type);
+      if (payload.silent_preset !== "custom") applyUploadedPresetToPayload(payload, payload.silent_preset);
+    }
+  }
   distributionDialogOpen.value = true;
   if (distributionForm.value.installer === "choco") {
     void loadDistributionChocoPackages();
@@ -4526,7 +4810,9 @@ function distributionPayloadForApp(row: any) {
     package_id: installer === "uploaded" ? "" : packageId,
     package_version: installer === "uploaded" ? "" : row.version || "",
     command: row.command || "",
-    installer_payload: row.installer_payload || row.install_config?.installer_payload || {},
+    installer_payload: installer === "uploaded"
+      ? uploadedInstallerPayloadForDistribution(row)
+      : row.installer_payload || row.install_config?.installer_payload || {},
     scope: "device",
     target_agent_id: selectedAppAgentId.value,
     enabled: true,
@@ -4600,10 +4886,14 @@ function normalizeDistributionPayload() {
     const installerPayload = objectOrEmpty(payload.installer_payload);
     payload.installer_payload = {
       ...installerPayload,
+      package_type: uploadedPayloadPackageType(installerPayload),
+      silent_preset: installerPayload.silent_preset || "custom",
+      allow_interactive: !!installerPayload.allow_interactive,
       install_args: String(installerPayload.install_args || "").trim(),
       uninstall_args: String(installerPayload.uninstall_args || "").trim(),
       nested_installer: String(installerPayload.nested_installer || "").trim(),
       expected_executable: String(installerPayload.expected_executable || "").trim(),
+      product_code: String(installerPayload.product_code || "").trim(),
     };
   }
   return payload;
@@ -4946,6 +5236,8 @@ function defaultInternalCatalogForm() {
     nested_installer: "",
     expected_executable: "",
     product_code: "",
+    silent_preset: "msi-standard",
+    allow_interactive: false,
     file_name: "",
     visible_in_ssp: true,
     approval_required: true,
@@ -5063,6 +5355,17 @@ async function loadInternalCatalogApps() {
 function showInternalAppDialog(row?: any) {
   editingInternalCatalogApp.value = row || null;
   internalCatalogForm.value = row ? { ...defaultInternalCatalogForm(), ...row } : defaultInternalCatalogForm();
+  if (internalCatalogForm.value.installer === "uploaded") {
+    internalCatalogForm.value.package_type = uploadedPayloadPackageType(internalCatalogForm.value);
+    if (!internalCatalogForm.value.silent_preset) {
+      internalCatalogForm.value.silent_preset = internalCatalogForm.value.install_args || internalCatalogForm.value.uninstall_args
+        ? "custom"
+        : guessUploadedSilentPreset(internalCatalogForm.value.file_name || internalCatalogForm.value.name || "", internalCatalogForm.value.package_type);
+      if (internalCatalogForm.value.silent_preset !== "custom") {
+        applyUploadedPresetToPayload(internalCatalogForm.value, internalCatalogForm.value.silent_preset);
+      }
+    }
+  }
   internalCatalogInstallerFile.value = null;
   distributionChocoSearch.value = "";
   if (internalCatalogForm.value.installer === "choco") {
@@ -5086,16 +5389,15 @@ function onInternalCatalogFileSelected(file: File | null) {
   }
   internalCatalogForm.value.file_name = file.name;
   internalCatalogForm.value.package_type = inferUploadedPackageType(file.name);
-  if (internalCatalogForm.value.package_type === "msi") {
-    internalCatalogForm.value.install_args ||= "/qn /norestart";
-    internalCatalogForm.value.uninstall_args ||= "/qn /norestart";
-  } else if (internalCatalogForm.value.package_type === "exe") {
-    $q.notify({
-      message: "EXE installers need explicit silent install/uninstall args before distribution.",
-      color: "warning",
-      icon: "warning",
-    });
-  }
+  internalCatalogForm.value.install_args = "";
+  internalCatalogForm.value.uninstall_args = "";
+  internalCatalogForm.value.nested_installer = "";
+  internalCatalogForm.value.expected_executable = "";
+  internalCatalogForm.value.product_code = "";
+  internalCatalogForm.value.allow_interactive = false;
+  applyInternalCatalogUploadedPreset(
+    guessUploadedSilentPreset(file.name, internalCatalogForm.value.package_type)
+  );
 }
 
 function internalCatalogInstallConfig() {
@@ -5122,6 +5424,8 @@ function internalCatalogInstallConfig() {
     nested_installer: internalCatalogForm.value.nested_installer || "",
     expected_executable: internalCatalogForm.value.expected_executable || "",
     product_code: internalCatalogForm.value.product_code || "",
+    silent_preset: internalCatalogForm.value.silent_preset || "custom",
+    allow_interactive: !!internalCatalogForm.value.allow_interactive,
   };
 }
 
@@ -5132,6 +5436,10 @@ async function saveInternalCatalogApp() {
   }
   if (internalCatalogForm.value.installer === "uploaded" && !editingInternalCatalogApp.value?.id && !internalCatalogInstallerFile.value) {
     $q.notify({ message: "Select an installer file", color: "warning" });
+    return;
+  }
+  if (internalCatalogForm.value.installer === "uploaded" && uploadedInstallerNeedsArgs(internalCatalogForm.value, "install")) {
+    $q.notify({ message: "Choose a silent preset or enter install arguments for this EXE installer", color: "warning" });
     return;
   }
   savingInternalCatalog.value = true;
@@ -5429,6 +5737,19 @@ async function extractFromContainer() {
 
 .distribution-uploaded-table
   max-height: 270px
+
+.uploaded-installer-editor
+  border: 1px solid #e5e7eb
+  border-radius: 6px
+  background: #fafafa
+  padding: 10px
+
+.uploaded-command-preview
+  border: 1px solid #e5e7eb
+  border-radius: 6px
+  background: #fff
+  padding: 8px 10px
+  word-break: break-word
 
 .distribution-execution-output
   max-height: 220px
