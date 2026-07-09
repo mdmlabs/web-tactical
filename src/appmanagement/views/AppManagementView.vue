@@ -315,14 +315,48 @@
         >
           <template v-slot:body-cell-status="props">
             <q-td :props="props">
-              <q-chip dense :color="distributionExecutionStatusColor(props.value)" text-color="white">
-                {{ props.value || "unknown" }}
+              <q-chip
+                dense
+                :color="distributionExecutionStatusColor(props.row)"
+                :text-color="distributionExecutionStatusTextColor(props.row)"
+              >
+                {{ distributionExecutionStatusLabel(props.row) }}
+                <q-tooltip v-if="distributionExecutionReason(props.row)">
+                  {{ distributionExecutionReason(props.row) }}
+                </q-tooltip>
               </q-chip>
             </q-td>
           </template>
           <template v-slot:body-cell-return_code="props">
             <q-td :props="props">
-              <span :class="Number(props.value || 0) === 0 ? 'text-positive' : 'text-negative'">{{ props.value ?? "-" }}</span>
+              <div class="distribution-execution-result">
+                <q-chip
+                  v-if="isDistributionPolicyBlocked(props.row)"
+                  dense
+                  color="warning"
+                  text-color="dark"
+                >
+                  Policy blocked
+                </q-chip>
+                <span
+                  v-else
+                  :class="Number(props.value || 0) === 0 ? 'text-positive' : 'text-negative'"
+                >
+                  {{ props.value ?? "-" }}
+                </span>
+                <span
+                  v-if="isDistributionPolicyBlocked(props.row)"
+                  class="text-caption text-grey-7 q-ml-xs"
+                >
+                  code {{ props.value ?? "-" }}
+                </span>
+                <div
+                  v-if="distributionExecutionReason(props.row)"
+                  class="distribution-execution-reason"
+                >
+                  {{ distributionExecutionReason(props.row) }}
+                </div>
+              </div>
             </q-td>
           </template>
           <template v-slot:body-cell-msi_log_path="props">
@@ -3131,7 +3165,7 @@ const distributionExecutionColumns = [
   { name: "policy", label: "Policy", field: (row: any) => distributionExecutionPolicyLabel(row), align: "left", sortable: true },
   { name: "agent", label: "Agent", field: (row: any) => distributionExecutionAgentLabel(row), align: "left", sortable: true },
   { name: "status", label: "Status", field: "status", align: "center", sortable: true },
-  { name: "return_code", label: "Code", field: "return_code", align: "center", sortable: true },
+  { name: "return_code", label: "Result", field: "return_code", align: "left", sortable: true },
   { name: "msi_log_path", label: "MSI log", field: (row: any) => row.msi_log_path || row.details?.msi_log_path || "", align: "left" },
   { name: "reported_at", label: "Reported", field: "reported_at", align: "left", sortable: true },
   { name: "actions", label: "", field: "actions", align: "right" },
@@ -3477,7 +3511,23 @@ async function loadDistributionExecutions() {
   }
 }
 
-function distributionExecutionStatusColor(status: string) {
+function distributionExecutionReason(row: any) {
+  return String(row?.stderr || row?.details?.error || row?.details?.reason || "").trim();
+}
+
+function isDistributionPolicyBlocked(row: any) {
+  const reason = distributionExecutionReason(row).toLowerCase();
+  return Number(row?.return_code) === 126 || reason.startsWith("blocked by app ");
+}
+
+function distributionExecutionStatusLabel(row: any) {
+  if (isDistributionPolicyBlocked(row)) return "Policy blocked";
+  return row?.status || "unknown";
+}
+
+function distributionExecutionStatusColor(row: any) {
+  if (isDistributionPolicyBlocked(row)) return "warning";
+  const status = typeof row === "string" ? row : row?.status;
   switch (String(status || "").toLowerCase()) {
     case "success": return "positive";
     case "failed":
@@ -3487,6 +3537,10 @@ function distributionExecutionStatusColor(status: string) {
     case "installing": return "info";
     default: return "grey-6";
   }
+}
+
+function distributionExecutionStatusTextColor(row: any) {
+  return isDistributionPolicyBlocked(row) ? "dark" : "white";
 }
 
 function distributionExecutionPolicyLabel(row: any) {
@@ -3507,8 +3561,9 @@ const distributionExecutionDetailRows = computed(() => {
   return [
     { label: "Policy", value: distributionExecutionPolicyLabel(row) },
     { label: "Agent", value: distributionExecutionAgentLabel(row) },
-    { label: "Status", value: row.status || "" },
+    { label: "Status", value: distributionExecutionStatusLabel(row) },
     { label: "Return code", value: row.return_code ?? "" },
+    { label: "Reason", value: distributionExecutionReason(row) },
     { label: "Installer", value: row.installer || "" },
     { label: "Action", value: row.action || "" },
     { label: "Package", value: row.package_id || "" },
@@ -5762,6 +5817,18 @@ async function extractFromContainer() {
   border-radius: 6px
   background: #f9fafb
   font-size: 12px
+
+.distribution-execution-result
+  min-width: 170px
+  white-space: normal
+
+.distribution-execution-reason
+  margin-top: 2px
+  max-width: 360px
+  color: #4b5563
+  font-size: 12px
+  line-height: 1.35
+  word-break: break-word
 
 .distribution-choco-description
   max-width: 300px
