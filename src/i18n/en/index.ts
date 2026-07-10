@@ -95,6 +95,64 @@ export default {
     signInAction: "Sign In",
     securePlatform: "Secure Enterprise Platform",
   },
+  dataGuard: {
+    tabLabel: "Secure Container",
+    policyTitle: "Secure Container data protection",
+    policyDescription:
+      "DataGuard prevents plaintext writes before they reach local disks, network shares, cloud folders, or USB storage. Protected Export remains available as an encrypted .lsc package.",
+    enableEnforcement: "Enable DataGuard enforcement",
+    enforcementMode: "Enforcement mode",
+    auditWarning:
+      "Audit mode records attempted exports but does not prevent them.",
+    failClosed: "Fail closed if Broker or driver is unavailable",
+    failClosedHelp:
+      "Recommended for production. Protected editors will not start without active kernel enforcement.",
+    minutes: "minutes",
+    maximumSession: "Maximum editor session",
+    approvedEditors: "Approved external editors",
+    approvedEditorsHelp:
+      "Leave empty to allow only the built-in viewer and editor.",
+    addEditorPreset: "Add editor preset",
+    addCustomEditor: "Add a custom approved editor",
+    editorIntegrityRequired:
+      "Every approved editor requires a signer subject or SHA-256 pin.",
+    executablePath: "Executable path",
+    signerSubject: "Required signer subject",
+    sha256Optional: "SHA-256 (optional)",
+    launchArguments: "Isolated launch argument tokens",
+    workspaceRoots: "Protected workspace roots",
+    workspaceRootsHelp:
+      "Advanced: policy intersections keep only roots shared by every policy",
+    absoluteWindowsPath: "Absolute Windows path",
+    addWorkspaceRoot: "Add workspace root",
+    workspaceRootRequired:
+      "DataGuard enforcement requires a protected workspace root.",
+    modeAudit: "Audit only",
+    modeBlockPlaintext: "Block plaintext export",
+    modeProtectedExport: "Protected export only",
+    editorWord: "Microsoft Word (signed)",
+    editorLibreOffice: "LibreOffice Writer (signed)",
+    editorNotepad: "Windows Notepad (signed)",
+    argumentValidation:
+      "Use exactly one {document}; optional: {workspace}, {workspaceUri}",
+    healthTab: "DataGuard",
+    healthTitle: "Secure Container enforcement",
+    healthDescription:
+      "Live Broker and minifilter health reported by Windows endpoints.",
+    noHealthReported:
+      "No endpoint has reported DataGuard health yet. Protected external editor sessions remain unavailable until Broker and driver are healthy.",
+    protected: "Protected",
+    unknown: "Unknown",
+    columnAgent: "Agent",
+    columnProtection: "Protection",
+    columnDriver: "Driver",
+    columnBroker: "Broker",
+    columnProtocol: "Protocol",
+    columnSessions: "Sessions",
+    columnQueued: "Queued",
+    columnDetail: "Detail",
+    columnReported: "Reported",
+  },
   devicemanagement: {
     bulkActions: {
       fullWipeAll: "Full Wipe All",

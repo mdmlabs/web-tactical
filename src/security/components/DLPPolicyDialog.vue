@@ -52,6 +52,11 @@
               :label="$t('security.components.DLPPolicyDialog.c3cd63')"
             />
             <q-tab
+              name="container"
+              icon="shield"
+              :label="$t('dataGuard.tabLabel')"
+            />
+            <q-tab
               name="network"
               icon="wifi"
               :label="$t('security.components.DLPPolicyDialog.53ebc5')"
@@ -426,7 +431,11 @@
                 <q-toggle
                   v-model="form.encrypt_on_exfiltration"
                   color="secondary"
-                  :label="$t('security.components.DLPPolicyDialog.protectedFolderGuard')"
+                  :label="
+                    $t(
+                      'security.components.DLPPolicyDialog.protectedFolderGuard',
+                    )
+                  "
                 />
                 <q-banner
                   v-if="form.encrypt_on_exfiltration"
@@ -436,7 +445,11 @@
                   <template v-slot:avatar>
                     <q-icon name="lock" color="primary" />
                   </template>
-                  {{ $t("security.components.DLPPolicyDialog.protectedFolderGuardHelp") }}
+                  {{
+                    $t(
+                      "security.components.DLPPolicyDialog.protectedFolderGuardHelp",
+                    )
+                  }}
                 </q-banner>
                 <q-toggle
                   v-model="form.auto_quarantine"
@@ -467,6 +480,229 @@
               </div>
             </q-tab-panel>
 
+            <!-- Secure Container / DataGuard -->
+            <q-tab-panel name="container">
+              <div class="text-subtitle1 text-weight-medium q-mb-md">
+                {{ $t("dataGuard.policyTitle") }}
+              </div>
+              <q-banner
+                dense
+                class="bg-blue-1 text-blue-10 rounded-borders q-mb-md"
+              >
+                <template v-slot:avatar>
+                  <q-icon name="shield" color="primary" />
+                </template>
+                {{ $t("dataGuard.policyDescription") }}
+              </q-banner>
+
+              <q-toggle
+                v-model="form.secure_container_protection_enabled"
+                color="primary"
+                :label="$t('dataGuard.enableEnforcement')"
+                class="q-mb-md"
+              />
+
+              <template v-if="form.secure_container_protection_enabled">
+                <div class="text-caption text-grey-7 q-mb-xs">
+                  {{ $t("dataGuard.enforcementMode") }}
+                </div>
+                <q-btn-toggle
+                  v-model="form.secure_container_mode"
+                  spread
+                  no-caps
+                  unelevated
+                  toggle-color="primary"
+                  color="grey-3"
+                  text-color="grey-9"
+                  :options="dataGuardModeOptions"
+                  class="q-mb-md"
+                />
+                <q-banner
+                  v-if="form.secure_container_mode === 'audit'"
+                  dense
+                  class="bg-orange-1 text-orange-10 rounded-borders q-mb-md"
+                >
+                  <template v-slot:avatar
+                    ><q-icon name="warning" color="orange"
+                  /></template>
+                  {{ $t("dataGuard.auditWarning") }}
+                </q-banner>
+
+                <div class="row q-col-gutter-md q-mb-lg">
+                  <div class="col-12 col-md-6">
+                    <q-toggle
+                      v-model="form.secure_container_fail_closed"
+                      color="negative"
+                      :label="$t('dataGuard.failClosed')"
+                      :disable="form.secure_container_mode !== 'audit'"
+                    />
+                    <div class="text-caption text-grey-7 q-ml-sm">
+                      {{ $t("dataGuard.failClosedHelp") }}
+                    </div>
+                  </div>
+                  <div class="col-12 col-md-4">
+                    <q-input
+                      v-model.number="
+                        form.secure_container_session_timeout_minutes
+                      "
+                      type="number"
+                      min="5"
+                      max="1440"
+                      :suffix="$t('dataGuard.minutes')"
+                      :label="$t('dataGuard.maximumSession')"
+                      outlined
+                      dense
+                    />
+                  </div>
+                </div>
+
+                <div class="row items-center q-mb-sm">
+                  <div>
+                    <div class="text-subtitle2">
+                      {{ $t("dataGuard.approvedEditors") }}
+                    </div>
+                    <div class="text-caption text-grey-7">
+                      {{ $t("dataGuard.approvedEditorsHelp") }}
+                    </div>
+                  </div>
+                  <q-space />
+                  <q-select
+                    v-model="selectedEditorPreset"
+                    :options="dataGuardEditorPresets"
+                    :label="$t('dataGuard.addEditorPreset')"
+                    outlined
+                    dense
+                    emit-value
+                    map-options
+                    clearable
+                    style="min-width: 260px"
+                    @update:model-value="addEditorPreset"
+                  />
+                  <q-btn
+                    flat
+                    round
+                    icon="add"
+                    color="primary"
+                    class="q-ml-sm"
+                    @click="addBlankEditor"
+                  >
+                    <q-tooltip>{{ $t("dataGuard.addCustomEditor") }}</q-tooltip>
+                  </q-btn>
+                </div>
+
+                <div
+                  v-for="(
+                    editor, index
+                  ) in form.secure_container_allowed_editors"
+                  :key="`dataguard-editor-${index}`"
+                  class="row q-col-gutter-sm items-start q-mb-sm"
+                >
+                  <div class="col-12 col-md-5">
+                    <q-input
+                      v-model="editor.path"
+                      :label="$t('dataGuard.executablePath')"
+                      outlined
+                      dense
+                    />
+                  </div>
+                  <div class="col-12 col-md-3">
+                    <q-input
+                      v-model="editor.publisher_subject"
+                      :label="$t('dataGuard.signerSubject')"
+                      outlined
+                      dense
+                    />
+                  </div>
+                  <div class="col-12 col-md-3">
+                    <q-input
+                      v-model="editor.sha256"
+                      :label="$t('dataGuard.sha256Optional')"
+                      outlined
+                      dense
+                      maxlength="64"
+                    />
+                  </div>
+                  <div class="col-auto">
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      icon="delete"
+                      color="negative"
+                      @click="
+                        form.secure_container_allowed_editors.splice(index, 1)
+                      "
+                    />
+                  </div>
+                  <div class="col-12">
+                    <q-select
+                      v-model="editor.arguments"
+                      :label="$t('dataGuard.launchArguments')"
+                      outlined
+                      dense
+                      multiple
+                      use-input
+                      use-chips
+                      hide-dropdown-icon
+                      new-value-mode="add-unique"
+                      :max-values="16"
+                      :rules="[validateEditorArguments]"
+                    />
+                  </div>
+                </div>
+
+                <q-expansion-item
+                  icon="folder_special"
+                  :label="$t('dataGuard.workspaceRoots')"
+                  :caption="$t('dataGuard.workspaceRootsHelp')"
+                  class="q-mt-md"
+                >
+                  <div class="q-pa-sm">
+                    <div
+                      v-for="(
+                        root, index
+                      ) in form.secure_container_allowed_write_roots"
+                      :key="`dataguard-root-${index}`"
+                      class="row q-gutter-xs q-mb-xs"
+                    >
+                      <q-input
+                        v-model="
+                          form.secure_container_allowed_write_roots[index]
+                        "
+                        :label="$t('dataGuard.absoluteWindowsPath')"
+                        outlined
+                        dense
+                        class="col"
+                      />
+                      <q-btn
+                        flat
+                        round
+                        dense
+                        icon="delete"
+                        color="negative"
+                        @click="
+                          form.secure_container_allowed_write_roots.splice(
+                            index,
+                            1,
+                          )
+                        "
+                      />
+                    </div>
+                    <q-btn
+                      flat
+                      dense
+                      icon="add"
+                      :label="$t('dataGuard.addWorkspaceRoot')"
+                      color="primary"
+                      @click="
+                        form.secure_container_allowed_write_roots.push('')
+                      "
+                    />
+                  </div>
+                </q-expansion-item>
+              </template>
+            </q-tab-panel>
+
             <!-- Network DLP -->
             <q-tab-panel name="network">
               <div class="text-subtitle1 q-mb-md text-weight-medium">
@@ -492,10 +728,16 @@
                   v-model="form.network_fail_closed"
                   color="negative"
                   class="q-mb-sm"
-                  :label="$t('security.components.DLPPolicyDialog.networkFailClosed')"
+                  :label="
+                    $t('security.components.DLPPolicyDialog.networkFailClosed')
+                  "
                 />
                 <div class="text-caption text-grey-7 q-mb-md">
-                  {{ $t("security.components.DLPPolicyDialog.networkFailClosedHelp") }}
+                  {{
+                    $t(
+                      "security.components.DLPPolicyDialog.networkFailClosedHelp",
+                    )
+                  }}
                 </div>
                 <div class="text-caption text-grey-7 q-mb-sm">
                   {{ $t("security.components.DLPPolicyDialog.4cb444") }}
@@ -585,7 +827,9 @@
                   multiple
                   input-debounce="0"
                   class="q-mb-md"
-                  @new-value="(val, done) => done(normalizeDomain(val), 'add-unique')"
+                  @new-value="
+                    (val, done) => done(normalizeDomain(val), 'add-unique')
+                  "
                 />
                 <q-select
                   v-model="form.email_quarantine_recipients"
@@ -722,8 +966,10 @@
 import { ref, watch, computed } from "vue";
 import axios from "axios";
 import { useQuasar } from "quasar";
+import { useI18n } from "vue-i18n";
 
 const $q = useQuasar();
+const { t } = useI18n();
 
 const props = defineProps<{
   modelValue: boolean;
@@ -770,6 +1016,19 @@ const defaultForm = () => ({
   log_violations: true,
   auto_encrypt: false,
   encrypt_on_exfiltration: false,
+  secure_container_protection_enabled: false,
+  secure_container_mode: "protected_export_only",
+  secure_container_fail_closed: true,
+  secure_container_session_timeout_minutes: 480,
+  secure_container_allowed_editors: [] as Array<{
+    path: string;
+    sha256: string;
+    publisher_subject: string;
+    arguments: string[];
+  }>,
+  secure_container_allowed_write_roots: [
+    "C:\\ProgramData\\Laborato\\SecureContainer\\Sessions",
+  ] as string[],
   auto_quarantine: false,
   block_usb_transfer: false,
   block_email_attachment: false,
@@ -799,6 +1058,13 @@ const defaultForm = () => ({
 const form = ref(defaultForm());
 
 watch(
+  () => form.value.secure_container_mode,
+  (mode) => {
+    if (mode !== "audit") form.value.secure_container_fail_closed = true;
+  },
+);
+
+watch(
   () => props.item,
   (item) => {
     if (item) {
@@ -814,6 +1080,25 @@ watch(
           : [],
         excluded_paths: Array.isArray(item.excluded_paths)
           ? [...item.excluded_paths]
+          : [],
+        secure_container_allowed_editors: Array.isArray(
+          item.secure_container_allowed_editors,
+        )
+          ? item.secure_container_allowed_editors.map((editor: any) => ({
+              path: editor?.path || "",
+              sha256: editor?.sha256 || "",
+              publisher_subject:
+                editor?.publisher_subject || editor?.publisherSubject || "",
+              arguments:
+                Array.isArray(editor?.arguments) && editor.arguments.length
+                  ? [...editor.arguments]
+                  : ["{document}"],
+            }))
+          : [],
+        secure_container_allowed_write_roots: Array.isArray(
+          item.secure_container_allowed_write_roots,
+        )
+          ? [...item.secure_container_allowed_write_roots]
           : [],
         blocked_domains: Array.isArray(item.blocked_domains)
           ? [...item.blocked_domains]
@@ -847,6 +1132,27 @@ async function save() {
     $q.notify({ type: "warning", message: scopeError });
     return;
   }
+  if (
+    form.value.secure_container_allowed_editors.some(
+      (editor) => !editor.sha256.trim() && !editor.publisher_subject.trim(),
+    )
+  ) {
+    $q.notify({
+      type: "warning",
+      message: t("dataGuard.editorIntegrityRequired"),
+    });
+    return;
+  }
+  if (
+    form.value.secure_container_protection_enabled &&
+    !form.value.secure_container_allowed_write_roots.some((root) => root.trim())
+  ) {
+    $q.notify({
+      type: "warning",
+      message: t("dataGuard.workspaceRootRequired"),
+    });
+    return;
+  }
   saving.value = true;
   try {
     // Clean empty strings from arrays
@@ -877,6 +1183,31 @@ async function save() {
       email_smtp_from_email: form.value.email_smtp_from_email.trim(),
       email_smtp_use_tls: Boolean(form.value.email_smtp_use_tls),
       network_fail_closed: Boolean(form.value.network_fail_closed),
+      secure_container_protection_enabled: Boolean(
+        form.value.secure_container_protection_enabled,
+      ),
+      secure_container_fail_closed: Boolean(
+        form.value.secure_container_mode !== "audit" ||
+          form.value.secure_container_fail_closed,
+      ),
+      secure_container_session_timeout_minutes: Number(
+        form.value.secure_container_session_timeout_minutes || 480,
+      ),
+      secure_container_allowed_editors:
+        form.value.secure_container_allowed_editors
+          .map((editor) => ({
+            path: editor.path.trim(),
+            sha256: editor.sha256.replace(/\s+/g, "").toLowerCase(),
+            publisher_subject: editor.publisher_subject.trim(),
+            arguments: editor.arguments
+              .map((argument) => argument.trim())
+              .filter(Boolean),
+          }))
+          .filter((editor) => editor.path),
+      secure_container_allowed_write_roots:
+        form.value.secure_container_allowed_write_roots
+          .map((root) => root.trim())
+          .filter(Boolean),
       email_agent_relay_enabled: Boolean(form.value.email_agent_relay_enabled),
       email_agent_relay_port: Number(form.value.email_agent_relay_port || 2525),
       email_block_direct_smtp: Boolean(form.value.email_block_direct_smtp),
@@ -1152,6 +1483,103 @@ const blockModeOptions = [
   { label: "Warn + Allow (alert user, action proceeds)", value: "warn" },
   { label: "Block (deny action or require justification)", value: "block" },
 ];
+
+const dataGuardModeOptions = computed(() => [
+  { label: t("dataGuard.modeAudit"), value: "audit" },
+  {
+    label: t("dataGuard.modeBlockPlaintext"),
+    value: "block_plaintext_export",
+  },
+  {
+    label: t("dataGuard.modeProtectedExport"),
+    value: "protected_export_only",
+  },
+]);
+
+const dataGuardEditorPresets = computed(() => [
+  {
+    label: t("dataGuard.editorWord"),
+    value: "word",
+    editor: {
+      path: "%ProgramFiles%\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
+      sha256: "",
+      publisher_subject: "Microsoft Corporation",
+      arguments: ["/x", "{document}"],
+    },
+  },
+  {
+    label: t("dataGuard.editorLibreOffice"),
+    value: "libreoffice",
+    editor: {
+      path: "%ProgramFiles%\\LibreOffice\\program\\soffice.exe",
+      sha256: "",
+      publisher_subject: "The Document Foundation",
+      arguments: [
+        "--nologo",
+        "--nodefault",
+        "--norestore",
+        "--nolockcheck",
+        "-env:UserInstallation={workspaceUri}/libreoffice-profile",
+        "{document}",
+      ],
+    },
+  },
+  {
+    label: t("dataGuard.editorNotepad"),
+    value: "notepad",
+    editor: {
+      path: "%SystemRoot%\\System32\\notepad.exe",
+      sha256: "",
+      publisher_subject: "Microsoft Windows",
+      arguments: ["{document}"],
+    },
+  },
+]);
+const selectedEditorPreset = ref<string | null>(null);
+
+function addEditorPreset(value: string | null) {
+  if (!value) return;
+  const preset = dataGuardEditorPresets.value.find(
+    (item) => item.value === value,
+  );
+  if (preset) {
+    form.value.secure_container_allowed_editors.push({
+      ...preset.editor,
+      arguments: [...preset.editor.arguments],
+    });
+  }
+  selectedEditorPreset.value = null;
+}
+
+function addBlankEditor() {
+  form.value.secure_container_allowed_editors.push({
+    path: "",
+    sha256: "",
+    publisher_subject: "",
+    arguments: ["{document}"],
+  });
+}
+
+function validateEditorArguments(value: string[]) {
+  const tokens = Array.isArray(value) ? value : [];
+  const template = tokens.join("\u0000");
+  const documentCount = template.split("{document}").length - 1;
+  const remainder = template
+    .replaceAll("{document}", "")
+    .replaceAll("{workspace}", "")
+    .replaceAll("{workspaceUri}", "");
+  return (
+    (tokens.length >= 1 &&
+      tokens.length <= 16 &&
+      documentCount === 1 &&
+      !/[{}]/.test(remainder)) ||
+    t("dataGuard.argumentValidation", {
+      document: "{document}",
+      workspace: "{workspace}",
+      workspaceUri: "{workspaceUri}",
+    })
+  );
+}
 
 const emailDLPActionOptions = [
   { label: "Use policy action", value: "inherit" },

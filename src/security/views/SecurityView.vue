@@ -162,7 +162,11 @@
             <q-chip dense color="primary" text-color="white">
               {{ selectedChartAgentLabel }}
             </q-chip>
-            <q-chip dense :color="healthColor(selectedChartHealthStatus)" text-color="white">
+            <q-chip
+              dense
+              :color="healthColor(selectedChartHealthStatus)"
+              text-color="white"
+            >
               {{ selectedChartHealthStatus }}
             </q-chip>
             <span class="text-caption text-grey">
@@ -599,35 +603,35 @@
                 @click="deleteUSB(props.row.id)"
               />
             </q-td>
-              </template>
-              <template v-slot:body-cell-device_classes="props">
-                <q-td :props="props">
-                  <q-chip
-                    v-for="cls in props.value"
-                    :key="cls"
-                    dense
-                    size="sm"
-                    color="blue-grey"
-                    text-color="white"
-                    class="q-mr-xs"
-                  >
-                    {{ cls }}
-                  </q-chip>
-                  <span v-if="!props.value?.length">—</span>
-                </q-td>
-              </template>
-              <template v-slot:body-cell-encrypt_required="props">
-                <q-td :props="props">
-                  <q-chip
-                    dense
-                    size="sm"
-                    :color="props.value ? 'warning' : 'grey'"
-                    text-color="white"
-                  >
-                    {{ props.value ? "BitLocker required" : "Optional" }}
-                  </q-chip>
-                </q-td>
-              </template>
+          </template>
+          <template v-slot:body-cell-device_classes="props">
+            <q-td :props="props">
+              <q-chip
+                v-for="cls in props.value"
+                :key="cls"
+                dense
+                size="sm"
+                color="blue-grey"
+                text-color="white"
+                class="q-mr-xs"
+              >
+                {{ cls }}
+              </q-chip>
+              <span v-if="!props.value?.length">—</span>
+            </q-td>
+          </template>
+          <template v-slot:body-cell-encrypt_required="props">
+            <q-td :props="props">
+              <q-chip
+                dense
+                size="sm"
+                :color="props.value ? 'warning' : 'grey'"
+                text-color="white"
+              >
+                {{ props.value ? "BitLocker required" : "Optional" }}
+              </q-chip>
+            </q-td>
+          </template>
         </q-table>
 
         <q-separator class="q-my-md" />
@@ -706,6 +710,11 @@
             :label="$t('security.views.SecurityView.8d6118')"
           />
           <q-tab name="email" icon="email" label="Email DLP" />
+          <q-tab
+            name="dataguard"
+            icon="shield"
+            :label="$t('dataGuard.healthTab')"
+          />
           <q-tab
             name="violations"
             icon="warning"
@@ -841,6 +850,95 @@
             </q-table>
           </q-tab-panel>
 
+          <q-tab-panel name="dataguard">
+            <div class="row items-center q-mb-md">
+              <div>
+                <div class="text-subtitle1 text-weight-medium">
+                  {{ $t("dataGuard.healthTitle") }}
+                </div>
+                <div class="text-caption text-grey-7">
+                  {{ $t("dataGuard.healthDescription") }}
+                </div>
+              </div>
+              <q-space />
+              <q-btn
+                outline
+                color="primary"
+                icon="refresh"
+                :label="$t('common.refresh')"
+                :loading="loadingDataGuard"
+                @click="loadDataGuardStatuses"
+              />
+            </div>
+            <q-banner
+              v-if="dataGuardStatuses.length === 0 && !loadingDataGuard"
+              dense
+              class="bg-orange-1 text-orange-10 rounded-borders q-mb-md"
+            >
+              <template v-slot:avatar
+                ><q-icon name="warning" color="orange"
+              /></template>
+              {{ $t("dataGuard.noHealthReported") }}
+            </q-banner>
+            <q-table
+              :rows="dataGuardStatuses"
+              :columns="dataGuardColumns"
+              row-key="agent_id"
+              dense
+              :loading="loadingDataGuard"
+            >
+              <template v-slot:body-cell-state="props">
+                <q-td :props="props">
+                  <q-chip
+                    dense
+                    :color="dataGuardStateColor(props.row)"
+                    text-color="white"
+                    :icon="
+                      dataGuardProtected(props.row)
+                        ? 'verified_user'
+                        : 'gpp_bad'
+                    "
+                  >
+                    {{
+                      dataGuardProtected(props.row)
+                        ? $t("dataGuard.protected")
+                        : props.row.state || $t("dataGuard.unknown")
+                    }}
+                  </q-chip>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-driver_connected="props">
+                <q-td :props="props">
+                  <q-icon
+                    :name="props.value ? 'check_circle' : 'cancel'"
+                    :color="props.value ? 'positive' : 'negative'"
+                    size="sm"
+                  />
+                </q-td>
+              </template>
+              <template v-slot:body-cell-broker_connected="props">
+                <q-td :props="props">
+                  <q-icon
+                    :name="props.value ? 'check_circle' : 'cancel'"
+                    :color="props.value ? 'positive' : 'negative'"
+                    size="sm"
+                  />
+                </q-td>
+              </template>
+              <template v-slot:body-cell-detail="props">
+                <q-td :props="props">
+                  <div class="ellipsis" style="max-width: 340px">
+                    {{ props.value || "—" }}
+                  </div>
+                  <q-tooltip v-if="props.value">{{ props.value }}</q-tooltip>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-reported_at="props">
+                <q-td :props="props">{{ formatDate(props.value) }}</q-td>
+              </template>
+            </q-table>
+          </q-tab-panel>
+
           <!-- Internal Email DLP analog -->
           <q-tab-panel name="email">
             <q-banner
@@ -850,18 +948,16 @@
               <template v-slot:avatar>
                 <q-icon name="email" color="primary" />
               </template>
-              Internal Email DLP scans message bodies and attachments through the
-              same DLP classification pipeline used by Windows agents. Use this
-              panel to verify policy behavior without Microsoft Graph.
+              Internal Email DLP scans message bodies and attachments through
+              the same DLP classification pipeline used by Windows agents. Use
+              this panel to verify policy behavior without Microsoft Graph.
             </q-banner>
 
             <div class="row q-col-gutter-md">
               <div class="col-12 col-lg-5">
                 <q-card flat bordered>
                   <q-card-section>
-                    <div class="text-subtitle2 q-mb-md">
-                      Email sample
-                    </div>
+                    <div class="text-subtitle2 q-mb-md">Email sample</div>
                     <div class="row q-col-gutter-sm">
                       <div class="col-12">
                         <q-input
@@ -945,7 +1041,9 @@
                       <q-chip
                         v-if="emailDLPResult"
                         dense
-                        :color="emailDLPResult.allowed ? 'positive' : 'negative'"
+                        :color="
+                          emailDLPResult.allowed ? 'positive' : 'negative'
+                        "
                         text-color="white"
                       >
                         {{ emailDLPResult.allowed ? "Allowed" : "Blocked" }}
@@ -953,8 +1051,8 @@
                     </div>
 
                     <div v-if="!emailDLPResult" class="text-grey-7">
-                      Run a sample message to see policy match, action, severity,
-                      and the created DLP incident.
+                      Run a sample message to see policy match, action,
+                      severity, and the created DLP incident.
                     </div>
 
                     <template v-else>
@@ -974,7 +1072,9 @@
                             </q-item-label>
                           </q-item-section>
                           <q-item-section>
-                            <q-item-label caption>Policies evaluated</q-item-label>
+                            <q-item-label caption
+                              >Policies evaluated</q-item-label
+                            >
                             <q-item-label>{{
                               emailDLPResult.policies_evaluated
                             }}</q-item-label>
@@ -1000,7 +1100,10 @@
                             <q-item-label>
                               {{ emailDLPResult.delivery.delivery || "—" }}
                               <span v-if="emailDLPResult.delivery.recipients">
-                                to {{ emailDLPResult.delivery.recipients.join(", ") }}
+                                to
+                                {{
+                                  emailDLPResult.delivery.recipients.join(", ")
+                                }}
                               </span>
                             </q-item-label>
                           </q-item-section>
@@ -1654,7 +1757,9 @@
                     icon="verified_user"
                     size="sm"
                     color="positive"
-                    @click="downloadForensicToolExport(props.row, 'chain_of_custody')"
+                    @click="
+                      downloadForensicToolExport(props.row, 'chain_of_custody')
+                    "
                   >
                     <q-tooltip>Download chain-of-custody manifest</q-tooltip>
                   </q-btn>
@@ -2554,10 +2659,7 @@
             v-model="usbForm.encrypt_required"
             :label="$t('security.views.SecurityView.273ef9')"
           />
-          <q-toggle
-            v-model="usbForm.emergency_mode"
-            label="Emergency policy"
-          />
+          <q-toggle v-model="usbForm.emergency_mode" label="Emergency policy" />
           <q-input
             v-if="usbForm.emergency_mode"
             v-model="usbForm.emergency_reason"
@@ -2946,7 +3048,7 @@
                 label="External case / flow reference"
                 outlined
                 dense
-               />
+              />
             </div>
 
             <div class="col-12 col-md-6">
@@ -2963,7 +3065,6 @@
                 v-model="forensicWizardForm.modified_before"
                 label="Modified before"
                 type="datetime-local"
-
                 outlined
                 dense
               />
@@ -3469,7 +3570,6 @@
         </q-card-section>
       </q-card>
     </q-dialog>
-
   </q-page>
 </template>
 
@@ -3477,6 +3577,7 @@
 import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useQuasar, copyToClipboard, exportFile } from "quasar";
 import { useRoute } from "vue-router";
+import { useI18n } from "vue-i18n";
 import axios from "axios";
 import HealthChart from "@/security/components/HealthChart.vue";
 import FIMBaselinePanel from "@/security/components/FIMBaselinePanel.vue";
@@ -3492,6 +3593,7 @@ const RemediationPanel = defineAsyncComponent(
 );
 
 const $q = useQuasar();
+const { t } = useI18n();
 const route = useRoute();
 const tab = ref("health");
 const fimTab = ref("policies");
@@ -3510,7 +3612,9 @@ const tabByRouteName: Record<string, string> = {
 const chartAgentId = ref("");
 const agentHealthHistory = ref<any[]>([]);
 const agentOptions = ref<{ label: string; value: string }[]>([]);
-const chartAgentOptions = ref<{ label: string; value: string; search: string }[]>([]);
+const chartAgentOptions = ref<
+  { label: string; value: string; search: string }[]
+>([]);
 const healthRangeHours = ref(1);
 const healthRangeOptions = [
   { label: "15 min", value: 0.25 },
@@ -3546,7 +3650,9 @@ function formatHealthTime(value: string) {
 }
 
 const healthHistoryLabels = computed(() =>
-  agentHealthHistory.value.map((row) => formatHealthTime(healthSampleTime(row))),
+  agentHealthHistory.value.map((row) =>
+    formatHealthTime(healthSampleTime(row)),
+  ),
 );
 
 const healthHistoryIntervalLabel = computed(() => {
@@ -3559,12 +3665,16 @@ const healthHistoryIntervalLabel = computed(() => {
 });
 
 const selectedChartAgentLabel = computed(() => {
-  const option = agentOptions.value.find((item) => item.value === chartAgentId.value);
+  const option = agentOptions.value.find(
+    (item) => item.value === chartAgentId.value,
+  );
   return option?.label || chartAgentId.value || "No agent selected";
 });
 
 const selectedChartHealthStatus = computed(() => {
-  const row = devices.value.find((item) => item.agent_id === chartAgentId.value);
+  const row = devices.value.find(
+    (item) => item.agent_id === chartAgentId.value,
+  );
   return row?.overall_status || "unknown";
 });
 
@@ -3634,7 +3744,11 @@ async function requestLiveHealthSample() {
       agent_id: chartAgentId.value,
       timeout: 20,
     });
-    await Promise.all([loadHealth(), loadAgentHealthHistory(), loadHealthThresholds()]);
+    await Promise.all([
+      loadHealth(),
+      loadAgentHealthHistory(),
+      loadHealthThresholds(),
+    ]);
   } catch (e: any) {
     await loadAgentHealthHistory();
     $q.notify({
@@ -3784,6 +3898,8 @@ const loadingFIMEvents = ref(false);
 const loadingUSB = ref(false);
 const loadingUSBEvents = ref(false);
 const loadingDLP = ref(false);
+const loadingDataGuard = ref(false);
+const dataGuardStatuses = ref<any[]>([]);
 const dlpDialogOpen = ref(false);
 const editingDLP = ref<any>(null);
 // DLP sub-tabs
@@ -3834,10 +3950,16 @@ const dlpViolationTypeOptions = [
   { label: "Email DLP", value: "email_dlp" },
   { label: "Auto encrypt", value: "auto_encrypt" },
   { label: "Network DLP health", value: "network_dlp_health" },
+  { label: "Secure Container egress", value: "secure_container_egress" },
 ];
 const emailDLPViolationColumns = [
   { name: "source", label: "Source", field: "source", align: "left" as const },
-  { name: "policy_name", label: "Policy", field: "policy_name", align: "left" as const },
+  {
+    name: "policy_name",
+    label: "Policy",
+    field: "policy_name",
+    align: "left" as const,
+  },
   { name: "level", label: "Level", field: "level", align: "center" as const },
   { name: "score", label: "Score", field: "score", align: "center" as const },
   {
@@ -4327,7 +4449,12 @@ const usbColumns = [
   { name: "actions", label: "", field: "actions", align: "right" },
 ];
 const usbEventColumns = [
-  { name: "occurred_at", label: "Occurred", field: "occurred_at", align: "left" },
+  {
+    name: "occurred_at",
+    label: "Occurred",
+    field: "occurred_at",
+    align: "left",
+  },
   { name: "agent_id", label: "Agent", field: "agent_id", align: "left" },
   { name: "severity", label: "Severity", field: "severity", align: "center" },
   {
@@ -4339,7 +4466,8 @@ const usbEventColumns = [
   {
     name: "device_class",
     label: "Class",
-    field: (row: any) => row.details?.device_class || row.details?.pnp_class || "—",
+    field: (row: any) =>
+      row.details?.device_class || row.details?.pnp_class || "—",
     align: "center",
   },
   { name: "title", label: "Title", field: "title", align: "left" },
@@ -4391,6 +4519,84 @@ const dlpColumns = [
   },
   { name: "actions", label: "", field: "actions", align: "right" as const },
 ];
+const dataGuardColumns = computed(() => [
+  {
+    name: "agent_id",
+    label: t("dataGuard.columnAgent"),
+    field: "agent_id",
+    align: "left" as const,
+    sortable: true,
+  },
+  {
+    name: "state",
+    label: t("dataGuard.columnProtection"),
+    field: "state",
+    align: "center" as const,
+  },
+  {
+    name: "driver_connected",
+    label: t("dataGuard.columnDriver"),
+    field: "driver_connected",
+    align: "center" as const,
+  },
+  {
+    name: "broker_connected",
+    label: t("dataGuard.columnBroker"),
+    field: "broker_connected",
+    align: "center" as const,
+  },
+  {
+    name: "protocol_version",
+    label: t("dataGuard.columnProtocol"),
+    field: "protocol_version",
+    align: "center" as const,
+  },
+  {
+    name: "active_sessions",
+    label: t("dataGuard.columnSessions"),
+    field: "active_sessions",
+    align: "center" as const,
+  },
+  {
+    name: "queued_events",
+    label: t("dataGuard.columnQueued"),
+    field: "queued_events",
+    align: "center" as const,
+  },
+  {
+    name: "detail",
+    label: t("dataGuard.columnDetail"),
+    field: "detail",
+    align: "left" as const,
+  },
+  {
+    name: "reported_at",
+    label: t("dataGuard.columnReported"),
+    field: "reported_at",
+    align: "left" as const,
+    sortable: true,
+  },
+]);
+
+function dataGuardProtected(row: any) {
+  return (
+    row?.state === "ready" &&
+    row?.driver_connected &&
+    row?.broker_connected &&
+    Number(row?.protocol_version) === 2
+  );
+}
+
+function dataGuardStateColor(row: any) {
+  if (dataGuardProtected(row)) return "positive";
+  if (
+    row?.state === "degraded" ||
+    row?.driver_connected ||
+    row?.broker_connected
+  )
+    return "warning";
+  return "negative";
+}
 
 function formatDLPPolicyTarget(row: any) {
   if (row.scope === "device")
@@ -4429,7 +4635,10 @@ function formatUSBPolicyTarget(row: any) {
   }
   if (row.scope === "device_group") {
     return (
-      optionLabelByValue(forensicDeviceGroupOptions.value, row.target_device_group_id) ||
+      optionLabelByValue(
+        forensicDeviceGroupOptions.value,
+        row.target_device_group_id,
+      ) ||
       (row.target_device_group_id
         ? `Device group #${row.target_device_group_id}`
         : "No device group selected")
@@ -4519,11 +4728,14 @@ async function loadUSB() {
 async function loadUSBEvents() {
   loadingUSBEvents.value = true;
   try {
-    const params: Record<string, string> = { incident_type: "unauthorized_usb" };
+    const params: Record<string, string> = {
+      incident_type: "unauthorized_usb",
+    };
     if (usbEventAgentFilter.value) {
       params.agent_id = usbEventAgentFilter.value;
     }
-    usbEvents.value = (await axios.get("/security/incidents/", { params })).data || [];
+    usbEvents.value =
+      (await axios.get("/security/incidents/", { params })).data || [];
   } finally {
     loadingUSBEvents.value = false;
   }
@@ -4534,6 +4746,16 @@ async function loadDLP() {
     dlpPolicies.value = (await axios.get("/security/dlp/")).data;
   } finally {
     loadingDLP.value = false;
+  }
+}
+
+async function loadDataGuardStatuses() {
+  loadingDataGuard.value = true;
+  try {
+    dataGuardStatuses.value =
+      (await axios.get("/security/dlp/dataguard/status/")).data || [];
+  } finally {
+    loadingDataGuard.value = false;
   }
 }
 
@@ -4637,7 +4859,10 @@ function emailDLPPayload() {
 
 async function runInternalEmailDLPTest(live = false) {
   if (live && !emailDLPRecipients().length) {
-    $q.notify({ type: "warning", message: "Recipient is required for live SMTP test" });
+    $q.notify({
+      type: "warning",
+      message: "Recipient is required for live SMTP test",
+    });
     return;
   }
   emailDLPTesting.value = !live;
@@ -4646,9 +4871,7 @@ async function runInternalEmailDLPTest(live = false) {
     const endpoint = live
       ? "/security/dlp/email/live-test/"
       : "/security/dlp/email/internal-test/";
-    emailDLPResult.value = (
-      await axios.post(endpoint, emailDLPPayload())
-    ).data;
+    emailDLPResult.value = (await axios.post(endpoint, emailDLPPayload())).data;
     $q.notify({
       color: emailDLPResult.value.allowed ? "positive" : "negative",
       icon: emailDLPResult.value.allowed ? "check" : "block",
@@ -4815,8 +5038,12 @@ function showUSBDialog(item?: any) {
     enabled: true,
   };
   usbForm.value = item ? { ...defaults, ...item } : defaults;
-  usbAllowedIdsInput.value = (usbForm.value.allowed_device_ids || []).join("\n");
-  usbBlockedIdsInput.value = (usbForm.value.blocked_device_ids || []).join("\n");
+  usbAllowedIdsInput.value = (usbForm.value.allowed_device_ids || []).join(
+    "\n",
+  );
+  usbBlockedIdsInput.value = (usbForm.value.blocked_device_ids || []).join(
+    "\n",
+  );
   usbDialogOpen.value = true;
 }
 
@@ -5077,10 +5304,17 @@ async function massWipeIncident(incident: any) {
 }
 
 async function massWipeSelectedIncidents() {
-  const incidentIds = Array.from(new Set(selectedIncidents.value.map((row) => row.id).filter(Boolean)));
-  const agentIds = Array.from(new Set(selectedIncidents.value.map((row) => row.agent_id).filter(Boolean)));
+  const incidentIds = Array.from(
+    new Set(selectedIncidents.value.map((row) => row.id).filter(Boolean)),
+  );
+  const agentIds = Array.from(
+    new Set(selectedIncidents.value.map((row) => row.agent_id).filter(Boolean)),
+  );
   if (!incidentIds.length || !agentIds.length) {
-    $q.notify({ message: "Select incidents with linked agents first", color: "warning" });
+    $q.notify({
+      message: "Select incidents with linked agents first",
+      color: "warning",
+    });
     return;
   }
 
@@ -5120,6 +5354,7 @@ onMounted(() => {
   loadUSB();
   loadUSBEvents();
   loadDLP();
+  loadDataGuardStatuses();
   loadDLPViolations();
   loadDLPQuarantine();
   loadForensicJobTypes();
@@ -5244,7 +5479,7 @@ function defaultForensicWizardForm() {
     max_size_bytes: null as number | null,
     modified_after: "",
     modified_before: "",
-    external_ref: "", 
+    external_ref: "",
     engine: "builtin",
     approval_status: "not_required",
     only_non_compliant: false,
@@ -5286,7 +5521,6 @@ const forensicKeywordsInput = ref("");
 const forensicPathGlobsInput = ref("");
 const forensicPolicyKeywordsInput = ref("");
 const forensicPolicyPathGlobsInput = ref("");
-
 
 const forensicColumns = [
   { name: "agent_id", label: "Device", field: "agent_id", align: "left" },
@@ -5461,7 +5695,10 @@ async function openForensicSettingsDialog() {
 async function saveForensicSettings() {
   savingForensicSettings.value = true;
   try {
-    await axios.put("/security/forensics/settings/", forensicSettingsForm.value);
+    await axios.put(
+      "/security/forensics/settings/",
+      forensicSettingsForm.value,
+    );
     $q.notify({
       message: "Forensics settings saved",
       color: "positive",
@@ -5519,10 +5756,10 @@ async function loadForensicsAudit() {
   }
 }
 
-
 function showNonComplianceForensicWizard() {
   forensicWizardForm.value = {
-    agent_id: agentOptions.value.length === 1 ? agentOptions.value[0].value : "",
+    agent_id:
+      agentOptions.value.length === 1 ? agentOptions.value[0].value : "",
     title: "Non-compliance forensic carve",
     reason: "Automatic collection gated to non-compliant devices",
     job_types: ["keyword_carve", "crash_dumps", "tool_export"],
@@ -5539,7 +5776,6 @@ function showNonComplianceForensicWizard() {
   forensicPathGlobsInput.value = forensicWizardForm.value.path_globs.join(", ");
   showForensicWizard.value = true;
 }
-
 
 async function exportForensicsPdf() {
   if (!forensicsReport.value) {
@@ -5703,7 +5939,9 @@ function isForensicSystemManifest(artifact: any) {
 
 function forensicArtifactCount(row: any) {
   if (!Array.isArray(row?.artifacts)) return 0;
-  return row.artifacts.filter((artifact: any) => !isForensicSystemManifest(artifact)).length;
+  return row.artifacts.filter(
+    (artifact: any) => !isForensicSystemManifest(artifact),
+  ).length;
 }
 
 function openForensicJobDialog() {
@@ -5754,7 +5992,6 @@ function normalizeForensicPayload(payload: any) {
   return normalized;
 }
 
-
 async function submitForensicJob() {
   try {
     if (!forensicWizardForm.value.agent_id) {
@@ -5780,7 +6017,8 @@ async function submitForensicJob() {
       !forensicWizardForm.value.keywords.length
     ) {
       $q.notify({
-        message: "Enter a running process name or PID in Keywords for live memory dump",
+        message:
+          "Enter a running process name or PID in Keywords for live memory dump",
         color: "warning",
       });
       return;
@@ -5832,7 +6070,8 @@ async function submitForensicPolicy() {
     !forensicPolicyForm.value.keywords.length
   ) {
     $q.notify({
-      message: "Enter a running process name or PID in Keywords for live memory dump",
+      message:
+        "Enter a running process name or PID in Keywords for live memory dump",
       color: "warning",
     });
     return;
@@ -5976,9 +6215,12 @@ function openIRCase(row: any) {
 
 async function downloadForensicToolExport(row: any, format = "generic") {
   try {
-    const r = await axios.get(`/security/forensics/jobs/${row.id}/tool-export/`, {
-      params: { tool: format },
-    });
+    const r = await axios.get(
+      `/security/forensics/jobs/${row.id}/tool-export/`,
+      {
+        params: { tool: format },
+      },
+    );
     const payload = JSON.stringify(r.data, null, 2);
     const filename = `forensics-${row.id}-${format}-manifest.json`;
     const status = exportFile(filename, payload, "application/json");
