@@ -312,5 +312,85 @@ export default {
   Publisher: "Nhà phát hành",
   "Use this if the agent is already visible in the admin console but was not linked automatically.":
     "Dùng tùy chọn này nếu tác nhân đã hiển thị trong bảng điều khiển quản trị nhưng chưa được liên kết tự động.",
+  Support: "Hỗ trợ",
+  Portal: "Cổng thông tin",
+  "Privacy Terms": "Điều khoản quyền riêng tư",
+  "Privacy terms are not configured.":
+    "Chưa cấu hình điều khoản quyền riêng tư.",
+  "Primary CYWM database": "Cơ sở dữ liệu CYWM chính",
+  "I accept the organization privacy and device management terms. The organization may manage corporate apps, security policies, workspace/container data, and selective wipe for this device.":
+    "Tôi chấp nhận các điều khoản về quyền riêng tư và quản lý thiết bị của tổ chức. Tổ chức có thể quản lý ứng dụng doanh nghiệp, chính sách bảo mật, dữ liệu không gian làm việc/vùng chứa và thực hiện xóa có chọn lọc trên thiết bị này.",
+  FAQ: "Câu hỏi thường gặp",
+  Guides: "Hướng dẫn",
+  Compliance: "Tuân thủ",
+  "IT Policies": "Chính sách CNTT",
+  "Corporate data boundary": "Phạm vi dữ liệu doanh nghiệp",
+  "BYOD summary": "Tóm tắt BYOD",
+  "Corporate data must stay inside managed workspaces and approved applications. Non-compliant devices can lose access until remediated.":
+    "Dữ liệu doanh nghiệp phải được lưu giữ trong không gian làm việc được quản lý và các ứng dụng đã được phê duyệt. Thiết bị không tuân thủ có thể bị thu hồi quyền truy cập cho đến khi được khắc phục.",
+  "Personal devices may be enrolled for corporate access. Selective wipe removes only organizational data where supported.":
+    "Thiết bị cá nhân có thể được đăng ký để truy cập tài nguyên doanh nghiệp. Tính năng xóa có chọn lọc chỉ xóa dữ liệu của tổ chức trên các thiết bị được hỗ trợ.",
+  "How do I enroll my device?": "Làm cách nào để đăng ký thiết bị của tôi?",
+  "What happens if I lose my device?":
+    "Điều gì xảy ra nếu tôi làm mất thiết bị?",
+  "Open My Devices, click Enroll New Device, accept the privacy notice, then download and run the generated Windows installer.":
+    "Mở Thiết bị của tôi, nhấp vào Đăng ký thiết bị mới, chấp nhận thông báo quyền riêng tư, sau đó tải xuống và chạy bộ cài Windows được tạo.",
+  "Use Report Lost Device immediately. The portal can notify administrators and run remote lock or selective wipe when the endpoint is managed.":
+    "Sử dụng chức năng Báo mất thiết bị ngay lập tức. Cổng thông tin có thể thông báo cho quản trị viên và thực hiện khóa từ xa hoặc xóa có chọn lọc khi thiết bị đầu cuối được quản lý.",
+  "Open App Catalog, choose the target managed device, and request installation. IT approval dispatches the installation policy to the selected endpoint.":
+    "Mở Danh mục ứng dụng, chọn thiết bị đích được quản lý và yêu cầu cài đặt. Sau khi IT phê duyệt, chính sách cài đặt sẽ được gửi đến thiết bị đã chọn.",
+  "To enroll your device, go to <b>My Devices</b> tab and click <b>Enroll New Device</b>. Fill in the device name, type, and OS version. Your IT administrator will review and approve the enrollment.":
+    "Để đăng ký thiết bị, hãy mở thẻ <b>Thiết bị của tôi</b> và nhấp vào <b>Đăng ký thiết bị mới</b>. Điền tên, loại thiết bị và phiên bản hệ điều hành. Quản trị viên IT sẽ xem xét và phê duyệt yêu cầu đăng ký.",
+  "Immediately report the loss using the <b>Report Lost Device</b> tab. You can remotely lock or wipe the device. Contact IT Security at ext. 555 for urgent assistance.":
+    "Hãy báo mất ngay bằng thẻ <b>Báo mất thiết bị</b>. Bạn có thể khóa hoặc xóa thiết bị từ xa. Liên hệ bộ phận Bảo mật IT theo số máy lẻ 555 nếu cần hỗ trợ khẩn cấp.",
+  "Browse the <b>App Catalog</b> to find approved applications. Click Install and follow the prompts. Unauthorized software installation is prohibited per IT Policy.":
+    "Duyệt <b>Danh mục ứng dụng</b> để tìm ứng dụng đã được phê duyệt. Nhấp vào Cài đặt và làm theo hướng dẫn. Chính sách CNTT nghiêm cấm cài đặt phần mềm chưa được phê duyệt.",
+  "All personal data must be handled in accordance with GDPR. Do not store personal data on personal devices. Encrypt sensitive files. Report data breaches within 72 hours.":
+    "Mọi dữ liệu cá nhân phải được xử lý theo GDPR. Không lưu dữ liệu cá nhân trên thiết bị riêng. Hãy mã hóa tệp nhạy cảm và báo cáo vi phạm dữ liệu trong vòng 72 giờ.",
+  "Minimum 8 characters, must include uppercase, lowercase, numbers and special characters. Change every 90 days. Do not reuse last 5 passwords. Enable MFA for remote access.":
+    "Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt. Đổi mật khẩu sau mỗi 90 ngày, không dùng lại 5 mật khẩu gần nhất và bật MFA khi truy cập từ xa.",
+  "Standard users can install pre-approved software, access corporate resources, use VPN. Cannot install unapproved software, change system settings or access restricted shares.":
+    "Người dùng tiêu chuẩn có thể cài đặt phần mềm đã được phê duyệt, truy cập tài nguyên doanh nghiệp và sử dụng VPN. Không thể cài đặt phần mềm chưa được phê duyệt, thay đổi cài đặt hệ thống hoặc truy cập vùng chia sẻ bị hạn chế.",
+  "IT Administrators have full device management capabilities. Administrator access is audited and logged. Any changes must comply with Change Management Policy.":
+    "Quản trị viên IT có đầy đủ khả năng quản lý thiết bị. Quyền truy cập quản trị được kiểm toán và ghi nhật ký. Mọi thay đổi phải tuân thủ Chính sách quản lý thay đổi.",
+  "Personal devices used for work must be enrolled in MDM. Minimum OS versions required. Corporate data may be remotely wiped if device is lost or employment ends.":
+    "Thiết bị cá nhân dùng cho công việc phải được đăng ký trong MDM và đáp ứng phiên bản hệ điều hành tối thiểu. Dữ liệu doanh nghiệp có thể bị xóa từ xa nếu thiết bị bị mất hoặc quan hệ lao động kết thúc.",
+  "Corporate devices are for business use. Personal use must not interfere with work. Prohibited: piracy, inappropriate content, unauthorized access. Violations may result in disciplinary action.":
+    "Thiết bị doanh nghiệp được sử dụng cho công việc. Việc sử dụng cá nhân không được ảnh hưởng đến công việc. Nghiêm cấm vi phạm bản quyền, nội dung không phù hợp và truy cập trái phép. Vi phạm có thể dẫn đến xử lý kỷ luật.",
+  "1. Go to Settings > Network > VPN\n2. Click Add a VPN connection\n3. Use the credentials provided by IT\n4. Connect to 'Corporate VPN'\n\nFor issues, contact helpdesk@company.com":
+    "1. Mở Cài đặt > Mạng > VPN\n2. Nhấp vào Thêm kết nối VPN\n3. Sử dụng thông tin đăng nhập do IT cung cấp\n4. Kết nối với 'Corporate VPN'\n\nNếu gặp sự cố, hãy liên hệ helpdesk@company.com",
+  "Read More": "Đọc thêm",
+  'No articles found for "{search}". Try different keywords.':
+    'Không tìm thấy bài viết cho "{search}". Hãy thử từ khóa khác.',
+  "Policy Clarification": "Yêu cầu làm rõ chính sách",
+  "Technical Issue": "Sự cố kỹ thuật",
+  "Feature Request": "Yêu cầu tính năng",
+  "Request submitted! Reference: #{reference}":
+    "Đã gửi yêu cầu! Mã tham chiếu: #{reference}",
+  "Important:": "Quan trọng:",
+  "If your device has been lost or stolen, use the buttons below to immediately lock it or wipe organization data. This action cannot be undone.":
+    "Nếu thiết bị của bạn bị mất hoặc bị đánh cắp, hãy sử dụng các nút bên dưới để khóa thiết bị ngay lập tức hoặc xóa dữ liệu của tổ chức. Không thể hoàn tác thao tác này.",
+  "Not registered with agent": "Chưa đăng ký với tác nhân",
+  "Immediately lock the screen. Organization data remains intact. The device will require password to unlock.":
+    "Khóa màn hình ngay lập tức. Dữ liệu của tổ chức vẫn được giữ nguyên và cần mật khẩu để mở khóa thiết bị.",
+  "Open the managed-device action panel to set a new local password through the audited agent channel.":
+    "Mở bảng tác vụ của thiết bị được quản lý để đặt mật khẩu cục bộ mới thông qua kênh tác nhân có kiểm toán.",
+  "Remove all organization data, apps, and container data from the device. Personal data is preserved.":
+    "Xóa toàn bộ dữ liệu, ứng dụng và dữ liệu vùng chứa của tổ chức khỏi thiết bị. Dữ liệu cá nhân vẫn được giữ nguyên.",
+  "Lost (misplaced)": "Bị mất (thất lạc)",
+  Stolen: "Bị đánh cắp",
+  "Left unattended": "Bỏ quên không giám sát",
+  "Lock Device?": "Khóa thiết bị?",
+  "Wipe Organization Data?": "Xóa dữ liệu của tổ chức?",
+  "This will immediately lock your device remotely.":
+    "Thao tác này sẽ khóa thiết bị của bạn từ xa ngay lập tức.",
+  "This will remove ALL organization data from your device. Are you sure?":
+    "Thao tác này sẽ xóa TOÀN BỘ dữ liệu của tổ chức khỏi thiết bị. Bạn có chắc chắn không?",
+  "Lock command sent successfully. Your device will be locked shortly.":
+    "Đã gửi lệnh khóa thành công. Thiết bị của bạn sẽ sớm được khóa.",
+  "Wipe command sent. Organization data will be removed from your device.":
+    "Đã gửi lệnh xóa. Dữ liệu của tổ chức sẽ được xóa khỏi thiết bị.",
+  "Failed to submit report. Please try again.":
+    "Không thể gửi báo cáo. Vui lòng thử lại.",
   x64: "x64",
 };

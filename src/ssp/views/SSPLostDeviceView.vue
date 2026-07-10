@@ -2,21 +2,27 @@
   <q-page class="q-pa-md ssp-lost-device-page">
     <div class="text-h6 q-mb-md text-negative">
       <q-icon name="report_problem" class="q-mr-sm" />
-      {{ $t('ssp.views.SSPLostDeviceView.8a456c') }}
+      {{ $t("ssp.views.SSPLostDeviceView.8a456c") }}
     </div>
 
     <q-banner class="bg-warning text-dark rounded-borders q-mb-lg">
       <template v-slot:avatar>
         <q-icon name="warning" />
       </template>
-      <strong>{{ $t('ssp.views.SSPLostDeviceView.18dd7e') }}</strong> If your device has been lost or stolen, use the buttons below
-      to immediately lock it or wipe organization data. This action cannot be undone.
+      <strong>{{ t("Important:") }}</strong>
+      {{
+        t(
+          "If your device has been lost or stolen, use the buttons below to immediately lock it or wipe organization data. This action cannot be undone.",
+        )
+      }}
     </q-banner>
 
     <!-- Device selector -->
     <q-card flat bordered class="q-mb-md">
       <q-card-section>
-        <div class="text-subtitle1 q-mb-md">{{ $t('ssp.views.SSPLostDeviceView.87a475') }}</div>
+        <div class="text-subtitle1 q-mb-md">
+          {{ $t("ssp.views.SSPLostDeviceView.87a475") }}
+        </div>
         <q-select
           v-model="selectedDevice"
           :options="deviceOptions"
@@ -29,7 +35,8 @@
         />
         <div class="q-mt-sm" v-if="selectedDevice">
           <div class="text-caption text-grey">
-            Agent ID: {{ selectedDevice.agent_id || "Not registered with agent" }}
+            {{ t("Agent ID") }}:
+            {{ selectedDevice.agent_id || t("Not registered with agent") }}
           </div>
         </div>
       </q-card-section>
@@ -40,10 +47,15 @@
       <q-card class="col-12 col-sm-5 action-card">
         <q-card-section class="text-center">
           <q-icon name="lock" size="48px" color="warning" />
-          <div class="text-h6 q-mt-sm">{{ $t('ssp.views.SSPLostDeviceView.7bdbd3') }}</div>
+          <div class="text-h6 q-mt-sm">
+            {{ $t("ssp.views.SSPLostDeviceView.7bdbd3") }}
+          </div>
           <div class="text-caption text-grey q-mt-xs">
-            Immediately lock the screen. Organization data remains intact.
-            The device will require password to unlock.
+            {{
+              t(
+                "Immediately lock the screen. Organization data remains intact. The device will require password to unlock.",
+              )
+            }}
           </div>
         </q-card-section>
         <q-card-actions align="center">
@@ -58,31 +70,43 @@
         </q-card-actions>
       </q-card>
 
-      <q-card class="col-12 col-sm-5 action-card" v-if="selectedDevice?.agent_id">
+      <q-card
+        class="col-12 col-sm-5 action-card"
+        v-if="selectedDevice?.agent_id"
+      >
         <q-card-section class="text-center">
           <q-icon name="password" size="48px" color="primary" />
-          <div class="text-h6 q-mt-sm">Reset Device Password</div>
+          <div class="text-h6 q-mt-sm">{{ t("Reset Device Password") }}</div>
           <div class="text-caption text-grey q-mt-xs">
-            Open the managed-device action panel to set a new local password through the audited agent channel.
+            {{
+              t(
+                "Open the managed-device action panel to set a new local password through the audited agent channel.",
+              )
+            }}
           </div>
         </q-card-section>
         <q-card-actions align="center">
           <q-btn
             color="primary"
             icon="password"
-            label="Open reset"
+            :label="t('Open reset')"
             @click="router.push('/ssp/devices')"
           />
         </q-card-actions>
       </q-card>
 
       <!-- Emergency Geo-Lock (func #689) -->
-      <q-card class="col-12 col-sm-5 action-card" v-if="selectedDevice?.agent_id">
+      <q-card
+        class="col-12 col-sm-5 action-card"
+        v-if="selectedDevice?.agent_id"
+      >
         <q-card-section class="text-center">
           <q-icon name="location_on" size="48px" color="deep-orange" />
-          <div class="text-h6 q-mt-sm">{{ $t('ssp.views.SSPLostDeviceView.170965') }}</div>
+          <div class="text-h6 q-mt-sm">
+            {{ $t("ssp.views.SSPLostDeviceView.170965") }}
+          </div>
           <div class="text-caption text-grey q-mt-xs">
-            {{ $t('ssp.views.SSPLostDeviceView.a4eb6b') }}
+            {{ $t("ssp.views.SSPLostDeviceView.a4eb6b") }}
           </div>
         </q-card-section>
         <q-card-actions align="center">
@@ -99,10 +123,15 @@
       <q-card class="col-12 col-sm-5 action-card">
         <q-card-section class="text-center">
           <q-icon name="delete_sweep" size="48px" color="negative" />
-          <div class="text-h6 q-mt-sm">{{ $t('ssp.views.SSPLostDeviceView.eabea8') }}</div>
+          <div class="text-h6 q-mt-sm">
+            {{ $t("ssp.views.SSPLostDeviceView.eabea8") }}
+          </div>
           <div class="text-caption text-grey q-mt-xs">
-            Remove all organization data, apps, and container data from the device.
-            Personal data is preserved.
+            {{
+              t(
+                "Remove all organization data, apps, and container data from the device. Personal data is preserved.",
+              )
+            }}
           </div>
         </q-card-section>
         <q-card-actions align="center">
@@ -121,15 +150,13 @@
     <!-- Report form -->
     <q-card flat bordered>
       <q-card-section>
-        <div class="text-subtitle1 q-mb-md">{{ $t('ssp.views.SSPLostDeviceView.fe10ee') }}</div>
+        <div class="text-subtitle1 q-mb-md">
+          {{ $t("ssp.views.SSPLostDeviceView.fe10ee") }}
+        </div>
         <q-form @submit="submitReport" class="q-gutter-md">
           <q-select
             v-model="reportForm.incident_type"
-            :options="[
-              { label: 'Lost (misplaced)', value: 'lost' },
-              { label: 'Stolen', value: 'stolen' },
-              { label: 'Left unattended', value: 'unattended' },
-            ]"
+            :options="incidentTypeOptions"
             :label="$t('ssp.views.SSPLostDeviceView.289ae5')"
             outlined
             dense
@@ -151,8 +178,18 @@
             dense
           />
           <div class="row q-gutter-sm">
-            <q-btn type="submit" color="negative" icon="send" :label="$t('ssp.views.SSPLostDeviceView.1ca000')" :loading="submitting" />
-            <q-btn flat :label="$t('ssp.views.SSPLostDeviceView.77dfd2')" @click="$router.push('/ssp/devices')" />
+            <q-btn
+              type="submit"
+              color="negative"
+              icon="send"
+              :label="$t('ssp.views.SSPLostDeviceView.1ca000')"
+              :loading="submitting"
+            />
+            <q-btn
+              flat
+              :label="$t('ssp.views.SSPLostDeviceView.77dfd2')"
+              @click="$router.push('/ssp/devices')"
+            />
           </div>
         </q-form>
       </q-card-section>
@@ -176,11 +213,13 @@
 import { ref, onMounted, computed } from "vue";
 import { useQuasar } from "quasar";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import axios from "axios";
 
 const $q = useQuasar();
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 
 const devices = ref<any[]>([]);
 const selectedDevice = ref<any>(null);
@@ -194,11 +233,17 @@ const reportForm = ref({
   contact_number: "",
 });
 
+const incidentTypeOptions = computed(() => [
+  { label: t("Lost (misplaced)"), value: "lost" },
+  { label: t("Stolen"), value: "stolen" },
+  { label: t("Left unattended"), value: "unattended" },
+]);
+
 const deviceOptions = computed(() =>
   devices.value.map((d) => ({
-    label: `${d.device_name} (${d.os_info || "Unknown OS"})`,
+    label: `${d.device_name} (${d.os_info || t("Unknown OS")})`,
     value: d,
-  }))
+  })),
 );
 
 async function loadDevices() {
@@ -207,7 +252,8 @@ async function loadDevices() {
     // Pre-select device from query params if provided
     const deviceId = route.query.device_id;
     if (deviceId) {
-      selectedDevice.value = devices.value.find((d) => String(d.id) === String(deviceId)) || null;
+      selectedDevice.value =
+        devices.value.find((d) => String(d.id) === String(deviceId)) || null;
     }
   } catch {
     devices.value = [];
@@ -216,19 +262,30 @@ async function loadDevices() {
 
 async function performAction(actionType: string) {
   if (!selectedDevice.value?.agent_id) {
-    $q.notify({ message: "This device has no registered agent. Please contact IT.", color: "warning" });
+    $q.notify({
+      message: t("This device has no registered agent. Please contact IT."),
+      color: "warning",
+    });
     return;
   }
 
   const confirmed = await new Promise<boolean>((resolve) => {
     $q.dialog({
-      title: actionType === "lock" ? "Lock Device?" : "Wipe Organization Data?",
+      title:
+        actionType === "lock"
+          ? t("Lock Device?")
+          : t("Wipe Organization Data?"),
       message:
         actionType === "lock"
-          ? "This will immediately lock your device remotely."
-          : "This will remove ALL organization data from your device. Are you sure?",
+          ? t("This will immediately lock your device remotely.")
+          : t(
+              "This will remove ALL organization data from your device. Are you sure?",
+            ),
       cancel: true,
-      ok: { label: "Confirm", color: actionType === "lock" ? "warning" : "negative" },
+      ok: {
+        label: t("Confirm"),
+        color: actionType === "lock" ? "warning" : "negative",
+      },
     })
       .onOk(() => resolve(true))
       .onCancel(() => resolve(false));
@@ -240,26 +297,35 @@ async function performAction(actionType: string) {
   actionResult.value = null;
 
   try {
-    await axios.post(`/appmanagement/ssp/devices/${selectedDevice.value.id}/actions/`, {
-      action_type: actionType,
-      reason: `SSP: Device reported as ${reportForm.value.incident_type}`,
-      details: {
-        incident_type: reportForm.value.incident_type,
-        description: reportForm.value.description,
-        contact_number: reportForm.value.contact_number,
+    await axios.post(
+      `/appmanagement/ssp/devices/${selectedDevice.value.id}/actions/`,
+      {
+        action_type: actionType,
+        reason: `SSP: Device reported as ${reportForm.value.incident_type}`,
+        details: {
+          incident_type: reportForm.value.incident_type,
+          description: reportForm.value.description,
+          contact_number: reportForm.value.contact_number,
+        },
       },
-    });
+    );
     actionResult.value = {
       success: true,
       message:
         actionType === "lock"
-          ? "Lock command sent successfully. Your device will be locked shortly."
-          : "Wipe command sent. Organization data will be removed from your device.",
+          ? t(
+              "Lock command sent successfully. Your device will be locked shortly.",
+            )
+          : t(
+              "Wipe command sent. Organization data will be removed from your device.",
+            ),
     };
   } catch (e: any) {
     actionResult.value = {
       success: false,
-      message: "Failed to send command. Please contact your IT administrator.",
+      message: t(
+        "Failed to send command. Please contact your IT administrator.",
+      ),
     };
   } finally {
     actionLoading.value = null;
@@ -270,26 +336,30 @@ async function submitReport() {
   submitting.value = true;
   try {
     if (!selectedDevice.value?.id) {
-      $q.notify({ message: "Select a device first.", color: "warning" });
+      $q.notify({ message: t("Select a device first."), color: "warning" });
       return;
     }
 
-    await axios.post(`/appmanagement/ssp/devices/${selectedDevice.value.id}/actions/`, {
-      action_type: "report_lost",
-      reason: `Device ${reportForm.value.incident_type} reported from SSP`,
-      details: {
-        incident_type: reportForm.value.incident_type,
-        description: reportForm.value.description,
-        contact_number: reportForm.value.contact_number,
-        lock: !!selectedDevice.value?.agent_id,
+    await axios.post(
+      `/appmanagement/ssp/devices/${selectedDevice.value.id}/actions/`,
+      {
+        action_type: "report_lost",
+        reason: `Device ${reportForm.value.incident_type} reported from SSP`,
+        details: {
+          incident_type: reportForm.value.incident_type,
+          description: reportForm.value.description,
+          contact_number: reportForm.value.contact_number,
+          lock: !!selectedDevice.value?.agent_id,
+        },
       },
-    });
+    );
 
     try {
       await axios.post("/security/incidents/", {
         agent_id: selectedDevice.value?.agent_id || "unknown",
         incident_type: "other",
-        severity: reportForm.value.incident_type === "stolen" ? "high" : "medium",
+        severity:
+          reportForm.value.incident_type === "stolen" ? "high" : "medium",
         title: `Device ${reportForm.value.incident_type} reported by SSP user`,
         description: `${reportForm.value.description}\nContact: ${reportForm.value.contact_number}`,
         status: "open",
@@ -299,13 +369,18 @@ async function submitReport() {
     }
 
     $q.notify({
-      message: "Report submitted successfully. IT team will contact you.",
+      message: t("Report submitted successfully. IT team will contact you."),
       color: "positive",
       icon: "check",
     });
     router.push("/ssp/devices");
   } catch (e: any) {
-    $q.notify({ message: e?.response?.data?.error || "Failed to submit report. Please try again.", color: "negative" });
+    $q.notify({
+      message: e?.response?.data?.error
+        ? t(String(e.response.data.error))
+        : t("Failed to submit report. Please try again."),
+      color: "negative",
+    });
   } finally {
     submitting.value = false;
   }
