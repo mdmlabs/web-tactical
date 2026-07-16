@@ -85,6 +85,66 @@
           </q-card-section>
         </q-card>
 
+        <q-card flat bordered class="q-mb-md app-priority-inspector">
+          <q-card-section class="q-pb-sm">
+            <div class="row items-center q-col-gutter-sm">
+              <div class="col-12 col-lg">
+                <div class="text-subtitle2">Effective Application Rule Priority</div>
+                <div class="text-caption text-grey-7">
+                  {{ selectedAppAgentId ? `Resolved for ${selectedAppAgentLabel}` : 'Select a device to inspect its effective rules.' }}
+                </div>
+              </div>
+              <div class="col-auto row q-gutter-xs">
+                <q-chip dense color="negative" text-color="white" icon="looks_one">Blocklist wins</q-chip>
+                <q-chip dense color="positive" text-color="white" icon="looks_two">Allowlist</q-chip>
+                <q-chip dense color="blue-grey-5" text-color="white" icon="looks_3">Default allow</q-chip>
+              </div>
+            </div>
+          </q-card-section>
+          <q-separator />
+          <q-table
+            :rows="appPriorityRows"
+            :columns="appPriorityColumns"
+            row-key="key"
+            dense
+            flat
+            :loading="loadingEffectiveAppPolicies"
+            :rows-per-page-options="[5, 10, 25, 0]"
+          >
+            <template v-slot:body-cell-entry="props">
+              <q-td :props="props">
+                <div class="text-weight-medium">{{ props.row.entry }}</div>
+                <div class="text-caption text-grey-7">{{ props.row.entry_type }}</div>
+              </q-td>
+            </template>
+            <template v-slot:body-cell-effective="props">
+              <q-td :props="props">
+                <q-chip dense :color="props.row.effective_color" text-color="white" :icon="props.row.priority === 1 ? 'block' : 'check_circle'">
+                  {{ props.row.effective }}
+                </q-chip>
+              </q-td>
+            </template>
+            <template v-slot:body-cell-rules="props">
+              <q-td :props="props">
+                <div v-if="props.row.block_rules.length" class="text-negative">
+                  Block: {{ props.row.block_rules.join(', ') }}
+                </div>
+                <div v-if="props.row.allow_rules.length" class="text-positive">
+                  Allow: {{ props.row.allow_rules.join(', ') }}
+                </div>
+                <div v-if="props.row.conflict" class="text-caption text-warning text-weight-medium">
+                  Allow rule ignored because blocklist has priority.
+                </div>
+              </q-td>
+            </template>
+            <template v-slot:no-data>
+              <div class="full-width text-center q-pa-md text-grey-7">
+                {{ selectedAppAgentId ? 'No explicit application rules apply to this device. Default action: allow.' : 'Select a device to calculate priority.' }}
+              </div>
+            </template>
+          </q-table>
+        </q-card>
+
         <div class="row q-col-gutter-md">
           <div class="col-12 col-xl-7">
             <q-card flat bordered class="fit">
@@ -2478,6 +2538,7 @@ const {
 const tab = ref("apps");
 
 const appPolicies = ref<any[]>([]);
+const effectiveAppPolicies = ref<any[]>([]);
 const appInventory = ref<any>({ installed: [], available: [], agents: [], summary: {} });
 const appDistributions = ref<any[]>([]);
 const distributionExecutions = ref<any[]>([]);
@@ -2504,6 +2565,7 @@ const distributionExecutionDialogOpen = ref(false);
 const selectedDistributionExecution = ref<any | null>(null);
 
 const loadingApps = ref(false);
+const loadingEffectiveAppPolicies = ref(false);
 const loadingAppInventory = ref(false);
 const refreshingInstalledApps = ref(false);
 const installingSelectedApps = ref(false);
@@ -3294,12 +3356,78 @@ const sspInfoArticleColumns = [
   { name: "actions", label: "", field: "actions", align: "right" },
 ];
 
-const activeBlockPolicies = computed(() => appPolicies.value.filter((p) => p.enabled && p.list_type === "blacklist"));
-const activeAllowPolicies = computed(() => appPolicies.value.filter((p) => p.enabled && p.list_type === "whitelist"));
+const effectivePolicySource = computed(() => selectedAppAgentId.value ? effectiveAppPolicies.value : appPolicies.value);
+const activeBlockPolicies = computed(() => effectivePolicySource.value.filter((p) => p.enabled && p.list_type === "blacklist"));
+const activeAllowPolicies = computed(() => effectivePolicySource.value.filter((p) => p.enabled && p.list_type === "whitelist"));
 const appPolicySelectorOptions = computed(() => appPolicies.value.map((policy: any) => ({
   label: `${policy.name || `Policy #${policy.id}`} (${policy.list_type || "policy"})`,
   value: policy.id,
 })));
+
+const appPriorityColumns = [
+  { name: "priority", label: "Priority", field: "priority", align: "center", sortable: true },
+  { name: "entry", label: "Application / match", field: "entry", align: "left", sortable: true },
+  { name: "effective", label: "Effective result", field: "effective", align: "center", sortable: true },
+  { name: "rules", label: "Matching rules", field: "rules", align: "left" },
+];
+
+const selectedAppAgentLabel = computed(() =>
+  appAgentOptions.value.find((row: any) => row.value === selectedAppAgentId.value)?.label || selectedAppAgentId.value
+);
+
+function priorityEntryKey(field: string, value: any): string {
+  const raw = String(value || "").trim().toLowerCase();
+  if (field === "app_names") return `${field}:${normaliseAppName(raw) || raw}`;
+  return `${field}:${raw}`;
+}
+
+const appPriorityRows = computed(() => {
+  const rows = new Map<string, any>();
+  const fields = [
+    { name: "app_names", label: "Application" },
+    { name: "app_publishers", label: "Publisher" },
+    { name: "app_hashes", label: "Hash" },
+  ];
+
+  const add = (policy: any, field: string, label: string, value: any, forcedType?: string) => {
+    const entry = String(value || "").trim();
+    if (!entry) return;
+    const key = priorityEntryKey(field, entry);
+    if (!rows.has(key)) {
+      rows.set(key, {
+        key,
+        entry,
+        entry_type: label,
+        block_rules: [],
+        allow_rules: [],
+      });
+    }
+    const row = rows.get(key);
+    const ruleName = policy.name || `Policy #${policy.id}`;
+    const type = forcedType || policy.list_type;
+    const target = type === "blacklist" ? row.block_rules : row.allow_rules;
+    if (!target.includes(ruleName)) target.push(ruleName);
+  };
+
+  for (const policy of effectiveAppPolicies.value.filter((row: any) => row.enabled)) {
+    for (const field of fields) {
+      for (const value of policy[field.name] || []) add(policy, field.name, field.label, value);
+      const removed = policy.conflict_resolution?.removed_allow_entries?.[field.name] || [];
+      for (const value of removed) add(policy, field.name, field.label, value, "whitelist");
+    }
+  }
+
+  return Array.from(rows.values())
+    .map((row: any) => ({
+      ...row,
+      priority: row.block_rules.length ? 1 : 2,
+      effective: row.block_rules.length ? "Blocked" : "Allowed",
+      effective_color: row.block_rules.length ? "negative" : "positive",
+      conflict: row.block_rules.length > 0 && row.allow_rules.length > 0,
+      rules: [...row.block_rules, ...row.allow_rules].join(", "),
+    }))
+    .sort((left: any, right: any) => left.priority - right.priority || left.entry.localeCompare(right.entry));
+});
 
 const appAgentOptions = computed(() => {
   const fromInventory = (appInventory.value.agents || []).map((a: any) => ({
@@ -3439,7 +3567,32 @@ async function loadApps() {
   } catch (e: any) {
     appPolicies.value = [];
     $q.notify({ message: e?.response?.data?.error || e?.message || "Failed to load app policies", color: "negative" });
-  } finally { loadingApps.value = false; }
+  } finally {
+    loadingApps.value = false;
+    if (selectedAppAgentId.value) void loadEffectiveAppPolicyPriorities();
+  }
+}
+
+async function loadEffectiveAppPolicyPriorities() {
+  if (!selectedAppAgentId.value) {
+    effectiveAppPolicies.value = [];
+    return;
+  }
+  loadingEffectiveAppPolicies.value = true;
+  try {
+    const response = await axios.get("/appmanagement/apps/", {
+      params: {
+        resolve: "effective",
+        target_agent_id: selectedAppAgentId.value,
+      },
+    });
+    effectiveAppPolicies.value = Array.isArray(response.data) ? response.data : [];
+  } catch (e: any) {
+    effectiveAppPolicies.value = [];
+    $q.notify({ message: e?.response?.data?.error || e?.message || "Failed to resolve effective app priorities", color: "negative" });
+  } finally {
+    loadingEffectiveAppPolicies.value = false;
+  }
 }
 
 async function loadAppInventory() {
@@ -5129,6 +5282,10 @@ onMounted(() => {
   loadAgentsForContainers();
 });
 
+watch(selectedAppAgentId, () => {
+  void loadEffectiveAppPolicyPriorities();
+});
+
 // ===== User Group Apps (#410) =====
 const selectedGroup = ref<any>(null);
 const userGroups = ref<any[]>([]);
@@ -5782,6 +5939,12 @@ async function extractFromContainer() {
   flex-wrap: wrap
   gap: 4px
   max-width: 520px
+
+.app-priority-inspector
+  border-left: 4px solid #1976d2
+
+.app-priority-inspector :deep(.q-table__middle)
+  max-height: 320px
 
 .distribution-choco-picker
   max-height: 360px
