@@ -232,7 +232,7 @@
             <div class="row q-gutter-sm q-mb-md items-center">
               <div>
                 <div class="text-subtitle2">Application Control Lists</div>
-                <div class="text-caption text-grey-7">Blocklist denies launch/install. Allowlist means only listed applications are allowed for matching devices.</div>
+                <div class="text-caption text-grey-7">Blocklist denies launch/install. Allowlist records explicit exceptions without blocking unlisted applications; an explicit block always takes priority.</div>
               </div>
               <q-space />
               <q-select v-model="appFilter.list_type" :options="[{label:'All',value:''},{label:'Blocklist',value:'blacklist'},{label:'Allowlist',value:'whitelist'}]"
