@@ -2350,7 +2350,18 @@
             dense
             emit-value
             map-options
+            @update:model-value="onUSBPolicyTypeChanged"
           />
+          <q-banner
+            v-if="usbForm.policy_type === 'whitelist'"
+            dense
+            rounded
+            class="bg-blue-1 text-blue-10"
+          >
+            The approved baseline allows only keyboards/mice, printers, and
+            smart-card USB tokens. For a storage-form USB token, add its VID/PID
+            below; generic USB storage remains blocked.
+          </q-banner>
           <q-select
             v-model="incidentForm.severity"
             :options="severityOptions"
@@ -2512,7 +2523,7 @@
           />
           <q-select
             v-model="usbForm.allowed_device_classes"
-            :options="usbClassOptions"
+            :options="usbForm.policy_type === 'whitelist' ? usbWhitelistClassOptions : usbClassOptions"
             label="Allowed device classes"
             outlined
             dense
@@ -2523,8 +2534,8 @@
           />
           <q-input
             v-model="usbAllowedIdsInput"
-            label="Allowed USB IDs"
-            hint="One VID/PID, hardware ID, or instance prefix per line"
+            label="Allowed USB token IDs"
+            hint="One VID/PID, hardware ID, or instance prefix per line; use this for storage-form tokens"
             type="textarea"
             rows="2"
             outlined
@@ -4037,6 +4048,9 @@ const usbClassOptions = [
   { label: "Network adapter", value: "network" },
   { label: "Serial / modem", value: "serial" },
 ];
+const usbWhitelistClassOptions = usbClassOptions.filter((option) =>
+  ["hid", "printer", "smart_card"].includes(option.value),
+);
 const usbScopeOptions = [
   { label: "Global (all devices)", value: "global" },
   { label: "Specific device", value: "device" },
@@ -4819,6 +4833,13 @@ function onUSBScopeChanged(scope: string) {
   usbForm.value.target_device_group_id = null;
   usbForm.value.target_user_id = null;
   usbForm.value.target_user_group_id = null;
+}
+
+function onUSBPolicyTypeChanged(policyType: string) {
+  usbForm.value.policy_type = policyType || "read_only";
+  if (usbForm.value.policy_type === "whitelist") {
+    usbForm.value.allowed_device_classes = ["hid", "printer", "smart_card"];
+  }
 }
 
 function normalizeUSBPayload(payload: any) {
