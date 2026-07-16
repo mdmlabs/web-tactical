@@ -2869,7 +2869,7 @@ function guessUploadedSilentPreset(fileName: string, packageType: string) {
   if (normalizedType === "msi") return "msi-standard";
   if (normalizedType === "exe") {
     if (lowerName.includes("anydesk")) return "anydesk-system";
-    if (/(^|[^a-z0-9])(7z|7zip)([^a-z0-9]|$)/i.test(lowerName)) return "nsis-s";
+    if (/(^|[^a-z0-9])7(?:z|zip)(?:[0-9]|[^a-z0-9]|$)/i.test(lowerName)) return "nsis-s";
     if (/(vc_redist|vcredist|dotnet|windowsdesktop|aspnetcore|ndp)/i.test(lowerName)) return "microsoft-runtime";
   }
   return "custom";
@@ -2923,7 +2923,8 @@ function uploadedInstallArgsForAction(payload: any, action = "install") {
 
 function uploadedInstallerNeedsArgs(payload: any, action = "install") {
   const packageType = uploadedPayloadPackageType(payload);
-  if (packageType !== "exe") return false;
+  const nestedInstaller = String(payload?.nested_installer || "").toLowerCase();
+  if (packageType !== "exe" && !(packageType === "zip" && nestedInstaller.endsWith(".exe"))) return false;
   if (payload?.allow_interactive) return false;
   return !uploadedInstallArgsForAction(payload, action).trim();
 }
@@ -2957,8 +2958,11 @@ const selectedDistributionUploadedPackageType = computed(() => {
 });
 
 const distributionUploadedExeWarning = computed(() => {
-  if (distributionForm.value.installer !== "uploaded" || selectedDistributionUploadedPackageType.value !== "exe") return "";
+  if (distributionForm.value.installer !== "uploaded") return "";
   const payload = objectOrEmpty(distributionForm.value.installer_payload);
+  if (selectedDistributionUploadedPackageType.value === "zip" && !String(payload.nested_installer || "").trim()) {
+    return "ZIP installers require the relative path to an MSI or EXE inside the archive (for example, setup\\installer.msi).";
+  }
   const action = String(distributionForm.value.action || "install").toLowerCase();
   if (uploadedInstallerNeedsArgs(payload, action)) {
     return "EXE installers need silent arguments for unattended deployment. Choose a preset or enter vendor arguments.";
