@@ -176,6 +176,38 @@
                 <q-toggle v-model="form.show_clock" :label="$t('winadvanced.components.KioskModePolicyPanel.035f53')" dense />
               </div>
 
+              <q-banner class="bg-orange-1 q-mt-sm rounded">
+                <template v-slot:avatar><q-icon name="security" color="orange-9" /></template>
+                <strong>Kiosk lockdown and administrator exit</strong>
+                <div class="text-caption">
+                  The kiosk profile applies only to the kiosk account. Use the
+                  breakout sequence to return to Windows sign-in, then sign in
+                  with a local administrator account. In multi-app mode with
+                  Keyboard Filter, F12 five times opens the sign-in screen.
+                </div>
+              </q-banner>
+              <div class="row q-gutter-sm items-center">
+                <q-toggle
+                  v-model="form.block_keyboard_shortcuts"
+                  label="Block kiosk escape shortcuts"
+                  dense
+                />
+                <q-toggle
+                  v-model="form.admin_exit_enabled"
+                  label="Allow administrator recovery"
+                  dense
+                />
+                <q-input
+                  v-if="form.block_keyboard_shortcuts"
+                  v-model="form.breakout_sequence"
+                  label="Administrator breakout sequence"
+                  hint="Single-app Assigned Access sequence"
+                  outlined
+                  dense
+                  style="min-width:260px"
+                />
+              </div>
+
               <!-- Restart behavior -->
               <q-banner class="bg-blue-1 q-mt-sm rounded">
                 <template v-slot:avatar><q-icon name="restart_alt" color="primary" /></template>
@@ -244,6 +276,9 @@ const defaultForm = () => ({
   target_user_id: null as number | null,
   target_user_group_id: null as number | null,
   target_users: [] as string[], show_taskbar: false, show_clock: false,
+  block_keyboard_shortcuts: true,
+  breakout_sequence: "Ctrl+Alt+Shift+F12",
+  admin_exit_enabled: true,
   enabled: true,
 });
 
