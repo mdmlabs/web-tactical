@@ -3377,9 +3377,9 @@ function appPolicyState(row: any) {
     if (allow) {
       return { state: "Allowed", color: "positive", reason: allow.name || "Allowlist" };
     }
-    return { state: "Not allowed", color: "warning", reason: "No allowlist match" };
+    return { state: "Allowed", color: "positive", reason: "No matching block rule" };
   }
-  return { state: "Allowed", color: "positive", reason: "No restrictive allowlist" };
+  return { state: "Allowed", color: "positive", reason: "No matching block rule" };
 }
 
 const installedAppRows = computed(() => {
