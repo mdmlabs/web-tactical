@@ -437,6 +437,18 @@
         <q-banner v-if="websiteLoadError" rounded dense class="bg-negative text-white q-mb-md">
           {{ websiteLoadError }}
         </q-banner>
+        <q-banner rounded class="bg-blue-1 text-primary q-mb-md">
+          <div class="text-weight-medium">Website rule behavior</div>
+          <div class="text-body2">
+            Blacklist blocks only the listed sites. Whitelist is deny-by-default:
+            every site not listed is blocked. An explicit blacklist rule has priority
+            over a matching whitelist rule.
+          </div>
+          <div v-if="websiteSystemUrls.length" class="q-mt-sm">
+            <span class="text-caption">Always available management endpoints:</span>
+            <q-chip v-for="host in websiteSystemUrls" :key="host" dense outline color="primary">{{ host }}</q-chip>
+          </div>
+        </q-banner>
         <div class="row q-gutter-sm q-mb-md">
           <q-btn color="negative" icon="block" :label="$t('appmanagement.views.AppManagementView.3c0f9c')" @click="showWebsiteDialog('blacklist')" />
           <q-btn color="positive" icon="check_circle" :label="$t('appmanagement.views.AppManagementView.a3b45a')" @click="showWebsiteDialog('whitelist')" />
@@ -2478,9 +2490,17 @@
             @filter="filterScopeUserGroups"
           />
           <q-input v-else label="Target" model-value="All matching devices" outlined dense readonly />
+          <q-banner v-if="websiteDialogType === 'whitelist'" rounded class="bg-orange-1 text-orange-10">
+            Whitelist blocks every website that is not listed below. Management
+            endpoints are added automatically so the device remains manageable.
+          </q-banner>
           <q-input v-model="websiteUrlsInput" :label="$t('appmanagement.views.AppManagementView.af0158')" outlined dense
             :hint="$t('appmanagement.views.AppManagementView.d5ac33')"
             @update:model-value="websiteForm.urls = websiteUrlsInput.split(',').map(s=>s.trim()).filter(Boolean)" />
+          <div v-if="websiteDialogType === 'whitelist' && websiteSystemUrls.length">
+            <div class="text-caption text-grey-7 q-mb-xs">Automatic system exceptions</div>
+            <q-chip v-for="host in websiteSystemUrls" :key="host" dense outline color="primary">{{ host }}</q-chip>
+          </div>
           <q-toggle v-model="websiteForm.enabled" :label="$t('appmanagement.views.AppManagementView.df174a')" />
         </q-card-section>
         <q-card-actions align="right">
@@ -2605,6 +2625,7 @@ const websiteDialogType = ref("blacklist");
 const editingWebsite = ref<any>(null);
 const savingWebsite = ref(false);
 const websiteLoadError = ref("");
+const websiteSystemUrls = ref<string[]>([]);
 const websiteUrlsInput = ref("");
 const websiteForm = ref<any>({
   name: "",
@@ -3252,6 +3273,7 @@ const uploadedInstallerColumns = [
 const websiteColumns = [
   { name: "name", label: "Name", field: "name", align: "left", sortable: true },
   { name: "list_type", label: "Type", field: "list_type", align: "center" },
+  { name: "urls", label: "Sites", field: (row: any) => (row.urls || []).join(", "), align: "left" },
   { name: "scope", label: "Scope", field: (row: any) => scopeLabel(row.scope), align: "left" },
   { name: "target", label: "Target", field: (row: any) => scopeTargetLabel(row), align: "left" },
   { name: "actions", label: "", field: "actions", align: "right" },
@@ -3737,8 +3759,16 @@ async function loadWebsites() {
   websiteLoadError.value = "";
   try {
     websitePolicies.value = (await axios.get("/appmanagement/websites/")).data;
+    try {
+      websiteSystemUrls.value = (
+        await axios.get("/appmanagement/websites/system-urls/")
+      ).data?.system_urls || [];
+    } catch {
+      websiteSystemUrls.value = websitePolicies.value[0]?.system_urls || [];
+    }
   } catch (e: any) {
     websitePolicies.value = [];
+    websiteSystemUrls.value = [];
     websiteLoadError.value = e?.response?.data?.error || e?.message || "Could not load website policies.";
     $q.notify({ message: websiteLoadError.value, color: "negative" });
   } finally { loadingWebsites.value = false; }
