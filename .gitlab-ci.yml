@@ -1,6 +1,12 @@
 stages:
   - deploy
 
+variables:
+  # The shell runner keeps the previous successful checkout. Reuse it so a
+  # transient timeout on the runner's HTTPS route back to GitLab cannot block
+  # an otherwise self-contained stage deployment.
+  GIT_STRATEGY: "none"
+
 deploy_to_stage:
   stage: deploy
   tags:
