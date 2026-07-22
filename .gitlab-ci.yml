@@ -4,8 +4,8 @@ stages:
 variables:
   # Always deploy the commit that triggered the pipeline. Retry source fetching
   # because the isolated shell runner can occasionally time out reaching GitLab.
-  GIT_STRATEGY: "fetch"
-  GET_SOURCES_ATTEMPTS: "3"
+  GIT_STRATEGY: "clone"
+  GET_SOURCES_ATTEMPTS: "5"
 
 deploy_to_stage:
   stage: deploy
