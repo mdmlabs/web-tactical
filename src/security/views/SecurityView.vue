@@ -2455,18 +2455,7 @@
             dense
             emit-value
             map-options
-            @update:model-value="onUSBPolicyTypeChanged"
           />
-          <q-banner
-            v-if="usbForm.policy_type === 'whitelist'"
-            dense
-            rounded
-            class="bg-blue-1 text-blue-10"
-          >
-            The approved baseline allows only keyboards/mice, printers, and
-            smart-card USB tokens. For a storage-form USB token, add its VID/PID
-            below; generic USB storage remains blocked.
-          </q-banner>
           <q-select
             v-model="incidentForm.severity"
             :options="severityOptions"
@@ -2541,7 +2530,18 @@
             dense
             emit-value
             map-options
+            @update:model-value="onUSBPolicyTypeChanged"
           />
+          <q-banner
+            v-if="usbForm.policy_type === 'whitelist'"
+            dense
+            rounded
+            class="bg-blue-1 text-blue-10"
+          >
+            The approved baseline allows only keyboards/mice, printers, and
+            smart-card USB tokens. For a storage-form USB token, add its VID/PID
+            below; generic USB storage remains blocked.
+          </q-banner>
           <div class="row q-col-gutter-md">
             <div class="col-12 col-sm-5">
               <q-select
@@ -2628,7 +2628,11 @@
           />
           <q-select
             v-model="usbForm.allowed_device_classes"
-            :options="usbForm.policy_type === 'whitelist' ? usbWhitelistClassOptions : usbClassOptions"
+            :options="
+              usbForm.policy_type === 'whitelist'
+                ? usbWhitelistClassOptions
+                : usbClassOptions
+            "
             label="Allowed device classes"
             outlined
             dense
@@ -5111,14 +5115,27 @@ async function saveUSB() {
       $q.notify({ message: validation, color: "warning" });
       return;
     }
+    let response;
     if (editingUSB.value) {
-      await axios.put(`/security/usb/${editingUSB.value.id}/`, payload);
+      response = await axios.put(
+        `/security/usb/${editingUSB.value.id}/`,
+        payload,
+      );
     } else {
-      await axios.post("/security/usb/", payload);
+      response = await axios.post("/security/usb/", payload);
     }
     usbDialogOpen.value = false;
+    const dispatches =
+      response.data?.dispatches ||
+      (response.data?.dispatch ? [response.data.dispatch] : []);
+    const agentsTriggered = dispatches.reduce(
+      (total: number, item: any) => total + (item?.agents_triggered || 0),
+      0,
+    );
     $q.notify({
-      message: "USB policy saved",
+      message: payload.enabled
+        ? `USB policy saved and queued for ${agentsTriggered} agent(s)`
+        : "USB policy disabled and endpoint restrictions queued for removal",
       color: "positive",
       icon: "check",
     });
@@ -5152,8 +5169,21 @@ async function deleteUSB(id: number) {
     cancel: true,
     ok: { color: "negative" },
   }).onOk(async () => {
-    await axios.delete(`/security/usb/${id}/`);
-    await loadUSB();
+    try {
+      const response = await axios.delete(`/security/usb/${id}/`);
+      const count = response.data?.agents_triggered ?? 0;
+      $q.notify({
+        message: `USB policy removed; cleanup queued for ${count} agent(s)`,
+        color: "positive",
+        icon: "delete",
+      });
+      await loadUSB();
+    } catch (e: any) {
+      $q.notify({
+        message: _apiErrMessage(e, "USB policy removal failed"),
+        color: "negative",
+      });
+    }
   });
 }
 function emergencyUSB() {
