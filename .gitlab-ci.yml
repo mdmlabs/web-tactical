@@ -2,10 +2,10 @@ stages:
   - deploy
 
 variables:
-  # The shell runner keeps the previous successful checkout. Reuse it so a
-  # transient timeout on the runner's HTTPS route back to GitLab cannot block
-  # an otherwise self-contained stage deployment.
-  GIT_STRATEGY: "none"
+  # Always deploy the commit that triggered the pipeline. Retry source fetching
+  # because the isolated shell runner can occasionally time out reaching GitLab.
+  GIT_STRATEGY: "fetch"
+  GET_SOURCES_ATTEMPTS: "3"
 
 deploy_to_stage:
   stage: deploy
