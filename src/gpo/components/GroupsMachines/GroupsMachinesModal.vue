@@ -1468,7 +1468,15 @@ async function handleAddAgentSelect(ref: TargetRef) {
   }
 
   try {
-    await axios.put(`/agents/${agentId}/`, { site: categoryId });
+    const res = await agentCategoryClient.addAgentToCategory({
+      categoryId,
+      agentId,
+    });
+    if (res.status !== 0) {
+      notifyError(res.errorMessage ?? "Failed to add agent to category");
+      return;
+    }
+
     notifySuccess("Agent added to category");
     agentCategoryLookupCache.delete(agentId);
     categoryAgentsCache.delete(categoryId);
