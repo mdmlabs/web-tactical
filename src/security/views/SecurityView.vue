@@ -2559,7 +2559,7 @@
               <q-select
                 v-if="usbForm.scope === 'device'"
                 v-model="usbForm.target_agent_id"
-                :options="agentOptions"
+                :options="usbAgentOptions"
                 label="Target device"
                 outlined
                 dense
@@ -2568,6 +2568,7 @@
                 map-options
                 use-input
                 input-debounce="200"
+                @filter="filterUSBAgentOptions"
               />
               <q-select
                 v-else-if="usbForm.scope === 'device_group'"
@@ -3616,6 +3617,7 @@ const tabByRouteName: Record<string, string> = {
 const chartAgentId = ref("");
 const agentHealthHistory = ref<any[]>([]);
 const agentOptions = ref<{ label: string; value: string }[]>([]);
+const usbAgentOptions = ref<{ label: string; value: string }[]>([]);
 const chartAgentOptions = ref<
   { label: string; value: string; search: string }[]
 >([]);
@@ -3784,18 +3786,34 @@ async function loadAgentOptions() {
         .join(" "),
       value: agent.agent_id,
     }));
+    usbAgentOptions.value = [...agentOptions.value];
     chartAgentOptions.value = agentOptions.value.map((agent) => ({
       ...agent,
       search: `${agent.label} ${agent.value}`.toLowerCase(),
     }));
   } catch (e: any) {
     agentOptions.value = [];
+    usbAgentOptions.value = [];
     chartAgentOptions.value = [];
     $q.notify({
       message: _apiErrMessage(e, "Failed to load agent list"),
       color: "negative",
     });
   }
+}
+
+function filterUSBAgentOptions(
+  value: string,
+  update: (callback: () => void) => void,
+) {
+  update(() => {
+    const needle = (value || "").trim().toLowerCase();
+    usbAgentOptions.value = needle
+      ? agentOptions.value.filter((agent) =>
+          `${agent.label} ${agent.value}`.toLowerCase().includes(needle),
+        )
+      : [...agentOptions.value];
+  });
 }
 
 function filterChartAgentOptions(
