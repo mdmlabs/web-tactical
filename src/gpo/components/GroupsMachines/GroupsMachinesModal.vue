@@ -1468,12 +1468,23 @@ async function handleAddAgentSelect(ref: TargetRef) {
   }
 
   try {
-    const res = await agentCategoryClient.addAgentToCategory({
-      categoryId,
-      agentId,
+    const { data } = await axios.post<{
+      moved?: string[];
+      errors?: Array<{ agent_id?: string; error?: string }>;
+    }>("/agents/site/bulk-move/", {
+      agent_ids: [agentId],
+      category_id: String(categoryId),
     });
-    if (res.status !== 0) {
-      notifyError(res.errorMessage ?? "Failed to add agent to category");
+
+    const moveError = data.errors?.find(
+      (item) => !item.agent_id || item.agent_id === agentId,
+    );
+    if (moveError) {
+      notifyError(moveError.error ?? "Failed to add agent to category");
+      return;
+    }
+    if (!data.moved?.includes(agentId)) {
+      notifyError("The server did not confirm the agent category change");
       return;
     }
 
