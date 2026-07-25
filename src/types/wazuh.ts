@@ -128,7 +128,7 @@ export interface WazuhRuleFile {
 
 // === Merged Agent (Tactical + Wazuh) ===
 export interface MergedAgent {
-  // Tactical RMM data
+  // Laborato MDM compatibility data
   tactical_agent_id: string;
   hostname: string;
   site_name: string;

@@ -9,7 +9,7 @@
       <template #avatar>
         <q-icon name="warning" color="dark" />
       </template>
-      MDM-Lab API is currently unavailable. Showing Tactical agents only.
+      Security API is currently unavailable. Showing managed devices only.
       <template #action>
         <q-btn flat label="Retry" @click="loadData" />
       </template>

@@ -2636,7 +2636,7 @@ export default {
         .dialog({
           title: "Bulk Recover All Agents?",
           message:
-            "This will restart the Tactical and Mesh Agent services on all agents",
+            "This will restart the Laborato MDM Agent and remote-control services on all devices",
           cancel: true,
         })
         .onOk(() => {
@@ -2649,21 +2649,11 @@ export default {
       let url;
       switch (mode) {
         case "github":
-          url = "https://github.com/amidaware/tacticalrmm/";
-          break;
         case "docs":
-          url = "https://docs.tacticalrmm.com";
-          break;
         case "bug":
-          url =
-            "https://github.com/amidaware/tacticalrmm/issues/new?template=bug_report.md";
-          break;
         case "feature":
-          url =
-            "https://github.com/amidaware/tacticalrmm/issues/new?template=feature_request.md";
-          break;
         case "discord":
-          url = "https://discord.gg/upGTkWp";
+          url = "/";
           break;
       }
       window.open(url, "_blank");

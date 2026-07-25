@@ -3138,7 +3138,7 @@ async function loadAgents() {
         : [];
     } catch (error) {
       const msg = (error as { message?: string })?.message || String(error);
-      agentsWarningMessage.value = `Tactical agent filter is unavailable: ${msg}`;
+      agentsWarningMessage.value = `Laborato MDM Agent filter is unavailable: ${msg}`;
     }
 
     const response = await agentServiceClientWrapper.listAgents(

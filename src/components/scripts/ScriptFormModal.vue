@@ -196,7 +196,7 @@
               color="secondary"
               dense
               flat
-              label="Test on Tactical's Server"
+              label="Test on Laborato MDM Server"
               :disable="
                 !script.script_body ||
                 !script.default_timeout ||

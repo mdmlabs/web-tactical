@@ -1,7 +1,5 @@
 /*
-Copyright (c) 2023-present Amidaware Inc.
-This file is subject to the EE License Agreement.
-For details, see: https://license.tacticalrmm.com/ee
+Copyright (c) 2026 Laborato MDM. All rights reserved.
 */
 
 export function getCookie(name: string) {

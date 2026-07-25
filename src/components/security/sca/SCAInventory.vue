@@ -366,7 +366,7 @@ function formatDate(dateStr: string): string {
 // === Fix Compliance ===
 
 /**
- * Resolve the Wazuh agent to its MDM-labs tactical agent_id.
+ * Resolve the Wazuh agent to its compatibility agent_id.
  * Fetches from /agents/ API if the Vuex store hasn't been loaded yet.
  */
 async function resolveTacticalAgent(): Promise<{
@@ -391,7 +391,7 @@ async function resolveTacticalAgent(): Promise<{
     }
   }
 
-  // Get the Wazuh agent name to match against tactical agents
+  // Get the Wazuh agent name to match against managed devices.
   const wazuhAgent = wazuhStore.wazuhAgents.find((a) => a.id === wazuhAgentId);
   if (!wazuhAgent) return null;
 
@@ -415,7 +415,7 @@ async function resolveTacticalAgent(): Promise<{
     }
   }
 
-  // Match Wazuh agent name → tactical agent hostname
+  // Match Wazuh agent name to managed-device hostname.
   const tacticalAgent = tacticalAgents.find(
     (a: { hostname?: string }) => a.hostname?.toLowerCase() === wazuhName,
   );

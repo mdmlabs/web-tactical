@@ -88,10 +88,6 @@ export default function ({ app, router }) {
         )
           return Promise.reject({ ...error });
         text = error.response.data.detail;
-        // hide sponsorship messages
-        if (text && (text.includes("tacticalrmm.com/sponsor") || text.includes("Tier 1 or higher"))) {
-          return Promise.reject({ ...error });
-        }
       }
       // catch all for other 400 error messages
       else if (

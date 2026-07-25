@@ -3369,7 +3369,7 @@ export default {
   "components.modals.coresettings.EditCoreSettings.9715e7":
     "Bạn nên bật tùy chọn này;\n                        nếu không, tất cả người dùng TRMM sẽ có toàn quyền trong\n                        MeshCentral bất kể quyền của họ trong TRMM.",
   "components.modals.coresettings.EditCoreSettings.9960f4":
-    "Thêm tên công ty của bạn vào đây sẽ thêm nó vào\n                        tên đầy đủ của người dùng xuất hiện khi thực hiện điều khiển từ xa\n                        phiên điều khiển, ví dụ: 'John Doe - Amidaware\n                        Inc.'",
+    "Thêm tên công ty của bạn vào đây sẽ thêm nó vào\n                        tên đầy đủ của người dùng xuất hiện khi thực hiện điều khiển từ xa\n                        phiên điều khiển, ví dụ: 'John Doe - Laborato MDM\n                        Inc.'",
   "components.modals.coresettings.EditCoreSettings.9eaf34": "Hành động URL",
   "components.modals.coresettings.EditCoreSettings.a11de7":
     "Cảnh báo qua email",
@@ -6499,7 +6499,7 @@ export default {
   "views.InitialSetup.010b85": "Bắt đầu",
   "views.InitialSetup.0b73ad": "Múi giờ mặc định cho đại lý:",
   "views.InitialSetup.2403d9":
-    "Thêm tên công ty của bạn vào đây sẽ thêm nó vào tên người dùng\n                    tên đầy đủ xuất hiện khi thực hiện phiên điều khiển từ xa,\n                    ví dụ: 'John Doe - Amidaware Inc.'",
+    "Thêm tên công ty của bạn vào đây sẽ thêm nó vào tên người dùng\n                    tên đầy đủ xuất hiện khi thực hiện phiên điều khiển từ xa,\n                    ví dụ: 'John Doe - Laborato MDM Inc.'",
   "views.InitialSetup.47662b": "Tên công ty:",
   "views.InitialSetup.663b42": "Thiết lập ban đầu",
   "views.InitialSetup.7d6be7": "Thêm trang web:",

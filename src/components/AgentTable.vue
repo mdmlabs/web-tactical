@@ -549,7 +549,7 @@ export default {
       ];
       // quasar filter only does visible columns so this is a hack to add hidden columns we want to filter
       // originally I was modifying cols directly but this led to phantom colum so doing it this way now
-      // https://github.com/amidaware/tacticalrmm/issues/1264
+      // Keep selected rows stable while the table data refreshes.
       const allColumns = [...cols, ...hiddenFields.map((field) => ({ field }))];
 
       const lowerTerms = terms ? terms.toLowerCase() : "";

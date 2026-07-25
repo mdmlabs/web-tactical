@@ -30,8 +30,7 @@ export function useScriptDropdown(opts?: useScriptDropdownParams) {
   const syntax = ref<string | undefined>("");
   const link = ref<string | undefined>("");
   const plat = ref<AgentPlatformType | undefined>(opts?.plat);
-  const baseUrl =
-    "https://github.com/amidaware/community-scripts/blob/main/scripts/";
+  const baseUrl = "";
 
   // specify parameters to filter out community scripts
   async function getScriptOptions() {
@@ -58,7 +57,7 @@ export function useScriptDropdown(opts?: useScriptDropdownParams) {
         syntax.value = tmpScript.syntax;
         scriptName.value = tmpScript.label;
         link.value =
-          tmpScript.script_type === "builtin"
+          baseUrl && tmpScript.script_type === "builtin"
             ? `${baseUrl}${tmpScript.filename}`
             : undefined;
       }

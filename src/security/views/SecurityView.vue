@@ -28,21 +28,25 @@
       :breakpoint="0"
     >
       <q-tab
+        v-if="!isLight"
         name="health"
         :label="$t('security.views.SecurityView.767b92')"
         icon="monitor_heart"
       />
       <q-tab
+        v-if="!isLight"
         name="health-policy"
         :label="$t('security.views.SecurityView.a7eaf8')"
         icon="tune"
       />
       <q-tab
+        v-if="!isLight"
         name="incidents"
         :label="$t('security.views.SecurityView.5e326b')"
         icon="warning"
       />
       <q-tab
+        v-if="!isLight"
         name="fim"
         :label="$t('security.views.SecurityView.9ddccd')"
         icon="file_present"
@@ -63,21 +67,25 @@
         icon="pending_actions"
       />
       <q-tab
+        v-if="!isLight"
         name="remediation"
         :label="$t('security.views.SecurityView.55f522')"
         icon="build_circle"
       />
       <q-tab
+        v-if="!isLight"
         name="forensics"
         :label="$t('security.views.SecurityView.9c7ab2')"
         icon="search"
       />
       <q-tab
+        v-if="!isLight"
         name="ueba"
         :label="$t('security.views.SecurityView.037b6f')"
         icon="psychology"
       />
       <q-tab
+        v-if="!isLight"
         name="threat-intel"
         :label="$t('security.views.SecurityView.7e2a18')"
         icon="radar"
@@ -2521,6 +2529,7 @@
             :options="[
               { label: 'Block All', value: 'block_all' },
               { label: 'Read-Only', value: 'read_only' },
+              { label: 'Write-Only', value: 'write_only' },
               { label: 'Whitelist', value: 'whitelist' },
               { label: 'Blacklist', value: 'blacklist' },
               { label: 'Allow All', value: 'allow_all' },
@@ -3581,9 +3590,11 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useQuasar, copyToClipboard, exportFile } from "quasar";
+import { storeToRefs } from "pinia";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import axios from "axios";
+import { useProductEditionStore } from "@/stores/productEdition";
 import HealthChart from "@/security/components/HealthChart.vue";
 import FIMBaselinePanel from "@/security/components/FIMBaselinePanel.vue";
 import HealthPolicyPanel from "@/security/components/HealthPolicyPanel.vue";
@@ -3600,11 +3611,13 @@ const RemediationPanel = defineAsyncComponent(
 const $q = useQuasar();
 const { t } = useI18n();
 const route = useRoute();
+const { isLight } = storeToRefs(useProductEditionStore());
 const tab = ref("health");
 const fimTab = ref("policies");
 const tabByRouteName: Record<string, string> = {
   SecurityCenter: "health",
   SecurityEmailDLP: "dlp",
+  SecurityDLP: "dlp",
   SecurityPeripheralControls: "peripheral-requests",
   SecurityPeripheralRequests: "peripheral-requests",
   SecurityUsbControls: "usb",
@@ -3612,6 +3625,12 @@ const tabByRouteName: Record<string, string> = {
   Forensics: "forensics",
   UEBA: "ueba",
 };
+const lightSecurityTabs = new Set([
+  "usb",
+  "dlp",
+  "peripheral-requests",
+  "mic-control",
+]);
 
 // Performance chart data
 const chartAgentId = ref("");
@@ -3880,7 +3899,10 @@ async function loadUSBScopeOptions() {
 function syncTabFromRoute() {
   const routeName = String(route.name ?? "");
   if (tabByRouteName[routeName]) {
-    tab.value = tabByRouteName[routeName];
+    const nextTab = tabByRouteName[routeName];
+    tab.value = isLight.value && !lightSecurityTabs.has(nextTab)
+      ? "usb"
+      : nextTab;
     if (routeName === "SecurityEmailDLP") {
       dlpSubTab.value = "email";
     }
@@ -3889,7 +3911,9 @@ function syncTabFromRoute() {
 
   const queryTab = route.query.tab;
   if (typeof queryTab === "string" && queryTab) {
-    tab.value = queryTab;
+    if (!isLight.value || lightSecurityTabs.has(queryTab)) {
+      tab.value = queryTab;
+    }
   }
   const queryDlpTab = route.query.dlp;
   if (typeof queryDlpTab === "string" && queryDlpTab) {
@@ -5394,17 +5418,23 @@ async function massWipeSelectedIncidents() {
 }
 
 onMounted(() => {
-  loadHealth();
-  loadHealthThresholds();
-  loadIncidents();
-  loadFIMPolicies();
-  loadFIMEvents();
   loadUSB();
   loadUSBEvents();
   loadDLP();
   loadDataGuardStatuses();
   loadDLPViolations();
   loadDLPQuarantine();
+  loadAgentOptions();
+  loadUSBScopeOptions();
+  loadMicControlAll();
+
+  if (isLight.value) return;
+
+  loadHealth();
+  loadHealthThresholds();
+  loadIncidents();
+  loadFIMPolicies();
+  loadFIMEvents();
   loadForensicJobTypes();
   loadForensicPolicies();
   loadForensicDeviceGroups();
@@ -5415,9 +5445,6 @@ onMounted(() => {
   loadScanPolicy();
   refreshThreatIntelAll();
   loadThreatIntelStats();
-  loadAgentOptions();
-  loadUSBScopeOptions();
-  loadMicControlAll();
 });
 
 onUnmounted(() => {

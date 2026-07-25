@@ -747,7 +747,7 @@ export const useWazuhStore = defineStore("wazuh", {
   },
 });
 
-/** Minimal shape of a Tactical agent for merge purposes */
+/** Minimal shape of a managed device for merge purposes */
 interface TacticalAgentLike {
   agent_id: string;
   hostname: string;

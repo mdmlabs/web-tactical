@@ -9,7 +9,7 @@
               label="Getting Started"
               color="info"
               class="full-width"
-              href="https://docs.tacticalrmm.com/guide_gettingstarted/"
+              href="/"
               target="_blank"
             />
           </q-card-actions>
@@ -53,7 +53,7 @@
                   <q-tooltip class="text-caption">
                     Adding your company name here will append it to the user's
                     full name that appears when doing a remote control session,
-                    for example: 'John Doe - Amidaware Inc.'
+                    for example: 'John Doe - Laborato MDM'
                   </q-tooltip>
                 </q-icon>
               </div>

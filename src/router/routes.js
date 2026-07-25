@@ -182,6 +182,25 @@ const routes = [
         meta: { requireAuth: true },
       },
       {
+        path: "/light/devices",
+        name: "LightDeviceControl",
+        component: () =>
+          import("@/light/views/LightDeviceControlView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
+        path: "/light/kiosk",
+        name: "LightBrowserKiosk",
+        component: () => import("@/light/views/LightKioskView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
+        path: "/light/container",
+        name: "LightSecureContainer",
+        component: () => import("@/light/views/LightContainerView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
         path: "/winupdate/patches",
         name: "PatchManagement",
         component: () =>
@@ -197,6 +216,12 @@ const routes = [
       {
         path: "/security-center/email-dlp",
         name: "SecurityEmailDLP",
+        component: () => import("@/security/views/SecurityView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
+        path: "/security-center/dlp",
+        name: "SecurityDLP",
         component: () => import("@/security/views/SecurityView.vue"),
         meta: { requireAuth: true },
       },

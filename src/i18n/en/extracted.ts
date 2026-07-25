@@ -3304,7 +3304,7 @@ export default {
   "components.modals.coresettings.EditCoreSettings.9715e7":
     "It is recommended to keep this option enabled;\n                        otherwise, all TRMM users will have full permissions in\n                        MeshCentral regardless of their permissions in TRMM.",
   "components.modals.coresettings.EditCoreSettings.9960f4":
-    "Adding your company name here will append it to the\n                        user's full name that appears when doing a remote\n                        control session, for example: 'John Doe - Amidaware\n                        Inc.'",
+    "Adding your company name here will append it to the\n                        user's full name that appears when doing a remote\n                        control session, for example: 'John Doe - Laborato MDM\n                        Inc.'",
   "components.modals.coresettings.EditCoreSettings.9eaf34": "URL Actions",
   "components.modals.coresettings.EditCoreSettings.a11de7": "Email Alerts",
   "components.modals.coresettings.EditCoreSettings.a1f655":
@@ -3453,7 +3453,7 @@ export default {
   "components.scripts.ScriptFormModal.efc007": "Save",
   "components.scripts.ScriptFormModal.ff9b89":
     "Only available interpreters or frameworks will be used.",
-  "components.scripts.ScriptFormModal.ffd9a9": "Test on Tactical's Server",
+  "components.scripts.ScriptFormModal.ffd9a9": "Test on Laborato MDM Server",
   "components.scripts.ScriptManager.03e075": "New Script",
   "components.scripts.ScriptManager.17a0c8": "Download Script",
   "components.scripts.ScriptManager.2b39a3": "Nushell",
@@ -6339,7 +6339,7 @@ export default {
   "views.InitialSetup.010b85": "Getting Started",
   "views.InitialSetup.0b73ad": "Default timezone for agents:",
   "views.InitialSetup.2403d9":
-    "Adding your company name here will append it to the user's\n                    full name that appears when doing a remote control session,\n                    for example: 'John Doe - Amidaware Inc.'",
+    "Adding your company name here will append it to the user's\n                    full name that appears when doing a remote control session,\n                    for example: 'John Doe - Laborato MDM Inc.'",
   "views.InitialSetup.47662b": "Company name:",
   "views.InitialSetup.663b42": "Initial Setup",
   "views.InitialSetup.7d6be7": "Add Site:",

@@ -4,12 +4,12 @@
 
     <q-tabs v-model="tab" dense class="q-mb-md" align="left">
       <q-tab name="apps" :label="$t('appmanagement.views.AppManagementView.054982')" icon="apps" />
-      <q-tab name="websites" :label="$t('appmanagement.views.AppManagementView.9028fa')" icon="language" />
-      <q-tab name="wlan" :label="$t('appmanagement.views.AppManagementView.170de0')" icon="wifi" />
-      <q-tab name="vpn" :label="$t('appmanagement.views.AppManagementView.f05fa4')" icon="vpn_key" />
-      <q-tab name="ssp" :label="$t('appmanagement.views.AppManagementView.8a1bb5')" icon="person" />
-      <q-tab name="user-groups" :label="$t('appmanagement.views.AppManagementView.a34ff8')" icon="group" />
-      <q-tab name="app-store" :label="$t('appmanagement.views.AppManagementView.bd9900')" icon="store" />
+      <q-tab v-if="!isLight" name="websites" :label="$t('appmanagement.views.AppManagementView.9028fa')" icon="language" />
+      <q-tab v-if="!isLight" name="wlan" :label="$t('appmanagement.views.AppManagementView.170de0')" icon="wifi" />
+      <q-tab v-if="!isLight" name="vpn" :label="$t('appmanagement.views.AppManagementView.f05fa4')" icon="vpn_key" />
+      <q-tab v-if="!isLight" name="ssp" :label="$t('appmanagement.views.AppManagementView.8a1bb5')" icon="person" />
+      <q-tab v-if="!isLight" name="user-groups" :label="$t('appmanagement.views.AppManagementView.a34ff8')" icon="group" />
+      <q-tab v-if="!isLight" name="app-store" :label="$t('appmanagement.views.AppManagementView.bd9900')" icon="store" />
       <q-tab name="distribution" label="Distribution" icon="system_update_alt" />
       <q-tab name="containers" :label="$t('appmanagement.views.AppManagementView.5f55ba')" icon="inventory_2" />
     </q-tabs>
@@ -2548,14 +2548,28 @@ import { useQuasar } from "quasar";
 import axios from "axios";
 import { fetchChocosSoftware } from "@/api/software";
 import { useResourceUpload } from "@/resources/composables/useResourceUpload";
+import { useRoute } from "vue-router";
+import { storeToRefs } from "pinia";
+import { useProductEditionStore } from "@/stores/productEdition";
 
 const $q = useQuasar();
+const route = useRoute();
+const { isLight } = storeToRefs(useProductEditionStore());
 const {
   uploading: uploadingInternalCatalogFile,
   uploadProgress: internalCatalogUploadProgress,
   uploadResource: uploadInternalCatalogResource,
 } = useResourceUpload();
-const tab = ref("apps");
+const lightTabs = new Set(["apps", "distribution", "containers"]);
+const requestedTab = String(route.query.tab || "apps");
+const tab = ref(lightTabs.has(requestedTab) ? requestedTab : "apps");
+watch(
+  () => route.query.tab,
+  (value) => {
+    const nextTab = String(value || "apps");
+    if (!isLight.value || lightTabs.has(nextTab)) tab.value = nextTab;
+  },
+);
 
 const appPolicies = ref<any[]>([]);
 const effectiveAppPolicies = ref<any[]>([]);
@@ -5291,6 +5305,14 @@ onMounted(() => {
   loadAppInventory();
   loadAppDistributions();
   loadDistributionExecutions();
+  loadScopeTargetOptions();
+  loadInternalCatalogApps();
+  loadAppLifecycle();
+  loadContainerTransfers();
+  loadAgentsForContainers();
+
+  if (isLight.value) return;
+
   loadWebsites();
   loadWlan();
   loadVpn();
@@ -5303,13 +5325,8 @@ onMounted(() => {
   loadSspRightRequests();
   loadSspActions();
   loadSspInfoPortalAdmin();
-  loadScopeTargetOptions();
   loadUserGroups();
-  loadInternalCatalogApps();
-  loadAppLifecycle();
   loadAppStoreLinks();
-  loadContainerTransfers();
-  loadAgentsForContainers();
 });
 
 watch(selectedAppAgentId, () => {

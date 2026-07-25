@@ -334,7 +334,7 @@ import type { AgentPlatformType } from "@/types/agents";
 // Props
 const props = defineProps<{
   check: WazuhSCACheck;
-  agentId: string; // MDM-labs tactical agent_id
+  agentId: string; // compatibility agent_id
   agentHostname: string;
   agentPlatform: AgentPlatformType;
 }>();

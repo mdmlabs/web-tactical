@@ -360,7 +360,7 @@ async function onFix(policyId: string, check: WazuhSCACheck) {
   try {
     if (r.type === "trmm_script" && r.script_id) {
       if (!tacticalAgentId) {
-        notifyError("Cannot run fix: this Wazuh agent has no Tactical RMM mapping.");
+        notifyError("Cannot run fix: this Wazuh agent has no Laborato MDM mapping.");
         return;
       }
       await runScript(tacticalAgentId, { script: r.script_id, args: [], timeout: 120 });

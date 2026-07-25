@@ -18,7 +18,7 @@
       </q-banner>
 
       <q-banner
-        v-if="!hosted && tokenExpired"
+        v-if="!isLight && !hosted && tokenExpired"
         inline-actions
         class="warning-banner"
       >
@@ -29,14 +29,7 @@
           </div>
           <div class="text-caption q-mt-sm">
             To restore access, please update your payment method. If you need
-            help, contact
-            <a
-              href="https://support.amidaware.com"
-              target="_blank"
-              rel="noopener"
-              class="support-link"
-              >support team</a
-            >
+            help, contact your Laborato MDM administrator.
           </div>
           <q-btn
             unelevated
@@ -105,8 +98,8 @@
               class="toolbar-logo"
             />
             <span class="logo-text">
-              {{ $t("branding.systemTitle") }}
-              <q-tooltip>{{ $t("branding.systemTitle") }}</q-tooltip>
+              {{ productName }}
+              <q-tooltip>{{ productName }}</q-tooltip>
             </span>
             <q-chip dense square class="version-chip"> v1.0.1 </q-chip>
 
@@ -308,7 +301,8 @@
       </q-toolbar>
     </q-header>
 
-    <FileBar />
+    <LightSidebar v-if="isLight" />
+    <FileBar v-else />
 
     <q-page-container class="main-page-container">
       <router-view />
@@ -650,8 +644,10 @@ import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
 import UserPreferences from "@/components/modals/coresettings/UserPreferences.vue";
 import ResetPass from "@/components/accounts/ResetPass.vue";
 import FileBar from "@/components/FileBar.vue";
+import LightSidebar from "@/light/components/LightSidebar.vue";
 import bcyLogo from "@/assets/agent-icon.png";
 import { useDomI18n } from "@/utils/dom-i18n";
+import { useProductEditionStore } from "@/stores/productEdition";
 
 const store = useStore();
 const $q = useQuasar();
@@ -683,6 +679,8 @@ const {
 } = storeToRefs(useDashboardStore());
 
 const { displayName } = storeToRefs(useAuthStore());
+const productEditionStore = useProductEditionStore();
+const { isLight, productName } = storeToRefs(productEditionStore);
 
 const currentTRMMVersion = computed(() => store.state.currentTRMMVersion);
 const latestTRMMVersion = computed(() => store.state.latestTRMMVersion);
@@ -692,11 +690,7 @@ const tokenExpired = computed(() => store.state.tokenExpired);
 // const dash_warning_color = computed(() => store.state.dash_warning_color);
 // const dash_negative_color = computed(() => store.state.dash_negative_color);
 
-const latestReleaseURL = computed(() => {
-  return latestTRMMVersion.value
-    ? `https://github.com/amidaware/tacticalrmm/releases/tag/v${latestTRMMVersion.value}`
-    : "";
-});
+const latestReleaseURL = computed(() => "");
 
 function showUserPreferences() {
   $q.dialog({
@@ -788,6 +782,7 @@ function openDocumentation() {
 
 const updateAvailable = computed(() => {
   if (
+    isLight.value ||
     latestTRMMVersion.value === "error" ||
     hosted.value ||
     currentTRMMVersion.value?.includes("-dev")
@@ -809,6 +804,7 @@ function livePoll() {
 }
 
 onMounted(() => {
+  productEditionStore.load();
   store.dispatch("getDashInfo");
   store.dispatch("checkVer");
   livePoll();

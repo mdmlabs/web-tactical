@@ -8,6 +8,10 @@ import { LoadingBar } from "quasar";
 
 import { useAuthStore } from "@/stores/auth";
 import routes from "./routes";
+import {
+  BUILD_PRODUCT_EDITION,
+  lightRouteIsAllowed,
+} from "@/config/productEdition";
 
 // useful for importing router outside of vue components
 // import {router} from "@/router"
@@ -38,7 +42,12 @@ export default function (/* { store } */) {
 
     const auth = useAuthStore();
 
-    if (to.meta.requireAuth) {
+    if (
+      BUILD_PRODUCT_EDITION === "light" &&
+      !lightRouteIsAllowed(to.path)
+    ) {
+      next({ name: auth.loggedIn ? "Dashboard" : "Login" });
+    } else if (to.meta.requireAuth) {
       if (!auth.loggedIn) {
         auth.next = to.fullPath;
         next({

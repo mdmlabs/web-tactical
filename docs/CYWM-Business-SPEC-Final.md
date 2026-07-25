@@ -1,7 +1,7 @@
 # Бизнес-ТЗ: Автоматизация работы администратора с конфигурацией Wazuh v4.14.4
 
 > **Статус:** Draft v0.1 · 2026-04-28
-> **Целевая среда:** Wazuh **v4.14.4** + Tactical RMM + Windows-агенты
+> **Целевая среда:** Wazuh **v4.14.4** + Laborato MDM + Windows-агенты
 > **Объём:** Только автоматизация работы администратора с конфигурацией Wazuh v4.14.4. Vulnerability Management UI, Reporting, Incident Response, Threat Intelligence, Forensics — вне рамок этого документа.
 
 ---
@@ -57,7 +57,7 @@
 |---|---|---|
 | **Wazuh manager** | **v4.14.4** | Используется новый формат `vulnerability-detection` (с 4.8+). Структура конфигурационных файлов и команды validation/restart соответствуют этой версии. |
 | **Wazuh agent** (на Windows) | **v4.14.4** | Совпадает с manager. Path `C:\Program Files (x86)\ossec-agent\active-response\bin\` |
-| **Tactical RMM** | Текущий установленный | Доработка ведётся в форке, фронт + бэк |
+| **Laborato MDM** | Текущий установленный | Доработка ведётся в форке, фронт + бэк |
 | **Windows endpoint** | Windows 11 / 10 / Server 2019+ | Целевая ОС для Active Response скриптов |
 | **Linux (Wazuh server)** | Ubuntu 22.04 / любой поддерживаемый Wazuh | Доступ по SSH с паролем |
 

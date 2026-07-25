@@ -34,7 +34,7 @@ const route = useRoute();
 const wazuhStore = useWazuhStore();
 const loading = ref(false);
 
-// Resolve a route-provided identifier (TacticalRMM agent_id or hostname) to
+// Resolve a route-provided identifier (legacy agent_id or hostname) to
 // the corresponding Wazuh agent id (e.g. "007"). Wazuh's /reports/agents/{id}
 // endpoint rejects anything else. Falls back to the raw identifier so the
 // error surfaces clearly if the agent isn't synced with Wazuh.

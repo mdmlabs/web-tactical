@@ -77,6 +77,12 @@ module.exports = configure(function (/* ctx */) {
         DEV_GRPC_URL: process.env.DEV_GRPC_URL,
         MASTER_HOST: process.env.MASTER_HOST,
         GRPC_PORT: process.env.GRPC_PORT,
+        PRODUCT_EDITION: process.env.PRODUCT_EDITION || "full",
+        PRODUCT_DISPLAY_NAME:
+          process.env.PRODUCT_DISPLAY_NAME ||
+          (process.env.PRODUCT_EDITION === "light"
+            ? "Laborato MDM Light"
+            : "Laborato MDM"),
 
         // используем проксю для обхода корсов (по умолчанию true в dev режиме)
         USE_PROXY: process.env.USE_PROXY !== "false",

@@ -68,6 +68,13 @@
             <q-btn flat dense size="sm" icon="autorenew" @click="promptRotate(props.row)">
               <q-tooltip>{{ $t('devicemanagement.components.EncryptedContainersPanel.c4a3a1') }}</q-tooltip>
             </q-btn>
+            <q-btn
+              flat dense size="sm" icon="open_in_full"
+              :disable="props.row.state === 'mounted'"
+              @click="promptResize(props.row)"
+            >
+              <q-tooltip>Increase or decrease container size</q-tooltip>
+            </q-btn>
             <q-btn flat dense size="sm" icon="key" @click="doBackupKey(props.row)">
               <q-tooltip>{{ $t('devicemanagement.components.EncryptedContainersPanel.4584b3') }}</q-tooltip>
             </q-btn>
@@ -80,7 +87,7 @@
               @click="openRecoveryDialog(props.row)">
               <q-tooltip>Initiate break-glass recovery (Shamir officers)</q-tooltip>
             </q-btn>
-            <q-btn flat dense size="sm" icon="schedule"
+            <q-btn v-if="!isLight" flat dense size="sm" icon="schedule"
               :color="props.row.auto_mount_enabled ? 'positive' : 'teal'"
               @click="promptAutoMount(props.row, !props.row.auto_mount_enabled)">
               <q-tooltip>
@@ -89,34 +96,34 @@
                     : $t('devicemanagement.components.EncryptedContainersPanel.13af9a') }}
               </q-tooltip>
             </q-btn>
-            <q-badge v-if="props.row.auto_mount_enabled"
+            <q-badge v-if="!isLight && props.row.auto_mount_enabled"
                      color="positive" outline class="q-ml-xs"
                      :label="`auto ${props.row.auto_mount_letter || '?'}:`" />
-            <q-btn flat dense size="sm" icon="scissor_cut" color="orange"
+            <q-btn v-if="!isLight" flat dense size="sm" icon="scissor_cut" color="orange"
               :disable="props.row.state !== 'mounted'"
               @click="promptWipeFiles(props.row)">
               <q-tooltip>{{ $t('devicemanagement.components.EncryptedContainersPanel.957c9a') }}</q-tooltip>
             </q-btn>
             <!-- Phase-2 D: folder-pack / unpack -->
-            <q-btn flat dense size="sm" icon="archive" color="indigo"
+            <q-btn v-if="!isLight" flat dense size="sm" icon="archive" color="indigo"
               :disable="props.row.state === 'mounted'"
               @click="promptFolderPack(props.row)">
               <q-tooltip>Pack folder → .lscfolder (container must be unmounted)</q-tooltip>
             </q-btn>
-            <q-btn flat dense size="sm" icon="unarchive" color="indigo"
+            <q-btn v-if="!isLight" flat dense size="sm" icon="unarchive" color="indigo"
               :disable="props.row.state === 'mounted'"
               @click="promptFolderUnpack(props.row)">
               <q-tooltip>Unpack .lscfolder → directory (container must be unmounted)</q-tooltip>
             </q-btn>
             <!-- Phase-2 G: SSO mount -->
-            <q-btn flat dense size="sm" icon="vpn_key"
+            <q-btn v-if="!isLight" flat dense size="sm" icon="vpn_key"
               :color="props.row.sso_enabled ? 'positive' : 'grey'"
               @click="promptSsoEnroll(props.row)">
               <q-tooltip>
                 {{ props.row.sso_enabled ? "Disable SSO mount" : "Enable SSO mount (store password server-side)" }}
               </q-tooltip>
             </q-btn>
-            <q-btn v-if="props.row.sso_enabled"
+            <q-btn v-if="!isLight && props.row.sso_enabled"
               flat dense size="sm" icon="lock_open" color="teal"
               :disable="props.row.state === 'mounted'"
               @click="doSsoMount(props.row)">
@@ -131,7 +138,7 @@
     </q-card-section>
 
     <!-- Usage report (Phase-3 spec #17) -->
-    <q-card-section class="q-pt-none">
+    <q-card-section v-if="!isLight" class="q-pt-none">
       <div class="row items-center justify-between q-mb-sm">
         <div class="text-subtitle2">{{ $t('devicemanagement.components.EncryptedContainersPanel.0a6d6e') }}</div>
         <q-btn flat dense icon="refresh" :label="$t('devicemanagement.components.EncryptedContainersPanel.56e3ba')" @click="loadUsage" :loading="usageLoading" />
@@ -307,6 +314,7 @@ import axios from "axios";
 import { useQuasar } from "quasar";
 import AgentPicker from "@/devicemanagement/components/AgentPicker.vue";
 import { buildAgentOptions, type AgentOptionRich } from "@/devicemanagement/components/agentOptionHelpers";
+import { BUILD_PRODUCT_EDITION } from "@/config/productEdition";
 
 interface WorkspaceOption { label: string; value: number }
 
@@ -317,6 +325,7 @@ const props = defineProps<{
 }>();
 
 const $q = useQuasar();
+const isLight = BUILD_PRODUCT_EDITION === "light";
 
 const loading = ref(false);
 const creating = ref(false);
@@ -597,6 +606,60 @@ function promptRotate(row: any) {
   });
 }
 
+function promptResize(row: any) {
+  if (row.state === "mounted") {
+    $q.notify({ color: "warning", message: "Unmount the container before resizing it." });
+    return;
+  }
+  $q.dialog({
+    title: `Resize ${row.label}`,
+    message: `Current size: ${row.size_gb} GiB. Enter the new size in GiB.`,
+    prompt: {
+      model: String(row.size_gb || 10),
+      type: "number",
+      isValid: (value: string) => {
+        const size = Number(value);
+        return Number.isInteger(size) && size >= 1 && size <= 2048;
+      },
+    },
+    cancel: true,
+    persistent: true,
+  }).onOk((sizeText: string) => {
+    const sizeGb = Number(sizeText);
+    $q.dialog({
+      title: "Confirm container password",
+      message: "The volume will be verified before and after resize.",
+      prompt: {
+        model: "",
+        type: "password",
+        isValid: (value: string) => value.length > 0,
+      },
+      cancel: true,
+      persistent: true,
+      ok: { label: "Resize", color: "primary" },
+    }).onOk(async (password: string) => {
+      try {
+        await axios.post(
+          `/appmanagement/workspaces/containers/${row.id}/resize/`,
+          { size_gb: sizeGb, password },
+          { timeout: 30 * 60 * 1000 },
+        );
+        $q.notify({
+          color: "positive",
+          icon: "check",
+          message: `Container resized to ${sizeGb} GiB.`,
+        });
+        await loadContainers();
+      } catch (error: any) {
+        $q.notify({
+          color: "negative",
+          message: error?.response?.data?.detail || "Resize failed",
+        });
+      }
+    });
+  });
+}
+
 async function doBackupKey(row: any) {
   $q.dialog({
     title: `Export recovery key — ${row.label}`,
@@ -623,19 +686,31 @@ async function doBackupKey(row: any) {
 function promptRecover(row: any) {
   $q.dialog({
     title: `Recover ${row.label}`,
-    message: "Leave blank to use the escrowed recovery key, or paste an externally-saved 48-digit recovery password:",
+    message: "Leave blank to use the escrowed recovery key, or paste an externally saved Base64 recovery key:",
     prompt: { model: "", type: "text" },
     cancel: true,
-  }).onOk(async (manualKey: string) => {
-    try {
-      const body: any = {};
-      if (manualKey && manualKey.trim()) body.recovery_key = manualKey.trim();
-      await axios.post(`/appmanagement/workspaces/containers/${row.id}/recover/`, body, { timeout: 5 * 60 * 1000 });
-      $q.notify({ color: "positive", message: `Recovered ${row.label}` });
-      await loadContainers();
-    } catch (error: any) {
-      $q.notify({ color: "negative", message: error?.response?.data?.detail || "Recover failed" });
-    }
+  }).onOk((manualKey: string) => {
+    $q.dialog({
+      title: "Set a new container password",
+      message: "Recovery will validate the key and re-bind the container to this password.",
+      prompt: {
+        model: "",
+        type: "password",
+        isValid: (value: string) => value.length >= 12,
+      },
+      cancel: true,
+      persistent: true,
+    }).onOk(async (newPassword: string) => {
+      try {
+        const body: any = { new_password: newPassword };
+        if (manualKey && manualKey.trim()) body.recovery_key = manualKey.trim();
+        await axios.post(`/appmanagement/workspaces/containers/${row.id}/recover/`, body, { timeout: 10 * 60 * 1000 });
+        $q.notify({ color: "positive", message: `Password recovered for ${row.label}` });
+        await loadContainers();
+      } catch (error: any) {
+        $q.notify({ color: "negative", message: error?.response?.data?.detail || "Recover failed" });
+      }
+    });
   });
 }
 

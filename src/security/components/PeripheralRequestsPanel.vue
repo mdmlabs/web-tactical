@@ -7,6 +7,15 @@
         <q-list bordered separator>
           <q-item-label header>Global enforcement</q-item-label>
           <q-item tag="label">
+            <q-item-section avatar><q-icon name="bluetooth_disabled" color="negative" /></q-item-section>
+            <q-item-section>
+              <q-item-label>Disable Bluetooth globally</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-toggle v-model="globals.bluetooth_global_disabled" @update:model-value="saveGlobals" />
+            </q-item-section>
+          </q-item>
+          <q-item tag="label">
             <q-item-section avatar><q-icon name="videocam_off" color="negative" /></q-item-section>
             <q-item-section>
               <q-item-label>Disable camera globally</q-item-label>
@@ -574,6 +583,7 @@ const applyingNow = ref(false);
 const privacyAppPoliciesText = ref("[]");
 
 const globals = ref<any>({
+  bluetooth_global_disabled: false,
   camera_global_disabled: false,
   camera_block_on_non_compliance: false,
   camera_remote_allow: true,

@@ -512,8 +512,7 @@
                       <q-tooltip class="text-caption">
                         Adding your company name here will append it to the
                         user's full name that appears when doing a remote
-                        control session, for example: 'John Doe - Amidaware
-                        Inc.'
+                        control session, for example: 'John Doe - Laborato MDM'
                       </q-tooltip>
                     </q-icon>
                   </div>
