@@ -5,7 +5,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Install system dependencies for proto generation
-RUN apk add --no-cache bash wget tar grep unzip
+RUN apk add --no-cache bash wget tar grep unzip gcompat
 
 # Install Protocol Buffer compiler (protoc)
 ARG PROTOC_VERSION=25.1
