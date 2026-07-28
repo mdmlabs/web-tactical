@@ -9,7 +9,11 @@
       <q-tab v-if="!isLight" name="vpn" :label="$t('appmanagement.views.AppManagementView.f05fa4')" icon="vpn_key" />
       <q-tab v-if="!isLight" name="ssp" :label="$t('appmanagement.views.AppManagementView.8a1bb5')" icon="person" />
       <q-tab v-if="!isLight" name="user-groups" :label="$t('appmanagement.views.AppManagementView.a34ff8')" icon="group" />
-      <q-tab v-if="!isLight" name="app-store" :label="$t('appmanagement.views.AppManagementView.bd9900')" icon="store" />
+      <q-tab
+        name="app-store"
+        :label="isLight ? 'Internal app store' : $t('appmanagement.views.AppManagementView.bd9900')"
+        icon="store"
+      />
       <q-tab name="distribution" label="Distribution" icon="system_update_alt" />
       <q-tab name="containers" :label="$t('appmanagement.views.AppManagementView.5f55ba')" icon="inventory_2" />
     </q-tabs>
