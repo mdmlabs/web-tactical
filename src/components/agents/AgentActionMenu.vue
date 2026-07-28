@@ -564,7 +564,7 @@ export default {
         $q.loading.show();
         try {
           const response = await deleteMdmAgents({
-            agent_ids: [agent.agent_id],
+            agent_id: agent.agent_id,
           });
           $q.loading.hide();
           notifySuccess(response.message || "MDM agent deletion started");

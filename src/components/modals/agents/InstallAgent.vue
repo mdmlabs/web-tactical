@@ -121,7 +121,7 @@
               v-model="goarch"
               :val="GOARCH_ARM64"
               label="ARM 64 bit"
-              v-show="agentOS === 'linux'"
+              v-show="agentOS === 'windows' || agentOS === 'linux'"
             />
             <q-radio
               v-model="goarch"
@@ -340,7 +340,7 @@ export default {
       ) {
         this.$q.loading.show();
         let ext = this.installMethod === "powershell" ? "ps1" : "sh";
-        const scriptName = `rmm-${clientStripped}-${siteStripped}-${this.agenttype}.${ext}`;
+        const scriptName = `laborato-${siteStripped}-${this.agenttype}-${this.goarch}.${ext}`;
         this.$axios
           .post("/agents/installer/", data, { responseType: "blob" })
           .then(({ data }) => {

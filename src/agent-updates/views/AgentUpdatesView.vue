@@ -466,7 +466,7 @@ export default {
         this.$set(this.mdmDeletingAgents, agentId, true);
         try {
           const response = await deleteMdmAgents({
-            agent_ids: [agentId],
+            agent_id: agentId,
           });
           this.notifySuccess(response.message || "MDM agent deletion started");
         } catch (error) {

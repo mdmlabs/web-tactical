@@ -22,6 +22,10 @@
         <q-item-section avatar><q-icon name="devices" /></q-item-section>
         <q-item-section>Device control</q-item-section>
       </q-item>
+      <q-item clickable v-ripple :to="{ path: '/settings', query: { tab: 'agents' } }">
+        <q-item-section avatar><q-icon name="download_for_offline" /></q-item-section>
+        <q-item-section>Agent installation and removal</q-item-section>
+      </q-item>
 
       <q-item-label header>Policies</q-item-label>
       <q-item clickable v-ripple to="/security-center/peripheral-controls">
@@ -60,7 +64,7 @@
       </q-item>
 
       <q-separator spaced />
-      <q-item clickable v-ripple to="/settings">
+      <q-item clickable v-ripple :to="{ path: '/settings', query: { tab: 'users' } }">
         <q-item-section avatar><q-icon name="admin_panel_settings" /></q-item-section>
         <q-item-section>Administration</q-item-section>
       </q-item>

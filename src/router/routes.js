@@ -201,6 +201,13 @@ const routes = [
         meta: { requireAuth: true },
       },
       {
+        path: "/settings",
+        name: "LightAdministration",
+        component: () =>
+          import("@/light/views/LightAdministrationView.vue"),
+        meta: { requireAuth: true },
+      },
+      {
         path: "/winupdate/patches",
         name: "PatchManagement",
         component: () =>

@@ -1,5 +1,5 @@
 <template>
-  <q-card style="width: 65vw; max-width: 70vw; min-height: 50vh">
+  <q-card :style="cardStyle">
     <q-bar>
       <q-btn
         ref="refresh"
@@ -11,7 +11,7 @@
         icon="refresh"
       />{{ $t("User Administration") }}
       <q-space />
-      <q-btn dense flat icon="close" v-close-popup>
+      <q-btn v-if="!embedded" dense flat icon="close" v-close-popup>
         <q-tooltip class="bg-white text-primary">{{ $t("Close") }}</q-tooltip>
       </q-btn>
     </q-bar>
@@ -236,6 +236,12 @@ import UserSessionsTable from "@/components/accounts/UserSessionsTable.vue";
 export default {
   name: "AdminManager",
   mixins: [mixins],
+  props: {
+    embedded: {
+      type: Boolean,
+      default: false,
+    },
+  },
   setup() {
     // setup vuex
     const store = useStore();
@@ -396,6 +402,11 @@ export default {
     },
   },
   computed: {
+    cardStyle() {
+      return this.embedded
+        ? "width: 100%; max-width: none; min-height: 50vh"
+        : "width: 65vw; max-width: 70vw; min-height: 50vh";
+    },
     columns() {
       return [
         {
