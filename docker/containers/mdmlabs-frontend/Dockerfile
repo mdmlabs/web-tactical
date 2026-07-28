@@ -23,10 +23,22 @@ RUN wget -q https://github.com/grpc/grpc-web/releases/download/${GRPC_WEB_VERSIO
 # Copy package files for dependency installation
 COPY package.json package-lock.json ./
 
-# Install application and build dependencies. protoc-gen-js uses its package
-# install step to place the platform binary required by proto:generate.
-RUN npm ci && \
+# Install application and build dependencies without running arbitrary package
+# lifecycle scripts. The required protobuf JavaScript generator is installed
+# explicitly and pinned below.
+RUN npm ci --ignore-scripts && \
     npm cache clean --force
+
+ARG PROTOC_JS_VERSION=3.21.4
+RUN wget -q \
+      "https://github.com/protocolbuffers/protobuf-javascript/releases/download/v${PROTOC_JS_VERSION}/protobuf-javascript-${PROTOC_JS_VERSION}-linux-x86_64.zip" \
+      -O /tmp/protoc-js.zip && \
+    mkdir -p /app/node_modules/protoc-gen-js/bin && \
+    unzip -p /tmp/protoc-js.zip \
+      "protobuf-javascript-${PROTOC_JS_VERSION}-linux-x86_64/bin/protoc-gen-js" \
+      > /app/node_modules/protoc-gen-js/bin/protoc-gen-js && \
+    chmod +x /app/node_modules/protoc-gen-js/bin/protoc-gen-js && \
+    rm /tmp/protoc-js.zip
 
 # Copy source files
 COPY . .
