@@ -291,6 +291,7 @@ import { runAgentChecks } from "@/api/checks";
 import { fetchScripts } from "@/api/scripts";
 import { notifySuccess, notifyError } from "@/utils/notify";
 import { AGENT_DISPLAY_NAME } from "@/constants/constants";
+import { BUILD_PRODUCT_EDITION } from "@/config/productEdition";
 
 // ui imports
 import PendingActions from "@/components/logs/PendingActions.vue";
@@ -636,6 +637,7 @@ export default {
     }
 
     onMounted(async () => {
+      if (BUILD_PRODUCT_EDITION === "light") return;
       await getURLActions();
       await getFavoriteScripts();
     });
