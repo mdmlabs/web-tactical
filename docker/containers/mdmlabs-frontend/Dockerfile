@@ -23,12 +23,9 @@ RUN wget -q https://github.com/grpc/grpc-web/releases/download/${GRPC_WEB_VERSIO
 # Copy package files for dependency installation
 COPY package.json package-lock.json ./
 
-# Install Node.js dependencies
-RUN npm ci --omit=dev --ignore-scripts && \
-    npm cache clean --force
-
-# Install dev dependencies needed for build
-RUN npm ci --ignore-scripts && \
+# Install application and build dependencies. protoc-gen-js uses its package
+# install step to place the platform binary required by proto:generate.
+RUN npm ci && \
     npm cache clean --force
 
 # Copy source files
