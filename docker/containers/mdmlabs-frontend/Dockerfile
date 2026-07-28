@@ -35,7 +35,7 @@ RUN wget -q \
       -O /tmp/protoc-js.zip && \
     mkdir -p /app/node_modules/protoc-gen-js/bin && \
     unzip -p /tmp/protoc-js.zip \
-      "protobuf-javascript-${PROTOC_JS_VERSION}-linux-x86_64/bin/protoc-gen-js" \
+      "bin/protoc-gen-js" \
       > /app/node_modules/protoc-gen-js/bin/protoc-gen-js && \
     chmod +x /app/node_modules/protoc-gen-js/bin/protoc-gen-js && \
     rm /tmp/protoc-js.zip
