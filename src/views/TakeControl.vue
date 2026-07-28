@@ -43,7 +43,6 @@ import { useRoute } from "vue-router";
 import { useMeta, useQuasar } from "quasar";
 import { fetchAgentMeshCentralURLs, sendAgentRecoverMesh } from "@/api/agents";
 import { fetchDashboardInfo } from "@/api/core";
-import { sendAgentServiceAction } from "@/api/services";
 import { notifySuccess } from "@/utils/notify";
 
 export default {
@@ -123,15 +122,13 @@ export default {
     }
 
     async function restartMeshService() {
+      control.value = "";
       $q.loading.show({ message: "Restarting Mesh Agent" });
-      const data = {
-        sv_action: "restart",
-      };
-
       try {
-        await sendAgentServiceAction(params.agent_id, "mesh agent", data);
+        await sendAgentRecoverMesh(params.agent_id);
+        await getMeshURLs();
         setTimeout(() => {
-          notifySuccess("Mesh agent service was restarted");
+          notifySuccess("Mesh agent connection was restarted");
         }, 500);
       } catch (e) {
         console.error(e);
