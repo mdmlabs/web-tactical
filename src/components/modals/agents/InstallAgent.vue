@@ -249,8 +249,15 @@ export default {
       // MDM agent fields
       install_mdm: true,
       mdm_arch: "x64",
-      mdm_master_url: "",
+      mdm_master_url:
+        window._env_?.DEV_GRPC_URL || window._env_?.GRPC_URL || "",
     };
+  },
+  watch: {
+    goarch(value) {
+      if (this.agentOS !== "windows") return;
+      this.mdm_arch = value === GOARCH_ARM64 ? "arm64" : "x64";
+    },
   },
   methods: {
     getSites() {
