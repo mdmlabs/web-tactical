@@ -14,6 +14,8 @@ IMAGE_NAME="mdmlabs-frontend"
 DOCKERFILE="docker/containers/mdmlabs-frontend/Dockerfile"
 PROTOC_VERSION="25.1"
 GRPC_WEB_VERSION="1.5.0"
+PRODUCT_EDITION="${PRODUCT_EDITION:-full}"
+PRODUCT_DISPLAY_NAME="${PRODUCT_DISPLAY_NAME:-Laborato MDM}"
 
 # Get version from package.json
 APP_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "latest")
@@ -65,6 +67,8 @@ echo "  Tag: ${TAG}"
 echo "  Dockerfile: ${DOCKERFILE}"
 echo "  Protoc Version: ${PROTOC_VERSION}"
 echo "  gRPC-Web Version: ${GRPC_WEB_VERSION}"
+echo "  Product Edition: ${PRODUCT_EDITION}"
+echo "  Product Name: ${PRODUCT_DISPLAY_NAME}"
 echo ""
 
 # Check if Dockerfile exists
@@ -79,6 +83,8 @@ docker build \
     ${NO_CACHE} \
     --build-arg PROTOC_VERSION=${PROTOC_VERSION} \
     --build-arg GRPC_WEB_VERSION=${GRPC_WEB_VERSION} \
+    --build-arg PRODUCT_EDITION="${PRODUCT_EDITION}" \
+    --build-arg PRODUCT_DISPLAY_NAME="${PRODUCT_DISPLAY_NAME}" \
     -f ${DOCKERFILE} \
     -t ${IMAGE_NAME}:${TAG} \
     -t ${IMAGE_NAME}:latest \

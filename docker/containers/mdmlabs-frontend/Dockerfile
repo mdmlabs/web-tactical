@@ -41,8 +41,13 @@ RUN mkdir -p src/generated
 RUN npm run proto:generate
 
 # Build the application
+ARG PRODUCT_EDITION=full
+ARG PRODUCT_DISPLAY_NAME="Laborato MDM"
 ENV NODE_ENV=production
 ENV DOCKER_BUILD=true
+ENV NODE_OPTIONS=--max-old-space-size=4096
+ENV PRODUCT_EDITION=${PRODUCT_EDITION}
+ENV PRODUCT_DISPLAY_NAME=${PRODUCT_DISPLAY_NAME}
 RUN npm run build
 
 # Verify build output
