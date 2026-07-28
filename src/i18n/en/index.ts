@@ -84,7 +84,7 @@ export default {
   },
   branding: {
     systemName: "Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Windows",
-    systemTitle: "HỆ THỐNG QUẢN LÝ NGHIỆP VỤ CƠ YẾU TRÊN NỀN TẢNG WINDOWS",
+    systemTitle: "Laborato MDM Light",
   },
   auth: {
     signInTitle: "Sign In",
