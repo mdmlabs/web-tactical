@@ -5,9 +5,24 @@ echo "==================================="
 echo "MDM-labs Frontend Container Setup"
 echo "==================================="
 
-# Environment variables with defaults
+# Environment variables with defaults. The base Compose file historically
+# provides API_HOST/MESH_HOST rather than full URLs, so derive browser-safe
+# endpoints when the explicit runtime values are absent.
 API_URL="${API_URL:-}"
+if [ -z "${API_URL}" ] && [ -n "${API_HOST:-}" ]; then
+    API_URL="https://${API_HOST}"
+fi
+
 GRPC_API_URL="${GRPC_API_URL:-}"
+if [ -z "${GRPC_API_URL}" ] && [ -n "${MDM_MASTER_URL:-}" ]; then
+    GRPC_API_URL="${MDM_MASTER_URL}"
+elif [ -z "${GRPC_API_URL}" ] && [ -n "${MESH_HOST:-}" ]; then
+    if [ -n "${GRPC_PORT:-}" ]; then
+        GRPC_API_URL="https://${MESH_HOST}:${GRPC_PORT}"
+    else
+        GRPC_API_URL="https://${MESH_HOST}"
+    fi
+fi
 APP_VERSION="${APP_VERSION:-0.101.56}"
 LOG_LEVEL="${LOG_LEVEL:-info}"
 
@@ -30,6 +45,9 @@ var runtimeOrigin = window.location.origin;
 window._env_ = {
   PROD_URL: '${API_URL}' || runtimeOrigin,
   GRPC_URL: '${GRPC_API_URL}' || runtimeOrigin,
+  DEV_GRPC_URL: '${GRPC_API_URL}' || runtimeOrigin,
+  MESH_HOST: '${MESH_HOST:-}',
+  GRPC_PORT: '${GRPC_PORT:-}',
   APP_VERSION: '${APP_VERSION}',
   LOG_LEVEL: '${LOG_LEVEL}'
 };
