@@ -165,7 +165,7 @@ export default {
       $q.dialog({
         title: "Exit kiosk session",
         message:
-          "Sign out the active kiosk account and return the device to the Windows sign-in screen?",
+          "Sign out the active kiosk account, pause automatic kiosk sign-in, and return the device to the Windows sign-in screen? Redeploy the kiosk policy when administrator recovery is complete.",
         cancel: true,
         persistent: true,
       }).onOk(async () => {
