@@ -66,7 +66,14 @@
           </q-circular-progress>
           <div class="col">
             <div class="text-caption text-grey-7">Fleet state</div>
-            <div class="text-subtitle2">{{ compliantDevices }} of {{ totalDevices }} devices compliant</div>
+            <div class="text-subtitle2">
+              {{
+                t("complianceCenter.devicesCompliant", {
+                  compliant: compliantDevices,
+                  total: totalDevices,
+                })
+              }}
+            </div>
             <q-linear-progress
               class="q-mt-sm"
               rounded
@@ -157,7 +164,7 @@
                 <template #body-cell-risk="props">
                   <q-td :props="props">
                     <q-chip dense :color="riskColor(props.row.risk)" text-color="white">
-                      {{ props.row.risk }}
+                      {{ t(props.row.risk) }}
                     </q-chip>
                   </q-td>
                 </template>
@@ -1318,11 +1325,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useQuasar } from "quasar";
+import { useI18n } from "vue-i18n";
 import axios from "axios";
 
 type AnyRecord = Record<string, any>;
 
 const $q = useQuasar();
+const { t } = useI18n();
 
 const tab = ref("cockpit");
 const search = ref("");
@@ -1781,7 +1790,9 @@ const sourceHealth = computed(() => [
     state: totalDevices.value ? "Active" : "No data",
     color: totalDevices.value ? "positive" : "grey",
     icon: "devices",
-    caption: `${totalDevices.value} devices in compliance state table`,
+    caption: t("complianceCenter.devicesInStateTable", {
+      count: totalDevices.value,
+    }),
   },
   {
     key: "gpo",
@@ -1797,7 +1808,10 @@ const sourceHealth = computed(() => [
     state: cyberSummary.value?.sca_enabled ? "Connected" : "Degraded",
     color: cyberSummary.value?.sca_enabled ? "positive" : "warning",
     icon: "verified_user",
-    caption: `${cyberSummary.value?.mapped_agents || 0} mapped agents, ${cyberSummary.value?.results_total || 0} SCA results`,
+    caption: t("complianceCenter.mappedAgents", {
+      agents: cyberSummary.value?.mapped_agents || 0,
+      results: cyberSummary.value?.results_total || 0,
+    }),
   },
   {
     key: "workspace",
@@ -1845,7 +1859,9 @@ const riskHeatmap = computed(() => {
       ...group,
       score: Math.max(0, 100 - avgRisk),
       risk: riskLevel(avgRisk),
-      mainReason: mostCommon(group.reasons) || "No dominant failure",
+      mainReason:
+        mostCommon(group.reasons) ||
+        t("complianceCenter.noDominantFailure"),
     };
   });
 });

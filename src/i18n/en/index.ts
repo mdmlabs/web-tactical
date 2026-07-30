@@ -88,6 +88,15 @@ export default {
     systemName: "Hệ thống quản lý nghiệp vụ Cơ yếu trên nền tảng Windows",
     systemTitle: "Laborato MDM Light",
   },
+  complianceCenter: {
+    devicesCompliant:
+      "{compliant} of {total} devices compliant",
+    devicesInStateTable:
+      "{count} devices in compliance state table",
+    mappedAgents:
+      "{agents} mapped agents, {results} SCA results",
+    noDominantFailure: "No dominant failure",
+  },
   auth: {
     signInTitle: "Sign In",
     username: "Username",
