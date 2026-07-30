@@ -1,5 +1,6 @@
 import extracted from "./extracted";
 import legacyAdminKeys from "../vi/admin-static";
+import lightStaticKeys from "../vi/light-static";
 import legacySspKeys from "../vi/ssp-static";
 import {
   createIdentityTranslationsFromKeys,
@@ -9,6 +10,7 @@ import {
 const extractedPlainText = createPlainTextTranslations(extracted, extracted);
 const legacyPlainText = createIdentityTranslationsFromKeys(
   legacyAdminKeys,
+  lightStaticKeys,
   legacySspKeys,
 );
 

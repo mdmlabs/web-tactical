@@ -1,6 +1,7 @@
 import adminStatic from "./admin-static";
 import enExtracted from "../en/extracted";
 import extracted from "./extracted";
+import lightStatic from "./light-static";
 import { createPlainTextTranslations } from "../plain-text";
 import sspStatic from "./ssp-static";
 
@@ -12,6 +13,7 @@ export default {
   ...extractedPlainText,
   ...extracted,
   ...adminStatic,
+  ...lightStatic,
   ...sspStatic,
   common: {
     save: "Lưu",
