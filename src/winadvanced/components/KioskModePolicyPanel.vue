@@ -143,6 +143,18 @@
                 <q-input v-model="form.app_id" :label="$t('winadvanced.components.KioskModePolicyPanel.4e2dbe')" outlined dense class="col" />
                 <q-input v-model="form.app_name" :label="$t('winadvanced.components.KioskModePolicyPanel.499b9c')" outlined dense class="col" />
               </div>
+              <q-banner v-if="form.app_type === 'classic'" class="bg-amber-1 text-grey-9 rounded">
+                <template v-slot:avatar><q-icon name="desktop_windows" color="amber-9" /></template>
+                <strong>Desktop / Win32 application</strong>
+                <div class="text-caption">
+                  Enter the full executable path, for example
+                  C:\Program Files\AmneziaVPN\AmneziaVPN.exe. On Windows Pro
+                  this is deployed as a restricted one-app desktop profile:
+                  the executable starts automatically and other user apps are
+                  blocked. True Explorer shell replacement requires Windows
+                  Enterprise, Education, or IoT with Shell Launcher.
+                </div>
+              </q-banner>
 
               <!-- Edge Kiosk URL -->
               <q-input v-if="form.app_type === 'edge_kiosk'" v-model="form.edge_kiosk_start_url"
@@ -522,7 +534,7 @@ async function loadScopeTargetOptions() {
 
 const appTypeOptions = [
   { label: "UWP / MSIX App", value: "uwp" },
-  { label: "Classic Win32 App", value: "classic" },
+  { label: "Desktop / Win32 App (.exe)", value: "classic" },
   { label: "Multi-app Assigned Access", value: "multi_app" },
   { label: "Microsoft Edge Kiosk", value: "edge_kiosk" },
 ];
@@ -578,6 +590,17 @@ async function savePolicy() {
     payload.multi_app_list = parseMultiAppList(form.multi_app_list_text);
     delete (payload as any).multi_app_list_text;
     normalizeScopedPayload(payload);
+    if (
+      payload.app_type === "classic" &&
+      !/^[a-z]:\\.+\.exe$/i.test(String(payload.app_id || "").trim())
+    ) {
+      $q.notify({
+        message: "Desktop / Win32 kiosk requires a full Windows .exe path",
+        color: "warning",
+        icon: "warning",
+      });
+      return;
+    }
     const targetError = scopedTargetError(payload);
     if (targetError) {
       $q.notify({ message: targetError, color: "warning", icon: "warning" });
