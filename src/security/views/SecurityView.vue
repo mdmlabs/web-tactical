@@ -3611,7 +3611,8 @@ const RemediationPanel = defineAsyncComponent(
 const $q = useQuasar();
 const { t } = useI18n();
 const route = useRoute();
-const { isLight } = storeToRefs(useProductEditionStore());
+const productEditionStore = useProductEditionStore();
+const { isLight } = storeToRefs(productEditionStore);
 const tab = ref("health");
 const fimTab = ref("policies");
 const tabByRouteName: Record<string, string> = {
@@ -5417,7 +5418,11 @@ async function massWipeSelectedIncidents() {
   });
 }
 
-onMounted(() => {
+onMounted(async () => {
+  if (!productEditionStore.loaded) {
+    await productEditionStore.load();
+  }
+
   loadUSB();
   loadUSBEvents();
   loadDLP();
