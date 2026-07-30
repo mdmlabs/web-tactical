@@ -97,7 +97,7 @@
               :alt="`${$t('branding.systemName')} logo`"
               class="toolbar-logo"
             />
-            <span class="logo-text">
+            <span class="logo-text" data-no-dom-i18n>
               {{ productName }}
               <q-tooltip>{{ productName }}</q-tooltip>
             </span>
