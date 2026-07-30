@@ -223,7 +223,10 @@
         </q-btn>
 
         <!-- Alerts Icon -->
-        <AlertsIcon class="q-mx-sm" />
+        <AlertsIcon
+          v-if="productEditionLoaded && !isLight"
+          class="q-mx-sm"
+        />
 
         <!-- User Menu -->
         <q-btn-dropdown flat no-caps stretch class="user-dropdown">
@@ -680,7 +683,11 @@ const {
 
 const { displayName } = storeToRefs(useAuthStore());
 const productEditionStore = useProductEditionStore();
-const { isLight, productName } = storeToRefs(productEditionStore);
+const {
+  isLight,
+  productName,
+  loaded: productEditionLoaded,
+} = storeToRefs(productEditionStore);
 
 const currentTRMMVersion = computed(() => store.state.currentTRMMVersion);
 const latestTRMMVersion = computed(() => store.state.latestTRMMVersion);
