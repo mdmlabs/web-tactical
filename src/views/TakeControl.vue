@@ -31,6 +31,13 @@
         allowfullscreen
         frameborder="0"
       ></iframe>
+      <div
+        v-if="sasBlocked"
+        class="sas-blocker"
+        title="Ctrl+Alt+Del is disabled while kiosk lockdown is active"
+      >
+        Secure attention disabled
+      </div>
     </div>
   </div>
 </template>
@@ -68,6 +75,7 @@ export default {
     // take control setup
     const control = ref("");
     const status = ref(null);
+    const sasBlocked = ref(false);
 
     const statusColor = computed(() => {
       switch (status.value) {
@@ -91,6 +99,7 @@ export default {
         const data = await fetchAgentMeshCentralURLs(params.agent_id);
         control.value = data.control;
         status.value = data.status;
+        sasBlocked.value = Boolean(data.sas_blocked);
         useMeta({
           title: `${data.hostname} - ${data.client} - ${data.site} | Take Control`,
         });
@@ -141,6 +150,7 @@ export default {
       // reactive data
       control,
       status,
+      sasBlocked,
       statusColor,
       dash_negative_color,
 
@@ -151,3 +161,24 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.sas-blocker {
+  position: absolute;
+  z-index: 2;
+  bottom: 0;
+  left: 0;
+  width: 190px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eeeeee;
+  border-top: 1px solid #bdbdbd;
+  border-right: 1px solid #bdbdbd;
+  color: #616161;
+  font-size: 12px;
+  font-weight: 600;
+  user-select: none;
+}
+</style>

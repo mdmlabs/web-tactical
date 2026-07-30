@@ -184,6 +184,10 @@
                   breakout sequence to return to Windows sign-in, then sign in
                   with a local administrator account. In multi-app mode with
                   Keyboard Filter, F12 five times opens the sign-in screen.
+                  Full Ctrl+Alt+Del suppression requires Windows
+                  Enterprise/Education/IoT; Windows Pro can only restrict the
+                  actions available after Ctrl+Alt+Del. A privileged remote
+                  support console may still send the secure-attention command.
                 </div>
               </q-banner>
               <div class="row q-gutter-sm items-center">
