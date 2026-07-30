@@ -1,6 +1,7 @@
 <template>
   <q-drawer
     v-model="drawerOpen"
+    data-no-dom-i18n
     :width="272"
     :breakpoint="1024"
     bordered
@@ -53,10 +54,6 @@
       <q-item clickable v-ripple :to="{ path: '/app-management', query: { tab: 'distribution' } }">
         <q-item-section avatar><q-icon name="system_update_alt" /></q-item-section>
         <q-item-section>{{ t("Installation and removal") }}</q-item-section>
-      </q-item>
-      <q-item clickable v-ripple to="/light/container">
-        <q-item-section avatar><q-icon name="enhanced_encryption" /></q-item-section>
-        <q-item-section>{{ t("Secure Container") }}</q-item-section>
       </q-item>
       <q-item clickable v-ripple to="/security-center/dlp">
         <q-item-section avatar><q-icon name="shield" /></q-item-section>

@@ -44,7 +44,6 @@ const LIGHT_ALLOWED_EXACT_PATHS = new Set([
   "/compliance-center",
   "/light/devices",
   "/light/kiosk",
-  "/light/container",
 ]);
 
 const LIGHT_ALLOWED_PATH_PREFIXES = [

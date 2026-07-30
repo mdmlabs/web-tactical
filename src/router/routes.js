@@ -196,9 +196,7 @@ const routes = [
       },
       {
         path: "/light/container",
-        name: "LightSecureContainer",
-        component: () => import("@/light/views/LightContainerView.vue"),
-        meta: { requireAuth: true },
+        redirect: "/security-center/dlp",
       },
       {
         path: "/settings",
