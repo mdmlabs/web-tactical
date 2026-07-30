@@ -173,8 +173,12 @@
               </q-banner>
               <div class="row q-gutter-sm">
                 <q-toggle v-model="form.auto_logon" :label="$t('winadvanced.components.KioskModePolicyPanel.4f16bf')" dense />
-                <q-input v-if="form.auto_logon" v-model="form.auto_logon_username"
-                  :label="$t('winadvanced.components.KioskModePolicyPanel.fbb709')" outlined dense style="min-width:200px" />
+                <q-input v-model="form.auto_logon_username"
+                  label="Kiosk Windows account"
+                  :hint="form.auto_logon
+                    ? 'Managed Assigned Access account; Windows signs in automatically'
+                    : 'Existing or agent-created local standard account used by Assigned Access'"
+                  outlined dense style="min-width:320px" />
               </div>
 
               <!-- Shell / UI -->
@@ -194,12 +198,16 @@
                 <div class="text-caption">
                   The kiosk profile applies only to the kiosk account. Use the
                   breakout sequence to return to Windows sign-in, then sign in
-                  with a local administrator account. In multi-app mode with
-                  Keyboard Filter, F12 five times opens the sign-in screen.
+                  with a local administrator account. The custom sequence is
+                  handled by Windows single-app Assigned Access (Edge/UWP).
+                  In classic restricted or multi-app mode on supported Windows
+                  editions, Keyboard Filter blocks the standard escape keys and
+                  F12 five times is the emergency physical-keyboard breakout.
                   Full Ctrl+Alt+Del suppression requires Windows
                   Enterprise/Education/IoT; Windows Pro can only restrict the
                   actions available after Ctrl+Alt+Del. A privileged remote
-                  support console may still send the secure-attention command.
+                  support console may still generate secure attention, so use
+                  “Exit kiosk session” in Take Control for remote recovery.
                 </div>
               </q-banner>
               <div class="row q-gutter-sm items-center">
@@ -217,7 +225,7 @@
                   v-if="form.block_keyboard_shortcuts"
                   v-model="form.breakout_sequence"
                   label="Administrator breakout sequence"
-                  hint="Single-app Assigned Access sequence"
+                  hint="Single-app Edge/UWP, for example Ctrl+Alt+Shift+F12"
                   outlined
                   dense
                   style="min-width:260px"
@@ -284,7 +292,7 @@ const defaultForm = () => ({
   app_type: "uwp", app_id: "", app_name: "",
   edge_kiosk_start_url: "",
   multi_app_list: [] as any[], multi_app_list_text: "",
-  allow_multi_window: false, auto_logon: false, auto_logon_username: "",
+  allow_multi_window: false, auto_logon: false, auto_logon_username: "Kiosk",
   fallback_app_id: "", fallback_app_name: "",
   restart_on_crash: true, restart_delay_seconds: 30, max_restart_attempts: 5,
   target_agent_id: "",

@@ -227,6 +227,13 @@ export async function sendAgentRecoverMesh(agent_id, params = {}) {
   return data;
 }
 
+export async function exitAgentKioskSession(agent_id) {
+  const { data } = await axios.post(
+    `${baseUrl}/${agent_id}/meshcentral/kiosk-exit/`,
+  );
+  return data;
+}
+
 export async function sendAgentPing(agent_id, params = {}) {
   const { data } = await axios.get(`${baseUrl}/${agent_id}/ping/`, {
     params: params,

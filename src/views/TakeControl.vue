@@ -21,6 +21,16 @@
         icon="fas fa-first-aid"
         @click="repairMeshCentral"
       />
+      <q-btn
+        v-if="sasBlocked"
+        class="q-ml-md"
+        color="warning"
+        size="sm"
+        label="Exit kiosk session"
+        icon="logout"
+        :loading="kioskExitLoading"
+        @click="requestKioskExit"
+      />
       <q-space />
     </q-bar>
     <div class="q-video" :style="{ height: `${$q.screen.height - 26}px` }">
@@ -34,9 +44,9 @@
       <div
         v-if="sasBlocked"
         class="sas-blocker"
-        title="Ctrl+Alt+Del is disabled while kiosk lockdown is active"
+        title="Remote shortcut injection is disabled while kiosk lockdown is active"
       >
-        Secure attention disabled
+        Kiosk shortcut menu disabled
       </div>
     </div>
   </div>
@@ -48,7 +58,11 @@ import { ref, computed, onMounted } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from "vue-router";
 import { useMeta, useQuasar } from "quasar";
-import { fetchAgentMeshCentralURLs, sendAgentRecoverMesh } from "@/api/agents";
+import {
+  exitAgentKioskSession,
+  fetchAgentMeshCentralURLs,
+  sendAgentRecoverMesh,
+} from "@/api/agents";
 import { fetchDashboardInfo } from "@/api/core";
 import { notifySuccess } from "@/utils/notify";
 
@@ -76,6 +90,7 @@ export default {
     const control = ref("");
     const status = ref(null);
     const sasBlocked = ref(false);
+    const kioskExitLoading = ref(false);
 
     const statusColor = computed(() => {
       switch (status.value) {
@@ -146,17 +161,39 @@ export default {
       $q.loading.hide();
     }
 
+    function requestKioskExit() {
+      $q.dialog({
+        title: "Exit kiosk session",
+        message:
+          "Sign out the active kiosk account and return the device to the Windows sign-in screen?",
+        cancel: true,
+        persistent: true,
+      }).onOk(async () => {
+        kioskExitLoading.value = true;
+        try {
+          const data = await exitAgentKioskSession(params.agent_id);
+          notifySuccess(data.detail || "Kiosk session logoff requested");
+        } catch (e) {
+          console.error(e);
+        } finally {
+          kioskExitLoading.value = false;
+        }
+      });
+    }
+
     return {
       // reactive data
       control,
       status,
       sasBlocked,
+      kioskExitLoading,
       statusColor,
       dash_negative_color,
 
       // methods
       repairMeshCentral,
       restartMeshService,
+      requestKioskExit,
     };
   },
 };
@@ -168,8 +205,8 @@ export default {
   z-index: 2;
   bottom: 0;
   left: 0;
-  width: 190px;
-  height: 28px;
+  width: 320px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
