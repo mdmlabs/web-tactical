@@ -2,9 +2,7 @@ stages:
   - deploy
 
 variables:
-  # Always deploy the commit that triggered the pipeline. Retry source fetching
-  # because the isolated shell runner can occasionally time out reaching GitLab.
-  GIT_STRATEGY: "clone"
+  GIT_STRATEGY: clone
   GET_SOURCES_ATTEMPTS: "5"
 
 deploy_to_stage:
@@ -13,61 +11,143 @@ deploy_to_stage:
     - shell
   only:
     - develop
+
   before_script:
     - mkdir -p ~/.ssh
     - echo "$SSH_KEY_STAGE" | base64 -d > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
     - ssh-keyscan -H "$SSH_HOST_STAGE" >> ~/.ssh/known_hosts 2>/dev/null || true
+
   script:
     - |
       set -euo pipefail
 
-      echo "📤 Syncing GitLab checkout ${CI_COMMIT_SHA} to stage..."
-      ssh -o StrictHostKeyChecking=no "$SSH_USER_STAGE@$SSH_HOST_STAGE" << 'REMOTEPREP'
+      echo "=============================="
+      echo "CI VARIABLES"
+      echo "=============================="
+      echo "CI_PIPELINE_SOURCE=$CI_PIPELINE_SOURCE"
+      echo "CI_COMMIT_BRANCH=$CI_COMMIT_BRANCH"
+      echo "CI_COMMIT_REF_NAME=$CI_COMMIT_REF_NAME"
+      echo "CI_DEFAULT_BRANCH=$CI_DEFAULT_BRANCH"
+      echo "CI_COMMIT_SHA=$CI_COMMIT_SHA"
+      echo "CI_COMMIT_SHORT_SHA=$CI_COMMIT_SHORT_SHA"
+      echo "CI_PROJECT_PATH=$CI_PROJECT_PATH"
+      echo
+
+      echo "=============================="
+      echo "RUNNER GIT STATE"
+      echo "=============================="
+      pwd
+      git status
+      git branch -av
+      git rev-parse HEAD
+      git log --decorate --oneline -10
+      echo
+
+      echo "=============================="
+      echo "REMOTE CLEANUP"
+      echo "=============================="
+
+      ssh -o StrictHostKeyChecking=no "$SSH_USER_STAGE@$SSH_HOST_STAGE" <<'REMOTE_PREP'
       set -e
+
       mkdir -p ~/mdmlabsrmm/web-tactical
-      find ~/mdmlabsrmm/web-tactical -mindepth 1 -maxdepth 1 ! -name node_modules -exec rm -rf {} +
-      REMOTEPREP
 
-      tar --exclude=.git --exclude=node_modules --exclude=dist --exclude=.quasar --exclude=.DS_Store -czf - . \
-        | ssh -o StrictHostKeyChecking=no "$SSH_USER_STAGE@$SSH_HOST_STAGE" 'tar -xzf - -C ~/mdmlabsrmm/web-tactical'
+      find ~/mdmlabsrmm/web-tactical \
+          -mindepth 1 \
+          -maxdepth 1 \
+          ! -name node_modules \
+          -exec rm -rf {} +
 
-      ssh -o StrictHostKeyChecking=no "$SSH_USER_STAGE@$SSH_HOST_STAGE" "CI_COMMIT_SHA='$CI_COMMIT_SHA' bash -s" << 'REMOTESCRIPT'
+      REMOTE_PREP
+
+      echo "=============================="
+      echo "SYNC FILES"
+      echo "=============================="
+
+      tar \
+        --exclude=.git \
+        --exclude=node_modules \
+        --exclude=dist \
+        --exclude=.quasar \
+        --exclude=.DS_Store \
+        -czf - . \
+      | ssh -o StrictHostKeyChecking=no \
+          "$SSH_USER_STAGE@$SSH_HOST_STAGE" \
+          'tar -xzf - -C ~/mdmlabsrmm/web-tactical'
+
+      echo "=============================="
+      echo "REMOTE BUILD"
+      echo "=============================="
+
+      ssh -o StrictHostKeyChecking=no "$SSH_USER_STAGE@$SSH_HOST_STAGE" "CI_COMMIT_SHA='$CI_COMMIT_SHA' CI_COMMIT_BRANCH='$CI_COMMIT_BRANCH' bash -s" <<'REMOTE_SCRIPT'
+
       set -euo pipefail
+
       export NVM_DIR="$HOME/.nvm"
       [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
       nvm use 20
 
       export NODE_OPTIONS="--max-old-space-size=4096"
 
-      cd ~/mdmlabsrmm/web-tactical/
+      cd ~/mdmlabsrmm/web-tactical
 
-      echo "🌐 Building synced GitLab commit ${CI_COMMIT_SHA}..."
+      echo "=============================="
+      echo "REMOTE INFO"
+      echo "=============================="
+      echo "Branch: $CI_COMMIT_BRANCH"
+      echo "SHA:    $CI_COMMIT_SHA"
+      pwd
+      ls -la
+
       printf "%s\n" "$CI_COMMIT_SHA" > .deployed-gitlab-sha
 
       mkdir -p dist
 
-      echo "📦 Installing dependencies..."
+      echo "=============================="
+      echo "PACKAGE VERSION"
+      echo "=============================="
+      cat package.json | head -20
+
+      echo "=============================="
+      echo "INSTALL"
+      echo "=============================="
       npm install --legacy-peer-deps
 
-      echo "🔧 Generating proto files..."
+      echo "=============================="
+      echo "PROTO"
+      echo "=============================="
       mkdir -p src/generated
       npm run proto:generate
 
-      echo "🏗️ Building project..."
+      echo "=============================="
+      echo "BUILD"
+      echo "=============================="
       npm run build
 
       test -f dist/index.html
-      echo "✅ dist/ refreshed at $(stat -c %y dist/index.html)"
 
-      cd ~/mdmlabsrmm/
-      echo "🐳 Building Docker image..."
-      docker build --pull --no-cache -t "mdmlabs-frontend" -f "docker/containers/mdmlabs-frontend/dockerfile" .
-      echo "🛑 Stopping frontend container..."
+      echo "Build completed:"
+      stat dist/index.html
+
+      cd ~/mdmlabsrmm
+
+      echo "=============================="
+      echo "DOCKER BUILD"
+      echo "=============================="
+
+      docker build \
+        --pull \
+        --no-cache \
+        -t mdmlabs-frontend \
+        -f docker/containers/mdmlabs-frontend/dockerfile .
+
       docker stop mdmlabs-frontend || true
-      echo "🗑️ Removing frontend container..."
       docker rm mdmlabs-frontend || true
-      echo "🚀 Starting new frontend container..."
-      cd ~/mdmlabsrmm/docker/
+
+      cd docker
+
       docker compose up -d mdmlabs-frontend
-      REMOTESCRIPT
+
+      REMOTE_SCRIP
