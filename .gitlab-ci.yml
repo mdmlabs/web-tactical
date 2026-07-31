@@ -150,4 +150,4 @@ deploy_to_stage:
 
       docker compose up -d mdmlabs-frontend
 
-      REMOTE_SCRIP
+      REMOTE_SCRIPT
