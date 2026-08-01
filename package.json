@@ -2,7 +2,7 @@
   "name": "web",
   "version": "0.101.56",
   "private": true,
-  "productName": "Laborato MDM",
+  "productName": "HỆ THỐNG QUẢN LÝ NGHIỆP VỤ CƠ YẾU TRÊN NỀN TẢNG WINDOWS",
   "scripts": {
     "serve": "quasar dev",
     "build": "quasar build",
