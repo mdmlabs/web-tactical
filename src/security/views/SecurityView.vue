@@ -2578,6 +2578,7 @@
                 use-input
                 input-debounce="200"
                 @filter="filterUSBAgentOptions"
+                @update:model-value="loadUSBInventory"
               />
               <q-select
                 v-else-if="usbForm.scope === 'device_group'"
@@ -2591,6 +2592,7 @@
                 map-options
                 use-input
                 input-debounce="200"
+                @update:model-value="loadUSBInventory"
               />
               <q-select
                 v-else-if="usbForm.scope === 'user'"
@@ -2625,6 +2627,113 @@
               </q-field>
             </div>
           </div>
+          <q-card
+            v-if="['whitelist', 'blacklist'].includes(usbForm.policy_type)"
+            flat
+            bordered
+            class="q-pa-md"
+          >
+            <div class="row items-center q-col-gutter-sm">
+              <div class="col">
+                <div class="text-subtitle2">Detected USB devices</div>
+                <div class="text-caption text-grey-7">
+                  Choose by friendly name. The model-safe VID/PID selector is added automatically.
+                </div>
+              </div>
+              <div class="col-auto">
+                <q-btn
+                  outline
+                  color="primary"
+                  icon="refresh"
+                  label="Scan connected"
+                  no-caps
+                  :loading="refreshingUSBInventory"
+                  :disable="!canLoadUSBInventory"
+                  @click="refreshUSBInventory"
+                />
+              </div>
+            </div>
+
+            <q-input
+              v-model="usbInventorySearch"
+              class="q-mt-sm"
+              dense
+              outlined
+              clearable
+              debounce="150"
+              placeholder="Search by name, manufacturer, class, or VID/PID"
+            >
+              <template #prepend><q-icon name="search" /></template>
+            </q-input>
+
+            <div v-if="loadingUSBInventory" class="text-center q-pa-md">
+              <q-spinner color="primary" size="28px" />
+            </div>
+            <q-banner
+              v-else-if="!canLoadUSBInventory"
+              dense
+              rounded
+              class="bg-grey-2 text-grey-8 q-mt-sm"
+            >
+              Select a target device or device group to load its USB inventory.
+            </q-banner>
+            <q-banner
+              v-else-if="filteredUSBInventory.length === 0"
+              dense
+              rounded
+              class="bg-grey-2 text-grey-8 q-mt-sm"
+            >
+              No USB devices found yet. Connect the device and click <b>Scan connected</b>.
+            </q-banner>
+            <q-list
+              v-else
+              bordered
+              separator
+              class="q-mt-sm rounded-borders"
+              style="max-height: 300px; overflow: auto"
+            >
+              <q-item v-for="device in filteredUSBInventory" :key="usbInventoryKey(device)">
+                <q-item-section avatar>
+                  <q-checkbox
+                    :model-value="isUSBInventorySelected(device)"
+                    color="primary"
+                    @update:model-value="toggleUSBInventoryDevice(device, $event)"
+                  />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>
+                    {{ device.friendly_name || "USB device" }}
+                    <q-chip
+                      dense
+                      size="sm"
+                      color="blue-grey-1"
+                      text-color="blue-grey-9"
+                      class="q-ml-xs"
+                    >
+                      {{ usbClassLabel(device.device_class) }}
+                    </q-chip>
+                  </q-item-label>
+                  <q-item-label caption>
+                    <span v-if="device.manufacturer">{{ device.manufacturer }} · </span>
+                    <code>{{ device.selector }}</code>
+                  </q-item-label>
+                  <q-item-label v-if="device.agent_count > 1" caption>
+                    Seen on {{ device.agent_count }} devices
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-chip
+                    dense
+                    size="sm"
+                    :color="device.connected_count ? 'positive' : 'grey'"
+                    text-color="white"
+                  >
+                    {{ device.connected_count ? "Connected" : "Recently seen" }}
+                  </q-chip>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-card>
           <q-select
             v-model="usbForm.blocked_device_classes"
             :options="usbClassOptions"
@@ -2651,24 +2760,36 @@
             emit-value
             map-options
           />
-          <q-input
-            v-model="usbAllowedIdsInput"
-            label="Allowed USB token IDs"
-            hint="One VID/PID, hardware ID, or instance prefix per line; use this for storage-form tokens"
-            type="textarea"
-            rows="2"
-            outlined
-            dense
-          />
-          <q-input
-            v-model="usbBlockedIdsInput"
-            label="Blocked USB IDs"
-            hint="One VID/PID, hardware ID, or instance prefix per line"
-            type="textarea"
-            rows="2"
-            outlined
-            dense
-          />
+          <q-expansion-item
+            bordered
+            dense-toggle
+            icon="tune"
+            label="Advanced: enter USB IDs manually"
+            header-class="text-primary"
+          >
+            <q-card flat>
+              <q-card-section class="q-gutter-md">
+                <q-input
+                  v-model="usbAllowedIdsInput"
+                  label="Allowed USB token IDs"
+                  hint="One VID/PID, hardware ID, or instance prefix per line"
+                  type="textarea"
+                  rows="2"
+                  outlined
+                  dense
+                />
+                <q-input
+                  v-model="usbBlockedIdsInput"
+                  label="Blocked USB IDs"
+                  hint="One VID/PID, hardware ID, or instance prefix per line"
+                  type="textarea"
+                  rows="2"
+                  outlined
+                  dense
+                />
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
           <q-toggle
             v-model="usbForm.encrypt_required"
             :label="$t('security.views.SecurityView.273ef9')"
@@ -4128,6 +4249,10 @@ const savingUSB = ref(false);
 const savingFIM = ref(false);
 const usbAllowedIdsInput = ref("");
 const usbBlockedIdsInput = ref("");
+const usbInventory = ref<any[]>([]);
+const usbInventorySearch = ref("");
+const loadingUSBInventory = ref(false);
+const refreshingUSBInventory = ref(false);
 
 const monitoredPathsInput = ref("");
 const excludedPathsInput = ref("");
@@ -4220,6 +4345,29 @@ const usbClassOptions = [
 const usbWhitelistClassOptions = usbClassOptions.filter((option) =>
   ["hid", "printer", "smart_card"].includes(option.value),
 );
+const canLoadUSBInventory = computed(() => {
+  if (usbForm.value.scope === "device") return Boolean(usbForm.value.target_agent_id);
+  if (usbForm.value.scope === "device_group")
+    return Boolean(usbForm.value.target_device_group_id);
+  return usbForm.value.scope === "global";
+});
+const filteredUSBInventory = computed(() => {
+  const query = (usbInventorySearch.value || "").trim().toLowerCase();
+  if (!query) return usbInventory.value;
+  return usbInventory.value.filter((device: any) =>
+    [
+      device.friendly_name,
+      device.manufacturer,
+      device.device_class,
+      device.selector,
+      ...(device.agent_names || []),
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase()
+      .includes(query),
+  );
+});
 const usbScopeOptions = [
   { label: "Global (all devices)", value: "global" },
   { label: "Specific device", value: "device" },
@@ -5091,7 +5239,10 @@ function showUSBDialog(item?: any) {
   usbBlockedIdsInput.value = (usbForm.value.blocked_device_ids || []).join(
     "\n",
   );
+  usbInventory.value = [];
+  usbInventorySearch.value = "";
   usbDialogOpen.value = true;
+  void loadUSBInventory();
 }
 
 function splitLines(value: string) {
@@ -5107,12 +5258,114 @@ function onUSBScopeChanged(scope: string) {
   usbForm.value.target_device_group_id = null;
   usbForm.value.target_user_id = null;
   usbForm.value.target_user_group_id = null;
+  usbInventory.value = [];
+  usbInventorySearch.value = "";
+  if (usbForm.value.scope === "global") void loadUSBInventory();
 }
 
 function onUSBPolicyTypeChanged(policyType: string) {
   usbForm.value.policy_type = policyType || "read_only";
   if (usbForm.value.policy_type === "whitelist") {
     usbForm.value.allowed_device_classes = ["hid", "printer", "smart_card"];
+  }
+}
+
+function usbInventoryParams() {
+  if (!canLoadUSBInventory.value) return null;
+  if (usbForm.value.scope === "device") {
+    return { target_agent_id: usbForm.value.target_agent_id };
+  }
+  if (usbForm.value.scope === "device_group") {
+    return { target_device_group_id: usbForm.value.target_device_group_id };
+  }
+  return {};
+}
+
+async function loadUSBInventory() {
+  const params = usbInventoryParams();
+  if (!params) {
+    usbInventory.value = [];
+    return;
+  }
+  loadingUSBInventory.value = true;
+  try {
+    const response = await axios.get("/security/usb/inventory/", { params });
+    usbInventory.value = response.data?.devices || [];
+  } catch (error: any) {
+    usbInventory.value = [];
+    $q.notify({
+      message: _apiErrMessage(error, "Unable to load USB inventory"),
+      color: "negative",
+    });
+  } finally {
+    loadingUSBInventory.value = false;
+  }
+}
+
+async function refreshUSBInventory() {
+  const params = usbInventoryParams();
+  if (!params) return;
+  refreshingUSBInventory.value = true;
+  try {
+    const response = await axios.post("/security/usb/inventory/refresh/", params);
+    const refreshed = response.data?.agents_refreshed || 0;
+    const failed = response.data?.errors?.length || 0;
+    await loadUSBInventory();
+    $q.notify({
+      message: failed
+        ? `USB inventory refreshed on ${refreshed} device(s); ${failed} unavailable`
+        : `USB inventory refreshed on ${refreshed} device(s)`,
+      color: failed && !refreshed ? "warning" : "positive",
+      icon: failed && !refreshed ? "warning" : "usb",
+    });
+  } catch (error: any) {
+    $q.notify({
+      message: _apiErrMessage(error, "USB inventory refresh failed"),
+      color: "negative",
+    });
+  } finally {
+    refreshingUSBInventory.value = false;
+  }
+}
+
+function usbInventoryKey(device: any) {
+  return `${device.selector || ""}|${device.device_class || "usb"}`;
+}
+
+function usbClassLabel(value: string) {
+  return (
+    usbClassOptions.find((option) => option.value === value)?.label ||
+    (value || "USB").replaceAll("_", " ")
+  );
+}
+
+function selectedUSBInventoryIDs() {
+  return splitLines(
+    usbForm.value.policy_type === "blacklist"
+      ? usbBlockedIdsInput.value
+      : usbAllowedIdsInput.value,
+  );
+}
+
+function isUSBInventorySelected(device: any) {
+  const selector = String(device.selector || "").toLowerCase();
+  return selectedUSBInventoryIDs().some((value) => value.toLowerCase() === selector);
+}
+
+function toggleUSBInventoryDevice(device: any, selected: boolean) {
+  const selector = String(device.selector || "").trim();
+  if (!selector) return;
+  const ids = selectedUSBInventoryIDs();
+  const exists = ids.some((value) => value.toLowerCase() === selector.toLowerCase());
+  const next = selected
+    ? exists
+      ? ids
+      : [...ids, selector]
+    : ids.filter((value) => value.toLowerCase() !== selector.toLowerCase());
+  if (usbForm.value.policy_type === "blacklist") {
+    usbBlockedIdsInput.value = next.join("\n");
+  } else {
+    usbAllowedIdsInput.value = next.join("\n");
   }
 }
 
