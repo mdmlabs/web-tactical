@@ -223,7 +223,7 @@
                 emit-value
                 map-options
                 class="q-mb-md"
-                hint="'Any' monitors all sensitive files. Higher levels require deep scan."
+                hint="Any triggers on every detector, keyword, regex, filename, or sensitive-extension match with no minimum score. Confidential and Secret use the accumulated content score."
               />
 
               <div class="q-mb-md">
@@ -1473,9 +1473,9 @@ watch(
 );
 
 const classificationOptions = [
-  { label: "Any (monitor all sensitive files)", value: "any" },
-  { label: "Confidential", value: "confidential" },
-  { label: "Secret (deep scan required)", value: "secret" },
+  { label: "Any detected match (no classification threshold)", value: "any" },
+  { label: "Confidential or higher (score 30+)", value: "confidential" },
+  { label: "Secret only (score 65+)", value: "secret" },
 ];
 
 const blockModeOptions = [
