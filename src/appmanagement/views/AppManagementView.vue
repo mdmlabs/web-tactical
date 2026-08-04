@@ -101,7 +101,14 @@
               <div class="col-auto row q-gutter-xs">
                 <q-chip dense color="negative" text-color="white" icon="looks_one">Blocklist wins</q-chip>
                 <q-chip dense color="positive" text-color="white" icon="looks_two">Allowlist</q-chip>
-                <q-chip dense color="blue-grey-5" text-color="white" icon="looks_3">Default allow</q-chip>
+                <q-chip
+                  dense
+                  :color="appDefaultDeny ? 'negative' : 'blue-grey-5'"
+                  text-color="white"
+                  icon="looks_3"
+                >
+                  {{ appDefaultDeny ? 'Default deny' : 'Default allow' }}
+                </q-chip>
               </div>
             </div>
           </q-card-section>
@@ -1888,6 +1895,10 @@
           <q-input v-model="appHashesInput" label="SHA256 hashes" outlined dense type="textarea" autogrow
             hint="Optional. Used for inventory matching and future hash rules."
             @update:model-value="appForm.app_hashes = textToList(String(appHashesInput || ''))" />
+          <q-banner v-if="appDialogType === 'whitelist'" rounded class="bg-orange-1 text-orange-10">
+            Allowlist is strict: applications that do not match an allow rule are blocked by default.
+            Windows and the Laborato management agents remain available through protected safety rules.
+          </q-banner>
           <div class="row q-gutter-md">
             <q-toggle v-model="appForm.block_app_store" label="Block Microsoft Store" />
             <q-toggle v-model="appForm.block_installers" label="Block unmanaged installers" />
@@ -3400,6 +3411,7 @@ const sspInfoArticleColumns = [
 const effectivePolicySource = computed(() => selectedAppAgentId.value ? effectiveAppPolicies.value : appPolicies.value);
 const activeBlockPolicies = computed(() => effectivePolicySource.value.filter((p) => p.enabled && p.list_type === "blacklist"));
 const activeAllowPolicies = computed(() => effectivePolicySource.value.filter((p) => p.enabled && p.list_type === "whitelist"));
+const appDefaultDeny = computed(() => activeAllowPolicies.value.length > 0);
 const appPolicySelectorOptions = computed(() => appPolicies.value.map((policy: any) => ({
   label: `${policy.name || `Policy #${policy.id}`} (${policy.list_type || "policy"})`,
   value: policy.id,
@@ -3550,7 +3562,7 @@ function appPolicyState(row: any) {
     if (allow) {
       return { state: "Allowed", color: "positive", reason: allow.name || "Allowlist" };
     }
-    return { state: "Allowed", color: "positive", reason: "No matching block rule" };
+    return { state: "Not allowed", color: "negative", reason: "No matching allow rule (default deny)" };
   }
   return { state: "Allowed", color: "positive", reason: "No matching block rule" };
 }
