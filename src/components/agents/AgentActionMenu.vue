@@ -126,6 +126,7 @@
     </q-item>
 
     <q-item
+      v-if="remoteBackgroundAvailable"
       clickable
       v-close-popup
       @click="runRemoteBackground(agent.agent_id, agent.plat)"
@@ -302,7 +303,6 @@ import { runAgentChecks } from "@/api/checks";
 import { fetchScripts } from "@/api/scripts";
 import { notifySuccess, notifyError } from "@/utils/notify";
 import { AGENT_DISPLAY_NAME } from "@/constants/constants";
-import { BUILD_PRODUCT_EDITION } from "@/config/productEdition";
 import { useProductEditionStore } from "@/stores/productEdition";
 
 // ui imports
@@ -342,10 +342,10 @@ export default {
     const urlActions = ref([]);
     const favoriteScripts = ref([]);
     const scriptActionsAvailable = computed(
-      () =>
-        BUILD_PRODUCT_EDITION !== "light" &&
-        productEditionStore.loaded &&
-        !productEditionStore.isLight,
+      () => productEditionStore.hasCapability("devices.run_script"),
+    );
+    const remoteBackgroundAvailable = computed(
+      () => productEditionStore.hasCapability("devices.remote_background"),
     );
 
     function viewAgentDetails(agent_id) {
@@ -662,9 +662,10 @@ export default {
         await productEditionStore.load();
       }
 
-      if (!scriptActionsAvailable.value) return;
       await getURLActions();
-      await getFavoriteScripts();
+      if (scriptActionsAvailable.value) {
+        await getFavoriteScripts();
+      }
     });
 
     return {
@@ -672,6 +673,7 @@ export default {
       urlActions,
       favoriteScripts,
       scriptActionsAvailable,
+      remoteBackgroundAvailable,
 
       // methods
       viewAgentDetails,

@@ -3,6 +3,8 @@ export const LIGHT_CAPABILITIES = [
   "portal.administration",
   "devices.lock",
   "devices.reboot",
+  "devices.remote_background",
+  "devices.run_script",
   "devices.shutdown",
   "policies.bluetooth_block",
   "policies.camera_block",
