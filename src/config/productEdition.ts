@@ -50,6 +50,7 @@ const LIGHT_ALLOWED_EXACT_PATHS = new Set([
 
 const LIGHT_ALLOWED_PATH_PREFIXES = [
   "/agents/",
+  "/remotebackground/",
   "/takecontrol/",
   "/security-center",
   "/settings",
