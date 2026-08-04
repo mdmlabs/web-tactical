@@ -37,6 +37,19 @@ export const useProductEditionStore = defineStore("productEdition", {
         const { data } = await axios.get<ProductEditionResponse>(
           "/core/product-edition/",
         );
+
+        // A Light bundle must never expand into the Full UI because of a
+        // missing/misconfigured backend edition variable. The server may
+        // further restrict a Full bundle to Light, but it cannot elevate a
+        // build that was intentionally produced as Light.
+        if (BUILD_PRODUCT_EDITION === "light" && data.edition !== "light") {
+          this.edition = "light";
+          this.productName = BUILD_PRODUCT_NAME;
+          this.capabilities = [...LIGHT_CAPABILITIES];
+          this.enforcement = "build";
+          return;
+        }
+
         this.edition = data.edition;
         this.productName = data.product;
         this.capabilities = Array.isArray(data.capabilities)
