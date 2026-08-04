@@ -2982,8 +2982,35 @@ function guessUploadedSilentPreset(fileName: string, packageType: string) {
   if (normalizedType === "msi") return "msi-standard";
   if (normalizedType === "exe") {
     if (lowerName.includes("anydesk")) return "anydesk-system";
-    if (/(^|[^a-z0-9])7(?:z|zip)(?:[0-9]|[^a-z0-9]|$)/i.test(lowerName)) return "nsis-s";
+    if (/(librewolf|zalo|(^|[^a-z0-9])7(?:z|zip)(?:[0-9]|[^a-z0-9]|$))/i.test(lowerName)) return "nsis-s";
     if (/(vc_redist|vcredist|dotnet|windowsdesktop|aspnetcore|ndp)/i.test(lowerName)) return "microsoft-runtime";
+  }
+  return "custom";
+}
+
+async function detectUploadedSilentPreset(file: File, packageType: string) {
+  const nameGuess = guessUploadedSilentPreset(file.name, packageType);
+  if (nameGuess !== "custom" || String(packageType).toLowerCase() !== "exe") {
+    return nameGuess;
+  }
+
+  // Installer names are often version-only (for example 26.5.10.exe). Read
+  // just the PE bootstrap area and identify the common installer family so
+  // operators do not have to know vendor-specific silent switches.
+  try {
+    const bootstrap = await file.slice(0, 1024 * 1024).arrayBuffer();
+    const markerText = new TextDecoder("windows-1252").decode(bootstrap);
+    if (/Nullsoft|NSIS Error|Nullsoft Install System/i.test(markerText)) {
+      return "nsis-s";
+    }
+    if (/Inno Setup/i.test(markerText)) {
+      return "inno-verysilent";
+    }
+    if (/WiXBurn|Burn v\d|Microsoft Visual C\+\+.*Redistributable/i.test(markerText)) {
+      return "microsoft-runtime";
+    }
+  } catch {
+    // Keep the safe custom fallback when a browser cannot inspect the file.
   }
   return "custom";
 }
@@ -5666,7 +5693,7 @@ function inferUploadedPackageType(fileName: string) {
   return "msi";
 }
 
-function onInternalCatalogFileSelected(file: File | null) {
+async function onInternalCatalogFileSelected(file: File | null) {
   if (!file) return;
   if (!internalCatalogForm.value.name) {
     internalCatalogForm.value.name = file.name.replace(/\.(msi|exe|zip)$/i, "");
@@ -5679,9 +5706,13 @@ function onInternalCatalogFileSelected(file: File | null) {
   internalCatalogForm.value.expected_executable = "";
   internalCatalogForm.value.product_code = "";
   internalCatalogForm.value.allow_interactive = false;
-  applyInternalCatalogUploadedPreset(
-    guessUploadedSilentPreset(file.name, internalCatalogForm.value.package_type)
+  const detectedPreset = await detectUploadedSilentPreset(
+    file,
+    internalCatalogForm.value.package_type
   );
+  if (internalCatalogInstallerFile.value === file) {
+    applyInternalCatalogUploadedPreset(detectedPreset);
+  }
 }
 
 function internalCatalogInstallConfig() {
