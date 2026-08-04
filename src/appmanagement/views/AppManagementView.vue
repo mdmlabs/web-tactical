@@ -2558,7 +2558,8 @@ import { useProductEditionStore } from "@/stores/productEdition";
 
 const $q = useQuasar();
 const route = useRoute();
-const { isLight } = storeToRefs(useProductEditionStore());
+const productEditionStore = useProductEditionStore();
+const { isLight } = storeToRefs(productEditionStore);
 const {
   uploading: uploadingInternalCatalogFile,
   uploadProgress: internalCatalogUploadProgress,
@@ -5304,7 +5305,11 @@ async function deleteItem(type: string, id: number) {
   });
 }
 
-onMounted(() => {
+onMounted(async () => {
+  if (!productEditionStore.loaded) {
+    await productEditionStore.load();
+  }
+
   loadApps();
   loadAppInventory();
   loadAppDistributions();

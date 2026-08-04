@@ -83,14 +83,25 @@
       <q-item-section>Send Command</q-item-section>
     </q-item>
 
-    <q-item clickable v-ripple v-close-popup @click="showRunScript(agent)">
+    <q-item
+      v-if="scriptActionsAvailable"
+      clickable
+      v-ripple
+      v-close-popup
+      @click="showRunScript(agent)"
+    >
       <q-item-section side>
         <q-icon size="xs" name="fas fa-terminal" />
       </q-item-section>
       <q-item-section>Run Script</q-item-section>
     </q-item>
 
-    <q-item clickable v-ripple :disable="favoriteScripts.length === 0">
+    <q-item
+      v-if="scriptActionsAvailable"
+      clickable
+      v-ripple
+      :disable="favoriteScripts.length === 0"
+    >
       <q-item-section side>
         <q-icon size="xs" name="star" />
       </q-item-section>
@@ -269,7 +280,7 @@
 
 <script>
 // composition imports
-import { ref, inject, onMounted } from "vue";
+import { ref, inject, onMounted, computed } from "vue";
 import { useStore } from "vuex";
 import { useQuasar } from "quasar";
 import { useRouter } from "vue-router";
@@ -292,6 +303,7 @@ import { fetchScripts } from "@/api/scripts";
 import { notifySuccess, notifyError } from "@/utils/notify";
 import { AGENT_DISPLAY_NAME } from "@/constants/constants";
 import { BUILD_PRODUCT_EDITION } from "@/config/productEdition";
+import { useProductEditionStore } from "@/stores/productEdition";
 
 // ui imports
 import PendingActions from "@/components/logs/PendingActions.vue";
@@ -323,11 +335,18 @@ export default {
 
     // setup router
     const router = useRouter();
+    const productEditionStore = useProductEditionStore();
 
     const refreshDashboard = inject("refreshDashboard");
 
     const urlActions = ref([]);
     const favoriteScripts = ref([]);
+    const scriptActionsAvailable = computed(
+      () =>
+        BUILD_PRODUCT_EDITION !== "light" &&
+        productEditionStore.loaded &&
+        !productEditionStore.isLight,
+    );
 
     function viewAgentDetails(agent_id) {
       router.push({ name: "Agent", params: { agent_id } });
@@ -371,6 +390,8 @@ export default {
     }
 
     function showRunScript(agent, script = undefined) {
+      if (!scriptActionsAvailable.value) return;
+
       $q.dialog({
         component: RunScript,
         componentProps: {
@@ -637,7 +658,11 @@ export default {
     }
 
     onMounted(async () => {
-      if (BUILD_PRODUCT_EDITION === "light") return;
+      if (!productEditionStore.loaded) {
+        await productEditionStore.load();
+      }
+
+      if (!scriptActionsAvailable.value) return;
       await getURLActions();
       await getFavoriteScripts();
     });
@@ -646,6 +671,7 @@ export default {
       // reactive data
       urlActions,
       favoriteScripts,
+      scriptActionsAvailable,
 
       // methods
       viewAgentDetails,
