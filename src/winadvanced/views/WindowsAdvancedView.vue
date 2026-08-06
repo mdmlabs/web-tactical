@@ -11,6 +11,7 @@
       <q-tab name="wdac" :label="$t('winadvanced.views.WindowsAdvancedView.19276e')" icon="verified_user" />
       <q-tab name="baselines" :label="$t('winadvanced.views.WindowsAdvancedView.323cf9')" icon="security" />
       <q-tab name="update-rings" :label="$t('winadvanced.views.WindowsAdvancedView.71778e')" icon="update" />
+      <q-tab name="update-services" label="Update Services" icon="dns" />
       <q-tab name="maintenance" :label="$t('winadvanced.views.WindowsAdvancedView.94de30')" icon="engineering" />
       <q-tab name="reboot" :label="$t('winadvanced.views.WindowsAdvancedView.6af4f5')" icon="restart_alt" />
       <q-tab name="credential-guard" :label="$t('winadvanced.views.WindowsAdvancedView.1e0d3f')" icon="shield" />
@@ -603,6 +604,31 @@
               <q-btn flat dense round icon="undo" size="sm" color="warning" @click="revokeWinAdvancedPolicy('update_ring', props.row)"><q-tooltip>Revoke Update Ring from devices</q-tooltip></q-btn>
               <q-btn flat dense round icon="edit" size="sm" @click="showUpdateRingDialog(props.row)" />
               <q-btn flat dense round icon="delete" size="sm" color="negative" @click="deleteWinAdvancedPolicy('update_ring', props.row, loadUpdateRings)" />
+            </q-td>
+          </template>
+        </q-table>
+      </q-tab-panel>
+
+      <!-- Update Services / WSUS -->
+      <q-tab-panel name="update-services">
+        <div class="row items-center justify-between q-mb-md">
+          <div class="mdm-section-title">Update Services Server Policies</div>
+          <q-btn color="primary" icon="add" label="Add WSUS Policy" @click="showUpdateServiceDialog()" />
+        </div>
+        <q-table :rows="updateServices" :columns="updateServiceColumns" dense row-key="id" :loading="loadingUpdateServices">
+          <template v-slot:body-cell-enabled="props">
+            <q-td :props="props"><q-chip dense :color="props.value ? 'positive' : 'grey'" text-color="white">{{ props.value ? 'Active' : 'Off' }}</q-chip></q-td>
+          </template>
+          <template v-slot:body-cell-actions="props">
+            <q-td :props="props">
+              <q-btn flat dense round icon="rocket_launch" size="sm" color="primary" @click="deployUpdateService(props.row)">
+                <q-tooltip>Apply WSUS policy to devices</q-tooltip>
+              </q-btn>
+              <q-btn flat dense round icon="undo" size="sm" color="warning" @click="clearUpdateService(props.row)">
+                <q-tooltip>Clear WSUS policy from devices</q-tooltip>
+              </q-btn>
+              <q-btn flat dense round icon="edit" size="sm" @click="showUpdateServiceDialog(props.row)" />
+              <q-btn flat dense round icon="delete" size="sm" color="negative" @click="deleteUpdateService(props.row.id)" />
             </q-td>
           </template>
         </q-table>
@@ -1379,6 +1405,7 @@ async function saveGeneric() {
     else if (currentEndpoint.value.includes("windows-hello")) await loadWindowsHello();
     else if (currentEndpoint.value.includes("wdac")) await loadWDAC();
     else if (currentEndpoint.value.includes("baselines")) await loadBaselines();
+    else if (currentEndpoint.value.includes("update-services")) await loadUpdateServices();
     else if (currentEndpoint.value.includes("retention")) await loadRetention();
     else if (currentEndpoint.value.includes("correlation/rules")) await loadCorrelation();
   } finally { savingGeneric.value = false; }
@@ -2101,6 +2128,7 @@ async function revokeWinAdvancedPolicy(kind: string, row?: any, extraPayload: Re
       else if (kind === "wdac") await loadWDAC();
       else if (kind === "baseline" || kind === "security_baseline") await loadBaselines();
       else if (kind === "update_ring") await loadUpdateRings();
+      else if (kind === "update_service" || kind === "wsus") await loadUpdateServices();
     }
   );
 }
@@ -2224,6 +2252,135 @@ async function deleteUpdateRing(id: number) {
   $q.dialog({ title: "Delete ring?", cancel: true, ok: { color: "negative" } }).onOk(async () => {
     await axios.delete(`/winadvanced/update-rings/${id}/`);
     await loadUpdateRings();
+  });
+}
+
+// ===== Update Services / WSUS =====
+const updateServices = ref<any[]>([]);
+const loadingUpdateServices = ref(false);
+const updateServiceColumns = [
+  { name: "name", label: "Name", field: "name", align: "left" as const, sortable: true },
+  { name: "wsus_url", label: "WSUS Server", field: "wsus_url", align: "left" as const },
+  { name: "status_url", label: "Status Server", field: updateServiceStatusLabel, align: "left" as const },
+  { name: "scope", label: "Scope", field: "scope", align: "center" as const },
+  { name: "target", label: "Target", field: updateServiceTargetLabel, align: "left" as const },
+  { name: "scan", label: "Scan", field: (row: any) => row.trigger_scan_after_apply ? "After apply" : "Manual", align: "center" as const },
+  { name: "enabled", label: "Status", field: "enabled", align: "center" as const },
+  { name: "actions", label: "", field: "actions", align: "right" as const },
+];
+
+function updateServiceStatusLabel(row: any) {
+  return row.status_url || row.wsus_url;
+}
+
+function updateServiceTargetLabel(row: any) {
+  if (row.scope === "device") {
+    return genericAgentOptions.value.find((option) => option.value === row.target_agent_id)?.label || row.target_agent_id || "No device";
+  }
+  if (row.scope === "device_group") {
+    return genericSiteOptions.value.find((option) => option.value === row.target_device_group_id)?.label || `Device group #${row.target_device_group_id || "-"}`;
+  }
+  return "All matching Windows devices";
+}
+
+async function loadUpdateServices() {
+  loadingUpdateServices.value = true;
+  try {
+    await loadGenericTargetOptions();
+    updateServices.value = (await axios.get("/winadvanced/update-services/")).data;
+  } finally {
+    loadingUpdateServices.value = false;
+  }
+}
+
+function showUpdateServiceDialog(item?: any) {
+  openDialog(
+    item ? "Edit Update Services Policy" : "New Update Services Policy",
+    "/winadvanced/update-services/",
+    item || null,
+    {
+      name: "",
+      enabled: true,
+      use_wsus_server: true,
+      wsus_url: "http://wsus.local:8530",
+      status_url: "",
+      target_group: "",
+      allow_driver_updates: true,
+      allow_auto_update: true,
+      detection_frequency_hours: 6,
+      block_public_windows_update: true,
+      reset_update_cache: false,
+      trigger_scan_after_apply: true,
+      scope: "global",
+      target_agent_id: "",
+      target_device_group_id: null,
+    },
+    [
+      { key: "wsus_url", label: "WSUS server URL", type: "text" },
+      { key: "status_url", label: "WSUS status server URL (blank = same)", type: "text" },
+      { key: "target_group", label: "WSUS target group (optional)", type: "text" },
+      { key: "scope", label: "Scope", type: "select", options: [
+        { label: "Global", value: "global" },
+        { label: "Specific Device", value: "device" },
+        { label: "Device Group", value: "device_group" },
+      ]},
+      { key: "target_agent_id", label: "Target device", type: "agent-select", showWhen: { key: "scope", value: "device" } },
+      { key: "target_device_group_id", label: "Target device group", type: "site-select", showWhen: { key: "scope", value: "device_group" } },
+      { key: "use_wsus_server", label: "Use internal WSUS server", type: "toggle" },
+      { key: "block_public_windows_update", label: "Block public Microsoft Update fallback", type: "toggle" },
+      { key: "allow_driver_updates", label: "Allow driver updates from WSUS", type: "toggle" },
+      { key: "allow_auto_update", label: "Allow automatic update client", type: "toggle" },
+      { key: "detection_frequency_hours", label: "Detection frequency hours", type: "number" },
+      { key: "reset_update_cache", label: "Reset local Windows Update cache on apply", type: "toggle" },
+      { key: "trigger_scan_after_apply", label: "Run update scan after apply", type: "toggle" },
+    ],
+  );
+}
+
+async function deployUpdateService(policy: any) {
+  await openAgentPicker(
+    `Apply WSUS Policy - ${policy.name}`,
+    `WSUS: ${policy.wsus_url}. Leave all unchecked to use the policy scope.`,
+    async (ids: string[]) => {
+      const resp = await axios.post(`/winadvanced/update-services/${policy.id}/deploy/`, {
+        agent_ids: ids,
+        wait: true,
+        timeout: 120,
+      });
+      $q.notify({
+        message: `WSUS policy applied to ${resp.data.agents_triggered ?? 0} device(s)`,
+        color: "positive",
+        icon: "dns",
+      });
+      await loadUpdateServices();
+    }
+  );
+}
+
+async function clearUpdateService(policy: any) {
+  await openAgentPicker(
+    `Clear WSUS Policy - ${policy.name}`,
+    "Select devices to clear WSUS registry policy. Leave all unchecked to use the policy scope.",
+    async (ids: string[]) => {
+      const resp = await axios.post(`/winadvanced/update-services/${policy.id}/clear/`, {
+        agent_ids: ids,
+        wait: true,
+        timeout: 120,
+      });
+      $q.notify({
+        message: `WSUS policy cleared on ${resp.data.agents_triggered ?? 0} device(s)`,
+        color: "warning",
+        icon: "undo",
+      });
+      await loadUpdateServices();
+    }
+  );
+}
+
+async function deleteUpdateService(id: number) {
+  $q.dialog({ title: "Delete WSUS policy?", cancel: true, ok: { color: "negative" } }).onOk(async () => {
+    await axios.delete(`/winadvanced/update-services/${id}/`);
+    await loadUpdateServices();
   });
 }
 
@@ -2427,7 +2584,7 @@ async function loadInsiderDeviceOptions() {
 onMounted(() => {
   loadVulnScans(); loadVulnPolicies(); loadRetention(); loadCorrelation(); loadAutopilot();
   loadWSL(); loadWindowsHello(); loadWDAC(); loadBaselines();
-  loadUpdateRings(); loadKioskAnalytics(); loadCredentialGuard(); loadTPM();
+  loadUpdateRings(); loadUpdateServices(); loadKioskAnalytics(); loadCredentialGuard(); loadTPM();
   loadInsiderDeviceOptions();
   loadInsiderStatus(); loadFeaturePackConfig(); loadAnalytics();
 });
