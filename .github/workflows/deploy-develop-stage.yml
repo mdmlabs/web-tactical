@@ -32,14 +32,19 @@ jobs:
 
           cd ~/mdmlabsrmm/web-tactical/
 
-          echo "🌐 Resetting working tree to remote..."
+          DEPLOY_BRANCH="${{ github.ref_name }}"
+          DEPLOY_SHA="${{ github.sha }}"
+          DEPLOY_REMOTE_URL="https://github.com/mdmlabs/web-tactical.git"
+
+          echo "🌐 Resetting working tree to GitHub ${DEPLOY_BRANCH}@${DEPLOY_SHA}..."
           # Hard reset prevents `git pull` from aborting on local lock-file
-          # drift (we hit this on 2026-04-26 and silently shipped a stale
-          # bundle).
-          BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-          git fetch origin "$BRANCH"
-          git reset --hard "origin/$BRANCH"
+          # drift. Force the server checkout to the GitHub ref that triggered
+          # this workflow instead of trusting the server-side origin/branch.
+          git remote set-url origin "$DEPLOY_REMOTE_URL"
+          git fetch --prune origin "$DEPLOY_BRANCH"
+          git reset --hard "$DEPLOY_SHA"
           git clean -fd
+          test "$(git rev-parse HEAD)" = "$DEPLOY_SHA"
 
           echo "Just in case"
           mkdir -p dist
